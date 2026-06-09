@@ -6,6 +6,8 @@ Sonar ships as a **MemberJunction Open App**: a versioned, installable extension
 
 **Status:** Initial scaffold — schema migration and engine are next.
 
+**New to this repo?** Start with the **[developer punch list](./PUNCH_LIST.md)** — environment setup, the migration workflow, and the build-out plan, step by step.
+
 ## Plans & design
 
 The full product plan lives in [`/plans`](./plans):
