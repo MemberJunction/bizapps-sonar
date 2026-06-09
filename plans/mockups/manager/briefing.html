@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Engagement Manager</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(34,211,238,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .ai-halo{background:linear-gradient(135deg,#818cf8,#22d3ee,#2dd4bf);padding:1px;border-radius:1rem}
+  .ai-halo-inner{background:#0b0f1a;border-radius:.95rem}
+  .sonar-dot{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .spark{stroke:#22d3ee;fill:none;stroke-width:2}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Engagement Manager</div></div>
+    </a>
+    <div class="glass rounded-xl p-3">
+      <div class="text-xs text-slate-400">Model</div>
+      <div class="font-semibold text-sm mt-0.5">Renewal Risk · v3</div>
+      <div class="text-xs text-cyan-300 mt-0.5">recomputed 6h ago</div>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm">
+      <a href="briefing.html" class="flex items-center px-3 py-2 rounded-lg bg-white/5 text-white"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-2 sonar-dot"></span>This week's briefing</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">At-risk cohorts</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Renewal window</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Search members</a>
+      <div class="pt-3 mt-3 border-t border-white/5"></div>
+      <div class="text-xs uppercase tracking-wider text-slate-500 px-3 mb-1">Switch model</div>
+      <a href="#" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Community Engagement</a>
+      <a href="#" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Learning Engagement</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">Good morning, Dana · Director of Membership</div>
+        <h1 class="text-xl font-semibold">This week on Renewal Risk</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-3 py-2 rounded-lg border border-white/10 text-sm">Export cohort</button>
+        <button class="px-3 py-2 rounded-lg bg-cyan-400 text-black font-medium text-sm">Launch intervention</button>
+      </div>
+    </div>
+
+    <div class="p-8 space-y-6">
+      <!-- briefing summary -->
+      <section class="ai-halo">
+        <div class="ai-halo-inner p-6">
+          <div class="flex items-start gap-4">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black flex-shrink-0">P</div>
+            <div class="flex-1">
+              <span class="chip bg-cyan-500/15 text-cyan-300 border border-cyan-500/20 mb-2"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 sonar-dot"></span> Weekly briefing</span>
+              <p class="text-lg leading-relaxed"><strong>14 members</strong> slipped into <span class="text-amber-300">At-Risk</span> this week and <strong>3</strong> into <span class="text-red-300">Critical</span>. The common thread: a cluster of CAE certifications lapsed in April, and newsletter engagement is decaying fastest among members who renew before September. <strong>9 of the 14</strong> renew within 60 days — I'd prioritize those.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- stat tiles -->
+      <section class="grid sm:grid-cols-4 gap-4">
+        <div class="glass rounded-2xl p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Healthy</div><div class="text-3xl font-bold text-emerald-300 mt-1">61%</div><div class="text-xs text-slate-500 mt-1">▲ 0.4 pts</div></div>
+        <div class="glass rounded-2xl p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Watch</div><div class="text-3xl font-bold text-cyan-300 mt-1">22%</div><div class="text-xs text-slate-500 mt-1">▼ 0.2 pts</div></div>
+        <div class="glass rounded-2xl p-5"><div class="text-xs uppercase tracking-wider text-slate-500">At-Risk</div><div class="text-3xl font-bold text-amber-300 mt-1">12%</div><div class="text-xs text-amber-400 mt-1">▲ 14 new</div></div>
+        <div class="glass rounded-2xl p-5"><div class="text-xs uppercase tracking-wider text-slate-500">Critical</div><div class="text-3xl font-bold text-red-300 mt-1">5%</div><div class="text-xs text-red-400 mt-1">▲ 3 new</div></div>
+      </section>
+
+      <div class="grid xl:grid-cols-[1fr,380px] gap-6">
+        <!-- droppers list -->
+        <section class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs uppercase tracking-wider text-slate-500">Biggest drops · renewing soonest first</div>
+            <span class="chip bg-white/5 text-slate-300 border border-white/10">9 renew &lt; 60d</span>
+          </div>
+          <div class="space-y-2">
+            <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4 flex items-center gap-4">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-cyan-400 text-black font-semibold flex items-center justify-center text-xs">MC</div>
+              <div class="flex-1">
+                <div class="text-sm font-medium">Maria Chen <span class="text-slate-500 font-normal">· renews in 47d</span></div>
+                <div class="text-xs text-slate-500 mono">cert lapsed · newsletter decay</div>
+              </div>
+              <div class="text-right"><div class="font-bold">73</div><div class="text-xs text-red-300 mono">▼12</div></div>
+              <span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">At-Risk</span>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4 flex items-center gap-4">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 text-black font-semibold flex items-center justify-center text-xs">JR</div>
+              <div class="flex-1">
+                <div class="text-sm font-medium">James Rivera <span class="text-slate-500 font-normal">· renews in 22d</span></div>
+                <div class="text-xs text-slate-500 mono">no event reg · dues late</div>
+              </div>
+              <div class="text-right"><div class="font-bold">58</div><div class="text-xs text-red-300 mono">▼19</div></div>
+              <span class="chip bg-red-500/15 text-red-300 border border-red-500/20">Critical</span>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4 flex items-center gap-4">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-pink-400 text-black font-semibold flex items-center justify-center text-xs">PT</div>
+              <div class="flex-1">
+                <div class="text-sm font-medium">Priya Tan <span class="text-slate-500 font-normal">· renews in 54d</span></div>
+                <div class="text-xs text-slate-500 mono">community silence · newsletter decay</div>
+              </div>
+              <div class="text-right"><div class="font-bold">69</div><div class="text-xs text-red-300 mono">▼9</div></div>
+              <span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">At-Risk</span>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4 flex items-center gap-4">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-400 text-black font-semibold flex items-center justify-center text-xs">DW</div>
+              <div class="flex-1">
+                <div class="text-sm font-medium">Derek Wu <span class="text-slate-500 font-normal">· renews in 71d</span></div>
+                <div class="text-xs text-slate-500 mono">cert lapsed</div>
+              </div>
+              <div class="text-right"><div class="font-bold">66</div><div class="text-xs text-red-300 mono">▼8</div></div>
+              <span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">At-Risk</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- drill-down -->
+        <section class="space-y-4">
+          <div class="glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs uppercase tracking-wider text-slate-500">Member drill-down</div>
+                <div class="text-lg font-semibold mt-0.5">Maria Chen</div>
+              </div>
+              <div class="text-right"><div class="text-3xl font-bold">73</div><div class="text-xs text-amber-300">At-Risk</div></div>
+            </div>
+            <!-- trajectory -->
+            <div class="mt-4">
+              <div class="text-xs text-slate-500 mb-1">Trajectory · 12 months</div>
+              <svg viewBox="0 0 300 70" class="w-full h-16">
+                <polyline class="spark" points="0,18 30,16 60,15 90,17 120,16 150,20 180,30 210,38 240,46 270,52 300,54"/>
+                <circle cx="300" cy="54" r="3" fill="#f87171"/>
+              </svg>
+              <div class="text-xs text-red-300 mono">peaked 88 in Feb · 73 now</div>
+            </div>
+            <!-- contributions waterfall -->
+            <div class="mt-4 space-y-2">
+              <div class="text-xs uppercase tracking-wider text-slate-500">Why this score</div>
+              <div class="flex items-center gap-3 text-sm"><span class="w-14 text-right mono text-red-300">−22</span><div class="flex-1 h-5 bg-red-500/15 rounded"><div class="h-5 bg-red-400/60 rounded" style="width:80%"></div></div><span class="text-xs text-slate-400 w-28">cert lapsed</span></div>
+              <div class="flex items-center gap-3 text-sm"><span class="w-14 text-right mono text-red-300">−15</span><div class="flex-1 h-5 bg-red-500/15 rounded"><div class="h-5 bg-red-400/60 rounded" style="width:55%"></div></div><span class="text-xs text-slate-400 w-28">newsletter decay</span></div>
+              <div class="flex items-center gap-3 text-sm"><span class="w-14 text-right mono text-emerald-300">+8</span><div class="flex-1 h-5 bg-emerald-500/15 rounded"><div class="h-5 bg-emerald-400/60 rounded" style="width:30%"></div></div><span class="text-xs text-slate-400 w-28">events</span></div>
+              <div class="flex items-center gap-3 text-sm"><span class="w-14 text-right mono text-emerald-300">+5</span><div class="flex-1 h-5 bg-emerald-500/15 rounded"><div class="h-5 bg-emerald-400/60 rounded" style="width:20%"></div></div><span class="text-xs text-slate-400 w-28">dues on time</span></div>
+            </div>
+            <div class="mt-4 flex gap-2">
+              <button class="chip bg-cyan-400 text-black font-medium">Draft re-engagement →</button>
+              <button class="chip bg-white/5 text-slate-200 border border-white/10">Route to chapter rep</button>
+            </div>
+          </div>
+          <div class="glass rounded-2xl p-5 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">Action layer (v1):</span> launching an intervention on this cohort holds back a control group automatically, so the reactivation lift is <em>measured</em>, not assumed.
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

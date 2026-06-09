@@ -1,0 +1,51 @@
+.DS_Store
+.cache/
+node_modules/
+.turbo/
+.angular/
+codegen.output.log
+migrations/codegen/
+dist/
+SQL Scripts/
+Schema Files/
+Update_MemberJunction_Packages_To_Latest.ps1
+install.config.json
+.env
+.mjrc.yml.ignore
+SQL Scripts/Completely Wipe out __mj Schema and all objects ---- BE CAREFUL.sql
+SQL Scripts/MJ_BASE_BEFORE_SQL.sql
+SQL Scripts/spDeleteEntity_BeCareful.sql
+SQL Scripts/demo/CRM Schema - Drop.sql
+SQL Scripts/demo/CRM Schema 1.sql
+SQL Scripts/demo/CRM Schema 2 - Products - Deals - Invoices.sql
+SQL Scripts/demo/CRM Schema 3 - Public Companies Sample Data.sql
+SQL Scripts/demo/Events Schema - Abstract Submission Management.sql
+SQL Scripts/demo/Events Schema - Drop.sql
+SQL Scripts/demo/README.md
+SQL Scripts/demo/metadata/queries/SQL/account-payment-history.sql
+SQL Scripts/demo/metadata/queries/SQL/account-revenue-by-type.sql
+SQL Scripts/demo/metadata/queries/SQL/ai-model-analytics-costs.sql
+SQL Scripts/demo/metadata/queries/SQL/ai-model-analytics-models.sql
+SQL Scripts/demo/metadata/queries/SQL/ai-model-analytics-trends.sql
+SQL Scripts/demo/metadata/queries/SQL/category-top-products.sql
+SQL Scripts/demo/metadata/queries/SQL/category-totals.sql
+SQL Scripts/demo/metadata/queries/SQL/deal-pipeline-details.sql
+SQL Scripts/demo/metadata/queries/SQL/deal-pipeline-distribution.sql
+SQL Scripts/demo/metadata/queries/SQL/deal-stage-trends.sql
+SQL Scripts/demo/metadata/queries/SQL/deal-velocity-analysis.sql
+SQL Scripts/demo/metadata/queries/SQL/invoice-line-items-by-product.sql
+SQL Scripts/demo/metadata/queries/SQL/invoices-by-account-type.sql
+SQL Scripts/demo/metadata/queries/SQL/monthly-invoice-revenue.sql
+SQL Scripts/demo/metadata/queries/SQL/outstanding-invoices.sql
+SQL Scripts/demo/metadata/queries/SQL/payment-trends.sql
+SQL Scripts/demo/metadata/queries/SQL/product-ranking.sql
+SQL Scripts/demo/metadata/queries/SQL/submission-review-timeline.sql
+SQL Scripts/demo/metadata/queries/SQL/submission-status-summary.sql
+SQL Scripts/demo/metadata/queries/SQL/top-accounts-by-outstanding.sql
+SQL Scripts/generated/.gitkeep
+SQL Scripts/utilities/MJ Metadata Wipe Out - CAREFUL.sql
+report.html
+report.json
+
+
+metadata/sql_logging

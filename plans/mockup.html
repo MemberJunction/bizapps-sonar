@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sonar — Configurable Engagement Scoring on MemberJunction</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  html, body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .grad-brand { background: radial-gradient(1200px 600px at 18% 8%, rgba(99,102,241,0.20), transparent 60%), radial-gradient(1000px 500px at 82% 92%, rgba(45,212,191,0.18), transparent 55%), #080b14; }
+  .grad-text { background: linear-gradient(135deg, #818cf8 0%, #22d3ee 50%, #2dd4bf 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(12px); }
+  .glow-indigo { box-shadow: 0 0 0 1px rgba(129,140,248,0.25), 0 20px 60px -20px rgba(129,140,248,0.35); }
+  .glow-cyan { box-shadow: 0 0 0 1px rgba(34,211,238,0.25), 0 20px 60px -20px rgba(34,211,238,0.35); }
+  .glow-emerald { box-shadow: 0 0 0 1px rgba(45,212,191,0.25), 0 20px 60px -20px rgba(45,212,191,0.35); }
+  .noise { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .card-hover { transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s; }
+  .card-hover:hover { transform: translateY(-4px); }
+  .chip { display:inline-flex; align-items:center; gap:.375rem; padding:.25rem .625rem; border-radius:999px; font-size:.75rem; font-weight:500; }
+  .ai-halo { background: linear-gradient(135deg, #818cf8, #22d3ee, #2dd4bf); padding: 1px; border-radius: 1rem; }
+  .ai-halo-inner { background: #0b0f1a; border-radius: .95rem; }
+  .sonar-dot{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body class="grad-brand text-slate-100 min-h-screen">
+<div class="noise fixed inset-0 opacity-30 pointer-events-none"></div>
+
+<!-- Top bar -->
+<header class="relative z-10 border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div>
+        <div class="font-semibold tracking-tight text-lg">Sonar <span class="text-slate-500 font-normal text-sm ml-1">working title</span></div>
+        <div class="text-xs text-slate-400 -mt-0.5">Configurable engagement scoring on MemberJunction</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="chip bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">v0.1 Mockups</span>
+      <a href="plan.md" class="chip bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10 transition">Read the plan</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-16">
+  <div class="grid lg:grid-cols-[1.2fr,1fr] gap-16 items-center">
+    <div>
+      <div class="chip bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 sonar-dot"></span>
+        Product design mockups — click through
+      </div>
+      <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05]">
+        Score what<br/>
+        <span class="grad-text">engagement means</span><br/>
+        to you.
+      </h1>
+      <p class="mt-7 text-lg text-slate-300 leading-relaxed max-w-xl">
+        Point at any MemberJunction entity. Wire in the CRM activity, the invoices, the LMS completions, the community posts — already unified in MJ. Define any number of engagement models, each with its own rubric. Sonar computes explainable, trending scores and writes them back where your team works.
+      </p>
+      <div class="mt-10 flex flex-wrap items-center gap-3">
+        <a href="#surfaces" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition">
+          Explore the product
+          <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>
+        </a>
+        <a href="plan.md" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 text-slate-100 font-semibold border border-white/10 hover:bg-white/10 transition">
+          Read plan.md
+        </a>
+      </div>
+
+      <dl class="mt-14 grid grid-cols-3 gap-6 max-w-xl">
+        <div>
+          <dt class="text-xs uppercase tracking-wider text-slate-400">Anchor entities</dt>
+          <dd class="mt-1 text-3xl font-bold grad-text">Any</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wider text-slate-400">Active models</dt>
+          <dd class="mt-1 text-3xl font-bold text-slate-200">Many</dd>
+        </div>
+        <div>
+          <dt class="text-xs uppercase tracking-wider text-slate-400">ETL required</dt>
+          <dd class="mt-1 text-3xl font-bold text-slate-500">Zero</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Score preview -->
+    <div class="relative h-[520px]">
+      <div class="absolute inset-0">
+        <div class="ai-halo absolute top-0 right-0 w-[90%]">
+          <div class="ai-halo-inner overflow-hidden card-hover">
+            <div class="px-4 py-2 bg-black/40 text-xs text-slate-400 flex items-center gap-2 border-b border-white/5">
+              <span class="w-2 h-2 rounded-full bg-red-400/70"></span>
+              <span class="w-2 h-2 rounded-full bg-amber-400/70"></span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400/70"></span>
+              <span class="ml-2 mono">sonar / model / renewal risk · Maria Chen</span>
+            </div>
+            <div class="p-5">
+              <div class="flex items-end justify-between">
+                <div>
+                  <div class="text-xs text-indigo-300 uppercase tracking-wider">Renewal Risk score</div>
+                  <div class="text-5xl font-bold mt-1">73<span class="text-2xl text-slate-500">/100</span></div>
+                </div>
+                <div class="text-right">
+                  <span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">At-Risk</span>
+                  <div class="text-sm text-red-300 mt-2 mono">▼ 12 since Mar · renews in 47d</div>
+                </div>
+              </div>
+              <div class="mt-5 space-y-2">
+                <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Why this score</div>
+                <div class="flex items-center gap-3 text-sm"><span class="w-16 text-right mono text-emerald-300">+8</span><span class="text-slate-300">Event attendance (2 in 90d)</span></div>
+                <div class="flex items-center gap-3 text-sm"><span class="w-16 text-right mono text-emerald-300">+5</span><span class="text-slate-300">Dues paid on time</span></div>
+                <div class="flex items-center gap-3 text-sm"><span class="w-16 text-right mono text-red-300">−15</span><span class="text-slate-300">Newsletter opens decayed (Mar)</span></div>
+                <div class="flex items-center gap-3 text-sm"><span class="w-16 text-right mono text-red-300">−22</span><span class="text-slate-300">CAE certification lapsed (Apr)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="absolute bottom-2 left-0 w-[66%] rounded-2xl overflow-hidden glass glow-cyan card-hover">
+          <div class="px-4 py-2 bg-black/40 text-xs text-slate-400 flex items-center gap-2 border-b border-white/5">
+            <span class="ml-2 mono">sonar / factor compiler</span>
+          </div>
+          <div class="p-4">
+            <div class="text-xs text-cyan-300 uppercase tracking-wider mb-2">Declarative factor → set-based SQL</div>
+            <div class="bg-black/40 rounded-lg p-3 border border-white/5 mono text-xs leading-relaxed text-slate-300">
+              <span class="text-indigo-300">factor</span> newsletter_90d<br/>
+              &nbsp;&nbsp;source: <span class="text-emerald-300">crm_activity</span><br/>
+              &nbsp;&nbsp;where: type in (Open,Click)<br/>
+              &nbsp;&nbsp;agg: <span class="text-cyan-300">Count</span> · window: 90d<br/>
+              &nbsp;&nbsp;norm: <span class="text-cyan-300">Percentile</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Surfaces -->
+<section id="surfaces" class="relative z-10 max-w-7xl mx-auto px-6 py-20">
+  <div class="flex items-end justify-between mb-10">
+    <div>
+      <div class="chip bg-white/5 text-slate-300 border border-white/10 mb-3">Three persona surfaces · one MJ Explorer shell</div>
+      <h2 class="text-4xl md:text-5xl font-bold tracking-tight">Click into each persona</h2>
+      <p class="mt-3 text-slate-400 max-w-2xl">Static mockups. Each reflects how that persona experiences Sonar day-to-day.</p>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-6">
+    <!-- Builder -->
+    <a href="mockups/builder/model.html" class="group card-hover">
+      <div class="rounded-2xl overflow-hidden glass hover:glow-indigo transition p-6 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-5">
+          <span class="chip bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Model Builder</span>
+          <svg class="w-5 h-5 text-slate-500 group-hover:text-indigo-300 transition" viewBox="0 0 20 20" fill="currentColor"><path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>
+        </div>
+        <div class="aspect-[4/3] rounded-xl bg-black/40 mb-5 overflow-hidden border border-white/5">
+          <img alt="" class="w-full h-full object-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23060a12'/><rect x='20' y='20' width='170' height='260' rx='8' fill='%23818cf8' opacity='0.10'/><rect x='32' y='34' width='110' height='8' rx='2' fill='%23818cf8'/><rect x='32' y='54' width='146' height='26' rx='4' fill='white' opacity='0.06'/><rect x='32' y='86' width='146' height='26' rx='4' fill='white' opacity='0.06'/><rect x='32' y='118' width='146' height='26' rx='4' fill='%2322d3ee' opacity='0.18'/><rect x='32' y='150' width='146' height='26' rx='4' fill='white' opacity='0.06'/><rect x='204' y='20' width='176' height='150' rx='8' fill='white' opacity='0.05'/><rect x='216' y='34' width='90' height='8' rx='2' fill='white' opacity='0.5'/><rect x='216' y='60' width='152' height='12' rx='3' fill='%232dd4bf' opacity='0.5'/><rect x='216' y='80' width='120' height='12' rx='3' fill='%2322d3ee' opacity='0.5'/><rect x='216' y='100' width='140' height='12' rx='3' fill='%23818cf8' opacity='0.5'/><rect x='216' y='120' width='90' height='12' rx='3' fill='white' opacity='0.3'/><rect x='204' y='184' width='176' height='96' rx='8' fill='white' opacity='0.04'/><rect x='218' y='250' width='12' height='20' fill='%23818cf8'/><rect x='236' y='240' width='12' height='30' fill='%2322d3ee'/><rect x='254' y='220' width='12' height='50' fill='%232dd4bf'/><rect x='272' y='232' width='12' height='38' fill='%2322d3ee'/><rect x='290' y='248' width='12' height='22' fill='%23818cf8'/></svg>"/>
+        </div>
+        <h3 class="text-xl font-semibold mb-1">Author a model in a sentence</h3>
+        <p class="text-sm text-slate-400 mb-4 flex-1">Tell the agent what engagement means. It introspects your MJ schema and proposes the anchor, factors, weights, and bands. Tune visually. Publish a version.</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">AI authoring</span>
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Factors</span>
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Rubric</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Manager -->
+    <a href="mockups/manager/briefing.html" class="group card-hover">
+      <div class="rounded-2xl overflow-hidden glass hover:glow-cyan transition p-6 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-5">
+          <span class="chip bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Engagement Manager</span>
+          <svg class="w-5 h-5 text-slate-500 group-hover:text-cyan-300 transition" viewBox="0 0 20 20" fill="currentColor"><path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>
+        </div>
+        <div class="aspect-[4/3] rounded-xl bg-black/40 mb-5 overflow-hidden border border-white/5">
+          <img alt="" class="w-full h-full object-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23060a12'/><rect x='20' y='20' width='115' height='60' rx='6' fill='%232dd4bf' opacity='0.16'/><rect x='32' y='32' width='50' height='18' rx='3' fill='%232dd4bf'/><rect x='32' y='58' width='80' height='8' rx='2' fill='white' opacity='0.4'/><rect x='143' y='20' width='115' height='60' rx='6' fill='%23fbbf24' opacity='0.16'/><rect x='155' y='32' width='40' height='18' rx='3' fill='%23fbbf24'/><rect x='266' y='20' width='114' height='60' rx='6' fill='%23f87171' opacity='0.16'/><rect x='278' y='32' width='34' height='18' rx='3' fill='%23f87171'/><rect x='20' y='95' width='360' height='185' rx='8' fill='white' opacity='0.04'/><rect x='34' y='110' width='150' height='8' rx='2' fill='white' opacity='0.5'/><rect x='34' y='132' width='332' height='26' rx='4' fill='%23f87171' opacity='0.12'/><circle cx='48' cy='145' r='5' fill='%23f87171'/><rect x='62' y='141' width='150' height='7' rx='2' fill='white' opacity='0.5'/><rect x='320' y='139' width='34' height='10' rx='3' fill='%23f87171' opacity='0.6'/><rect x='34' y='164' width='332' height='26' rx='4' fill='%23fbbf24' opacity='0.10'/><circle cx='48' cy='177' r='5' fill='%23fbbf24'/><rect x='62' y='173' width='150' height='7' rx='2' fill='white' opacity='0.5'/><rect x='34' y='196' width='332' height='26' rx='4' fill='white' opacity='0.05'/><circle cx='48' cy='209' r='5' fill='%232dd4bf'/><rect x='62' y='205' width='150' height='7' rx='2' fill='white' opacity='0.4'/><rect x='34' y='228' width='332' height='26' rx='4' fill='white' opacity='0.05'/><circle cx='48' cy='241' r='5' fill='%232dd4bf'/><rect x='62' y='237' width='150' height='7' rx='2' fill='white' opacity='0.4'/></svg>"/>
+        </div>
+        <h3 class="text-xl font-semibold mb-1">The Monday briefing</h3>
+        <p class="text-sm text-slate-400 mb-4 flex-1">Who slipped this week, who's at risk in the renewal window, and the factor-by-factor reason each score moved. Drill into any member's trajectory.</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Cohorts</span>
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Explainability</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Admin -->
+    <a href="mockups/admin/ops.html" class="group card-hover">
+      <div class="rounded-2xl overflow-hidden glass hover:glow-emerald transition p-6 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-5">
+          <span class="chip bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Admin / Ops</span>
+          <svg class="w-5 h-5 text-slate-500 group-hover:text-emerald-300 transition" viewBox="0 0 20 20" fill="currentColor"><path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/></svg>
+        </div>
+        <div class="aspect-[4/3] rounded-xl bg-black/40 mb-5 overflow-hidden border border-white/5">
+          <img alt="" class="w-full h-full object-cover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23060a12'/><rect x='20' y='20' width='360' height='44' rx='6' fill='%232dd4bf' opacity='0.10'/><circle cx='42' cy='42' r='8' fill='%232dd4bf'/><rect x='58' y='34' width='140' height='8' rx='2' fill='white' opacity='0.6'/><rect x='58' y='48' width='200' height='6' rx='2' fill='white' opacity='0.3'/><rect x='20' y='76' width='360' height='90' rx='8' fill='white' opacity='0.04'/><rect x='34' y='90' width='120' height='8' rx='2' fill='white' opacity='0.5'/><rect x='34' y='110' width='332' height='18' rx='3' fill='%232dd4bf' opacity='0.18'/><rect x='34' y='134' width='332' height='18' rx='3' fill='white' opacity='0.06'/><rect x='20' y='178' width='176' height='102' rx='8' fill='%23fbbf24' opacity='0.08'/><rect x='34' y='192' width='90' height='8' rx='2' fill='%23fbbf24' opacity='0.8'/><rect x='34' y='212' width='148' height='14' rx='3' fill='white' opacity='0.08'/><rect x='34' y='232' width='148' height='14' rx='3' fill='white' opacity='0.08'/><rect x='34' y='252' width='100' height='14' rx='3' fill='%232dd4bf' opacity='0.4'/><rect x='204' y='178' width='176' height='102' rx='8' fill='white' opacity='0.04'/><rect x='218' y='192' width='90' height='8' rx='2' fill='white' opacity='0.5'/><rect x='218' y='214' width='60' height='40' rx='4' fill='%23818cf8' opacity='0.4'/><rect x='288' y='224' width='60' height='30' rx='4' fill='%2322d3ee' opacity='0.4'/></svg>"/>
+        </div>
+        <h3 class="text-xl font-semibold mb-1">Run the engine safely</h3>
+        <p class="text-sm text-slate-400 mb-4 flex-1">Recompute health and cost, write-back targets and push policy, the Action promotion queue, and calibration-network consent.</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Recompute</span>
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Write-back</span>
+          <span class="chip bg-white/5 text-slate-300 border border-white/10">Governance</span>
+        </div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- Differentiators -->
+<section class="relative z-10 max-w-7xl mx-auto px-6 py-20">
+  <div class="flex items-end justify-between mb-10">
+    <div>
+      <h2 class="text-4xl md:text-5xl font-bold tracking-tight">Why this product, why now</h2>
+      <p class="mt-3 text-slate-400 max-w-2xl">The category is commoditized at the <em>score</em> and wide open at the <em>act</em>. Five wedges, each independently defensible.</p>
+    </div>
+  </div>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5 font-bold text-indigo-300">1</div>
+      <h3 class="text-lg font-semibold mb-2">Configurable over the MJ graph</h3>
+      <p class="text-sm text-slate-400">Anchor on any entity, wire in any related entities, run many concurrent models. Members, donors, volunteers, chapters — one engine, different rubrics. Nobody else does multi-model, multi-entity, per-org authoring.</p>
+    </div>
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-5 font-bold text-cyan-300">2</div>
+      <h3 class="text-lg font-semibold mb-2">MJ is the data fabric</h3>
+      <p class="text-sm text-slate-400">The expensive, fragile part of every competitor — stitching CRM + finance + LMS + community + email into one view — is a precondition on MJ, not a project. We read the unified graph; they sell you the ETL first.</p>
+    </div>
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5 font-bold text-emerald-300">3</div>
+      <h3 class="text-lg font-semibold mb-2">Explainable by construction</h3>
+      <p class="text-sm text-slate-400">A score is a weighted sum of named factors, so it decomposes for free: "73, down 12 — −15 newsletter decay, −22 cert lapsed." The narrative is what makes staff act. Black-box BI can't hand you that.</p>
+    </div>
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-5 font-bold text-violet-300">4</div>
+      <h3 class="text-lg font-semibold mb-2">Cross-tenant calibration</h3>
+      <p class="text-sm text-slate-400">"Is 6% community participation good?" is unanswerable in one tenant and learnable across a network. Benchmarked risk models and transfer learning on what interventions work. NDAs and lack of concentration lock everyone else out.</p>
+    </div>
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center mb-5 font-bold text-pink-300">5</div>
+      <h3 class="text-lg font-semibold mb-2">The action layer, with honest lift</h3>
+      <p class="text-sm text-slate-400">Surface the cohort, draft the outreach, fire it as an Action — and measure lift against an automatic holdout. Most of the category won't hold out a control group. Doing it is the trust-builder and the basis for performance pricing.</p>
+    </div>
+    <div class="p-7 rounded-2xl glass">
+      <div class="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center mb-5 font-bold text-white">+</div>
+      <h3 class="text-lg font-semibold mb-2">Packaged as an OpenApp</h3>
+      <p class="text-sm text-slate-400">Engine, entities, starter factor library, model templates, the config/dashboard agent, and dashboards — one OpenApp. Installable on any MJ deployment; layered on BC SaaS for the calibration network.</p>
+    </div>
+  </div>
+</section>
+
+<!-- The architecture idea -->
+<section class="relative z-10 max-w-7xl mx-auto px-6 py-20">
+  <div class="ai-halo">
+    <div class="ai-halo-inner p-10">
+      <div class="grid md:grid-cols-3 gap-10 items-center">
+        <div class="md:col-span-2">
+          <div class="chip bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 mb-3">The one big idea</div>
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Configuration is <span class="grad-text">data</span>, not code.</h2>
+          <p class="mt-4 text-slate-300 max-w-2xl">Models, factors, rubrics, windows, bands, write-back rules, and action playbooks are all rows. Code is the engine that interprets them — plus the escape-hatch Actions for arbitrary logic. Declarative factors compile to set-based SQL; Action-backed factors (code or CodeSmith-generated Runtime Actions) handle the weird 20%. Both satisfy one Factor contract, so the rubric engine and the explainability view never care which kind they hold.</p>
+        </div>
+        <div class="space-y-3">
+          <div class="rounded-xl p-4 border border-white/10 bg-white/5">
+            <div class="text-xs text-slate-400 uppercase tracking-wider">Declarative factor</div>
+            <div class="mt-1 text-lg font-bold mono text-cyan-300">→ set-based SQL</div>
+            <div class="text-xs text-slate-500 mt-1">whole population, one pass</div>
+          </div>
+          <div class="rounded-xl p-4 border border-white/10 bg-white/5">
+            <div class="text-xs text-slate-400 uppercase tracking-wider">Action-backed factor</div>
+            <div class="mt-1 text-lg font-bold mono text-indigo-300">→ MJ Action</div>
+            <div class="text-xs text-slate-500 mt-1">arbitrary logic, governed</div>
+          </div>
+          <div class="rounded-xl p-4 border border-emerald-500/30 bg-emerald-500/5">
+            <div class="text-xs text-emerald-300 uppercase tracking-wider">Output</div>
+            <div class="mt-1 text-lg font-bold mono text-emerald-300">→ MJ entity</div>
+            <div class="text-xs text-slate-300 mt-1">segments · dashboards · write-back</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="relative z-10 border-t border-white/5 mt-12">
+  <div class="max-w-7xl mx-auto px-6 py-8 flex flex-wrap items-center justify-between gap-4">
+    <div class="text-sm text-slate-500">Mockups only. Not a live product. Phase 0 design-partner outreach + MJ feasibility spike pending plan approval.</div>
+    <div class="text-sm text-slate-500 mono">branch: claude/engagement-scoring-app-vqowa1</div>
+  </div>
+</footer>
+
+</body>
+</html>

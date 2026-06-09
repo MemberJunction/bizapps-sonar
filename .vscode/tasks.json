@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "serve-explorer",
+      "type": "shell",
+      "command": "NODE_OPTIONS=--max-old-space-size=16384 npx ng serve --port 4302",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/apps/MJExplorer"
+      },
+      "problemMatcher": {
+        "owner": "angular",
+        "pattern": {
+          "regexp": "^\\s*Error:\\s+(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Building\\.\\.\\.",
+          "endsPattern": "Application bundle generation complete|Compiled successfully"
+        }
+      }
+    },
+    {
+      "label": "build-api",
+      "type": "shell",
+      "command": "npm run build:api",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "label": "build-all",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": "$tsc"
+    }
+  ]
+}

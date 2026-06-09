@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.server.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "ESNext"
+  },
+  "ts-node": {
+    "esm": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "../../node_modules/@types/plotly.js",
+    "src/__tests__/**",
+    "src/**/*.test.ts"
+  ]
+}

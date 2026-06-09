@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Model Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(129,140,248,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .ai-halo{background:linear-gradient(135deg,#818cf8,#22d3ee,#2dd4bf);padding:1px;border-radius:1rem}
+  .ai-halo-inner{background:#0b0f1a;border-radius:.95rem}
+  .sonar-dot{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  input[type=range]{accent-color:#22d3ee}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <!-- sidebar -->
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Model Builder</div></div>
+    </a>
+    <div class="glass rounded-xl p-3">
+      <div class="text-xs text-slate-400">Editing model</div>
+      <div class="font-semibold text-sm mt-0.5">Renewal Risk</div>
+      <div class="text-xs text-indigo-300 mt-0.5">Draft v3 · anchor: Member</div>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm">
+      <div class="text-xs uppercase tracking-wider text-slate-500 px-3 mb-1">Active models</div>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg bg-white/5 text-white"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400 mr-2 sonar-dot"></span>Renewal Risk</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2"></span>Community Engagement</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-2"></span>Learning Engagement</a>
+      <div class="pt-3 mt-3 border-t border-white/5"></div>
+      <a href="#" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">+ New model</a>
+      <a href="#" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Factor library</a>
+      <a href="#" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Model templates</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">Anchor: Member · 38,402 in population · trailing windows as-of today</div>
+        <h1 class="text-xl font-semibold">Renewal Risk <span class="text-slate-500 font-normal text-sm ml-2">Draft v3 — unpublished changes</span></h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-3 py-2 rounded-lg border border-white/10 text-sm">Simulate</button>
+        <button class="px-3 py-2 rounded-lg bg-cyan-400 text-black font-medium text-sm">Publish version</button>
+      </div>
+    </div>
+
+    <div class="p-8 grid xl:grid-cols-[1fr,360px] gap-6">
+      <div class="space-y-6">
+
+        <!-- AI authoring -->
+        <section class="ai-halo">
+          <div class="ai-halo-inner p-6">
+            <div class="flex items-start gap-4">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black flex-shrink-0">P</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="chip bg-indigo-500/15 text-indigo-300 border border-indigo-500/20"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400 sonar-dot"></span> Model Builder agent</span>
+                </div>
+                <p class="text-sm text-slate-300 leading-relaxed">You said: <em class="text-slate-200">"Renewal risk should reward people who show up, learn, and pay us — and punish silence as renewal approaches."</em></p>
+                <p class="text-sm text-slate-400 leading-relaxed mt-3">I introspected the <span class="mono text-cyan-300">Member</span> entity and found 6 related entities already in MJ. I proposed 5 factors below, weighted toward recency and renewal-window decay. The biggest negative driver is a lapsed certification — common in your population. Want me to add a <span class="text-indigo-300">community sentiment</span> factor? That needs a custom Action.</p>
+                <div class="mt-3 flex gap-2">
+                  <button class="chip bg-white/5 text-slate-200 border border-white/10">Add sentiment factor →</button>
+                  <button class="chip bg-white/5 text-slate-200 border border-white/10">Explain the weights</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- related entities -->
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Related entities wired in <span class="text-slate-600">(from MJ relationship metadata)</span></div>
+          <div class="grid sm:grid-cols-3 gap-3 text-sm">
+            <div class="rounded-lg border border-white/10 p-3"><div class="mono text-emerald-300 text-xs">crm_activity</div><div class="text-slate-300 mt-1">Activities</div><div class="text-xs text-slate-500">Salesforce</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="mono text-emerald-300 text-xs">invoices</div><div class="text-slate-300 mt-1">Invoices</div><div class="text-xs text-slate-500">Finance</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="mono text-emerald-300 text-xs">lms_completions</div><div class="text-slate-300 mt-1">Course Completions</div><div class="text-xs text-slate-500">LMS</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="mono text-emerald-300 text-xs">event_regs</div><div class="text-slate-300 mt-1">Event Registrations</div><div class="text-xs text-slate-500">Events</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="mono text-emerald-300 text-xs">community</div><div class="text-slate-300 mt-1">Community Posts</div><div class="text-xs text-slate-500">Higher Logic</div></div>
+            <div class="rounded-lg border border-dashed border-white/15 p-3 text-slate-500 flex items-center justify-center">+ map another entity</div>
+          </div>
+        </section>
+
+        <!-- factors / rubric -->
+        <section class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs uppercase tracking-wider text-slate-500">Rubric — 5 factors</div>
+            <button class="chip bg-white/5 text-slate-200 border border-white/10">+ Add factor</button>
+          </div>
+          <div class="space-y-3">
+            <!-- factor row -->
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-sm">Certification status</div>
+                  <div class="mono text-xs text-slate-500 mt-0.5">lms_completions · Exists(active cert) · gate/penalty</div>
+                </div>
+                <span class="chip bg-red-500/10 text-red-300 border border-red-500/20">weight 0.30 · penalty</span>
+              </div>
+              <input type="range" min="0" max="100" value="30" class="w-full mt-3"/>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-sm">Newsletter engagement</div>
+                  <div class="mono text-xs text-slate-500 mt-0.5">crm_activity · Count(Open,Click) · 90d · Percentile · recency-decay</div>
+                </div>
+                <span class="chip bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">weight 0.20 · additive</span>
+              </div>
+              <input type="range" min="0" max="100" value="20" class="w-full mt-3"/>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-sm">Event attendance</div>
+                  <div class="mono text-xs text-slate-500 mt-0.5">event_regs · Count(Attended) · 12m · Percentile</div>
+                </div>
+                <span class="chip bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">weight 0.20 · additive</span>
+              </div>
+              <input type="range" min="0" max="100" value="20" class="w-full mt-3"/>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-sm">Dues paid on time</div>
+                  <div class="mono text-xs text-slate-500 mt-0.5">invoices · Recency(paid) · current term · MinMax</div>
+                </div>
+                <span class="chip bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">weight 0.15 · additive</span>
+              </div>
+              <input type="range" min="0" max="100" value="15" class="w-full mt-3"/>
+            </div>
+            <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-sm flex items-center gap-2">Renewal-window silence <span class="chip bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">renewal-relative window</span></div>
+                  <div class="mono text-xs text-slate-500 mt-0.5">crm_activity · TrendSlope · window: RenewalDate −90d · trend-weighted</div>
+                </div>
+                <span class="chip bg-red-500/10 text-red-300 border border-red-500/20">weight 0.15 · penalty</span>
+              </div>
+              <input type="range" min="0" max="100" value="15" class="w-full mt-3"/>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- right rail: live preview -->
+      <div class="space-y-6">
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Live band distribution <span class="text-slate-600">· 38,402 members</span></div>
+          <div class="flex items-end gap-2 h-40">
+            <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t bg-emerald-400/70" style="height:120px"></div><div class="text-xs text-slate-400">Healthy</div><div class="mono text-xs text-emerald-300">61%</div></div>
+            <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t bg-cyan-400/70" style="height:64px"></div><div class="text-xs text-slate-400">Watch</div><div class="mono text-xs text-cyan-300">22%</div></div>
+            <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t bg-amber-400/70" style="height:34px"></div><div class="text-xs text-slate-400">At-Risk</div><div class="mono text-xs text-amber-300">12%</div></div>
+            <div class="flex-1 flex flex-col items-center gap-1"><div class="w-full rounded-t bg-red-400/70" style="height:16px"></div><div class="text-xs text-slate-400">Critical</div><div class="mono text-xs text-red-300">5%</div></div>
+          </div>
+          <p class="text-xs text-slate-500 mt-4">Recomputes the preview on a 5% sample as you drag weights. Full population scores on publish.</p>
+        </section>
+
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Sample member preview</div>
+          <div class="text-sm font-medium">Maria Chen</div>
+          <div class="text-4xl font-bold mt-1">73<span class="text-xl text-slate-500">/100</span></div>
+          <div class="text-xs text-amber-300 mt-1">At-Risk · ▼12 vs prior</div>
+          <div class="mt-4 space-y-1.5 text-xs">
+            <div class="flex justify-between"><span class="text-slate-400">Cert lapsed</span><span class="mono text-red-300">−22</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Newsletter decay</span><span class="mono text-red-300">−15</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Events</span><span class="mono text-emerald-300">+8</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Dues on time</span><span class="mono text-emerald-300">+5</span></div>
+          </div>
+        </section>
+
+        <section class="glass rounded-2xl p-5 text-xs text-slate-400">
+          <div class="text-slate-300 font-medium mb-1">Publishing creates an immutable version</div>
+          Every score records the <span class="mono text-cyan-300">ScoreModelVersion</span> that produced it — so scores stay reproducible and you can explain "why everyone shifted on publish day."
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

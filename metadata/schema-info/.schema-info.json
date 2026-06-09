@@ -1,0 +1,11 @@
+[
+  {
+    "fields": {
+      "SchemaName": "__sonar",
+      "EntityIDMin": 1,
+      "EntityIDMax": 1000000,
+      "EntityNamePrefix": "Sonar: ",
+      "Description": "Sonar: Configurable engagement scoring engine"
+    }
+  }
+]

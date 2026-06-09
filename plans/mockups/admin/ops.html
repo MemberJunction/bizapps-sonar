@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Admin / Ops</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(45,212,191,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .sonar-dot{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Admin / Ops</div></div>
+    </a>
+    <nav class="flex-1 space-y-1 text-sm">
+      <a href="ops.html" class="flex items-center px-3 py-2 rounded-lg bg-white/5 text-white"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 sonar-dot"></span>Recompute health</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Write-back targets</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Action promotion</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Cost ledger</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Calibration consent</a>
+      <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Audit log</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">Platform admin · American Healthcare Leadership Assn.</div>
+        <h1 class="text-xl font-semibold">Engine operations</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 sonar-dot"></span> All models healthy</span>
+      </div>
+    </div>
+
+    <div class="p-8 space-y-6">
+      <!-- recompute runs -->
+      <section class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500">Recent recompute runs</div>
+          <button class="chip bg-white/5 text-slate-200 border border-white/10">Run now</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="text-xs uppercase tracking-wider text-slate-500 text-left">
+              <tr><th class="py-2">Model</th><th>Trigger</th><th>Scope</th><th>Scored</th><th>Changed</th><th>Band moves</th><th>Duration</th><th>Cost</th><th>Status</th></tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr><td class="py-3">Renewal Risk · v3</td><td class="text-slate-400">Scheduled</td><td class="text-slate-400">Full</td><td class="mono">38,402</td><td class="mono">1,204</td><td class="mono text-amber-300">17</td><td class="mono">2m 41s</td><td class="mono text-slate-400">142 u</td><td><span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">ok</span></td></tr>
+              <tr><td class="py-3">Community Engagement · v2</td><td class="text-slate-400">Event</td><td class="text-slate-400">Incremental</td><td class="mono">3,108</td><td class="mono">388</td><td class="mono text-amber-300">5</td><td class="mono">11s</td><td class="mono text-slate-400">9 u</td><td><span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">ok</span></td></tr>
+              <tr><td class="py-3">Learning Engagement · v1</td><td class="text-slate-400">Scheduled</td><td class="text-slate-400">Full</td><td class="mono">38,402</td><td class="mono">902</td><td class="mono text-amber-300">12</td><td class="mono">3m 58s</td><td class="mono text-amber-300">410 u</td><td><span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">slow factor</span></td></tr>
+              <tr><td class="py-3">Donor Propensity · v1</td><td class="text-slate-400">Manual</td><td class="text-slate-400">Full</td><td class="mono">12,041</td><td class="mono">2,330</td><td class="mono text-amber-300">41</td><td class="mono">1m 12s</td><td class="mono text-slate-400">88 u</td><td><span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">ok</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">Learning Engagement uses an <span class="text-indigo-300">Action-backed</span> factor (LMS proficiency model) flagged <span class="mono">IsExpensive</span> — batched + cached, but watch the cost units.</p>
+      </section>
+
+      <div class="grid xl:grid-cols-2 gap-6">
+        <!-- write-back -->
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-4">Write-back targets</div>
+          <div class="space-y-3 text-sm">
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium">Salesforce · Contact</div>
+                <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">active</span>
+              </div>
+              <div class="mono text-xs text-slate-500 mt-2">NormalizedScore → Engagement_Score__c · Band → Engagement_Tier__c</div>
+              <div class="text-xs text-slate-400 mt-2">Push on <span class="text-cyan-300">band change</span> · worsening + improving · loop-guard on</div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium">Marketing Cloud · Segment</div>
+                <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">active</span>
+              </div>
+              <div class="mono text-xs text-slate-500 mt-2">Band(At-Risk,Critical) → "Reengagement" audience</div>
+              <div class="text-xs text-slate-400 mt-2">Push on <span class="text-cyan-300">threshold cross</span> · min interval 24h</div>
+            </div>
+            <div class="text-xs text-slate-500">Last 24h: 1,592 pushes · 0 failed · via existing MJ integration connections.</div>
+          </div>
+        </section>
+
+        <!-- action promotion -->
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-4">Action promotion queue</div>
+          <div class="space-y-3 text-sm">
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium">community_sentiment_v2</div>
+                <span class="chip bg-amber-500/15 text-amber-300 border border-amber-500/20">In review</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-2">Generated by <span class="text-indigo-300">Action Builder / CodeSmith</span> · tests <span class="text-emerald-300">passed</span> · coverage 92%</div>
+              <div class="mt-3 flex gap-2">
+                <button class="chip bg-emerald-400 text-black font-medium">Approve for production</button>
+                <button class="chip bg-white/5 text-slate-200 border border-white/10">View code + tests</button>
+              </div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium">lms_proficiency_model</div>
+                <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">Approved</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-2">In production on Learning Engagement · approved by S. Patel · May 28</div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4 opacity-70">
+              <div class="flex items-center justify-between">
+                <div class="font-medium">rfm_custom_decay</div>
+                <span class="chip bg-white/10 text-slate-300 border border-white/15">Draft</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-2">Runs in simulation only until promoted. Cannot bind to an Active model.</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- calibration -->
+      <section class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs uppercase tracking-wider text-slate-500">Calibration network <span class="text-slate-600">(BC SaaS)</span></div>
+            <div class="text-sm text-slate-300 mt-1">Contribute de-identified factor distributions and consume benchmarks for "what's good."</div>
+          </div>
+          <span class="chip bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">Opted in · Contribute + Consume</span>
+        </div>
+        <div class="mt-4 grid sm:grid-cols-3 gap-3 text-sm">
+          <div class="rounded-lg border border-white/10 p-3"><div class="text-xs text-slate-500">Cohort</div><div class="text-slate-200 mt-0.5">Healthcare · 25–50K members</div></div>
+          <div class="rounded-lg border border-white/10 p-3"><div class="text-xs text-slate-500">Peer orgs in cohort</div><div class="text-slate-200 mt-0.5 mono">214</div></div>
+          <div class="rounded-lg border border-white/10 p-3"><div class="text-xs text-slate-500">Your newsletter rate</div><div class="text-slate-200 mt-0.5"><span class="text-amber-300">P38</span> vs peers</div></div>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">No record-level data leaves the tenant — only aggregated, de-identified distributions, revocable anytime.</p>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

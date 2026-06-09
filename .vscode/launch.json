@@ -1,0 +1,67 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MJAPI",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--experimental-specifier-resolution=node",
+        "--import", "./register.js",
+        "-r", "dotenv/config"
+      ],
+      "args": ["./src/index.ts"],
+      "cwd": "${workspaceFolder}/apps/MJAPI",
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/MJAPI/**",
+        "${workspaceFolder}/packages/GeneratedEntities/**",
+        "${workspaceFolder}/packages/GeneratedActions/**",
+        "!**/node_modules/**"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/apps/MJAPI/dist/**/*.js",
+        "${workspaceFolder}/packages/GeneratedEntities/dist/**/*.js",
+        "${workspaceFolder}/packages/GeneratedActions/dist/**/*.js"
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**"
+      ]
+    },
+    {
+      "name": "MJExplorer",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "serve-explorer",
+      "url": "http://localhost:4302",
+      "webRoot": "${workspaceFolder}/apps/MJExplorer",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${workspaceFolder}/apps/MJExplorer/*",
+        "webpack:///./packages/*": "${workspaceFolder}/packages/*"
+      }
+    },
+    {
+      "name": "MJExplorer (attach)",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "url": "http://localhost:4302",
+      "webRoot": "${workspaceFolder}/apps/MJExplorer",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${workspaceFolder}/apps/MJExplorer/*",
+        "webpack:///./packages/*": "${workspaceFolder}/packages/*"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack (MJAPI + MJExplorer)",
+      "configurations": ["MJAPI", "MJExplorer"]
+    }
+  ]
+}

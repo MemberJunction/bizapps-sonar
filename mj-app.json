@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.memberjunction.org/mj-app/v1.json",
+  "manifestVersion": 1,
+  "name": "mj-bizapps-sonar",
+  "displayName": "Sonar",
+  "description": "Configurable engagement scoring engine on the MemberJunction entity graph — define any number of concurrent scoring models over any anchor entity, with explainable, trending scores and an action layer",
+  "version": "0.1.0",
+  "license": "ISC",
+  "icon": "fa-solid fa-wave-square",
+  "publisher": {
+    "name": "MemberJunction",
+    "url": "https://memberjunction.com"
+  },
+  "repository": "https://github.com/MemberJunction/bizapps-sonar",
+  "mjVersionRange": ">=5.33.0 <6.0.0",
+  "schema": {
+    "name": "__sonar",
+    "createIfNotExists": true
+  },
+  "migrations": {
+    "directory": "migrations",
+    "engine": "skyway"
+  },
+  "metadata": {
+    "directory": "metadata"
+  },
+  "packages": {
+    "server": [
+      {
+        "name": "@mj-biz-apps/sonar-server",
+        "role": "bootstrap",
+        "startupExport": "LoadSonarServer"
+      }
+    ],
+    "client": [
+      {
+        "name": "@mj-biz-apps/sonar-ng",
+        "role": "bootstrap",
+        "startupExport": "LoadSonarClient"
+      }
+    ],
+    "shared": [
+      {
+        "name": "@mj-biz-apps/sonar-entities",
+        "role": "library"
+      },
+      {
+        "name": "@mj-biz-apps/sonar-actions",
+        "role": "library"
+      }
+    ]
+  },
+  "code": {
+    "visibility": "public",
+    "sourceDirectory": "packages"
+  },
+  "categories": [
+    "Business",
+    "Analytics"
+  ],
+  "tags": [
+    "engagement",
+    "scoring",
+    "membership",
+    "explainability",
+    "analytics"
+  ]
+}
