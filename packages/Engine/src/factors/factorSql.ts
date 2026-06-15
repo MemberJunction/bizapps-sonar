@@ -1,4 +1,5 @@
 import type { FactorResult } from "../contracts/IFactorEvaluator";
+import type { FilterValue } from "./filter";
 
 /**
  * A declarative factor reduced to the few SQL-ready pieces the evaluator needs. Produced
@@ -18,6 +19,10 @@ export interface CompiledFactorSpec {
     windowLengthDays: number | null;
     /** The SQL aggregate expression, e.g. "COUNT(*)". The compiler picks this per Aggregation. */
     aggregateSql: string;
+    /** Optional parameterized WHERE fragment from the factor's FilterExpression (null = no filter). */
+    filterClause?: string | null;
+    /** Parameters referenced by filterClause, passed to ExecuteSQL alongside @asOf. */
+    filterParams?: Record<string, FilterValue>;
 }
 
 /** One result row shape coming back from the compiled query. */
@@ -41,6 +46,9 @@ export function buildFactorSql(
     const idList = anchorIds.map((id) => `'${id}'`).join(",");
     const key = `[${spec.anchorKeyColumn}]`;
     const where = [`${key} IN (${idList})`, ...windowClause(spec)];
+    if (spec.filterClause) {
+        where.push(spec.filterClause);
+    }
     return [
         `SELECT ${key} AS anchorId, ${spec.aggregateSql} AS rawValue`,
         `FROM ${spec.relatedTable}`,
@@ -90,4 +98,70 @@ function explain(spec: CompiledFactorSpec, rawValue: number): string {
             ? ` in the last ${spec.windowLengthDays} days`
             : "";
     return `${rawValue} matching ${spec.relatedTable} record(s)${window}`;
+}
+
+/** SQL aggregate functions keyed by Factor.Aggregation — the ones that take a column. */
+const FIELD_AGGREGATE_FUNCTIONS: Record<string, string> = {
+    Sum: "SUM",
+    Avg: "AVG",
+    Min: "MIN",
+    Max: "MAX",
+};
+
+/**
+ * Build the SQL aggregate expression for a factor's Aggregation. `Count` needs no column;
+ * Sum/Avg/Min/Max/DistinctCount aggregate a column, which MUST be a real column on the
+ * related entity. We validate AggregateFieldName against `validColumns` because it is
+ * config-supplied (unlike GUIDs or metadata-derived names) — this both catches typos and
+ * blocks SQL injection. Unsupported aggregations (Recency, RatePerPeriod, Exists,
+ * TrendSlope) throw — deferred to a later slice.
+ */
+export function buildAggregateExpression(
+    aggregation: string | null,
+    aggregateFieldName: string | null,
+    validColumns: string[],
+): string {
+    if (!aggregation) {
+        throw new Error("buildAggregateExpression: factor has no Aggregation set.");
+    }
+    if (aggregation === "Count") {
+        return "COUNT(*)";
+    }
+    const column = requireValidColumn(
+        aggregation,
+        aggregateFieldName,
+        validColumns,
+    );
+    if (aggregation === "DistinctCount") {
+        return `COUNT(DISTINCT [${column}])`;
+    }
+    const fn = FIELD_AGGREGATE_FUNCTIONS[aggregation];
+    if (!fn) {
+        throw new Error(
+            `buildAggregateExpression: unsupported aggregation '${aggregation}' (supported: Count, Sum, Avg, Min, Max, DistinctCount).`,
+        );
+    }
+    return `${fn}([${column}])`;
+}
+
+/** Resolve AggregateFieldName to a real column on the related entity (case-insensitive), or throw. */
+function requireValidColumn(
+    aggregation: string,
+    aggregateFieldName: string | null,
+    validColumns: string[],
+): string {
+    if (!aggregateFieldName) {
+        throw new Error(
+            `buildAggregateExpression: aggregation '${aggregation}' requires an AggregateFieldName.`,
+        );
+    }
+    const match = validColumns.find(
+        (c) => c.toLowerCase() === aggregateFieldName.toLowerCase(),
+    );
+    if (!match) {
+        throw new Error(
+            `buildAggregateExpression: AggregateFieldName '${aggregateFieldName}' is not a column on the related entity.`,
+        );
+    }
+    return match;
 }

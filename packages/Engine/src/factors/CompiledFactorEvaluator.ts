@@ -34,7 +34,7 @@ export class CompiledFactorEvaluator implements IFactorEvaluator {
         const sql = buildFactorSql(this.spec, anchorIds);
         const rows = (await provider.ExecuteSQL(
             sql,
-            { asOf },
+            { asOf, ...(this.spec.filterParams ?? {}) },
             undefined,
             ctx.contextUser,
         )) as AggregateRow[];

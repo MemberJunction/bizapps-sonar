@@ -8,8 +8,11 @@
  */
 
 export * from "./contracts/IFactorEvaluator";
+export * from "./factors/filter";
 export * from "./factors/factorSql";
 export * from "./factors/CompiledFactorEvaluator";
 export * from "./factors/FactorCompiler";
 export * from "./normalization/NormalizationEngine";
 export * from "./scoring/ScoringEngine";
+export * from "./orchestration/RecomputeOrchestrator";
+export * from "./orchestration/ScoreWriter";

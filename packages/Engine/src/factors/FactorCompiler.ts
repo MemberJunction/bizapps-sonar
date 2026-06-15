@@ -6,7 +6,12 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
-import { CompiledFactorSpec } from "./factorSql";
+import { CompiledFactorSpec, buildAggregateExpression } from "./factorSql";
+import {
+    CompiledFilter,
+    CompositeFilterDescriptor,
+    compileFilter,
+} from "./filter";
 
 /** The date pieces resolved from a factor's TimeWindow (both null when there is no window). */
 interface WindowSpec {
@@ -19,9 +24,9 @@ interface WindowSpec {
  * IFactorEvaluator out). This is the only place that decides which kind of evaluator to
  * build; everything downstream stays blind to the choice.
  *
- * v1 scope: Declarative factors, Count aggregation, a single-hop related entity, and a
- * Rolling time window (or none). Anything outside that throws a clear error rather than
- * silently emitting wrong SQL — we widen the scope deliberately, one branch at a time.
+ * v1 scope: Declarative factors; Count/Sum/Avg/Min/Max/DistinctCount aggregations; a
+ * single-hop related entity; and a Rolling time window (or none). Anything outside that
+ * throws a clear error rather than silently emitting wrong SQL — we widen deliberately.
  */
 export class FactorCompiler {
     public async compile(
@@ -39,6 +44,8 @@ export class FactorCompiler {
             factor.AnchorEntityID,
         );
         const window = await this.resolveWindow(factor, contextUser);
+        const validColumns = relatedEntity.Fields.map((f) => f.Name);
+        const filter = this.resolveFilter(factor, validColumns);
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
@@ -46,21 +53,49 @@ export class FactorCompiler {
             anchorKeyColumn,
             dateColumn: window.dateColumn,
             windowLengthDays: window.windowLengthDays,
-            aggregateSql: this.aggregateSql(),
+            // The aggregate expression validates AggregateFieldName against the related
+            // entity's real columns, so it is built here (after the entity is resolved).
+            aggregateSql: buildAggregateExpression(
+                factor.Aggregation,
+                factor.AggregateFieldName,
+                validColumns,
+            ),
+            filterClause: filter.clause,
+            filterParams: filter.params,
         };
         return new CompiledFactorEvaluator(spec);
     }
 
-    /** Fail loud on anything outside the v1 slice. */
+    /**
+     * Parse the factor's FilterExpression (Kendo filter JSON) into a parameterized WHERE
+     * fragment. No FilterExpression → no clause. Fields are validated against the related
+     * entity's columns inside compileFilter.
+     */
+    private resolveFilter(
+        factor: sonarFactorEntity,
+        validColumns: string[],
+    ): CompiledFilter {
+        if (!factor.FilterExpression) {
+            return { clause: null, params: {} };
+        }
+        let parsed: CompositeFilterDescriptor;
+        try {
+            parsed = JSON.parse(
+                factor.FilterExpression,
+            ) as CompositeFilterDescriptor;
+        } catch {
+            throw new Error(
+                `FactorCompiler: factor ${factor.ID} has invalid FilterExpression JSON.`,
+            );
+        }
+        return compileFilter(parsed, validColumns);
+    }
+
+    /** Fail loud on factor kinds outside the v1 slice (aggregation support is enforced in buildAggregateExpression). */
     private assertSupported(factor: sonarFactorEntity): void {
         if (factor.FactorType !== "Declarative") {
             throw new Error(
                 `FactorCompiler: only Declarative factors are supported yet (got '${factor.FactorType}' for factor ${factor.ID}).`,
-            );
-        }
-        if (factor.Aggregation !== "Count") {
-            throw new Error(
-                `FactorCompiler: only the Count aggregation is supported yet (got '${factor.Aggregation}' for factor ${factor.ID}).`,
             );
         }
     }
@@ -153,10 +188,5 @@ export class FactorCompiler {
             dateColumn: tw.AnchorDateField,
             windowLengthDays: tw.LengthDays,
         };
-    }
-
-    /** Map the aggregation to a SQL expression. v1 is Count-only; Sum/Avg/etc. land here later. */
-    private aggregateSql(): string {
-        return "COUNT(*)";
     }
 }

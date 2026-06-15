@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+    buildAggregateExpression,
     buildFactorSql,
     mapAggregateRows,
     CompiledFactorSpec,
@@ -40,6 +41,55 @@ describe("buildFactorSql", () => {
         expect(sql).not.toContain("DATEADD");
         expect(sql).not.toContain("ActivityDate");
         expect(sql).toContain("[MemberID] IN ('m1')");
+    });
+});
+
+describe("buildAggregateExpression", () => {
+    const columns = ["ID", "Amount", "ActivityType"];
+
+    it("maps Count to COUNT(*) with no field needed", () => {
+        expect(buildAggregateExpression("Count", null, columns)).toBe(
+            "COUNT(*)",
+        );
+    });
+
+    it("maps Sum/Avg/Min/Max onto the column", () => {
+        expect(buildAggregateExpression("Sum", "Amount", columns)).toBe(
+            "SUM([Amount])",
+        );
+        expect(buildAggregateExpression("Avg", "Amount", columns)).toBe(
+            "AVG([Amount])",
+        );
+    });
+
+    it("maps DistinctCount", () => {
+        expect(
+            buildAggregateExpression("DistinctCount", "ActivityType", columns),
+        ).toBe("COUNT(DISTINCT [ActivityType])");
+    });
+
+    it("normalizes the column to its canonical casing", () => {
+        expect(buildAggregateExpression("Sum", "amount", columns)).toBe(
+            "SUM([Amount])",
+        );
+    });
+
+    it("throws when a field-based aggregation has no AggregateFieldName", () => {
+        expect(() => buildAggregateExpression("Sum", null, columns)).toThrow(
+            /requires an AggregateFieldName/,
+        );
+    });
+
+    it("throws when the field is not a real column (typo / injection guard)", () => {
+        expect(() =>
+            buildAggregateExpression("Sum", "Amount; DROP TABLE", columns),
+        ).toThrow(/not a column/);
+    });
+
+    it("throws on a deferred aggregation", () => {
+        expect(() =>
+            buildAggregateExpression("TrendSlope", "Amount", columns),
+        ).toThrow(/unsupported aggregation/);
     });
 });
 

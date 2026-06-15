@@ -31,6 +31,7 @@ function twoFactorRubric(): WeightedFactor[] {
     return [
         {
             factorId: "activity",
+            modelFactorId: "mf-activity",
             weight: 0.6,
             results: new Map([
                 ["m1", norm(0.53)],
@@ -39,6 +40,7 @@ function twoFactorRubric(): WeightedFactor[] {
         },
         {
             factorId: "recency",
+            modelFactorId: "mf-recency",
             weight: 0.4,
             results: new Map([
                 ["m1", norm(0.8)],
@@ -65,9 +67,12 @@ describe("ScoringEngine", () => {
         expect(contributions).toHaveLength(2);
         expect(contributions.find((c) => c.factorId === "activity")).toEqual({
             factorId: "activity",
+            modelFactorId: "mf-activity",
             weight: 0.6,
+            rawValue: null,
             normalizedContribution: 0.53,
             weightedValue: 0.6 * 0.53,
+            hadData: true,
         });
     });
 
@@ -75,11 +80,13 @@ describe("ScoringEngine", () => {
         const rubric: WeightedFactor[] = [
             {
                 factorId: "activity",
+                modelFactorId: "mf-activity",
                 weight: 0.6,
                 results: new Map([["m1", norm(1.0)]]),
             },
             {
                 factorId: "recency",
+                modelFactorId: "mf-recency",
                 weight: 0.4,
                 results: new Map([["m1", norm(null)]]), // no data for m1
             },
@@ -109,6 +116,7 @@ describe("ScoringEngine", () => {
         const zeroWeight: WeightedFactor[] = [
             {
                 factorId: "activity",
+                modelFactorId: "mf-activity",
                 weight: 0,
                 results: new Map([["m1", norm(1.0)]]),
             },

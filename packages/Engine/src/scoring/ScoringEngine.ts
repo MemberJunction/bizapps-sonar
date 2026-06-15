@@ -21,16 +21,21 @@ export interface ScoringSpec {
 /** One factor's rubric binding plus its normalized results across the population. */
 export interface WeightedFactor {
     factorId: string;
+    /** The ModelFactor (rubric binding) row — persisted on each contribution. */
+    modelFactorId: string;
     weight: number;
     results: Map<string, FactorResult>;
 }
 
-/** The itemized math behind one factor's part of a score (powers explainability). */
+/** The itemized math behind one factor's part of a score (powers explainability + persistence). */
 export interface FactorContribution {
     factorId: string;
+    modelFactorId: string;
     weight: number;
+    rawValue: number | null;
     normalizedContribution: number;
     weightedValue: number;
+    hadData: boolean;
 }
 
 /** The combined score for one anchor. */
@@ -116,9 +121,12 @@ export class ScoringEngine {
             }
             contributions.push({
                 factorId: f.factorId,
+                modelFactorId: f.modelFactorId,
                 weight: f.weight,
+                rawValue: result.rawValue,
                 normalizedContribution: result.normalizedContribution,
                 weightedValue: f.weight * result.normalizedContribution,
+                hadData: result.hadData,
             });
         }
         return contributions;
