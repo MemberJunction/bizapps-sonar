@@ -5,7 +5,8 @@
   },
   "directoryOrder": [
     "schema-info",
-    "entities"
+    "entities",
+    "applications"
   ],
   "sqlLogging": {
     "enabled": true,

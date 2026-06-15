@@ -1,0 +1,25 @@
+{
+  "fields": {
+    "Name": "Sonar",
+    "Description": "Configurable engagement scoring — models, factors, and explainable scores.",
+    "Icon": "fa-solid fa-wave-square",
+    "DefaultForNewUser": false,
+    "Color": "#6366F1",
+    "DefaultSequence": 2000,
+    "DefaultNavItems": [
+      {
+        "Label": "Overview",
+        "Icon": "fa-solid fa-wave-square",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarOverviewResource",
+        "isDefault": true
+      }
+    ]
+  },
+  "relatedEntities": {
+    "MJ: Application Entities": []
+  },
+  "primaryKey": {
+    "ID": "9A7C3E10-4B2D-4F6A-8C1E-5D0FAB12C3D4"
+  }
+}

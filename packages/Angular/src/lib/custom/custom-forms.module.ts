@@ -1,25 +1,23 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SonarOverviewResourceComponent } from './sonar-overview-resource.component';
 
 /**
- * Custom (hand-written) form components for Sonar entities.
- *
- * Custom forms override the generated ones via @RegisterClass priority —
- * they must extend the corresponding generated form component and be
- * imported AFTER the generated forms module in public-api.ts.
- *
- * No custom forms exist yet; declare them here as Sonar surfaces
- * (Model Builder, Engagement Manager, Admin/Ops) are built out.
+ * Custom (hand-written) Sonar Angular components: custom entity forms (override generated
+ * ones via @RegisterClass priority) and resource components (app surfaces referenced by
+ * nav DriverClass). Imported after the generated forms module in public-api.ts.
  */
 @NgModule({
     declarations: [
+        SonarOverviewResourceComponent
     ],
     imports: [
         CommonModule,
         FormsModule
     ],
     exports: [
+        SonarOverviewResourceComponent
     ]
 })
 export class CustomFormsModule { }
