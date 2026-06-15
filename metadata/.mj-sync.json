@@ -5,7 +5,10 @@
   },
   "directoryOrder": [
     "schema-info",
-    "entities"
+    "entities",
+    "time-windows",
+    "score-band-sets",
+    "score-bands"
   ],
   "sqlLogging": {
     "enabled": true,
