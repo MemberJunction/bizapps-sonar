@@ -1,5 +1,5 @@
 {
-  "entity": "Sonar: Time Windows",
+  "entity": "MJ_BizApps_Sonar: Time Windows",
   "filePattern": "**/.*.json",
   "defaults": {},
   "pull": {

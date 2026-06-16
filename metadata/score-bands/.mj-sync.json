@@ -1,5 +1,5 @@
 {
-  "entity": "Sonar: Score Bands",
+  "entity": "MJ_BizApps_Sonar: Score Bands",
   "filePattern": "**/.*.json",
   "pull": {
     "createNewFileIfNotFound": true,
