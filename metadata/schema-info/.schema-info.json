@@ -1,11 +1,11 @@
 [
   {
     "fields": {
-      "SchemaName": "__sonar",
+      "SchemaName": "__mj_BizAppsSonar",
       "EntityIDMin": 1,
       "EntityIDMax": 1000000,
-      "EntityNamePrefix": "Sonar: ",
-      "Description": "Sonar: Configurable engagement scoring engine"
+      "EntityNamePrefix": "MJ_BizApps_Sonar: ",
+      "Description": "MJ_BizApps_Sonar: Configurable engagement scoring engine"
     }
   }
 ]
