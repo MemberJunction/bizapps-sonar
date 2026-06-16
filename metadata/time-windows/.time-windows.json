@@ -1,0 +1,77 @@
+[
+  {
+    "fields": {
+      "Name": "Trailing 30 Days",
+      "WindowType": "Rolling",
+      "LengthDays": 30,
+      "Description": "Rolling 30-day window ending at the as-of date. Short-term recency signals (recent logins, recent opens)."
+    },
+    "primaryKey": {
+      "ID": "BCFC53F6-D749-4E6A-B868-6B4FB46D49E5"
+    },
+    "sync": {
+      "lastModified": "2026-06-12T20:42:20.591Z",
+      "checksum": "964bd95f4e2b26a494d43df9a4bf572edb78d50725efe505e3bd6cce8ebe0983"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Trailing 90 Days",
+      "WindowType": "Rolling",
+      "LengthDays": 90,
+      "Description": "Rolling 90-day window ending at the as-of date. The default window for most engagement factors."
+    },
+    "primaryKey": {
+      "ID": "9F60606A-3F7D-4707-A852-813B302C5DB9"
+    },
+    "sync": {
+      "lastModified": "2026-06-12T20:42:20.605Z",
+      "checksum": "7488a4c158c4801f575870013a80cbca7db14408bc367785b392a2037cd71e75"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Trailing 12 Months",
+      "WindowType": "Rolling",
+      "LengthMonths": 12,
+      "Description": "Rolling 12-month window ending at the as-of date. Annual-cadence signals (event attendance, dues, certifications)."
+    },
+    "primaryKey": {
+      "ID": "2349024A-8961-41E7-AAAE-DD19E3C47A6E"
+    },
+    "sync": {
+      "lastModified": "2026-06-12T20:42:20.616Z",
+      "checksum": "d5151c51768299228337c804e7d708463d5ef092e77c9a6c466da0febb26cdc8"
+    }
+  },
+  {
+    "fields": {
+      "Name": "All Time",
+      "WindowType": "AllTime",
+      "Description": "No time bound; aggregates over the entire history of the related entity (e.g. lifetime giving, total certifications earned)."
+    },
+    "primaryKey": {
+      "ID": "0AA0E059-2CBB-417D-8C37-4D15B6E5D0CA"
+    },
+    "sync": {
+      "lastModified": "2026-06-12T20:42:20.628Z",
+      "checksum": "95fc87815cf3b8ff45bcc0bc232aa2d39544e44043277cb4294020fcaed1e819"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Renewal Window (-90 days)",
+      "WindowType": "RenewalRelative",
+      "AnchorDateField": "RenewalDate",
+      "OffsetDays": -90,
+      "Description": "The 90 days leading up to each member's renewal date. Lets decay close to renewal be weighted differently from decay far out."
+    },
+    "primaryKey": {
+      "ID": "D7DCA423-036F-4DF0-98DC-A3B43855FDA0"
+    },
+    "sync": {
+      "lastModified": "2026-06-12T20:42:20.638Z",
+      "checksum": "f2ec80bee31628de9787817b73dbd62e8fd29755feb02b7fc3898d40825c2b6c"
+    }
+  }
+]

@@ -6,7 +6,10 @@
   "directoryOrder": [
     "schema-info",
     "entities",
-    "applications"
+    "applications",
+    "time-windows",
+    "score-band-sets",
+    "score-bands"
   ],
   "sqlLogging": {
     "enabled": true,

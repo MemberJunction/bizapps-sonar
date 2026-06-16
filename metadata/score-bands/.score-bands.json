@@ -1,0 +1,47 @@
+[
+  {
+    "fields": {
+      "BandSetID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B30",
+      "Label": "At Risk",
+      "MinScore": 0,
+      "MaxScore": 40,
+      "Severity": 3,
+      "ColorHex": "#DC2626",
+      "IsTerminal": false,
+      "Description": "Low engagement — needs intervention."
+    },
+    "primaryKey": {
+      "ID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B31"
+    }
+  },
+  {
+    "fields": {
+      "BandSetID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B30",
+      "Label": "Neutral",
+      "MinScore": 40,
+      "MaxScore": 70,
+      "Severity": 2,
+      "ColorHex": "#F59E0B",
+      "IsTerminal": false,
+      "Description": "Moderate engagement — monitor."
+    },
+    "primaryKey": {
+      "ID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B32"
+    }
+  },
+  {
+    "fields": {
+      "BandSetID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B30",
+      "Label": "Healthy",
+      "MinScore": 70,
+      "MaxScore": 100,
+      "Severity": 1,
+      "ColorHex": "#16A34A",
+      "IsTerminal": false,
+      "Description": "Strong engagement."
+    },
+    "primaryKey": {
+      "ID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B33"
+    }
+  }
+]
