@@ -1,0 +1,40 @@
+/* Surface-specific styles for the Overview. Shared primitives (page, stats, card, chip,
+   waterfall, gradient text) live in sonar-shell.css; this file holds only the hero,
+   persona grid, and sample-score layout unique to this landing page. */
+
+.sonar-hero { max-width: 760px; }
+.sonar-hero__brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.sonar-hero__logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-grad);
+    color: #04121f;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sonar-hero__name { font-weight: 700; font-size: 1.05rem; line-height: 1.1; }
+.sonar-hero__tag { font-size: 0.75rem; color: var(--sonar-muted); }
+.sonar-hero__title { margin: 0; font-size: 2.5rem; font-weight: 800; line-height: 1.08; letter-spacing: -0.01em; }
+.sonar-hero__lead { margin: 1rem 0 0; color: var(--sonar-muted); font-size: 1rem; line-height: 1.6; }
+
+/* Persona entry cards. */
+.sonar-personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.sonar-persona { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-persona__icon { font-size: 1.4rem; background: var(--sonar-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.25rem; }
+.sonar-persona h3 { margin: 0; font-size: 1.05rem; }
+.sonar-persona p { margin: 0; color: var(--sonar-muted); font-size: 0.85rem; line-height: 1.5; }
+
+/* Sample score preview. */
+.sonar-preview__head { display: flex; align-items: center; justify-content: space-between; }
+.sonar-preview__body { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; align-items: center; margin-top: 0.5rem; }
+.sonar-preview__who { font-size: 0.75rem; color: var(--sonar-muted); }
+.sonar-preview__num { font-size: 3rem; font-weight: 800; line-height: 1; margin: 0.25rem 0 0.6rem; }
+.sonar-preview__num span { font-size: 1.25rem; color: var(--sonar-faint); font-weight: 600; }
+.sonar-preview__why { display: flex; flex-direction: column; gap: 0.5rem; }
+@media (max-width: 720px) {
+    .sonar-preview__body { grid-template-columns: 1fr; }
+    .sonar-hero__title { font-size: 2rem; }
+}

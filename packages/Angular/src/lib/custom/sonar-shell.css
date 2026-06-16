@@ -1,33 +1,88 @@
 /*
- * Shared design foundation for every Sonar custom resource surface. Defining the brand
- * palette + page primitives here (and referencing this file from each component's
- * styleUrls) keeps one source of truth — Angular re-scopes these classes per component,
- * so each surface gets its own encapsulated copy while the look stays identical.
+ * Sonar design system — shared by every custom Sonar resource surface.
+ *
+ * Strategy (hybrid, MJ-native + Sonar-branded): we DON'T hardcode a palette. Every color,
+ * space, radius, and font resolves from MemberJunction's global design tokens (the `--mj-*`
+ * CSS variables defined by @memberjunction/ng-shared-generic). That gets us automatic
+ * light/dark theming and visual consistency with the Explorer shell for free. On top of
+ * that base we add a thin "Sonar accent" layer — the brand gradient and the four band
+ * colors — which is what makes a Sonar surface recognizably Sonar.
+ *
+ * Each component references this file first in its styleUrls, then its own component css.
+ * Angular re-scopes these classes per component (Emulated encapsulation), so every surface
+ * gets its own copy while the look stays identical. var() fallbacks keep things sane if a
+ * token is ever missing (e.g. the isolated package build).
  */
 
-/* Brand tokens — pulled onto :host so a component can override one value locally. */
 :host {
-    --sonar-brand: #6366f1;          /* indigo — primary accent */
-    --sonar-brand-soft: #eef2ff;     /* tinted fill behind icons */
-    --sonar-ink: #0f172a;            /* near-black headings */
-    --sonar-muted: #64748b;          /* secondary text */
-    --sonar-border: #e2e8f0;         /* hairline dividers / card edges */
-    --sonar-surface: #ffffff;        /* card / panel background */
-    --sonar-radius: 12px;
-    --sonar-gap: 1rem;
+    /* --- map MJ tokens into short Sonar-local names --- */
+    --sonar-bg: var(--mj-bg-page, #f8fafc);
+    --sonar-surface: var(--mj-bg-surface-card, #ffffff);
+    --sonar-surface-sunken: var(--mj-bg-surface-sunken, #f1f5f9);
+    --sonar-ink: var(--mj-text-primary, #1e293b);
+    --sonar-muted: var(--mj-text-secondary, #64748b);
+    --sonar-faint: var(--mj-text-muted, #94a3b8);
+    --sonar-border: var(--mj-border-default, #e2e8f0);
+    --sonar-border-strong: var(--mj-border-strong, #cbd5e1);
+    --sonar-brand: var(--mj-brand-primary, #6366f1);
+    --sonar-radius: var(--mj-radius-lg, 12px);
+    --sonar-radius-sm: var(--mj-radius-md, 8px);
+    --sonar-gap: var(--mj-space-4, 1rem);
+    --sonar-mono: var(--mj-font-family-mono, 'JetBrains Mono', Menlo, monospace);
+    /* Content column: surfaces center to this width so boxes align instead of sprawling. */
+    --sonar-content-max: 1200px;
+
+    /* --- Sonar accent layer --- */
+    /* Signature gradient (indigo -> cyan -> teal); used for hero text, AI panels, logos. */
+    --sonar-grad: linear-gradient(135deg, #818cf8 0%, #22d3ee 50%, #2dd4bf 100%);
+    /* Band colors mapped to MJ status tokens so they theme correctly. */
+    --sonar-healthy: var(--mj-status-success, #16a34a);
+    --sonar-healthy-bg: var(--mj-status-success-bg, #f0fdf4);
+    --sonar-watch: var(--mj-status-info, #0ea5e9);
+    --sonar-watch-bg: var(--mj-status-info-bg, #f0f9ff);
+    --sonar-atrisk: var(--mj-status-warning, #f59e0b);
+    --sonar-atrisk-bg: var(--mj-status-warning-bg, #fffbeb);
+    --sonar-critical: var(--mj-status-error, #dc2626);
+    --sonar-critical-bg: var(--mj-status-error-bg, #fef2f2);
+
+    /* The Explorer tab host gives a resource a definite height (100%) with overflow:hidden
+       and provides NO scroll itself — each surface must own its own scrolling. So :host
+       fills that height and .sonar-page becomes the internal scroll container. */
+    display: block;
+    height: 100%;
+    color: var(--sonar-ink);
+    /* Anchor every surface to the app font so typography is identical everywhere. */
+    font-family: var(--mj-font-family, "Inter", system-ui, -apple-system, sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
 }
 
-/* Page frame: every surface is a padded column with a header then a body region. */
+/* Form controls + buttons default to the browser's UA font/size — force them to inherit
+   so dropdowns, inputs, and buttons match the surrounding text on every surface. */
+button, input, select, textarea {
+    font-family: inherit;
+}
+
+/* ============================================================ Page frame */
+
+/* Every surface is a padded column: a header, then a body region. Children center to a
+   fixed content width (--sonar-content-max) so the header and all boxes share one edge
+   and the page stays focused instead of sprawling across wide screens. */
 .sonar-page {
-    padding: 2rem;
+    padding: 1.75rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    min-height: 100%;
+    height: 100%;            /* fill the host's fixed height... */
+    overflow-y: auto;        /* ...and scroll internally instead of overflowing the host */
+    box-sizing: border-box;  /* keep padding inside the 100% so it doesn't force overflow */
+    background: var(--sonar-bg);
 }
 
-/* Header: heading block on the left, an actions region reserved on the right. */
 .sonar-page__header {
+    width: 100%;
+    max-width: var(--sonar-content-max);
+    margin-inline: auto;     /* center the header within the page padding */
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -35,11 +90,7 @@
     border-bottom: 1px solid var(--sonar-border);
     padding-bottom: 1.25rem;
 }
-.sonar-page__heading {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-}
+.sonar-page__heading { display: flex; align-items: center; gap: 0.875rem; }
 .sonar-page__icon {
     display: inline-flex;
     align-items: center;
@@ -47,36 +98,66 @@
     width: 2.75rem;
     height: 2.75rem;
     border-radius: var(--sonar-radius);
-    background: var(--sonar-brand-soft);
-    color: var(--sonar-brand);
-    font-size: 1.25rem;
+    background: var(--sonar-grad);
+    color: #04121f;
+    font-size: 1.1rem;
     flex-shrink: 0;
 }
-.sonar-page__title {
+.sonar-page__title { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--sonar-ink); }
+.sonar-page__subtitle { margin: 0.125rem 0 0; color: var(--sonar-muted); font-size: 0.9rem; }
+.sonar-page__actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.sonar-page__body { width: 100%; max-width: var(--sonar-content-max); margin-inline: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* ============================================================ Layout helpers */
+
+/* A "natural grouping" of related boxes under one quiet heading — the parent div that
+   chunks a surface into focused sections instead of one flat stack of cards. */
+.sonar-group { display: flex; flex-direction: column; gap: 1rem; }
+.sonar-group__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
     margin: 0;
-    font-size: 1.5rem;
-    color: var(--sonar-ink);
-}
-.sonar-page__subtitle {
-    margin: 0.125rem 0 0;
-    color: var(--sonar-muted);
-    font-size: 0.9rem;
-}
-/* Reserved for future toolbar buttons (New, Refresh, …) — laid out now so adding a
-   button later doesn't reshape the header. */
-.sonar-page__actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
 }
 
-/* Body: the surface's main content region; holds the empty-state until data lands. */
-.sonar-page__body {
-    flex: 1;
+/* Main content + fixed right rail (e.g. Model Builder preview, Manager drill-down). */
+.sonar-split { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+.sonar-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+.sonar-stack { display: flex; flex-direction: column; gap: 1rem; }
+@media (max-width: 1100px) {
+    .sonar-split, .sonar-cols-2 { grid-template-columns: 1fr; }
 }
 
-/* Empty-state: centered icon + message shown before the data layer is wired. */
+/* ============================================================ Cards */
+
+.sonar-card {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    padding: 1.25rem;
+    box-shadow: var(--mj-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+}
+.sonar-card__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+    margin-bottom: 0.75rem;
+}
+
+/* AI / agent panel — gradient border ring around an inner surface. The accent that
+   signals "this content came from an agent." Wrap content in .sonar-ai__inner. */
+.sonar-ai { background: var(--sonar-grad); padding: 1px; border-radius: var(--sonar-radius); }
+.sonar-ai__inner {
+    background: var(--sonar-surface);
+    border-radius: calc(var(--sonar-radius) - 1px);
+    padding: 1.25rem;
+}
+
+/* ============================================================ Empty state */
+
 .sonar-empty {
     display: flex;
     flex-direction: column;
@@ -85,23 +166,165 @@
     text-align: center;
     gap: 0.5rem;
     padding: 3rem 1rem;
-    border: 1px dashed var(--sonar-border);
+    border: 1px dashed var(--sonar-border-strong);
     border-radius: var(--sonar-radius);
     background: var(--sonar-surface);
     color: var(--sonar-muted);
 }
-.sonar-empty i {
-    font-size: 2rem;
-    color: var(--sonar-brand);
-    opacity: 0.7;
+.sonar-empty i { font-size: 2rem; background: var(--sonar-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.sonar-empty h2 { margin: 0.5rem 0 0; font-size: 1.125rem; color: var(--sonar-ink); }
+.sonar-empty p { margin: 0; max-width: 28rem; font-size: 0.9rem; }
+
+/* ============================================================ Stat tiles */
+
+.sonar-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.sonar-stat {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    padding: 1.1rem 1.25rem;
 }
-.sonar-empty h2 {
-    margin: 0.5rem 0 0;
-    font-size: 1.125rem;
+.sonar-stat__label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
+.sonar-stat__value { font-size: 1.9rem; font-weight: 700; margin-top: 0.25rem; line-height: 1; }
+.sonar-stat__delta { font-size: 0.75rem; color: var(--sonar-muted); margin-top: 0.4rem; }
+
+/* ============================================================ Chips / bands */
+
+.sonar-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--sonar-border);
+    color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken);
+}
+/* Band variants — color text + tinted fill + matching border. */
+.sonar-chip--healthy  { color: var(--sonar-healthy);  background: var(--sonar-healthy-bg);  border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent); }
+.sonar-chip--watch    { color: var(--sonar-watch);    background: var(--sonar-watch-bg);    border-color: color-mix(in srgb, var(--sonar-watch) 30%, transparent); }
+.sonar-chip--atrisk   { color: var(--sonar-atrisk);   background: var(--sonar-atrisk-bg);   border-color: color-mix(in srgb, var(--sonar-atrisk) 30%, transparent); }
+.sonar-chip--critical { color: var(--sonar-critical); background: var(--sonar-critical-bg); border-color: color-mix(in srgb, var(--sonar-critical) 30%, transparent); }
+
+/* "Phase 2+" marker for aspirational, not-yet-functional UI. */
+.sonar-chip--phase2 { color: var(--sonar-brand); background: transparent; border-style: dashed; }
+
+/* The pulsing status dot from the mockups. */
+.sonar-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; display: inline-block; animation: sonar-pulse 2s infinite; }
+@keyframes sonar-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ============================================================ Typography accents */
+
+.sonar-grad-text {
+    background: var(--sonar-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.sonar-mono { font-family: var(--sonar-mono); }
+.sonar-pos { color: var(--sonar-healthy); }
+.sonar-neg { color: var(--sonar-critical); }
+
+/* ============================================================ Buttons (chrome) */
+/* For surface header actions. Prefer <mj-button> inside forms; these are for the
+   branded chrome where we want the gradient/ghost look. */
+.sonar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--sonar-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--sonar-border-strong);
+    background: var(--sonar-surface);
     color: var(--sonar-ink);
+    cursor: pointer;
 }
-.sonar-empty p {
-    margin: 0;
-    max-width: 28rem;
-    font-size: 0.9rem;
+.sonar-btn:hover { background: var(--sonar-surface-sunken); }
+.sonar-btn--primary { border: none; background: var(--sonar-grad); color: #04121f; }
+.sonar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================ Explainability waterfall */
+/* A "why this score" row: signed value, a proportional bar, a label. */
+.sonar-wf { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+.sonar-wf__val { width: 3.25rem; text-align: right; font-family: var(--sonar-mono); }
+.sonar-wf__track { flex: 1; height: 1.25rem; border-radius: var(--sonar-radius-sm); background: var(--sonar-surface-sunken); overflow: hidden; }
+.sonar-wf__bar { display: block; height: 100%; border-radius: var(--sonar-radius-sm); }
+.sonar-wf__bar--pos { background: var(--sonar-healthy); }
+.sonar-wf__bar--neg { background: var(--sonar-critical); }
+.sonar-wf__label { width: 8rem; color: var(--sonar-muted); font-size: 0.78rem; }
+
+/* ============================================================ Band distribution bars */
+.sonar-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 9rem; }
+.sonar-bars__col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; justify-content: flex-end; }
+.sonar-bars__fill { width: 100%; border-radius: var(--sonar-radius-sm) var(--sonar-radius-sm) 0 0; }
+.sonar-bars__fill--healthy  { background: color-mix(in srgb, var(--sonar-healthy) 70%, transparent); }
+.sonar-bars__fill--watch    { background: color-mix(in srgb, var(--sonar-watch) 70%, transparent); }
+.sonar-bars__fill--atrisk   { background: color-mix(in srgb, var(--sonar-atrisk) 70%, transparent); }
+.sonar-bars__fill--critical { background: color-mix(in srgb, var(--sonar-critical) 70%, transparent); }
+
+/* Band text colors (for stat-tile values, labels). */
+.sonar-text--healthy  { color: var(--sonar-healthy); }
+.sonar-text--watch    { color: var(--sonar-watch); }
+.sonar-text--atrisk   { color: var(--sonar-atrisk); }
+.sonar-text--critical { color: var(--sonar-critical); }
+
+/* ============================================================ Embedded MJ components */
+/* Wrap reused MJ components (mj-entity-data-grid, app-time-series-chart) so they sit on a
+   clean surface inside our branded frame. These components render to the global DOM and
+   follow the MJ theme themselves; we just give them a tidy container. */
+.sonar-embed {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    overflow: hidden;
+    min-height: 320px;
+}
+
+/* ============================================================ Interaction polish */
+/* Consistent motion, hover/active feedback, and focus rings across the surfaces. Kept
+   in one place so every primitive feels the same. Honors reduced-motion preferences. */
+
+.sonar-btn,
+.sonar-card,
+.sonar-models__item,
+.sonar-dropper,
+.sonar-persona,
+.sonar-factor,
+.sonar-rel {
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.18s ease,
+                border-color 0.18s ease,
+                background 0.18s ease;
+}
+
+/* Buttons: subtle press + lift. */
+.sonar-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--mj-shadow-sm, 0 2px 6px rgba(15, 23, 42, 0.08)); }
+.sonar-btn:not(:disabled):active { transform: translateY(0); }
+.sonar-btn--primary:not(:disabled):hover { box-shadow: 0 6px 18px -6px rgba(34, 211, 238, 0.5); }
+
+/* Persona / model / dropper rows: gentle lift + brand-tinted border on hover. */
+.sonar-persona:hover,
+.sonar-models__item:not(:disabled):hover,
+.sonar-dropper:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--sonar-brand) 35%, var(--sonar-border));
+    box-shadow: var(--mj-shadow-md, 0 8px 24px -12px rgba(15, 23, 42, 0.25));
+}
+.sonar-persona { cursor: default; }
+
+/* Visible keyboard focus for all interactive elements. */
+.sonar-btn:focus-visible,
+.sonar-models__item:focus-visible,
+.sonar-dropper:focus-visible {
+    outline: 2px solid var(--sonar-brand);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sonar-btn, .sonar-card, .sonar-models__item, .sonar-dropper, .sonar-persona, .sonar-factor, .sonar-rel { transition: none; }
+    .sonar-btn:hover, .sonar-persona:hover, .sonar-models__item:hover, .sonar-dropper:hover { transform: none; }
 }

@@ -1,0 +1,94 @@
+<div class="sonar-page sonar-overview">
+    <!-- Hero: brand mark + gradient headline + lead. -->
+    <section class="sonar-hero">
+        <div class="sonar-hero__brand">
+            <span class="sonar-hero__logo">S</span>
+            <div>
+                <div class="sonar-hero__name">Sonar</div>
+                <div class="sonar-hero__tag">Configurable engagement scoring on MemberJunction</div>
+            </div>
+        </div>
+        <h1 class="sonar-hero__title">Score what <span class="sonar-grad-text">engagement means</span> to you.</h1>
+        <p class="sonar-hero__lead">
+            Point at any MemberJunction entity. Wire in the activity, invoices, completions, and posts already unified
+            in MJ. Define any number of engagement models, each with its own rubric — Sonar computes explainable,
+            trending scores and writes them back where your team works.
+        </p>
+    </section>
+
+    <!-- Live headline counts (real data via RunView). -->
+    <section class="sonar-stats">
+        <div class="sonar-stat">
+            <div class="sonar-stat__label">Active models</div>
+            <div class="sonar-stat__value">{{ counts.activeModels ?? '—' }}</div>
+        </div>
+        <div class="sonar-stat">
+            <div class="sonar-stat__label">Scores computed</div>
+            <div class="sonar-stat__value">{{ counts.totalScores === null ? '—' : (counts.totalScores | number) }}</div>
+        </div>
+        <div class="sonar-stat">
+            <div class="sonar-stat__label">Recompute runs</div>
+            <div class="sonar-stat__value">{{ counts.recomputeRuns ?? '—' }}</div>
+        </div>
+    </section>
+
+    <!-- Three persona surfaces (the app's nav opens each). -->
+    <section>
+        <div class="sonar-card__label">Three surfaces, one engine</div>
+        <div class="sonar-personas">
+            <div class="sonar-card sonar-persona">
+                <i class="fa-solid fa-sliders sonar-persona__icon"></i>
+                <h3>Model Builder</h3>
+                <p>Author a model — anchor, related entities, factors, weights, and bands — then publish an immutable version.</p>
+            </div>
+            <div class="sonar-card sonar-persona">
+                <i class="fa-solid fa-chart-line sonar-persona__icon"></i>
+                <h3>Engagement Manager</h3>
+                <p>See who slipped this week, drill into the factor-by-factor reason each score moved, and track trajectories.</p>
+            </div>
+            <div class="sonar-card sonar-persona">
+                <i class="fa-solid fa-gauge-high sonar-persona__icon"></i>
+                <h3>Admin &amp; Ops</h3>
+                <p>Run recomputes, watch run health and cost, review published versions, and audit every config change.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Illustrative sample score — shows the explainability idea (not live data). -->
+    <section class="sonar-card sonar-preview">
+        <div class="sonar-preview__head">
+            <span class="sonar-card__label">Sample score · how explainability reads</span>
+            <span class="sonar-chip sonar-chip--phase2">illustrative</span>
+        </div>
+        <div class="sonar-preview__body">
+            <div class="sonar-preview__score">
+                <div class="sonar-mono sonar-preview__who">Renewal Risk · Maria Chen</div>
+                <div class="sonar-preview__num">73<span>/100</span></div>
+                <span class="sonar-chip sonar-chip--atrisk">At-Risk · ▼12</span>
+            </div>
+            <div class="sonar-preview__why">
+                <div class="sonar-card__label">Why this score</div>
+                <div class="sonar-wf">
+                    <span class="sonar-wf__val sonar-neg">−22</span>
+                    <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--neg" style="width:80%"></span></span>
+                    <span class="sonar-wf__label">cert lapsed</span>
+                </div>
+                <div class="sonar-wf">
+                    <span class="sonar-wf__val sonar-neg">−15</span>
+                    <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--neg" style="width:55%"></span></span>
+                    <span class="sonar-wf__label">newsletter decay</span>
+                </div>
+                <div class="sonar-wf">
+                    <span class="sonar-wf__val sonar-pos">+8</span>
+                    <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" style="width:30%"></span></span>
+                    <span class="sonar-wf__label">events</span>
+                </div>
+                <div class="sonar-wf">
+                    <span class="sonar-wf__val sonar-pos">+5</span>
+                    <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" style="width:20%"></span></span>
+                    <span class="sonar-wf__label">dues on time</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

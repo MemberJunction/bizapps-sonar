@@ -1,0 +1,111 @@
+<div class="sonar-page sonar-ops">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <span class="sonar-page__icon"><i class="fa-solid fa-gauge-high"></i></span>
+            <div>
+                <h1 class="sonar-page__title">Engine operations</h1>
+                <p class="sonar-page__subtitle">Recompute health, published versions, and the config audit trail</p>
+            </div>
+        </div>
+        <div class="sonar-page__actions">
+            <span class="sonar-chip sonar-chip--healthy"><span class="sonar-dot sonar-bars__fill--healthy"></span> All models healthy</span>
+        </div>
+    </div>
+
+    <div class="sonar-page__body">
+        <!-- Group: run health -->
+        <div class="sonar-group">
+            <h2 class="sonar-group__title">Run health</h2>
+            <section class="sonar-card">
+                <div class="sonar-card__head">
+                    <div class="sonar-card__label">Recent recompute runs</div>
+                    <button class="sonar-btn" disabled title="Activates when the engine Action lands" (click)="runNow()">Run now</button>
+                </div>
+                <div class="sonar-table-wrap">
+                    <table class="sonar-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th><th>Trigger</th><th>Scope</th><th>Scored</th><th>Changed</th>
+                                <th>Band moves</th><th>Duration</th><th>Cost</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (r of runs; track r.model) {
+                                <tr>
+                                    <td>{{ r.model }}</td>
+                                    <td class="sonar-faint">{{ r.trigger }}</td>
+                                    <td class="sonar-faint">{{ r.scope }}</td>
+                                    <td class="sonar-mono">{{ r.scored | number }}</td>
+                                    <td class="sonar-mono">{{ r.changed | number }}</td>
+                                    <td class="sonar-mono sonar-text--atrisk">{{ r.moves }}</td>
+                                    <td class="sonar-mono">{{ r.duration }}</td>
+                                    <td class="sonar-mono sonar-faint">{{ r.cost }}</td>
+                                    <td><span class="sonar-chip" [ngClass]="r.ok ? 'sonar-chip--healthy' : 'sonar-chip--atrisk'">{{ r.statusLabel }}</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="sonar-note">Cost units track Action-backed factors flagged <span class="sonar-mono">IsExpensive</span>; full population runs on a schedule, events trigger incrementals.</p>
+            </section>
+        </div>
+
+        <!-- Group: governance -->
+        <div class="sonar-group">
+            <h2 class="sonar-group__title">Governance</h2>
+            <div class="sonar-cols-2">
+                <section class="sonar-card">
+                    <div class="sonar-card__label">Published versions</div>
+                    <div class="sonar-stack">
+                        @for (v of versions; track v.label) {
+                            <div class="sonar-list-row">
+                                <div>
+                                    <div class="sonar-list-row__title">{{ v.label }}</div>
+                                    <div class="sonar-faint sonar-list-row__sub">{{ v.by }} · {{ v.when }}</div>
+                                </div>
+                                @if (v.current) { <span class="sonar-chip sonar-chip--healthy">current</span> }
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                <section class="sonar-card">
+                    <div class="sonar-card__label">Config audit trail</div>
+                    <div class="sonar-stack">
+                        @for (a of audit; track $index) {
+                            <div class="sonar-list-row">
+                                <div>
+                                    <div class="sonar-list-row__title">{{ a.what }} <span class="sonar-faint">· {{ a.change }}</span></div>
+                                    <div class="sonar-faint sonar-list-row__sub">{{ a.by }} · {{ a.when }}</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Group: later phases -->
+        <div class="sonar-group">
+            <h2 class="sonar-group__title">Coming in later phases</h2>
+            <div class="sonar-cols-2">
+                <div class="sonar-card sonar-soon">
+                    <div class="sonar-soon__head"><strong>Write-back targets</strong><span class="sonar-chip sonar-chip--phase2">Phase 2+</span></div>
+                    <p>Push NormalizedScore + Band into source systems (Salesforce, Marketing Cloud) on band change, via existing MJ integration connections.</p>
+                </div>
+                <div class="sonar-card sonar-soon">
+                    <div class="sonar-soon__head"><strong>Action promotion queue</strong><span class="sonar-chip sonar-chip--phase2">Phase 2+</span></div>
+                    <p>Review, test, and approve Action-backed factors (CodeSmith-generated) before they can bind to an Active model.</p>
+                </div>
+                <div class="sonar-card sonar-soon">
+                    <div class="sonar-soon__head"><strong>Calibration network</strong><span class="sonar-chip sonar-chip--phase2">Phase 2+</span></div>
+                    <p>Contribute de-identified factor distributions and consume peer benchmarks for "what's good." No record-level data leaves the tenant.</p>
+                </div>
+                <div class="sonar-card sonar-soon">
+                    <div class="sonar-soon__head"><strong>Cost ledger</strong><span class="sonar-chip sonar-chip--phase2">Phase 2+</span></div>
+                    <p>Per-model cost metering across recompute runs, with budgets and alerts on expensive Action-backed factors.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
