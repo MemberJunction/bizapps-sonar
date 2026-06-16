@@ -1,10 +1,10 @@
 import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
-    sonarScoreModelEntity,
-    sonarModelFactorEntity,
-    sonarFactorEntity,
-    sonarScoreBandEntity,
-    sonarScoreRecomputeRunEntity,
+    mjBizAppsSonarScoreModelEntity,
+    mjBizAppsSonarModelFactorEntity,
+    mjBizAppsSonarFactorEntity,
+    mjBizAppsSonarScoreBandEntity,
+    mjBizAppsSonarScoreRecomputeRunEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
@@ -98,7 +98,7 @@ export class RecomputeOrchestrator {
 
     /** The shared pipeline: population → evaluate + normalize each factor → combine. */
     private async computeForModel(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
         contextUser: UserInfo,
     ): Promise<Map<string, ScoreResult>> {
@@ -120,12 +120,12 @@ export class RecomputeOrchestrator {
 
     /** Open a ScoreRecomputeRun in the Running state. */
     private async startRun(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
-    ): Promise<sonarScoreRecomputeRunEntity> {
+    ): Promise<mjBizAppsSonarScoreRecomputeRunEntity> {
         const md = new Metadata();
-        const run = await md.GetEntityObject<sonarScoreRecomputeRunEntity>(
-            "Sonar: Score Recompute Runs",
+        const run = await md.GetEntityObject<mjBizAppsSonarScoreRecomputeRunEntity>(
+            "MJ_BizApps_Sonar: Score Recompute Runs",
             contextUser,
         );
         run.NewRecord();
@@ -141,7 +141,7 @@ export class RecomputeOrchestrator {
 
     /** Close out a run with its final status and counts. */
     private async finishRun(
-        run: sonarScoreRecomputeRunEntity,
+        run: mjBizAppsSonarScoreRecomputeRunEntity,
         status: "Succeeded" | "Failed",
         recordsScored: number,
         errorMessage?: string,
@@ -164,10 +164,10 @@ export class RecomputeOrchestrator {
     private async loadModel(
         modelId: string,
         contextUser: UserInfo,
-    ): Promise<sonarScoreModelEntity> {
+    ): Promise<mjBizAppsSonarScoreModelEntity> {
         const md = new Metadata();
-        const model = await md.GetEntityObject<sonarScoreModelEntity>(
-            "Sonar: Score Models",
+        const model = await md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(
+            "MJ_BizApps_Sonar: Score Models",
             contextUser,
         );
         if (!(await model.Load(modelId))) {
@@ -177,7 +177,7 @@ export class RecomputeOrchestrator {
     }
 
     /** v1 only combines via WeightedSum; fail loud on other strategies. */
-    private assertSupported(model: sonarScoreModelEntity): void {
+    private assertSupported(model: mjBizAppsSonarScoreModelEntity): void {
         if (model.CombineStrategy !== "WeightedSum") {
             throw new Error(
                 `RecomputeOrchestrator: only the WeightedSum combine strategy is supported yet (got '${model.CombineStrategy}').`,
@@ -187,7 +187,7 @@ export class RecomputeOrchestrator {
 
     /** The set of anchor record IDs to score (v1: every record of the anchor entity). */
     private async resolvePopulation(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
     ): Promise<string[]> {
         const md = new Metadata();
@@ -212,7 +212,7 @@ export class RecomputeOrchestrator {
 
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
     private async buildWeightedFactors(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         anchorIds: string[],
         asOf: Date,
         ctx: FactorEvaluationContext,
@@ -250,13 +250,13 @@ export class RecomputeOrchestrator {
 
     /** The model's rubric rows (factor bindings + weights). */
     private async loadRubric(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
-    ): Promise<sonarModelFactorEntity[]> {
+    ): Promise<mjBizAppsSonarModelFactorEntity[]> {
         const rv = new RunView();
-        const result = await rv.RunView<sonarModelFactorEntity>(
+        const result = await rv.RunView<mjBizAppsSonarModelFactorEntity>(
             {
-                EntityName: "Sonar: Model Factors",
+                EntityName: "MJ_BizApps_Sonar: Model Factors",
                 ExtraFilter: `ScoreModelID='${model.ID}'`,
                 ResultType: "entity_object",
             },
@@ -267,20 +267,20 @@ export class RecomputeOrchestrator {
 
     /** Batch-load every Factor referenced by the rubric, keyed by ID. */
     private async loadFactors(
-        modelFactors: sonarModelFactorEntity[],
+        modelFactors: mjBizAppsSonarModelFactorEntity[],
         contextUser: UserInfo,
-    ): Promise<Map<string, sonarFactorEntity>> {
+    ): Promise<Map<string, mjBizAppsSonarFactorEntity>> {
         const idList = modelFactors.map((mf) => `'${mf.FactorID}'`).join(",");
         const rv = new RunView();
-        const result = await rv.RunView<sonarFactorEntity>(
+        const result = await rv.RunView<mjBizAppsSonarFactorEntity>(
             {
-                EntityName: "Sonar: Factors",
+                EntityName: "MJ_BizApps_Sonar: Factors",
                 ExtraFilter: `ID IN (${idList})`,
                 ResultType: "entity_object",
             },
             contextUser,
         );
-        const byId = new Map<string, sonarFactorEntity>();
+        const byId = new Map<string, mjBizAppsSonarFactorEntity>();
         for (const factor of result.Success ? (result.Results ?? []) : []) {
             byId.set(factor.ID, factor);
         }
@@ -289,7 +289,7 @@ export class RecomputeOrchestrator {
 
     /** Resolve a factor's normalization config; fail loud on methods we don't support yet. */
     private resolveNormalizationSpec(
-        factor: sonarFactorEntity,
+        factor: mjBizAppsSonarFactorEntity,
     ): NormalizationSpec {
         const method = factor.NormalizationMethod;
         if (method !== "None" && method !== "MinMax") {
@@ -307,7 +307,7 @@ export class RecomputeOrchestrator {
 
     /** Resolve the model's score scale + bands into a ScoringSpec. */
     private async resolveScoringSpec(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
     ): Promise<ScoringSpec> {
         return {
@@ -319,16 +319,16 @@ export class RecomputeOrchestrator {
 
     /** Load the model's bands (empty when it has no band set). */
     private async loadBands(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
     ): Promise<ScoreBandDef[]> {
         if (!model.BandSetID) {
             return [];
         }
         const rv = new RunView();
-        const result = await rv.RunView<sonarScoreBandEntity>(
+        const result = await rv.RunView<mjBizAppsSonarScoreBandEntity>(
             {
-                EntityName: "Sonar: Score Bands",
+                EntityName: "MJ_BizApps_Sonar: Score Bands",
                 ExtraFilter: `BandSetID='${model.BandSetID}'`,
                 ResultType: "entity_object",
             },

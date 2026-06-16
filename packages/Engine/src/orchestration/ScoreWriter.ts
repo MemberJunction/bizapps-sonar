@@ -1,8 +1,8 @@
 import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
-    sonarScoreModelEntity,
-    sonarScoreEntity,
-    sonarScoreFactorContributionEntity,
+    mjBizAppsSonarScoreModelEntity,
+    mjBizAppsSonarScoreEntity,
+    mjBizAppsSonarScoreFactorContributionEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
 
@@ -18,7 +18,7 @@ import { ScoreResult } from "../scoring/ScoringEngine";
  */
 export class ScoreWriter {
     public async write(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         versionId: string,
         scores: Map<string, ScoreResult>,
         asOf: Date,
@@ -50,19 +50,19 @@ export class ScoreWriter {
 
     /** Current Score rows for this model, keyed by AnchorRecordID (for find-or-create). */
     private async loadExistingScores(
-        model: sonarScoreModelEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
-    ): Promise<Map<string, sonarScoreEntity>> {
+    ): Promise<Map<string, mjBizAppsSonarScoreEntity>> {
         const rv = new RunView();
-        const result = await rv.RunView<sonarScoreEntity>(
+        const result = await rv.RunView<mjBizAppsSonarScoreEntity>(
             {
-                EntityName: "Sonar: Scores",
+                EntityName: "MJ_BizApps_Sonar: Scores",
                 ExtraFilter: `ScoreModelID='${model.ID}'`,
                 ResultType: "entity_object",
             },
             contextUser,
         );
-        const byAnchor = new Map<string, sonarScoreEntity>();
+        const byAnchor = new Map<string, mjBizAppsSonarScoreEntity>();
         for (const score of result.Success ? (result.Results ?? []) : []) {
             byAnchor.set(score.AnchorRecordID, score);
         }
@@ -75,7 +75,7 @@ export class ScoreWriter {
      * at modest scale; the bulk path collapses this into a set-based delete.
      */
     private async clearOldContributions(
-        existing: Map<string, sonarScoreEntity>,
+        existing: Map<string, mjBizAppsSonarScoreEntity>,
         contextUser: UserInfo,
     ): Promise<void> {
         const scoreIds = [...existing.values()].map((s) => `'${s.ID}'`);
@@ -83,9 +83,9 @@ export class ScoreWriter {
             return;
         }
         const rv = new RunView();
-        const result = await rv.RunView<sonarScoreFactorContributionEntity>(
+        const result = await rv.RunView<mjBizAppsSonarScoreFactorContributionEntity>(
             {
-                EntityName: "Sonar: Score Factor Contributions",
+                EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
                 ExtraFilter: `ScoreID IN (${scoreIds.join(",")})`,
                 ResultType: "entity_object",
             },
@@ -100,10 +100,10 @@ export class ScoreWriter {
         }
     }
 
-    private async newScore(contextUser: UserInfo): Promise<sonarScoreEntity> {
+    private async newScore(contextUser: UserInfo): Promise<mjBizAppsSonarScoreEntity> {
         const md = new Metadata();
-        const score = await md.GetEntityObject<sonarScoreEntity>(
-            "Sonar: Scores",
+        const score = await md.GetEntityObject<mjBizAppsSonarScoreEntity>(
+            "MJ_BizApps_Sonar: Scores",
             contextUser,
         );
         score.NewRecord();
@@ -112,8 +112,8 @@ export class ScoreWriter {
 
     /** Set the score's fields from the computed result. Trend/confidence fields stay null in v1. */
     private applyScore(
-        score: sonarScoreEntity,
-        model: sonarScoreModelEntity,
+        score: mjBizAppsSonarScoreEntity,
+        model: mjBizAppsSonarScoreModelEntity,
         versionId: string,
         anchorRecordId: string,
         asOf: Date,
@@ -140,8 +140,8 @@ export class ScoreWriter {
         const md = new Metadata();
         for (const c of result.contributions) {
             const row =
-                await md.GetEntityObject<sonarScoreFactorContributionEntity>(
-                    "Sonar: Score Factor Contributions",
+                await md.GetEntityObject<mjBizAppsSonarScoreFactorContributionEntity>(
+                    "MJ_BizApps_Sonar: Score Factor Contributions",
                     contextUser,
                 );
             row.NewRecord();

@@ -1,8 +1,8 @@
 import { Metadata, UserInfo, EntityInfo } from "@memberjunction/core";
 import {
-    sonarFactorEntity,
-    sonarModelRelatedEntityEntity,
-    sonarTimeWindowEntity,
+    mjBizAppsSonarFactorEntity,
+    mjBizAppsSonarModelRelatedEntityEntity,
+    mjBizAppsSonarTimeWindowEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
@@ -30,7 +30,7 @@ interface WindowSpec {
  */
 export class FactorCompiler {
     public async compile(
-        factor: sonarFactorEntity,
+        factor: mjBizAppsSonarFactorEntity,
         contextUser: UserInfo,
     ): Promise<IFactorEvaluator> {
         this.assertSupported(factor);
@@ -72,7 +72,7 @@ export class FactorCompiler {
      * entity's columns inside compileFilter.
      */
     private resolveFilter(
-        factor: sonarFactorEntity,
+        factor: mjBizAppsSonarFactorEntity,
         validColumns: string[],
     ): CompiledFilter {
         if (!factor.FilterExpression) {
@@ -92,7 +92,7 @@ export class FactorCompiler {
     }
 
     /** Fail loud on factor kinds outside the v1 slice (aggregation support is enforced in buildAggregateExpression). */
-    private assertSupported(factor: sonarFactorEntity): void {
+    private assertSupported(factor: mjBizAppsSonarFactorEntity): void {
         if (factor.FactorType !== "Declarative") {
             throw new Error(
                 `FactorCompiler: only Declarative factors are supported yet (got '${factor.FactorType}' for factor ${factor.ID}).`,
@@ -106,7 +106,7 @@ export class FactorCompiler {
      * factors (SourceEntityID) are deferred.
      */
     private async resolveRelatedEntity(
-        factor: sonarFactorEntity,
+        factor: mjBizAppsSonarFactorEntity,
         contextUser: UserInfo,
     ): Promise<EntityInfo> {
         if (!factor.SourceRelatedEntityID) {
@@ -115,8 +115,8 @@ export class FactorCompiler {
             );
         }
         const md = new Metadata();
-        const mre = await md.GetEntityObject<sonarModelRelatedEntityEntity>(
-            "Sonar: Model Related Entities",
+        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(
+            "MJ_BizApps_Sonar: Model Related Entities",
             contextUser,
         );
         if (!(await mre.Load(factor.SourceRelatedEntityID))) {
@@ -158,15 +158,15 @@ export class FactorCompiler {
      * windows (and "no window" when the factor has none); other window types are deferred.
      */
     private async resolveWindow(
-        factor: sonarFactorEntity,
+        factor: mjBizAppsSonarFactorEntity,
         contextUser: UserInfo,
     ): Promise<WindowSpec> {
         if (!factor.TimeWindowID) {
             return { dateColumn: null, windowLengthDays: null };
         }
         const md = new Metadata();
-        const tw = await md.GetEntityObject<sonarTimeWindowEntity>(
-            "Sonar: Time Windows",
+        const tw = await md.GetEntityObject<mjBizAppsSonarTimeWindowEntity>(
+            "MJ_BizApps_Sonar: Time Windows",
             contextUser,
         );
         if (!(await tw.Load(factor.TimeWindowID))) {
