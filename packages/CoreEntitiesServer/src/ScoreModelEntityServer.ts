@@ -13,10 +13,10 @@ import {
     ValidationErrorType,
 } from "@memberjunction/global";
 import {
-    sonarScoreModelEntity,
-    sonarScoreModelVersionEntity,
-    sonarModelFactorEntity,
-    sonarFactorEntity,
+    mjBizAppsSonarScoreModelEntity,
+    mjBizAppsSonarScoreModelVersionEntity,
+    mjBizAppsSonarModelFactorEntity,
+    mjBizAppsSonarFactorEntity,
 } from "@mj-biz-apps/sonar-entities";
 
 /**
@@ -33,8 +33,8 @@ import {
  * Blocks the transition to `Active` unless the model is actually scoreable (has a rubric
  * and bands). Runs before the snapshot, so an invalid publish never persists.
  */
-@RegisterClass(BaseEntity, "Sonar: Score Models")
-export class ScoreModelEntityServer extends sonarScoreModelEntity {
+@RegisterClass(BaseEntity, "MJ_BizApps_Sonar: Score Models")
+export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     /**
      * Entry point for every save. Routes a publish transition (→ Active) through the
      * snapshot path; all other saves fall through to the base implementation unchanged.
@@ -84,14 +84,14 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
         const [factorCheck, bandCheck] = await rv.RunViews(
             [
                 {
-                    EntityName: "Sonar: Model Factors",
+                    EntityName: "MJ_BizApps_Sonar: Model Factors",
                     ExtraFilter: `ScoreModelID='${this.ID}'`,
                     MaxRows: 1,
                     ResultType: "simple",
                     Fields: ["ID"],
                 },
                 {
-                    EntityName: "Sonar: Score Bands",
+                    EntityName: "MJ_BizApps_Sonar: Score Bands",
                     ExtraFilter: this.BandSetID
                         ? `BandSetID='${this.BandSetID}'`
                         : "1=0",
@@ -189,8 +189,8 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
             await pv.Save();
         }
 
-        const version = await md.GetEntityObject<sonarScoreModelVersionEntity>(
-            "Sonar: Score Model Versions",
+        const version = await md.GetEntityObject<mjBizAppsSonarScoreModelVersionEntity>(
+            "MJ_BizApps_Sonar: Score Model Versions",
             this.ContextCurrentUser,
         );
         version.NewRecord();
@@ -229,11 +229,11 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
      * Load the model's current version (the one being superseded) by primary key.
      * Returns null on a brand-new model that has never been published.
      */
-    private async loadPriorVersion(): Promise<sonarScoreModelVersionEntity | null> {
+    private async loadPriorVersion(): Promise<mjBizAppsSonarScoreModelVersionEntity | null> {
         if (!this.CurrentVersionID) return null;
         const md = new Metadata();
-        const v = await md.GetEntityObject<sonarScoreModelVersionEntity>(
-            "Sonar: Score Model Versions",
+        const v = await md.GetEntityObject<mjBizAppsSonarScoreModelVersionEntity>(
+            "MJ_BizApps_Sonar: Score Model Versions",
             this.ContextCurrentUser,
         );
         const loaded = await v.Load(this.CurrentVersionID);
@@ -250,17 +250,17 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
         const [related, modelFactors, bands] = await rv.RunViews(
             [
                 {
-                    EntityName: "Sonar: Model Related Entities",
+                    EntityName: "MJ_BizApps_Sonar: Model Related Entities",
                     ExtraFilter: `ScoreModelID='${this.ID}'`,
                     ResultType: "entity_object",
                 },
                 {
-                    EntityName: "Sonar: Model Factors",
+                    EntityName: "MJ_BizApps_Sonar: Model Factors",
                     ExtraFilter: `ScoreModelID='${this.ID}'`,
                     ResultType: "entity_object",
                 },
                 {
-                    EntityName: "Sonar: Score Bands",
+                    EntityName: "MJ_BizApps_Sonar: Score Bands",
                     ExtraFilter: this.BandSetID
                         ? `BandSetID='${this.BandSetID}'`
                         : "1=0",
@@ -271,7 +271,7 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
         );
 
         const modelFactorRows = (modelFactors.Results ??
-            []) as sonarModelFactorEntity[];
+            []) as mjBizAppsSonarModelFactorEntity[];
         const factors = await this.loadBoundFactors(modelFactorRows);
 
         const config = {
@@ -288,16 +288,16 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
 
     /** Load the Factor rows referenced by the model's rubric (its ModelFactor rows). */
     private async loadBoundFactors(
-        modelFactors: sonarModelFactorEntity[],
-    ): Promise<sonarFactorEntity[]> {
+        modelFactors: mjBizAppsSonarModelFactorEntity[],
+    ): Promise<mjBizAppsSonarFactorEntity[]> {
         if (modelFactors.length === 0) {
             return [];
         }
         const idList = modelFactors.map((mf) => `'${mf.FactorID}'`).join(",");
         const rv = new RunView();
-        const result = await rv.RunView<sonarFactorEntity>(
+        const result = await rv.RunView<mjBizAppsSonarFactorEntity>(
             {
-                EntityName: "Sonar: Factors",
+                EntityName: "MJ_BizApps_Sonar: Factors",
                 ExtraFilter: `ID IN (${idList})`,
                 ResultType: "entity_object",
             },
@@ -309,9 +309,9 @@ export class ScoreModelEntityServer extends sonarScoreModelEntity {
     /** Next monotonic version number for this model (max existing + 1). */
     private async nextVersionNumber(): Promise<number> {
         const rv = new RunView();
-        const result = await rv.RunView<sonarScoreModelVersionEntity>(
+        const result = await rv.RunView<mjBizAppsSonarScoreModelVersionEntity>(
             {
-                EntityName: "Sonar: Score Model Versions",
+                EntityName: "MJ_BizApps_Sonar: Score Model Versions",
                 ExtraFilter: `ScoreModelID='${this.ID}'`,
                 OrderBy: "VersionNumber DESC",
                 MaxRows: 1,
