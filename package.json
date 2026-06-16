@@ -19,7 +19,7 @@
         "start:api": "turbo start --filter=mj_api",
         "start:explorer": "turbo start --filter=mj_explorer",
         "mj": "npx mj",
-        "mj:migrate": "npx mj migrate --schema __sonar --dir ./migrations",
+        "mj:migrate": "npx mj migrate --schema __mj_BizAppsSonar --dir ./migrations",
         "mj:codegen": "npx mj codegen",
         "install:deps": "npm install",
         "setup": "echo 'Please run: npm run mj:migrate && npm run mj:codegen && npm run build'",

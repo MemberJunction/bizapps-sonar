@@ -2,7 +2,7 @@
 
 Welcome @BarnattW-BC! This is your step-by-step guide for taking Sonar from the current scaffold to a working engine. @MS-BC (Madhav) is helping you — pull him in whenever you're blocked, especially on database access and MJ platform questions.
 
-**Where we are:** This repo is a fully scaffolded MemberJunction **Open App** (modeled on [bizapps-common](https://github.com/MemberJunction/bizapps-common)). Everything compiles, but the `__sonar` schema doesn't exist yet — every `generated/` directory contains placeholders waiting for CodeGen. **Your first major deliverable is the initial schema migration (Step 5).**
+**Where we are:** This repo is a fully scaffolded MemberJunction **Open App** (modeled on [bizapps-common](https://github.com/MemberJunction/bizapps-common)). Everything compiles, but the `__mj_BizAppsSonar` schema doesn't exist yet — every `generated/` directory contains placeholders waiting for CodeGen. **Your first major deliverable is the initial schema migration (Step 5).**
 
 **Read these before writing any code:**
 
@@ -70,7 +70,7 @@ Start Claude Code from `~/dev/` (the parent folder) so all three repos are in sc
 ## Step 3 — Learn the repo layout
 
 ```
-mj-app.json          ← Open App manifest: schema __sonar, packages, startup exports
+mj-app.json          ← Open App manifest: schema __mj_BizAppsSonar, packages, startup exports
 mj.config.cjs        ← CodeGen config: 'Sonar: ' entity prefix, output paths
 migrations/          ← YOUR migrations (Skyway/Flyway) — empty today, see its README
 metadata/            ← mj-sync metadata (schema-info is set up; more comes later)
@@ -95,7 +95,7 @@ This repo follows the `next` → `main` two-tier model (see CLAUDE.md "Branching
 - [ ] From then on: **all feature branches cut from `next`**, PRs target `next`, releases are a single `next` → `main` PR
 - [ ] Every feature branch must track a same-named remote: `git push -u origin <branch>` and verify with `git branch -vv`
 
-## Step 5 — THE BIG ONE: the initial `__sonar` schema migration
+## Step 5 — THE BIG ONE: the initial `__mj_BizAppsSonar` schema migration
 
 This is the foundation everything else builds on. The full data model is specified in [`plans/plan.md` §5](plans/plan.md) — table by table, with columns, FKs, and design notes.
 
@@ -113,7 +113,7 @@ Defer write-back (§5.5), action layer (§5.6), calibration (§5.7), and templat
 - [ ] Open a Claude Code session that can read `MJ/migrations/CLAUDE.md` and this repo. Ask it to read both, plus `plans/plan.md` §5, before generating anything.
 - [ ] File name: `migrations/V202606DDHHMM__v0.1.x_Initial_Schema.sql` (timestamp format `VYYYYMMDDHHMM`, double underscore, see `migrations/README.md`)
 - [ ] The non-negotiable MJ migration rules (CodeGen owns the rest):
-  - Use `${flyway:defaultSchema}` everywhere — never hardcode `__sonar`
+  - Use `${flyway:defaultSchema}` everywhere — never hardcode `__mj_BizAppsSonar`
   - UUID PKs: `ID UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID()` with named `PK_` constraints
   - **NO `__mj_CreatedAt` / `__mj_UpdatedAt` columns** — CodeGen adds them
   - **NO indexes on foreign key columns** — CodeGen creates them
@@ -126,7 +126,7 @@ Defer write-back (§5.5), action layer (§5.6), calibration (§5.7), and templat
 
 ## Step 6 — Run CodeGen and absorb the output
 
-- [ ] `npm run mj:codegen` — this connects to the database, discovers the new `__sonar` tables, and:
+- [ ] `npm run mj:codegen` — this connects to the database, discovers the new `__mj_BizAppsSonar` tables, and:
   - Replaces `packages/Entities/src/generated/entity_subclasses.ts` with real `Sonar: `-prefixed entity classes (Zod schemas, typed getters/setters)
   - Replaces `packages/Server/src/generated/generated.ts` with TypeGraphQL resolvers
   - Generates Angular CRUD forms into `packages/Angular/src/lib/generated/`

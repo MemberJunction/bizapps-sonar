@@ -14,7 +14,7 @@
   "repository": "https://github.com/MemberJunction/bizapps-sonar",
   "mjVersionRange": ">=5.33.0 <6.0.0",
   "schema": {
-    "name": "__sonar",
+    "name": "__mj_BizAppsSonar",
     "createIfNotExists": true
   },
   "migrations": {

@@ -13,7 +13,7 @@
  * priority.
  *
  * No server-side subclasses exist yet — they will be added once the initial
- * __sonar schema migration has run and CodeGen has produced the base entity
+ * __mj_BizAppsSonar schema migration has run and CodeGen has produced the base entity
  * classes.
  */
 

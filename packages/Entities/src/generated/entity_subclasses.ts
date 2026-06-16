@@ -9,9 +9,9 @@ export const loadModule = () => {
      
  
 /**
- * zod schema definition for the entity Sonar: Factors
+ * zod schema definition for the entity MJ_BizApps_Sonar: Factors
  */
-export const sonarFactorSchema = z.object({
+export const mjBizAppsSonarFactorSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -36,7 +36,7 @@ export const sonarFactorSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     AnchorEntityID: z.string().describe(`
         * * Field Name: AnchorEntityID
         * * Display Name: Anchor Entity ID
@@ -57,7 +57,7 @@ export const sonarFactorSchema = z.object({
         * * Field Name: SourceRelatedEntityID
         * * Display Name: Source Related Entity ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Model Related Entities (vwModelRelatedEntities.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Model Related Entities (vwModelRelatedEntities.ID)`),
     SourceEntityID: z.string().nullable().describe(`
         * * Field Name: SourceEntityID
         * * Display Name: Source Entity ID
@@ -94,7 +94,7 @@ export const sonarFactorSchema = z.object({
         * * Field Name: TimeWindowID
         * * Display Name: Time Window ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Time Windows (vwTimeWindows.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Time Windows (vwTimeWindows.ID)`),
     RecencyDecayHalfLifeDays: z.number().nullable().describe(`
         * * Field Name: RecencyDecayHalfLifeDays
         * * Display Name: Recency Decay Half Life Days
@@ -144,7 +144,7 @@ export const sonarFactorSchema = z.object({
         * * Field Name: SourceScoreModelID
         * * Display Name: Source Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     RawDataType: z.union([z.literal('Boolean'), z.literal('Date'), z.literal('Duration'), z.literal('Number')]).nullable().describe(`
         * * Field Name: RawDataType
         * * Display Name: Raw Data Type
@@ -248,12 +248,12 @@ export const sonarFactorSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarFactorEntityType = z.infer<typeof sonarFactorSchema>;
+export type mjBizAppsSonarFactorEntityType = z.infer<typeof mjBizAppsSonarFactorSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Model Factors
+ * zod schema definition for the entity MJ_BizApps_Sonar: Model Factors
  */
-export const sonarModelFactorSchema = z.object({
+export const mjBizAppsSonarModelFactorSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -263,12 +263,12 @@ export const sonarModelFactorSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     FactorID: z.string().describe(`
         * * Field Name: FactorID
         * * Display Name: Factor ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Factors (vwFactors.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Factors (vwFactors.ID)`),
     Weight: z.number().describe(`
         * * Field Name: Weight
         * * Display Name: Weight
@@ -351,12 +351,12 @@ export const sonarModelFactorSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarModelFactorEntityType = z.infer<typeof sonarModelFactorSchema>;
+export type mjBizAppsSonarModelFactorEntityType = z.infer<typeof mjBizAppsSonarModelFactorSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Model Related Entities
+ * zod schema definition for the entity MJ_BizApps_Sonar: Model Related Entities
  */
-export const sonarModelRelatedEntitySchema = z.object({
+export const mjBizAppsSonarModelRelatedEntitySchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -366,7 +366,7 @@ export const sonarModelRelatedEntitySchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     RelatedEntityID: z.string().describe(`
         * * Field Name: RelatedEntityID
         * * Display Name: Related Entity ID
@@ -422,12 +422,12 @@ export const sonarModelRelatedEntitySchema = z.object({
         * * SQL Data Type: nvarchar(255)`),
 });
 
-export type sonarModelRelatedEntityEntityType = z.infer<typeof sonarModelRelatedEntitySchema>;
+export type mjBizAppsSonarModelRelatedEntityEntityType = z.infer<typeof mjBizAppsSonarModelRelatedEntitySchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Band Sets
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Band Sets
  */
-export const sonarScoreBandSetSchema = z.object({
+export const mjBizAppsSonarScoreBandSetSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -464,12 +464,12 @@ export const sonarScoreBandSetSchema = z.object({
         * * SQL Data Type: nvarchar(255)`),
 });
 
-export type sonarScoreBandSetEntityType = z.infer<typeof sonarScoreBandSetSchema>;
+export type mjBizAppsSonarScoreBandSetEntityType = z.infer<typeof mjBizAppsSonarScoreBandSetSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Band Transitions
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Band Transitions
  */
-export const sonarScoreBandTransitionSchema = z.object({
+export const mjBizAppsSonarScoreBandTransitionSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -479,7 +479,7 @@ export const sonarScoreBandTransitionSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
@@ -489,12 +489,12 @@ export const sonarScoreBandTransitionSchema = z.object({
         * * Field Name: FromBandID
         * * Display Name: From Band ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)`),
     ToBandID: z.string().nullable().describe(`
         * * Field Name: ToBandID
         * * Display Name: To Band ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)`),
     Direction: z.union([z.literal('Improving'), z.literal('Worsening')]).nullable().describe(`
         * * Field Name: Direction
         * * Display Name: Direction
@@ -514,7 +514,7 @@ export const sonarScoreBandTransitionSchema = z.object({
         * * Field Name: RecomputeRunID
         * * Display Name: Recompute Run ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Recompute Runs (vwScoreRecomputeRuns.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Recompute Runs (vwScoreRecomputeRuns.ID)`),
     Handled: z.boolean().describe(`
         * * Field Name: Handled
         * * Display Name: Handled
@@ -537,12 +537,12 @@ export const sonarScoreBandTransitionSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarScoreBandTransitionEntityType = z.infer<typeof sonarScoreBandTransitionSchema>;
+export type mjBizAppsSonarScoreBandTransitionEntityType = z.infer<typeof mjBizAppsSonarScoreBandTransitionSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Bands
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Bands
  */
-export const sonarScoreBandSchema = z.object({
+export const mjBizAppsSonarScoreBandSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -552,7 +552,7 @@ export const sonarScoreBandSchema = z.object({
         * * Field Name: BandSetID
         * * Display Name: Band Set ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Band Sets (vwScoreBandSets.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)`),
     Label: z.string().describe(`
         * * Field Name: Label
         * * Display Name: Label
@@ -606,12 +606,12 @@ export const sonarScoreBandSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarScoreBandEntityType = z.infer<typeof sonarScoreBandSchema>;
+export type mjBizAppsSonarScoreBandEntityType = z.infer<typeof mjBizAppsSonarScoreBandSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Factor Contributions
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Factor Contributions
  */
-export const sonarScoreFactorContributionSchema = z.object({
+export const mjBizAppsSonarScoreFactorContributionSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -621,17 +621,17 @@ export const sonarScoreFactorContributionSchema = z.object({
         * * Field Name: ScoreID
         * * Display Name: Score ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Scores (vwScores.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Scores (vwScores.ID)`),
     ModelFactorID: z.string().describe(`
         * * Field Name: ModelFactorID
         * * Display Name: Model Factor ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Model Factors (vwModelFactors.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Model Factors (vwModelFactors.ID)`),
     FactorID: z.string().describe(`
         * * Field Name: FactorID
         * * Display Name: Factor ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Factors (vwFactors.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Factors (vwFactors.ID)`),
     RawValue: z.number().nullable().describe(`
         * * Field Name: RawValue
         * * Display Name: Raw Value
@@ -690,12 +690,12 @@ export const sonarScoreFactorContributionSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarScoreFactorContributionEntityType = z.infer<typeof sonarScoreFactorContributionSchema>;
+export type mjBizAppsSonarScoreFactorContributionEntityType = z.infer<typeof mjBizAppsSonarScoreFactorContributionSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Histories
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Histories
  */
-export const sonarScoreHistorySchema = z.object({
+export const mjBizAppsSonarScoreHistorySchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -705,12 +705,12 @@ export const sonarScoreHistorySchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     ScoreModelVersionID: z.string().describe(`
         * * Field Name: ScoreModelVersionID
         * * Display Name: Score Model Version ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     AnchorEntityID: z.string().describe(`
         * * Field Name: AnchorEntityID
         * * Display Name: Anchor Entity ID
@@ -730,7 +730,7 @@ export const sonarScoreHistorySchema = z.object({
         * * Field Name: BandID
         * * Display Name: Band ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)`),
     AsOfDate: z.date().nullable().describe(`
         * * Field Name: AsOfDate
         * * Display Name: As Of Date
@@ -777,12 +777,12 @@ export const sonarScoreHistorySchema = z.object({
         * * SQL Data Type: nvarchar(255)`),
 });
 
-export type sonarScoreHistoryEntityType = z.infer<typeof sonarScoreHistorySchema>;
+export type mjBizAppsSonarScoreHistoryEntityType = z.infer<typeof mjBizAppsSonarScoreHistorySchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Model Audit Events
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Model Audit Events
  */
-export const sonarScoreModelAuditEventSchema = z.object({
+export const mjBizAppsSonarScoreModelAuditEventSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -792,7 +792,7 @@ export const sonarScoreModelAuditEventSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     EntityChanged: z.string().describe(`
         * * Field Name: EntityChanged
         * * Display Name: Entity Changed
@@ -855,12 +855,12 @@ export const sonarScoreModelAuditEventSchema = z.object({
         * * SQL Data Type: nvarchar(100)`),
 });
 
-export type sonarScoreModelAuditEventEntityType = z.infer<typeof sonarScoreModelAuditEventSchema>;
+export type mjBizAppsSonarScoreModelAuditEventEntityType = z.infer<typeof mjBizAppsSonarScoreModelAuditEventSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Model Versions
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Model Versions
  */
-export const sonarScoreModelVersionSchema = z.object({
+export const mjBizAppsSonarScoreModelVersionSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -870,7 +870,7 @@ export const sonarScoreModelVersionSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     VersionNumber: z.number().describe(`
         * * Field Name: VersionNumber
         * * Display Name: Version Number
@@ -928,12 +928,12 @@ export const sonarScoreModelVersionSchema = z.object({
         * * SQL Data Type: nvarchar(100)`),
 });
 
-export type sonarScoreModelVersionEntityType = z.infer<typeof sonarScoreModelVersionSchema>;
+export type mjBizAppsSonarScoreModelVersionEntityType = z.infer<typeof mjBizAppsSonarScoreModelVersionSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Models
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Models
  */
-export const sonarScoreModelSchema = z.object({
+export const mjBizAppsSonarScoreModelSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -975,7 +975,7 @@ export const sonarScoreModelSchema = z.object({
         * * Field Name: CurrentVersionID
         * * Display Name: Current Version ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     ScoreScaleMin: z.number().describe(`
         * * Field Name: ScoreScaleMin
         * * Display Name: Score Scale Min
@@ -1010,7 +1010,7 @@ export const sonarScoreModelSchema = z.object({
         * * Field Name: BandSetID
         * * Display Name: Band Set ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Band Sets (vwScoreBandSets.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)`),
     PopulationFilter: z.string().nullable().describe(`
         * * Field Name: PopulationFilter
         * * Display Name: Population Filter
@@ -1099,12 +1099,12 @@ export const sonarScoreModelSchema = z.object({
         * * SQL Data Type: nvarchar(100)`),
 });
 
-export type sonarScoreModelEntityType = z.infer<typeof sonarScoreModelSchema>;
+export type mjBizAppsSonarScoreModelEntityType = z.infer<typeof mjBizAppsSonarScoreModelSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Score Recompute Runs
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Recompute Runs
  */
-export const sonarScoreRecomputeRunSchema = z.object({
+export const mjBizAppsSonarScoreRecomputeRunSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -1114,12 +1114,12 @@ export const sonarScoreRecomputeRunSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     ScoreModelVersionID: z.string().nullable().describe(`
         * * Field Name: ScoreModelVersionID
         * * Display Name: Score Model Version ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     TriggerType: z.union([z.literal('Backfill'), z.literal('Event'), z.literal('Manual'), z.literal('Scheduled')]).describe(`
         * * Field Name: TriggerType
         * * Display Name: Trigger Type
@@ -1210,12 +1210,12 @@ export const sonarScoreRecomputeRunSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
 });
 
-export type sonarScoreRecomputeRunEntityType = z.infer<typeof sonarScoreRecomputeRunSchema>;
+export type mjBizAppsSonarScoreRecomputeRunEntityType = z.infer<typeof mjBizAppsSonarScoreRecomputeRunSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Scores
+ * zod schema definition for the entity MJ_BizApps_Sonar: Scores
  */
-export const sonarScoreSchema = z.object({
+export const mjBizAppsSonarScoreSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -1225,12 +1225,12 @@ export const sonarScoreSchema = z.object({
         * * Field Name: ScoreModelID
         * * Display Name: Score Model ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
     ScoreModelVersionID: z.string().describe(`
         * * Field Name: ScoreModelVersionID
         * * Display Name: Score Model Version ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     AnchorEntityID: z.string().describe(`
         * * Field Name: AnchorEntityID
         * * Display Name: Anchor Entity ID
@@ -1260,7 +1260,7 @@ export const sonarScoreSchema = z.object({
         * * Field Name: BandID
         * * Display Name: Band ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)`),
     PreviousNormalizedScore: z.number().nullable().describe(`
         * * Field Name: PreviousNormalizedScore
         * * Display Name: Previous Normalized Score
@@ -1270,7 +1270,7 @@ export const sonarScoreSchema = z.object({
         * * Field Name: PreviousBandID
         * * Display Name: Previous Band ID
         * * SQL Data Type: uniqueidentifier
-        * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)`),
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)`),
     Delta: z.number().nullable().describe(`
         * * Field Name: Delta
         * * Display Name: Delta
@@ -1348,12 +1348,12 @@ export const sonarScoreSchema = z.object({
         * * SQL Data Type: nvarchar(255)`),
 });
 
-export type sonarScoreEntityType = z.infer<typeof sonarScoreSchema>;
+export type mjBizAppsSonarScoreEntityType = z.infer<typeof mjBizAppsSonarScoreSchema>;
 
 /**
- * zod schema definition for the entity Sonar: Time Windows
+ * zod schema definition for the entity MJ_BizApps_Sonar: Time Windows
  */
-export const sonarTimeWindowSchema = z.object({
+export const mjBizAppsSonarTimeWindowSchema = z.object({
     ID: z.string().describe(`
         * * Field Name: ID
         * * Display Name: ID
@@ -1413,13 +1413,13 @@ export const sonarTimeWindowSchema = z.object({
         * * Default Value: getutcdate()`),
 });
 
-export type sonarTimeWindowEntityType = z.infer<typeof sonarTimeWindowSchema>;
+export type mjBizAppsSonarTimeWindowEntityType = z.infer<typeof mjBizAppsSonarTimeWindowSchema>;
  
  
 
 /**
- * Sonar: Factors - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Factors - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: Factor
  * * Base View: vwFactors
  * * @description A reusable signal definition that satisfies one uniform contract. Declarative factors compile to set-based SQL; ActionBacked factors wrap an MJ Action; DerivedFromScore factors consume another model's score.
@@ -1428,16 +1428,16 @@ export type sonarTimeWindowEntityType = z.infer<typeof sonarTimeWindowSchema>;
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Factors')
-export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Factors')
+export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorEntityType> {
     /**
-    * Loads the Sonar: Factors record from the database
-    * @param ID: string - primary key value to load the Sonar: Factors record.
+    * Loads the MJ_BizApps_Sonar: Factors record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Factors record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarFactorEntity
+    * @memberof mjBizAppsSonarFactorEntity
     * @method
     * @override
     */
@@ -1503,7 +1503,7 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string | null {
         return this.Get('ScoreModelID');
@@ -1548,7 +1548,7 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
     * * Field Name: SourceRelatedEntityID
     * * Display Name: Source Related Entity ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Model Related Entities (vwModelRelatedEntities.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Model Related Entities (vwModelRelatedEntities.ID)
     */
     get SourceRelatedEntityID(): string | null {
         return this.Get('SourceRelatedEntityID');
@@ -1625,7 +1625,7 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
     * * Field Name: TimeWindowID
     * * Display Name: Time Window ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Time Windows (vwTimeWindows.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Time Windows (vwTimeWindows.ID)
     */
     get TimeWindowID(): string | null {
         return this.Get('TimeWindowID');
@@ -1747,7 +1747,7 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
     * * Field Name: SourceScoreModelID
     * * Display Name: Source Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get SourceScoreModelID(): string | null {
         return this.Get('SourceScoreModelID');
@@ -1972,8 +1972,8 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
 
 
 /**
- * Sonar: Model Factors - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Model Factors - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ModelFactor
  * * Base View: vwModelFactors
  * * @description Binds a Factor into a model with its weight and contribution rules. The rubric is the set of these rows.
@@ -1982,16 +1982,16 @@ export class sonarFactorEntity extends BaseEntity<sonarFactorEntityType> {
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Model Factors')
-export class sonarModelFactorEntity extends BaseEntity<sonarModelFactorEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Model Factors')
+export class mjBizAppsSonarModelFactorEntity extends BaseEntity<mjBizAppsSonarModelFactorEntityType> {
     /**
-    * Loads the Sonar: Model Factors record from the database
-    * @param ID: string - primary key value to load the Sonar: Model Factors record.
+    * Loads the MJ_BizApps_Sonar: Model Factors record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Model Factors record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarModelFactorEntity
+    * @memberof mjBizAppsSonarModelFactorEntity
     * @method
     * @override
     */
@@ -2018,7 +2018,7 @@ export class sonarModelFactorEntity extends BaseEntity<sonarModelFactorEntityTyp
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -2031,7 +2031,7 @@ export class sonarModelFactorEntity extends BaseEntity<sonarModelFactorEntityTyp
     * * Field Name: FactorID
     * * Display Name: Factor ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Factors (vwFactors.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Factors (vwFactors.ID)
     */
     get FactorID(): string {
         return this.Get('FactorID');
@@ -2215,8 +2215,8 @@ export class sonarModelFactorEntity extends BaseEntity<sonarModelFactorEntityTyp
 
 
 /**
- * Sonar: Model Related Entities - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Model Related Entities - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ModelRelatedEntity
  * * Base View: vwModelRelatedEntities
  * * @description Declares an MJ entity wired into a model and how to traverse from the anchor to it. Factors reference these by Alias.
@@ -2225,16 +2225,16 @@ export class sonarModelFactorEntity extends BaseEntity<sonarModelFactorEntityTyp
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Model Related Entities')
-export class sonarModelRelatedEntityEntity extends BaseEntity<sonarModelRelatedEntityEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Model Related Entities')
+export class mjBizAppsSonarModelRelatedEntityEntity extends BaseEntity<mjBizAppsSonarModelRelatedEntityEntityType> {
     /**
-    * Loads the Sonar: Model Related Entities record from the database
-    * @param ID: string - primary key value to load the Sonar: Model Related Entities record.
+    * Loads the MJ_BizApps_Sonar: Model Related Entities record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Model Related Entities record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarModelRelatedEntityEntity
+    * @memberof mjBizAppsSonarModelRelatedEntityEntity
     * @method
     * @override
     */
@@ -2261,7 +2261,7 @@ export class sonarModelRelatedEntityEntity extends BaseEntity<sonarModelRelatedE
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -2394,8 +2394,8 @@ export class sonarModelRelatedEntityEntity extends BaseEntity<sonarModelRelatedE
 
 
 /**
- * Sonar: Score Band Sets - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Band Sets - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreBandSet
  * * Base View: vwScoreBandSets
  * * @description A reusable, named set of qualitative score bands (e.g. Healthy / Watch / At-Risk / Critical) that can be shared across scoring models.
@@ -2404,16 +2404,16 @@ export class sonarModelRelatedEntityEntity extends BaseEntity<sonarModelRelatedE
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Band Sets')
-export class sonarScoreBandSetEntity extends BaseEntity<sonarScoreBandSetEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Band Sets')
+export class mjBizAppsSonarScoreBandSetEntity extends BaseEntity<mjBizAppsSonarScoreBandSetEntityType> {
     /**
-    * Loads the Sonar: Score Band Sets record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Band Sets record.
+    * Loads the MJ_BizApps_Sonar: Score Band Sets record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Band Sets record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreBandSetEntity
+    * @memberof mjBizAppsSonarScoreBandSetEntity
     * @method
     * @override
     */
@@ -2507,8 +2507,8 @@ export class sonarScoreBandSetEntity extends BaseEntity<sonarScoreBandSetEntityT
 
 
 /**
- * Sonar: Score Band Transitions - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Band Transitions - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreBandTransition
  * * Base View: vwScoreBandTransitions
  * * @description First-class record of a band crossing; the event the action layer and write-back key off.
@@ -2517,16 +2517,16 @@ export class sonarScoreBandSetEntity extends BaseEntity<sonarScoreBandSetEntityT
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Band Transitions')
-export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTransitionEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Band Transitions')
+export class mjBizAppsSonarScoreBandTransitionEntity extends BaseEntity<mjBizAppsSonarScoreBandTransitionEntityType> {
     /**
-    * Loads the Sonar: Score Band Transitions record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Band Transitions record.
+    * Loads the MJ_BizApps_Sonar: Score Band Transitions record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Band Transitions record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreBandTransitionEntity
+    * @memberof mjBizAppsSonarScoreBandTransitionEntity
     * @method
     * @override
     */
@@ -2553,7 +2553,7 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -2579,7 +2579,7 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
     * * Field Name: FromBandID
     * * Display Name: From Band ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)
     */
     get FromBandID(): string | null {
         return this.Get('FromBandID');
@@ -2592,7 +2592,7 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
     * * Field Name: ToBandID
     * * Display Name: To Band ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)
     */
     get ToBandID(): string | null {
         return this.Get('ToBandID');
@@ -2636,7 +2636,7 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
     * * Field Name: RecomputeRunID
     * * Display Name: Recompute Run ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Recompute Runs (vwScoreRecomputeRuns.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Recompute Runs (vwScoreRecomputeRuns.ID)
     */
     get RecomputeRunID(): string | null {
         return this.Get('RecomputeRunID');
@@ -2691,8 +2691,8 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
 
 
 /**
- * Sonar: Score Bands - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Bands - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreBand
  * * Base View: vwScoreBands
  * * @description One qualitative band within a band set, defined by a half-open score range with a severity and color for sorting and display.
@@ -2701,16 +2701,16 @@ export class sonarScoreBandTransitionEntity extends BaseEntity<sonarScoreBandTra
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Bands')
-export class sonarScoreBandEntity extends BaseEntity<sonarScoreBandEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Bands')
+export class mjBizAppsSonarScoreBandEntity extends BaseEntity<mjBizAppsSonarScoreBandEntityType> {
     /**
-    * Loads the Sonar: Score Bands record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Bands record.
+    * Loads the MJ_BizApps_Sonar: Score Bands record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Bands record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreBandEntity
+    * @memberof mjBizAppsSonarScoreBandEntity
     * @method
     * @override
     */
@@ -2737,7 +2737,7 @@ export class sonarScoreBandEntity extends BaseEntity<sonarScoreBandEntityType> {
     * * Field Name: BandSetID
     * * Display Name: Band Set ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Band Sets (vwScoreBandSets.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)
     */
     get BandSetID(): string {
         return this.Get('BandSetID');
@@ -2871,8 +2871,8 @@ export class sonarScoreBandEntity extends BaseEntity<sonarScoreBandEntityType> {
 
 
 /**
- * Sonar: Score Factor Contributions - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Factor Contributions - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreFactorContribution
  * * Base View: vwScoreFactorContributions
  * * @description Per-factor breakdown of a current score; the explainability spine that makes the score narrative free.
@@ -2881,16 +2881,16 @@ export class sonarScoreBandEntity extends BaseEntity<sonarScoreBandEntityType> {
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Factor Contributions')
-export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFactorContributionEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Factor Contributions')
+export class mjBizAppsSonarScoreFactorContributionEntity extends BaseEntity<mjBizAppsSonarScoreFactorContributionEntityType> {
     /**
-    * Loads the Sonar: Score Factor Contributions record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Factor Contributions record.
+    * Loads the MJ_BizApps_Sonar: Score Factor Contributions record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Factor Contributions record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreFactorContributionEntity
+    * @memberof mjBizAppsSonarScoreFactorContributionEntity
     * @method
     * @override
     */
@@ -2917,7 +2917,7 @@ export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFac
     * * Field Name: ScoreID
     * * Display Name: Score ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Scores (vwScores.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Scores (vwScores.ID)
     */
     get ScoreID(): string {
         return this.Get('ScoreID');
@@ -2930,7 +2930,7 @@ export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFac
     * * Field Name: ModelFactorID
     * * Display Name: Model Factor ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Model Factors (vwModelFactors.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Model Factors (vwModelFactors.ID)
     */
     get ModelFactorID(): string {
         return this.Get('ModelFactorID');
@@ -2943,7 +2943,7 @@ export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFac
     * * Field Name: FactorID
     * * Display Name: Factor ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Factors (vwFactors.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Factors (vwFactors.ID)
     */
     get FactorID(): string {
         return this.Get('FactorID');
@@ -3090,8 +3090,8 @@ export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFac
 
 
 /**
- * Sonar: Score Histories - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Histories - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreHistory
  * * Base View: vwScoreHistories
  * * @description Append-only time-series snapshots of scores; the trajectory is the asset. Snapshot on change plus periodic keyframes.
@@ -3100,16 +3100,16 @@ export class sonarScoreFactorContributionEntity extends BaseEntity<sonarScoreFac
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Histories')
-export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Histories')
+export class mjBizAppsSonarScoreHistoryEntity extends BaseEntity<mjBizAppsSonarScoreHistoryEntityType> {
     /**
-    * Loads the Sonar: Score Histories record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Histories record.
+    * Loads the MJ_BizApps_Sonar: Score Histories record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Histories record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreHistoryEntity
+    * @memberof mjBizAppsSonarScoreHistoryEntity
     * @method
     * @override
     */
@@ -3136,7 +3136,7 @@ export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityT
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -3149,7 +3149,7 @@ export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityT
     * * Field Name: ScoreModelVersionID
     * * Display Name: Score Model Version ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
     get ScoreModelVersionID(): string {
         return this.Get('ScoreModelVersionID');
@@ -3201,7 +3201,7 @@ export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityT
     * * Field Name: BandID
     * * Display Name: Band ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)
     */
     get BandID(): string | null {
         return this.Get('BandID');
@@ -3317,8 +3317,8 @@ export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityT
 
 
 /**
- * Sonar: Score Model Audit Events - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Model Audit Events - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreModelAuditEvent
  * * Base View: vwScoreModelAuditEvents
  * * @description Config-change audit: who changed which weight, factor, or window and when. Required for an explainable, governed scoring product.
@@ -3327,16 +3327,16 @@ export class sonarScoreHistoryEntity extends BaseEntity<sonarScoreHistoryEntityT
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Model Audit Events')
-export class sonarScoreModelAuditEventEntity extends BaseEntity<sonarScoreModelAuditEventEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Model Audit Events')
+export class mjBizAppsSonarScoreModelAuditEventEntity extends BaseEntity<mjBizAppsSonarScoreModelAuditEventEntityType> {
     /**
-    * Loads the Sonar: Score Model Audit Events record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Model Audit Events record.
+    * Loads the MJ_BizApps_Sonar: Score Model Audit Events record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Model Audit Events record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreModelAuditEventEntity
+    * @memberof mjBizAppsSonarScoreModelAuditEventEntity
     * @method
     * @override
     */
@@ -3363,7 +3363,7 @@ export class sonarScoreModelAuditEventEntity extends BaseEntity<sonarScoreModelA
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -3511,8 +3511,8 @@ export class sonarScoreModelAuditEventEntity extends BaseEntity<sonarScoreModelA
 
 
 /**
- * Sonar: Score Model Versions - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Model Versions - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreModelVersion
  * * Base View: vwScoreModelVersions
  * * @description An immutable snapshot of a model's complete configuration at publish time. Every Score and ScoreHistory row references the version that produced it, making scores reproducible and auditable.
@@ -3521,16 +3521,16 @@ export class sonarScoreModelAuditEventEntity extends BaseEntity<sonarScoreModelA
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Model Versions')
-export class sonarScoreModelVersionEntity extends BaseEntity<sonarScoreModelVersionEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Model Versions')
+export class mjBizAppsSonarScoreModelVersionEntity extends BaseEntity<mjBizAppsSonarScoreModelVersionEntityType> {
     /**
-    * Loads the Sonar: Score Model Versions record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Model Versions record.
+    * Loads the MJ_BizApps_Sonar: Score Model Versions record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Model Versions record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreModelVersionEntity
+    * @memberof mjBizAppsSonarScoreModelVersionEntity
     * @method
     * @override
     */
@@ -3557,7 +3557,7 @@ export class sonarScoreModelVersionEntity extends BaseEntity<sonarScoreModelVers
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -3700,8 +3700,8 @@ export class sonarScoreModelVersionEntity extends BaseEntity<sonarScoreModelVers
 
 
 /**
- * Sonar: Score Models - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Models - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreModel
  * * Base View: vwScoreModels
  * * @description The editable definition of one scoring model: anchor entity, scale, combine strategy, recompute policy, and bands. Many models can be active per tenant.
@@ -3710,16 +3710,16 @@ export class sonarScoreModelVersionEntity extends BaseEntity<sonarScoreModelVers
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Models')
-export class sonarScoreModelEntity extends BaseEntity<sonarScoreModelEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Models')
+export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarScoreModelEntityType> {
     /**
-    * Loads the Sonar: Score Models record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Models record.
+    * Loads the MJ_BizApps_Sonar: Score Models record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Models record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreModelEntity
+    * @memberof mjBizAppsSonarScoreModelEntity
     * @method
     * @override
     */
@@ -3818,7 +3818,7 @@ export class sonarScoreModelEntity extends BaseEntity<sonarScoreModelEntityType>
     * * Field Name: CurrentVersionID
     * * Display Name: Current Version ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
     get CurrentVersionID(): string | null {
         return this.Get('CurrentVersionID');
@@ -3893,7 +3893,7 @@ export class sonarScoreModelEntity extends BaseEntity<sonarScoreModelEntityType>
     * * Field Name: BandSetID
     * * Display Name: Band Set ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Band Sets (vwScoreBandSets.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)
     */
     get BandSetID(): string | null {
         return this.Get('BandSetID');
@@ -4096,8 +4096,8 @@ export class sonarScoreModelEntity extends BaseEntity<sonarScoreModelEntityType>
 
 
 /**
- * Sonar: Score Recompute Runs - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Score Recompute Runs - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: ScoreRecomputeRun
  * * Base View: vwScoreRecomputeRuns
  * * @description One batch or event recompute pass; drives the admin health view and compute/cost metering.
@@ -4106,16 +4106,16 @@ export class sonarScoreModelEntity extends BaseEntity<sonarScoreModelEntityType>
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Score Recompute Runs')
-export class sonarScoreRecomputeRunEntity extends BaseEntity<sonarScoreRecomputeRunEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Recompute Runs')
+export class mjBizAppsSonarScoreRecomputeRunEntity extends BaseEntity<mjBizAppsSonarScoreRecomputeRunEntityType> {
     /**
-    * Loads the Sonar: Score Recompute Runs record from the database
-    * @param ID: string - primary key value to load the Sonar: Score Recompute Runs record.
+    * Loads the MJ_BizApps_Sonar: Score Recompute Runs record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Recompute Runs record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreRecomputeRunEntity
+    * @memberof mjBizAppsSonarScoreRecomputeRunEntity
     * @method
     * @override
     */
@@ -4142,7 +4142,7 @@ export class sonarScoreRecomputeRunEntity extends BaseEntity<sonarScoreRecompute
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -4155,7 +4155,7 @@ export class sonarScoreRecomputeRunEntity extends BaseEntity<sonarScoreRecompute
     * * Field Name: ScoreModelVersionID
     * * Display Name: Score Model Version ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
     get ScoreModelVersionID(): string | null {
         return this.Get('ScoreModelVersionID');
@@ -4358,8 +4358,8 @@ export class sonarScoreRecomputeRunEntity extends BaseEntity<sonarScoreRecompute
 
 
 /**
- * Sonar: Scores - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Scores - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: Score
  * * Base View: vwScores
  * * @description The current score for one anchor record under one model. Written back into MJ as a first-class entity.
@@ -4368,16 +4368,16 @@ export class sonarScoreRecomputeRunEntity extends BaseEntity<sonarScoreRecompute
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Scores')
-export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Scores')
+export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEntityType> {
     /**
-    * Loads the Sonar: Scores record from the database
-    * @param ID: string - primary key value to load the Sonar: Scores record.
+    * Loads the MJ_BizApps_Sonar: Scores record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Scores record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarScoreEntity
+    * @memberof mjBizAppsSonarScoreEntity
     * @method
     * @override
     */
@@ -4404,7 +4404,7 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
     * * Field Name: ScoreModelID
     * * Display Name: Score Model ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Models (vwScoreModels.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
     */
     get ScoreModelID(): string {
         return this.Get('ScoreModelID');
@@ -4417,7 +4417,7 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
     * * Field Name: ScoreModelVersionID
     * * Display Name: Score Model Version ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Model Versions (vwScoreModelVersions.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
     get ScoreModelVersionID(): string {
         return this.Get('ScoreModelVersionID');
@@ -4495,7 +4495,7 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
     * * Field Name: BandID
     * * Display Name: Band ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)
     */
     get BandID(): string | null {
         return this.Get('BandID');
@@ -4521,7 +4521,7 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
     * * Field Name: PreviousBandID
     * * Display Name: Previous Band ID
     * * SQL Data Type: uniqueidentifier
-    * * Related Entity/Foreign Key: Sonar: Score Bands (vwScoreBands.ID)
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Bands (vwScoreBands.ID)
     */
     get PreviousBandID(): string | null {
         return this.Get('PreviousBandID');
@@ -4708,8 +4708,8 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
 
 
 /**
- * Sonar: Time Windows - strongly typed entity sub-class
- * * Schema: __sonar
+ * MJ_BizApps_Sonar: Time Windows - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
  * * Base Table: TimeWindow
  * * Base View: vwTimeWindows
  * * @description A reusable, first-class time window used when evaluating factors (e.g. trailing 90 days, current term, renewal window -90d).
@@ -4718,16 +4718,16 @@ export class sonarScoreEntity extends BaseEntity<sonarScoreEntityType> {
  * @class
  * @public
  */
-@RegisterClass(BaseEntity, 'Sonar: Time Windows')
-export class sonarTimeWindowEntity extends BaseEntity<sonarTimeWindowEntityType> {
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Time Windows')
+export class mjBizAppsSonarTimeWindowEntity extends BaseEntity<mjBizAppsSonarTimeWindowEntityType> {
     /**
-    * Loads the Sonar: Time Windows record from the database
-    * @param ID: string - primary key value to load the Sonar: Time Windows record.
+    * Loads the MJ_BizApps_Sonar: Time Windows record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Time Windows record.
     * @param EntityRelationshipsToLoad - (optional) the relationships to load
     * @returns {Promise<boolean>} - true if successful, false otherwise
     * @public
     * @async
-    * @memberof sonarTimeWindowEntity
+    * @memberof mjBizAppsSonarTimeWindowEntity
     * @method
     * @override
     */

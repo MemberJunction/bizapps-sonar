@@ -2,7 +2,7 @@
 
 > Point at any MemberJunction entity. Wire in the related entities already unified in MJ — CRM activity, finance invoices, LMS completions, community posts, event registrations. Define **any number of concurrent engagement models**, each with its own declarative rubric. Sonar computes **explainable, trending scores**, writes them back to your source systems, and acts on them with holdout-measured lift.
 
-Sonar ships as a **MemberJunction Open App**: a versioned, installable extension that owns the `__sonar` database schema, ships as npm packages (`@mj-biz-apps/sonar-*`), and installs onto any MJ deployment via `mj app install`.
+Sonar ships as a **MemberJunction Open App**: a versioned, installable extension that owns the `__mj_BizAppsSonar` database schema, ships as npm packages (`@mj-biz-apps/sonar-*`), and installs onto any MJ deployment via `mj app install`.
 
 **Status:** Initial scaffold — schema migration and engine are next.
 
@@ -15,16 +15,16 @@ The full product plan lives in [`/plans`](./plans):
 | Document | Contents |
 |---|---|
 | [`plans/README.md`](./plans/README.md) | Product overview — opportunity, wedges, architecture summary, graduation criteria |
-| [`plans/plan.md`](./plans/plan.md) | Detailed design — strategy, commercial model, **full `__sonar` data model**, scoring engine, factor/rubric authoring, AI agent roster, roadmap, risks |
+| [`plans/plan.md`](./plans/plan.md) | Detailed design — strategy, commercial model, **full `__mj_BizAppsSonar` data model**, scoring engine, factor/rubric authoring, AI agent roster, roadmap, risks |
 | [`plans/mockup.html`](./plans/mockup.html) | Clickable mockup index ([Model Builder](./plans/mockups/builder/model.html) · [Engagement Manager](./plans/mockups/manager/briefing.html) · [Admin/Ops](./plans/mockups/admin/ops.html)) |
 
 ## Repository structure
 
 ```
 bizapps-sonar/
-  mj-app.json          - MJ Open App manifest (schema __sonar, packages, startup exports)
+  mj-app.json          - MJ Open App manifest (schema __mj_BizAppsSonar, packages, startup exports)
   mj.config.cjs        - CodeGen configuration (output paths, entity name prefix 'Sonar: ')
-  migrations/          - Skyway (Flyway-compatible) SQL migrations for the __sonar schema
+  migrations/          - Skyway (Flyway-compatible) SQL migrations for the __mj_BizAppsSonar schema
   metadata/            - mj-sync metadata (schema info, entity tweaks, future: agents/actions/templates)
   plans/               - Product plan, data model design, and UI mockups
   apps/
@@ -44,7 +44,7 @@ Additional engine packages (`sonar-engine`, `sonar-writeback`, `sonar-calibratio
 
 ```bash
 npm install                # install workspace dependencies
-npm run mj:migrate         # apply __sonar schema migrations (none yet — coming next)
+npm run mj:migrate         # apply __mj_BizAppsSonar schema migrations (none yet — coming next)
 npm run mj:codegen         # generate entities, resolvers, and forms
 npm run build              # build all packages (Turborepo)
 npm run start:api          # MJAPI on port 4102

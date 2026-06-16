@@ -15,38 +15,38 @@ import { EntityViewerModule } from '@memberjunction/ng-entity-viewer';
 import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
 
 // Import Generated Components
-import { sonarFactorFormComponent } from "./Entities/sonarFactor/sonarfactor.form.component";
-import { sonarModelFactorFormComponent } from "./Entities/sonarModelFactor/sonarmodelfactor.form.component";
-import { sonarModelRelatedEntityFormComponent } from "./Entities/sonarModelRelatedEntity/sonarmodelrelatedentity.form.component";
-import { sonarScoreBandSetFormComponent } from "./Entities/sonarScoreBandSet/sonarscorebandset.form.component";
-import { sonarScoreBandTransitionFormComponent } from "./Entities/sonarScoreBandTransition/sonarscorebandtransition.form.component";
-import { sonarScoreBandFormComponent } from "./Entities/sonarScoreBand/sonarscoreband.form.component";
-import { sonarScoreFactorContributionFormComponent } from "./Entities/sonarScoreFactorContribution/sonarscorefactorcontribution.form.component";
-import { sonarScoreHistoryFormComponent } from "./Entities/sonarScoreHistory/sonarscorehistory.form.component";
-import { sonarScoreModelAuditEventFormComponent } from "./Entities/sonarScoreModelAuditEvent/sonarscoremodelauditevent.form.component";
-import { sonarScoreModelVersionFormComponent } from "./Entities/sonarScoreModelVersion/sonarscoremodelversion.form.component";
-import { sonarScoreModelFormComponent } from "./Entities/sonarScoreModel/sonarscoremodel.form.component";
-import { sonarScoreRecomputeRunFormComponent } from "./Entities/sonarScoreRecomputeRun/sonarscorerecomputerun.form.component";
-import { sonarScoreFormComponent } from "./Entities/sonarScore/sonarscore.form.component";
-import { sonarTimeWindowFormComponent } from "./Entities/sonarTimeWindow/sonartimewindow.form.component";
+import { mjBizAppsSonarFactorFormComponent } from "./Entities/mjBizAppsSonarFactor/mjbizappssonarfactor.form.component";
+import { mjBizAppsSonarModelFactorFormComponent } from "./Entities/mjBizAppsSonarModelFactor/mjbizappssonarmodelfactor.form.component";
+import { mjBizAppsSonarModelRelatedEntityFormComponent } from "./Entities/mjBizAppsSonarModelRelatedEntity/mjbizappssonarmodelrelatedentity.form.component";
+import { mjBizAppsSonarScoreBandSetFormComponent } from "./Entities/mjBizAppsSonarScoreBandSet/mjbizappssonarscorebandset.form.component";
+import { mjBizAppsSonarScoreBandTransitionFormComponent } from "./Entities/mjBizAppsSonarScoreBandTransition/mjbizappssonarscorebandtransition.form.component";
+import { mjBizAppsSonarScoreBandFormComponent } from "./Entities/mjBizAppsSonarScoreBand/mjbizappssonarscoreband.form.component";
+import { mjBizAppsSonarScoreFactorContributionFormComponent } from "./Entities/mjBizAppsSonarScoreFactorContribution/mjbizappssonarscorefactorcontribution.form.component";
+import { mjBizAppsSonarScoreHistoryFormComponent } from "./Entities/mjBizAppsSonarScoreHistory/mjbizappssonarscorehistory.form.component";
+import { mjBizAppsSonarScoreModelAuditEventFormComponent } from "./Entities/mjBizAppsSonarScoreModelAuditEvent/mjbizappssonarscoremodelauditevent.form.component";
+import { mjBizAppsSonarScoreModelVersionFormComponent } from "./Entities/mjBizAppsSonarScoreModelVersion/mjbizappssonarscoremodelversion.form.component";
+import { mjBizAppsSonarScoreModelFormComponent } from "./Entities/mjBizAppsSonarScoreModel/mjbizappssonarscoremodel.form.component";
+import { mjBizAppsSonarScoreRecomputeRunFormComponent } from "./Entities/mjBizAppsSonarScoreRecomputeRun/mjbizappssonarscorerecomputerun.form.component";
+import { mjBizAppsSonarScoreFormComponent } from "./Entities/mjBizAppsSonarScore/mjbizappssonarscore.form.component";
+import { mjBizAppsSonarTimeWindowFormComponent } from "./Entities/mjBizAppsSonarTimeWindow/mjbizappssonartimewindow.form.component";
    
 
 @NgModule({
 declarations: [
-    sonarFactorFormComponent,
-    sonarModelFactorFormComponent,
-    sonarModelRelatedEntityFormComponent,
-    sonarScoreBandSetFormComponent,
-    sonarScoreBandTransitionFormComponent,
-    sonarScoreBandFormComponent,
-    sonarScoreFactorContributionFormComponent,
-    sonarScoreHistoryFormComponent,
-    sonarScoreModelAuditEventFormComponent,
-    sonarScoreModelVersionFormComponent,
-    sonarScoreModelFormComponent,
-    sonarScoreRecomputeRunFormComponent,
-    sonarScoreFormComponent,
-    sonarTimeWindowFormComponent],
+    mjBizAppsSonarFactorFormComponent,
+    mjBizAppsSonarModelFactorFormComponent,
+    mjBizAppsSonarModelRelatedEntityFormComponent,
+    mjBizAppsSonarScoreBandSetFormComponent,
+    mjBizAppsSonarScoreBandTransitionFormComponent,
+    mjBizAppsSonarScoreBandFormComponent,
+    mjBizAppsSonarScoreFactorContributionFormComponent,
+    mjBizAppsSonarScoreHistoryFormComponent,
+    mjBizAppsSonarScoreModelAuditEventFormComponent,
+    mjBizAppsSonarScoreModelVersionFormComponent,
+    mjBizAppsSonarScoreModelFormComponent,
+    mjBizAppsSonarScoreRecomputeRunFormComponent,
+    mjBizAppsSonarScoreFormComponent,
+    mjBizAppsSonarTimeWindowFormComponent],
 imports: [
     CommonModule,
     FormsModule,
