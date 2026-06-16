@@ -5381,7 +5381,7 @@ input CreateVersionLabelInput {
   Scope: String
 }
 
-input CreatesonarFactorInput {
+input CreatemjBizAppsSonarFactorInput {
   ActionID: String
   ActionParamsJSON: String
   AggregateFieldName: String
@@ -5416,7 +5416,7 @@ input CreatesonarFactorInput {
   TimeWindowID: String
 }
 
-input CreatesonarModelFactorInput {
+input CreatemjBizAppsSonarModelFactorInput {
   ContributionCap: Float
   ContributionFloor: Float
   DisplayLabel: String
@@ -5432,7 +5432,7 @@ input CreatesonarModelFactorInput {
   WeightMode: String
 }
 
-input CreatesonarModelRelatedEntityInput {
+input CreatemjBizAppsSonarModelRelatedEntityInput {
   Alias: String
   Description: String
   ID: String
@@ -5444,7 +5444,7 @@ input CreatesonarModelRelatedEntityInput {
   SourceSystemTag: String
 }
 
-input CreatesonarScoreBandInput {
+input CreatemjBizAppsSonarScoreBandInput {
   BandSetID: String
   ColorHex: String
   Description: String
@@ -5457,7 +5457,7 @@ input CreatesonarScoreBandInput {
   Severity: Int
 }
 
-input CreatesonarScoreBandSetInput {
+input CreatemjBizAppsSonarScoreBandSetInput {
   AnchorEntityID: String
   Description: String
   ID: String
@@ -5465,7 +5465,7 @@ input CreatesonarScoreBandSetInput {
   RestoreContext___: RestoreContextInput
 }
 
-input CreatesonarScoreBandTransitionInput {
+input CreatemjBizAppsSonarScoreBandTransitionInput {
   AnchorRecordID: String
   Direction: String
   FromBandID: String
@@ -5478,7 +5478,7 @@ input CreatesonarScoreBandTransitionInput {
   ToBandID: String
 }
 
-input CreatesonarScoreFactorContributionInput {
+input CreatemjBizAppsSonarScoreFactorContributionInput {
   ContributionDelta: Float
   DetailJSON: String
   FactorID: String
@@ -5494,7 +5494,7 @@ input CreatesonarScoreFactorContributionInput {
   WeightedContribution: Float
 }
 
-input CreatesonarScoreHistoryInput {
+input CreatemjBizAppsSonarScoreHistoryInput {
   AnchorEntityID: String
   AnchorRecordID: String
   AsOfDate: Timestamp
@@ -5510,7 +5510,7 @@ input CreatesonarScoreHistoryInput {
   ScoreModelVersionID: String
 }
 
-input CreatesonarScoreInput {
+input CreatemjBizAppsSonarScoreInput {
   AnchorEntityID: String
   AnchorRecordID: String
   AnchorRecordKeyJSON: String
@@ -5535,7 +5535,7 @@ input CreatesonarScoreInput {
   TrendSlope: Float
 }
 
-input CreatesonarScoreModelAuditEventInput {
+input CreatemjBizAppsSonarScoreModelAuditEventInput {
   AfterJSON: String
   BeforeJSON: String
   ChangeType: String
@@ -5548,7 +5548,7 @@ input CreatesonarScoreModelAuditEventInput {
   ScoreModelID: String
 }
 
-input CreatesonarScoreModelInput {
+input CreatemjBizAppsSonarScoreModelInput {
   AnchorEntityID: String
   AsOfStrategy: String
   BandSetID: String
@@ -5574,7 +5574,7 @@ input CreatesonarScoreModelInput {
   TrendWindowDays: Int
 }
 
-input CreatesonarScoreModelVersionInput {
+input CreatemjBizAppsSonarScoreModelVersionInput {
   ChangeSummary: String
   ConfigSnapshotJSON: String
   ID: String
@@ -5587,7 +5587,7 @@ input CreatesonarScoreModelVersionInput {
   VersionNumber: Int
 }
 
-input CreatesonarScoreRecomputeRunInput {
+input CreatemjBizAppsSonarScoreRecomputeRunInput {
   BandTransitions: Int
   CompletedAt: Timestamp
   CostUnitsConsumed: Float
@@ -5605,7 +5605,7 @@ input CreatesonarScoreRecomputeRunInput {
   TriggerType: String
 }
 
-input CreatesonarTimeWindowInput {
+input CreatemjBizAppsSonarTimeWindowInput {
   AnchorDateField: String
   Description: String
   ID: String
@@ -21551,20 +21551,20 @@ type Mutation {
   CreateQuerySystemUser(input: CreateQuerySystemUserInput!): QueryMutationResultType!
   CreateReportFromConversationDetailID(ConversationDetailID: String!): CreateReportResultType!
   CreateVersionLabel(input: CreateVersionLabelInput!, sessionId: String): CreateLabelResultOutput!
-  CreatesonarFactor(input: CreatesonarFactorInput!): sonarFactor_!
-  CreatesonarModelFactor(input: CreatesonarModelFactorInput!): sonarModelFactor_!
-  CreatesonarModelRelatedEntity(input: CreatesonarModelRelatedEntityInput!): sonarModelRelatedEntity_!
-  CreatesonarScore(input: CreatesonarScoreInput!): sonarScore_!
-  CreatesonarScoreBand(input: CreatesonarScoreBandInput!): sonarScoreBand_!
-  CreatesonarScoreBandSet(input: CreatesonarScoreBandSetInput!): sonarScoreBandSet_!
-  CreatesonarScoreBandTransition(input: CreatesonarScoreBandTransitionInput!): sonarScoreBandTransition_!
-  CreatesonarScoreFactorContribution(input: CreatesonarScoreFactorContributionInput!): sonarScoreFactorContribution_!
-  CreatesonarScoreHistory(input: CreatesonarScoreHistoryInput!): sonarScoreHistory_!
-  CreatesonarScoreModel(input: CreatesonarScoreModelInput!): sonarScoreModel_!
-  CreatesonarScoreModelAuditEvent(input: CreatesonarScoreModelAuditEventInput!): sonarScoreModelAuditEvent_!
-  CreatesonarScoreModelVersion(input: CreatesonarScoreModelVersionInput!): sonarScoreModelVersion_!
-  CreatesonarScoreRecomputeRun(input: CreatesonarScoreRecomputeRunInput!): sonarScoreRecomputeRun_!
-  CreatesonarTimeWindow(input: CreatesonarTimeWindowInput!): sonarTimeWindow_!
+  CreatemjBizAppsSonarFactor(input: CreatemjBizAppsSonarFactorInput!): mjBizAppsSonarFactor_!
+  CreatemjBizAppsSonarModelFactor(input: CreatemjBizAppsSonarModelFactorInput!): mjBizAppsSonarModelFactor_!
+  CreatemjBizAppsSonarModelRelatedEntity(input: CreatemjBizAppsSonarModelRelatedEntityInput!): mjBizAppsSonarModelRelatedEntity_!
+  CreatemjBizAppsSonarScore(input: CreatemjBizAppsSonarScoreInput!): mjBizAppsSonarScore_!
+  CreatemjBizAppsSonarScoreBand(input: CreatemjBizAppsSonarScoreBandInput!): mjBizAppsSonarScoreBand_!
+  CreatemjBizAppsSonarScoreBandSet(input: CreatemjBizAppsSonarScoreBandSetInput!): mjBizAppsSonarScoreBandSet_!
+  CreatemjBizAppsSonarScoreBandTransition(input: CreatemjBizAppsSonarScoreBandTransitionInput!): mjBizAppsSonarScoreBandTransition_!
+  CreatemjBizAppsSonarScoreFactorContribution(input: CreatemjBizAppsSonarScoreFactorContributionInput!): mjBizAppsSonarScoreFactorContribution_!
+  CreatemjBizAppsSonarScoreHistory(input: CreatemjBizAppsSonarScoreHistoryInput!): mjBizAppsSonarScoreHistory_!
+  CreatemjBizAppsSonarScoreModel(input: CreatemjBizAppsSonarScoreModelInput!): mjBizAppsSonarScoreModel_!
+  CreatemjBizAppsSonarScoreModelAuditEvent(input: CreatemjBizAppsSonarScoreModelAuditEventInput!): mjBizAppsSonarScoreModelAuditEvent_!
+  CreatemjBizAppsSonarScoreModelVersion(input: CreatemjBizAppsSonarScoreModelVersionInput!): mjBizAppsSonarScoreModelVersion_!
+  CreatemjBizAppsSonarScoreRecomputeRun(input: CreatemjBizAppsSonarScoreRecomputeRunInput!): mjBizAppsSonarScoreRecomputeRun_!
+  CreatemjBizAppsSonarTimeWindow(input: CreatemjBizAppsSonarTimeWindowInput!): mjBizAppsSonarTimeWindow_!
   DeleteFile(ID: String!, options___: DeleteOptionsInput!): MJFile_!
   DeleteFileCategory(ID: String!, options___: DeleteOptionsInput!): MJFileCategory_!
   DeleteMJAIAction(ID: String!, options___: DeleteOptionsInput!): MJAIAction_!
@@ -21908,20 +21908,20 @@ type Mutation {
   DeleteMJWorkspaceItem(ID: String!, options___: DeleteOptionsInput!): MJWorkspaceItem_!
   DeleteQuerySystemResolver(ID: String!, options: DeleteOptionsInput): DeleteQueryResultType!
   DeleteStorageObject(input: DeleteStorageObjectInput!): Boolean!
-  DeletesonarFactor(ID: String!, options___: DeleteOptionsInput!): sonarFactor_!
-  DeletesonarModelFactor(ID: String!, options___: DeleteOptionsInput!): sonarModelFactor_!
-  DeletesonarModelRelatedEntity(ID: String!, options___: DeleteOptionsInput!): sonarModelRelatedEntity_!
-  DeletesonarScore(ID: String!, options___: DeleteOptionsInput!): sonarScore_!
-  DeletesonarScoreBand(ID: String!, options___: DeleteOptionsInput!): sonarScoreBand_!
-  DeletesonarScoreBandSet(ID: String!, options___: DeleteOptionsInput!): sonarScoreBandSet_!
-  DeletesonarScoreBandTransition(ID: String!, options___: DeleteOptionsInput!): sonarScoreBandTransition_!
-  DeletesonarScoreFactorContribution(ID: String!, options___: DeleteOptionsInput!): sonarScoreFactorContribution_!
-  DeletesonarScoreHistory(ID: String!, options___: DeleteOptionsInput!): sonarScoreHistory_!
-  DeletesonarScoreModel(ID: String!, options___: DeleteOptionsInput!): sonarScoreModel_!
-  DeletesonarScoreModelAuditEvent(ID: String!, options___: DeleteOptionsInput!): sonarScoreModelAuditEvent_!
-  DeletesonarScoreModelVersion(ID: String!, options___: DeleteOptionsInput!): sonarScoreModelVersion_!
-  DeletesonarScoreRecomputeRun(ID: String!, options___: DeleteOptionsInput!): sonarScoreRecomputeRun_!
-  DeletesonarTimeWindow(ID: String!, options___: DeleteOptionsInput!): sonarTimeWindow_!
+  DeletemjBizAppsSonarFactor(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarFactor_!
+  DeletemjBizAppsSonarModelFactor(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarModelFactor_!
+  DeletemjBizAppsSonarModelRelatedEntity(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarModelRelatedEntity_!
+  DeletemjBizAppsSonarScore(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScore_!
+  DeletemjBizAppsSonarScoreBand(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreBand_!
+  DeletemjBizAppsSonarScoreBandSet(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreBandSet_!
+  DeletemjBizAppsSonarScoreBandTransition(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreBandTransition_!
+  DeletemjBizAppsSonarScoreFactorContribution(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreFactorContribution_!
+  DeletemjBizAppsSonarScoreHistory(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreHistory_!
+  DeletemjBizAppsSonarScoreModel(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreModel_!
+  DeletemjBizAppsSonarScoreModelAuditEvent(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreModelAuditEvent_!
+  DeletemjBizAppsSonarScoreModelVersion(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreModelVersion_!
+  DeletemjBizAppsSonarScoreRecomputeRun(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreRecomputeRun_!
+  DeletemjBizAppsSonarTimeWindow(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarTimeWindow_!
   EmbedText(modelSize: String!, textToEmbed: [String!]!): EmbedTextResult!
   ExecuteMCPTool(input: ExecuteMCPToolInput!): ExecuteMCPToolResult!
   ExecuteSimplePrompt(messages: String, modelPower: String, preferredModels: [String!], responseFormat: String, systemPrompt: String!): SimplePromptResult!
@@ -22415,20 +22415,20 @@ type Mutation {
   UpdateMJWorkspace(input: UpdateMJWorkspaceInput!): MJWorkspace_!
   UpdateMJWorkspaceItem(input: UpdateMJWorkspaceItemInput!): MJWorkspaceItem_!
   UpdateQuerySystemUser(input: UpdateQuerySystemUserInput!): QueryMutationResultType!
-  UpdatesonarFactor(input: UpdatesonarFactorInput!): sonarFactor_!
-  UpdatesonarModelFactor(input: UpdatesonarModelFactorInput!): sonarModelFactor_!
-  UpdatesonarModelRelatedEntity(input: UpdatesonarModelRelatedEntityInput!): sonarModelRelatedEntity_!
-  UpdatesonarScore(input: UpdatesonarScoreInput!): sonarScore_!
-  UpdatesonarScoreBand(input: UpdatesonarScoreBandInput!): sonarScoreBand_!
-  UpdatesonarScoreBandSet(input: UpdatesonarScoreBandSetInput!): sonarScoreBandSet_!
-  UpdatesonarScoreBandTransition(input: UpdatesonarScoreBandTransitionInput!): sonarScoreBandTransition_!
-  UpdatesonarScoreFactorContribution(input: UpdatesonarScoreFactorContributionInput!): sonarScoreFactorContribution_!
-  UpdatesonarScoreHistory(input: UpdatesonarScoreHistoryInput!): sonarScoreHistory_!
-  UpdatesonarScoreModel(input: UpdatesonarScoreModelInput!): sonarScoreModel_!
-  UpdatesonarScoreModelAuditEvent(input: UpdatesonarScoreModelAuditEventInput!): sonarScoreModelAuditEvent_!
-  UpdatesonarScoreModelVersion(input: UpdatesonarScoreModelVersionInput!): sonarScoreModelVersion_!
-  UpdatesonarScoreRecomputeRun(input: UpdatesonarScoreRecomputeRunInput!): sonarScoreRecomputeRun_!
-  UpdatesonarTimeWindow(input: UpdatesonarTimeWindowInput!): sonarTimeWindow_!
+  UpdatemjBizAppsSonarFactor(input: UpdatemjBizAppsSonarFactorInput!): mjBizAppsSonarFactor_!
+  UpdatemjBizAppsSonarModelFactor(input: UpdatemjBizAppsSonarModelFactorInput!): mjBizAppsSonarModelFactor_!
+  UpdatemjBizAppsSonarModelRelatedEntity(input: UpdatemjBizAppsSonarModelRelatedEntityInput!): mjBizAppsSonarModelRelatedEntity_!
+  UpdatemjBizAppsSonarScore(input: UpdatemjBizAppsSonarScoreInput!): mjBizAppsSonarScore_!
+  UpdatemjBizAppsSonarScoreBand(input: UpdatemjBizAppsSonarScoreBandInput!): mjBizAppsSonarScoreBand_!
+  UpdatemjBizAppsSonarScoreBandSet(input: UpdatemjBizAppsSonarScoreBandSetInput!): mjBizAppsSonarScoreBandSet_!
+  UpdatemjBizAppsSonarScoreBandTransition(input: UpdatemjBizAppsSonarScoreBandTransitionInput!): mjBizAppsSonarScoreBandTransition_!
+  UpdatemjBizAppsSonarScoreFactorContribution(input: UpdatemjBizAppsSonarScoreFactorContributionInput!): mjBizAppsSonarScoreFactorContribution_!
+  UpdatemjBizAppsSonarScoreHistory(input: UpdatemjBizAppsSonarScoreHistoryInput!): mjBizAppsSonarScoreHistory_!
+  UpdatemjBizAppsSonarScoreModel(input: UpdatemjBizAppsSonarScoreModelInput!): mjBizAppsSonarScoreModel_!
+  UpdatemjBizAppsSonarScoreModelAuditEvent(input: UpdatemjBizAppsSonarScoreModelAuditEventInput!): mjBizAppsSonarScoreModelAuditEvent_!
+  UpdatemjBizAppsSonarScoreModelVersion(input: UpdatemjBizAppsSonarScoreModelVersionInput!): mjBizAppsSonarScoreModelVersion_!
+  UpdatemjBizAppsSonarScoreRecomputeRun(input: UpdatemjBizAppsSonarScoreRecomputeRunInput!): mjBizAppsSonarScoreRecomputeRun_!
+  UpdatemjBizAppsSonarTimeWindow(input: UpdatemjBizAppsSonarTimeWindowInput!): mjBizAppsSonarTimeWindow_!
   VectorizeEntity(batchSize: Float, entityDocumentID: String!, entityID: String!): VectorizeEntityResult!
   startSqlLogging(input: StartSqlLoggingInput!): SqlLoggingSession!
   stopAllSqlLogging: Boolean!
@@ -24009,48 +24009,48 @@ type Query {
   RunViews(input: [RunViewGenericInput!]!): [RunViewGenericResult!]!
   RunViewsSystemUser(input: [RunViewGenericInput!]!): [RunViewGenericResult!]!
   RunViewsWithCacheCheck(input: [RunViewWithCacheCheckInput!]!): RunViewsWithCacheCheckOutput!
-  RunsonarFactorDynamicView(input: RunDynamicViewInput!): RunsonarFactorViewResult!
-  RunsonarFactorViewByID(input: RunViewByIDInput!): RunsonarFactorViewResult!
-  RunsonarFactorViewByName(input: RunViewByNameInput!): RunsonarFactorViewResult!
-  RunsonarModelFactorDynamicView(input: RunDynamicViewInput!): RunsonarModelFactorViewResult!
-  RunsonarModelFactorViewByID(input: RunViewByIDInput!): RunsonarModelFactorViewResult!
-  RunsonarModelFactorViewByName(input: RunViewByNameInput!): RunsonarModelFactorViewResult!
-  RunsonarModelRelatedEntityDynamicView(input: RunDynamicViewInput!): RunsonarModelRelatedEntityViewResult!
-  RunsonarModelRelatedEntityViewByID(input: RunViewByIDInput!): RunsonarModelRelatedEntityViewResult!
-  RunsonarModelRelatedEntityViewByName(input: RunViewByNameInput!): RunsonarModelRelatedEntityViewResult!
-  RunsonarScoreBandDynamicView(input: RunDynamicViewInput!): RunsonarScoreBandViewResult!
-  RunsonarScoreBandSetDynamicView(input: RunDynamicViewInput!): RunsonarScoreBandSetViewResult!
-  RunsonarScoreBandSetViewByID(input: RunViewByIDInput!): RunsonarScoreBandSetViewResult!
-  RunsonarScoreBandSetViewByName(input: RunViewByNameInput!): RunsonarScoreBandSetViewResult!
-  RunsonarScoreBandTransitionDynamicView(input: RunDynamicViewInput!): RunsonarScoreBandTransitionViewResult!
-  RunsonarScoreBandTransitionViewByID(input: RunViewByIDInput!): RunsonarScoreBandTransitionViewResult!
-  RunsonarScoreBandTransitionViewByName(input: RunViewByNameInput!): RunsonarScoreBandTransitionViewResult!
-  RunsonarScoreBandViewByID(input: RunViewByIDInput!): RunsonarScoreBandViewResult!
-  RunsonarScoreBandViewByName(input: RunViewByNameInput!): RunsonarScoreBandViewResult!
-  RunsonarScoreDynamicView(input: RunDynamicViewInput!): RunsonarScoreViewResult!
-  RunsonarScoreFactorContributionDynamicView(input: RunDynamicViewInput!): RunsonarScoreFactorContributionViewResult!
-  RunsonarScoreFactorContributionViewByID(input: RunViewByIDInput!): RunsonarScoreFactorContributionViewResult!
-  RunsonarScoreFactorContributionViewByName(input: RunViewByNameInput!): RunsonarScoreFactorContributionViewResult!
-  RunsonarScoreHistoryDynamicView(input: RunDynamicViewInput!): RunsonarScoreHistoryViewResult!
-  RunsonarScoreHistoryViewByID(input: RunViewByIDInput!): RunsonarScoreHistoryViewResult!
-  RunsonarScoreHistoryViewByName(input: RunViewByNameInput!): RunsonarScoreHistoryViewResult!
-  RunsonarScoreModelAuditEventDynamicView(input: RunDynamicViewInput!): RunsonarScoreModelAuditEventViewResult!
-  RunsonarScoreModelAuditEventViewByID(input: RunViewByIDInput!): RunsonarScoreModelAuditEventViewResult!
-  RunsonarScoreModelAuditEventViewByName(input: RunViewByNameInput!): RunsonarScoreModelAuditEventViewResult!
-  RunsonarScoreModelDynamicView(input: RunDynamicViewInput!): RunsonarScoreModelViewResult!
-  RunsonarScoreModelVersionDynamicView(input: RunDynamicViewInput!): RunsonarScoreModelVersionViewResult!
-  RunsonarScoreModelVersionViewByID(input: RunViewByIDInput!): RunsonarScoreModelVersionViewResult!
-  RunsonarScoreModelVersionViewByName(input: RunViewByNameInput!): RunsonarScoreModelVersionViewResult!
-  RunsonarScoreModelViewByID(input: RunViewByIDInput!): RunsonarScoreModelViewResult!
-  RunsonarScoreModelViewByName(input: RunViewByNameInput!): RunsonarScoreModelViewResult!
-  RunsonarScoreRecomputeRunDynamicView(input: RunDynamicViewInput!): RunsonarScoreRecomputeRunViewResult!
-  RunsonarScoreRecomputeRunViewByID(input: RunViewByIDInput!): RunsonarScoreRecomputeRunViewResult!
-  RunsonarScoreRecomputeRunViewByName(input: RunViewByNameInput!): RunsonarScoreRecomputeRunViewResult!
-  RunsonarScoreViewByID(input: RunViewByIDInput!): RunsonarScoreViewResult!
-  RunsonarScoreViewByName(input: RunViewByNameInput!): RunsonarScoreViewResult!
-  RunsonarTimeWindowDynamicView(input: RunDynamicViewInput!): RunsonarTimeWindowViewResult!
-  RunsonarTimeWindowViewByID(input: RunViewByIDInput!): RunsonarTimeWindowViewResult!
-  RunsonarTimeWindowViewByName(input: RunViewByNameInput!): RunsonarTimeWindowViewResult!
+  RunmjBizAppsSonarFactorDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarFactorViewResult!
+  RunmjBizAppsSonarFactorViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarFactorViewResult!
+  RunmjBizAppsSonarFactorViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarFactorViewResult!
+  RunmjBizAppsSonarModelFactorDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarModelFactorViewResult!
+  RunmjBizAppsSonarModelFactorViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarModelFactorViewResult!
+  RunmjBizAppsSonarModelFactorViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarModelFactorViewResult!
+  RunmjBizAppsSonarModelRelatedEntityDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarModelRelatedEntityViewResult!
+  RunmjBizAppsSonarModelRelatedEntityViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarModelRelatedEntityViewResult!
+  RunmjBizAppsSonarModelRelatedEntityViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarModelRelatedEntityViewResult!
+  RunmjBizAppsSonarScoreBandDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreBandViewResult!
+  RunmjBizAppsSonarScoreBandSetDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreBandSetViewResult!
+  RunmjBizAppsSonarScoreBandSetViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreBandSetViewResult!
+  RunmjBizAppsSonarScoreBandSetViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreBandSetViewResult!
+  RunmjBizAppsSonarScoreBandTransitionDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreBandTransitionViewResult!
+  RunmjBizAppsSonarScoreBandTransitionViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreBandTransitionViewResult!
+  RunmjBizAppsSonarScoreBandTransitionViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreBandTransitionViewResult!
+  RunmjBizAppsSonarScoreBandViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreBandViewResult!
+  RunmjBizAppsSonarScoreBandViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreBandViewResult!
+  RunmjBizAppsSonarScoreDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreViewResult!
+  RunmjBizAppsSonarScoreFactorContributionDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreFactorContributionViewResult!
+  RunmjBizAppsSonarScoreFactorContributionViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreFactorContributionViewResult!
+  RunmjBizAppsSonarScoreFactorContributionViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreFactorContributionViewResult!
+  RunmjBizAppsSonarScoreHistoryDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreHistoryViewResult!
+  RunmjBizAppsSonarScoreHistoryViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreHistoryViewResult!
+  RunmjBizAppsSonarScoreHistoryViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreHistoryViewResult!
+  RunmjBizAppsSonarScoreModelAuditEventDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreModelAuditEventViewResult!
+  RunmjBizAppsSonarScoreModelAuditEventViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreModelAuditEventViewResult!
+  RunmjBizAppsSonarScoreModelAuditEventViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreModelAuditEventViewResult!
+  RunmjBizAppsSonarScoreModelDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreModelViewResult!
+  RunmjBizAppsSonarScoreModelVersionDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreModelVersionViewResult!
+  RunmjBizAppsSonarScoreModelVersionViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreModelVersionViewResult!
+  RunmjBizAppsSonarScoreModelVersionViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreModelVersionViewResult!
+  RunmjBizAppsSonarScoreModelViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreModelViewResult!
+  RunmjBizAppsSonarScoreModelViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreModelViewResult!
+  RunmjBizAppsSonarScoreRecomputeRunDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
+  RunmjBizAppsSonarScoreRecomputeRunViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
+  RunmjBizAppsSonarScoreRecomputeRunViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
+  RunmjBizAppsSonarScoreViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreViewResult!
+  RunmjBizAppsSonarScoreViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreViewResult!
+  RunmjBizAppsSonarTimeWindowDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarTimeWindowViewResult!
+  RunmjBizAppsSonarTimeWindowViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarTimeWindowViewResult!
+  RunmjBizAppsSonarTimeWindowViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarTimeWindowViewResult!
 
   """Returns recent lines from the RSU pipeline log"""
   RuntimeSchemaUpdateLogTail(lines: Int! = 100): [String!]!
@@ -24079,21 +24079,21 @@ type Query {
   activeSqlLoggingSessions: [SqlLoggingSession!]!
   colors: [Color!]!
   debugCurrentUserEmail: String!
+  mjBizAppsSonarFactor(ID: String!): mjBizAppsSonarFactor_
+  mjBizAppsSonarModelFactor(ID: String!): mjBizAppsSonarModelFactor_
+  mjBizAppsSonarModelRelatedEntity(ID: String!): mjBizAppsSonarModelRelatedEntity_
+  mjBizAppsSonarScore(ID: String!): mjBizAppsSonarScore_
+  mjBizAppsSonarScoreBand(ID: String!): mjBizAppsSonarScoreBand_
+  mjBizAppsSonarScoreBandSet(ID: String!): mjBizAppsSonarScoreBandSet_
+  mjBizAppsSonarScoreBandTransition(ID: String!): mjBizAppsSonarScoreBandTransition_
+  mjBizAppsSonarScoreFactorContribution(ID: String!): mjBizAppsSonarScoreFactorContribution_
+  mjBizAppsSonarScoreHistory(ID: String!): mjBizAppsSonarScoreHistory_
+  mjBizAppsSonarScoreModel(ID: String!): mjBizAppsSonarScoreModel_
+  mjBizAppsSonarScoreModelAuditEvent(ID: String!): mjBizAppsSonarScoreModelAuditEvent_
+  mjBizAppsSonarScoreModelVersion(ID: String!): mjBizAppsSonarScoreModelVersion_
+  mjBizAppsSonarScoreRecomputeRun(ID: String!): mjBizAppsSonarScoreRecomputeRun_
+  mjBizAppsSonarTimeWindow(ID: String!): mjBizAppsSonarTimeWindow_
   readSqlLogFile(maxLines: Int, sessionId: String!): String!
-  sonarFactor(ID: String!): sonarFactor_
-  sonarModelFactor(ID: String!): sonarModelFactor_
-  sonarModelRelatedEntity(ID: String!): sonarModelRelatedEntity_
-  sonarScore(ID: String!): sonarScore_
-  sonarScoreBand(ID: String!): sonarScoreBand_
-  sonarScoreBandSet(ID: String!): sonarScoreBandSet_
-  sonarScoreBandTransition(ID: String!): sonarScoreBandTransition_
-  sonarScoreFactorContribution(ID: String!): sonarScoreFactorContribution_
-  sonarScoreHistory(ID: String!): sonarScoreHistory_
-  sonarScoreModel(ID: String!): sonarScoreModel_
-  sonarScoreModelAuditEvent(ID: String!): sonarScoreModelAuditEvent_
-  sonarScoreModelVersion(ID: String!): sonarScoreModelVersion_
-  sonarScoreRecomputeRun(ID: String!): sonarScoreRecomputeRun_
-  sonarTimeWindow(ID: String!): sonarTimeWindow_
   sqlLoggingConfig: SqlLoggingConfig!
 }
 
@@ -28343,140 +28343,140 @@ type RunViewsWithCacheCheckOutput {
   success: Boolean!
 }
 
-type RunsonarFactorViewResult {
+type RunmjBizAppsSonarFactorViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarFactor_!]!
+  Results: [mjBizAppsSonarFactor_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarModelFactorViewResult {
+type RunmjBizAppsSonarModelFactorViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarModelFactor_!]!
+  Results: [mjBizAppsSonarModelFactor_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarModelRelatedEntityViewResult {
+type RunmjBizAppsSonarModelRelatedEntityViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarModelRelatedEntity_!]!
+  Results: [mjBizAppsSonarModelRelatedEntity_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreBandSetViewResult {
+type RunmjBizAppsSonarScoreBandSetViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreBandSet_!]!
+  Results: [mjBizAppsSonarScoreBandSet_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreBandTransitionViewResult {
+type RunmjBizAppsSonarScoreBandTransitionViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreBandTransition_!]!
+  Results: [mjBizAppsSonarScoreBandTransition_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreBandViewResult {
+type RunmjBizAppsSonarScoreBandViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreBand_!]!
+  Results: [mjBizAppsSonarScoreBand_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreFactorContributionViewResult {
+type RunmjBizAppsSonarScoreFactorContributionViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreFactorContribution_!]!
+  Results: [mjBizAppsSonarScoreFactorContribution_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreHistoryViewResult {
+type RunmjBizAppsSonarScoreHistoryViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreHistory_!]!
+  Results: [mjBizAppsSonarScoreHistory_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreModelAuditEventViewResult {
+type RunmjBizAppsSonarScoreModelAuditEventViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreModelAuditEvent_!]!
+  Results: [mjBizAppsSonarScoreModelAuditEvent_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreModelVersionViewResult {
+type RunmjBizAppsSonarScoreModelVersionViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreModelVersion_!]!
+  Results: [mjBizAppsSonarScoreModelVersion_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreModelViewResult {
+type RunmjBizAppsSonarScoreModelViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreModel_!]!
+  Results: [mjBizAppsSonarScoreModel_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreRecomputeRunViewResult {
+type RunmjBizAppsSonarScoreRecomputeRunViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScoreRecomputeRun_!]!
+  Results: [mjBizAppsSonarScoreRecomputeRun_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarScoreViewResult {
+type RunmjBizAppsSonarScoreViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarScore_!]!
+  Results: [mjBizAppsSonarScore_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
   UserViewRunID: String
 }
 
-type RunsonarTimeWindowViewResult {
+type RunmjBizAppsSonarTimeWindowViewResult {
   ErrorMessage: String
   ExecutionTime: Int
-  Results: [sonarTimeWindow_!]!
+  Results: [mjBizAppsSonarTimeWindow_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -34213,7 +34213,7 @@ input UpdateQuerySystemUserInput {
   UsesTemplate: Boolean
 }
 
-input UpdatesonarFactorInput {
+input UpdatemjBizAppsSonarFactorInput {
   ActionID: String
   ActionParamsJSON: String
   AggregateFieldName: String
@@ -34249,7 +34249,7 @@ input UpdatesonarFactorInput {
   TimeWindowID: String
 }
 
-input UpdatesonarModelFactorInput {
+input UpdatemjBizAppsSonarModelFactorInput {
   ContributionCap: Float
   ContributionFloor: Float
   DisplayLabel: String
@@ -34266,7 +34266,7 @@ input UpdatesonarModelFactorInput {
   WeightMode: String
 }
 
-input UpdatesonarModelRelatedEntityInput {
+input UpdatemjBizAppsSonarModelRelatedEntityInput {
   Alias: String
   Description: String
   ID: String!
@@ -34279,7 +34279,7 @@ input UpdatesonarModelRelatedEntityInput {
   SourceSystemTag: String
 }
 
-input UpdatesonarScoreBandInput {
+input UpdatemjBizAppsSonarScoreBandInput {
   BandSetID: String
   ColorHex: String
   Description: String
@@ -34293,7 +34293,7 @@ input UpdatesonarScoreBandInput {
   Severity: Int
 }
 
-input UpdatesonarScoreBandSetInput {
+input UpdatemjBizAppsSonarScoreBandSetInput {
   AnchorEntityID: String
   Description: String
   ID: String!
@@ -34302,7 +34302,7 @@ input UpdatesonarScoreBandSetInput {
   RestoreContext___: RestoreContextInput
 }
 
-input UpdatesonarScoreBandTransitionInput {
+input UpdatemjBizAppsSonarScoreBandTransitionInput {
   AnchorRecordID: String
   Direction: String
   FromBandID: String
@@ -34316,7 +34316,7 @@ input UpdatesonarScoreBandTransitionInput {
   ToBandID: String
 }
 
-input UpdatesonarScoreFactorContributionInput {
+input UpdatemjBizAppsSonarScoreFactorContributionInput {
   ContributionDelta: Float
   DetailJSON: String
   FactorID: String
@@ -34333,7 +34333,7 @@ input UpdatesonarScoreFactorContributionInput {
   WeightedContribution: Float
 }
 
-input UpdatesonarScoreHistoryInput {
+input UpdatemjBizAppsSonarScoreHistoryInput {
   AnchorEntityID: String
   AnchorRecordID: String
   AsOfDate: Timestamp
@@ -34350,7 +34350,7 @@ input UpdatesonarScoreHistoryInput {
   ScoreModelVersionID: String
 }
 
-input UpdatesonarScoreInput {
+input UpdatemjBizAppsSonarScoreInput {
   AnchorEntityID: String
   AnchorRecordID: String
   AnchorRecordKeyJSON: String
@@ -34376,7 +34376,7 @@ input UpdatesonarScoreInput {
   TrendSlope: Float
 }
 
-input UpdatesonarScoreModelAuditEventInput {
+input UpdatemjBizAppsSonarScoreModelAuditEventInput {
   AfterJSON: String
   BeforeJSON: String
   ChangeType: String
@@ -34390,7 +34390,7 @@ input UpdatesonarScoreModelAuditEventInput {
   ScoreModelID: String
 }
 
-input UpdatesonarScoreModelInput {
+input UpdatemjBizAppsSonarScoreModelInput {
   AnchorEntityID: String
   AsOfStrategy: String
   BandSetID: String
@@ -34417,7 +34417,7 @@ input UpdatesonarScoreModelInput {
   TrendWindowDays: Int
 }
 
-input UpdatesonarScoreModelVersionInput {
+input UpdatemjBizAppsSonarScoreModelVersionInput {
   ChangeSummary: String
   ConfigSnapshotJSON: String
   ID: String!
@@ -34431,7 +34431,7 @@ input UpdatesonarScoreModelVersionInput {
   VersionNumber: Int
 }
 
-input UpdatesonarScoreRecomputeRunInput {
+input UpdatemjBizAppsSonarScoreRecomputeRunInput {
   BandTransitions: Int
   CompletedAt: Timestamp
   CostUnitsConsumed: Float
@@ -34450,7 +34450,7 @@ input UpdatesonarScoreRecomputeRunInput {
   TriggerType: String
 }
 
-input UpdatesonarTimeWindowInput {
+input UpdatemjBizAppsSonarTimeWindowInput {
   AnchorDateField: String
   Description: String
   ID: String!
@@ -34518,7 +34518,7 @@ type WriteRecordOutput {
 """
 A reusable signal definition that satisfies one uniform contract. Declarative factors compile to set-based SQL; ActionBacked factors wrap an MJ Action; DerivedFromScore factors consume another model's score.
 """
-type sonarFactor_ {
+type mjBizAppsSonarFactor_ {
   Action: String
   ActionID: String
 
@@ -34632,14 +34632,14 @@ type sonarFactor_ {
   TimeWindowID: String
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ModelFactors_FactorIDArray: [sonarModelFactor_!]!
-  sonarSonar_ScoreFactorContributions_FactorIDArray: [sonarScoreFactorContribution_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ModelFactors_FactorIDArray: [mjBizAppsSonarModelFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_FactorIDArray: [mjBizAppsSonarScoreFactorContribution_!]!
 }
 
 """
 Binds a Factor into a model with its weight and contribution rules. The rubric is the set of these rows.
 """
-type sonarModelFactor_ {
+type mjBizAppsSonarModelFactor_ {
   """Optional upper clamp on this factor's contribution."""
   ContributionCap: Float
 
@@ -34685,13 +34685,13 @@ type sonarModelFactor_ {
   WeightMode: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreFactorContributions_ModelFactorIDArray: [sonarScoreFactorContribution_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_ModelFactorIDArray: [mjBizAppsSonarScoreFactorContribution_!]!
 }
 
 """
 Declares an MJ entity wired into a model and how to traverse from the anchor to it. Factors reference these by Alias.
 """
-type sonarModelRelatedEntity_ {
+type mjBizAppsSonarModelRelatedEntity_ {
   """
   Handle used by factors to reference this related entity, e.g. crm_activity, invoices, lms_completions.
   """
@@ -34721,13 +34721,13 @@ type sonarModelRelatedEntity_ {
   SourceSystemTag: String
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_Factors_SourceRelatedEntityIDArray: [sonarFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Factors_SourceRelatedEntityIDArray: [mjBizAppsSonarFactor_!]!
 }
 
 """
 A reusable, named set of qualitative score bands (e.g. Healthy / Watch / At-Risk / Critical) that can be shared across scoring models.
 """
-type sonarScoreBandSet_ {
+type mjBizAppsSonarScoreBandSet_ {
   AnchorEntity: String
   AnchorEntityID: String
 
@@ -34739,14 +34739,14 @@ type sonarScoreBandSet_ {
   Name: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreBands_BandSetIDArray: [sonarScoreBand_!]!
-  sonarSonar_ScoreModels_BandSetIDArray: [sonarScoreModel_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreBands_BandSetIDArray: [mjBizAppsSonarScoreBand_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreModels_BandSetIDArray: [mjBizAppsSonarScoreModel_!]!
 }
 
 """
 First-class record of a band crossing; the event the action layer and write-back key off.
 """
-type sonarScoreBandTransition_ {
+type mjBizAppsSonarScoreBandTransition_ {
   """
   Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.
   """
@@ -34775,7 +34775,7 @@ type sonarScoreBandTransition_ {
 """
 One qualitative band within a band set, defined by a half-open score range with a severity and color for sorting and display.
 """
-type sonarScoreBand_ {
+type mjBizAppsSonarScoreBand_ {
   BandSet: String!
   BandSetID: String!
 
@@ -34808,17 +34808,17 @@ type sonarScoreBand_ {
   Severity: Int!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreBandTransitions_FromBandIDArray: [sonarScoreBandTransition_!]!
-  sonarSonar_ScoreBandTransitions_ToBandIDArray: [sonarScoreBandTransition_!]!
-  sonarSonar_ScoreHistories_BandIDArray: [sonarScoreHistory_!]!
-  sonarSonar_Scores_BandIDArray: [sonarScore_!]!
-  sonarSonar_Scores_PreviousBandIDArray: [sonarScore_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_FromBandIDArray: [mjBizAppsSonarScoreBandTransition_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_ToBandIDArray: [mjBizAppsSonarScoreBandTransition_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_BandIDArray: [mjBizAppsSonarScoreHistory_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Scores_BandIDArray: [mjBizAppsSonarScore_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Scores_PreviousBandIDArray: [mjBizAppsSonarScore_!]!
 }
 
 """
 Per-factor breakdown of a current score; the explainability spine that makes the score narrative free.
 """
-type sonarScoreFactorContribution_ {
+type mjBizAppsSonarScoreFactorContribution_ {
   """Change in this factor's contribution versus the previous score."""
   ContributionDelta: Float
 
@@ -34856,7 +34856,7 @@ type sonarScoreFactorContribution_ {
 """
 Append-only time-series snapshots of scores; the trajectory is the asset. Snapshot on change plus periodic keyframes.
 """
-type sonarScoreHistory_ {
+type mjBizAppsSonarScoreHistory_ {
   AnchorEntity: String!
   AnchorEntityID: String!
 
@@ -34896,7 +34896,7 @@ type sonarScoreHistory_ {
 """
 Config-change audit: who changed which weight, factor, or window and when. Required for an explainable, governed scoring product.
 """
-type sonarScoreModelAuditEvent_ {
+type mjBizAppsSonarScoreModelAuditEvent_ {
   """JSON snapshot of the record after the change."""
   AfterJSON: String
 
@@ -34930,7 +34930,7 @@ type sonarScoreModelAuditEvent_ {
 """
 An immutable snapshot of a model's complete configuration at publish time. Every Score and ScoreHistory row references the version that produced it, making scores reproducible and auditable.
 """
-type sonarScoreModelVersion_ {
+type mjBizAppsSonarScoreModelVersion_ {
   """Summary of what changed versus the prior version."""
   ChangeSummary: String
 
@@ -34959,16 +34959,16 @@ type sonarScoreModelVersion_ {
   VersionNumber: Int!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreHistories_ScoreModelVersionIDArray: [sonarScoreHistory_!]!
-  sonarSonar_ScoreModels_CurrentVersionIDArray: [sonarScoreModel_!]!
-  sonarSonar_ScoreRecomputeRuns_ScoreModelVersionIDArray: [sonarScoreRecomputeRun_!]!
-  sonarSonar_Scores_ScoreModelVersionIDArray: [sonarScore_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_ScoreModelVersionIDArray: [mjBizAppsSonarScoreHistory_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreModels_CurrentVersionIDArray: [mjBizAppsSonarScoreModel_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreRecomputeRuns_ScoreModelVersionIDArray: [mjBizAppsSonarScoreRecomputeRun_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Scores_ScoreModelVersionIDArray: [mjBizAppsSonarScore_!]!
 }
 
 """
 The editable definition of one scoring model: anchor entity, scale, combine strategy, recompute policy, and bands. Many models can be active per tenant.
 """
-type sonarScoreModel_ {
+type mjBizAppsSonarScoreModel_ {
   AnchorEntity: String!
   AnchorEntityID: String!
 
@@ -35050,22 +35050,22 @@ type sonarScoreModel_ {
   TrendWindowDays: Int
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_Factors_ScoreModelIDArray: [sonarFactor_!]!
-  sonarSonar_Factors_SourceScoreModelIDArray: [sonarFactor_!]!
-  sonarSonar_ModelFactors_ScoreModelIDArray: [sonarModelFactor_!]!
-  sonarSonar_ModelRelatedEntities_ScoreModelIDArray: [sonarModelRelatedEntity_!]!
-  sonarSonar_ScoreBandTransitions_ScoreModelIDArray: [sonarScoreBandTransition_!]!
-  sonarSonar_ScoreHistories_ScoreModelIDArray: [sonarScoreHistory_!]!
-  sonarSonar_ScoreModelAuditEvents_ScoreModelIDArray: [sonarScoreModelAuditEvent_!]!
-  sonarSonar_ScoreModelVersions_ScoreModelIDArray: [sonarScoreModelVersion_!]!
-  sonarSonar_ScoreRecomputeRuns_ScoreModelIDArray: [sonarScoreRecomputeRun_!]!
-  sonarSonar_Scores_ScoreModelIDArray: [sonarScore_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Factors_ScoreModelIDArray: [mjBizAppsSonarFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Factors_SourceScoreModelIDArray: [mjBizAppsSonarFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ModelFactors_ScoreModelIDArray: [mjBizAppsSonarModelFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ModelRelatedEntities_ScoreModelIDArray: [mjBizAppsSonarModelRelatedEntity_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_ScoreModelIDArray: [mjBizAppsSonarScoreBandTransition_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_ScoreModelIDArray: [mjBizAppsSonarScoreHistory_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelAuditEvents_ScoreModelIDArray: [mjBizAppsSonarScoreModelAuditEvent_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelVersions_ScoreModelIDArray: [mjBizAppsSonarScoreModelVersion_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreRecomputeRuns_ScoreModelIDArray: [mjBizAppsSonarScoreRecomputeRun_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Scores_ScoreModelIDArray: [mjBizAppsSonarScore_!]!
 }
 
 """
 One batch or event recompute pass; drives the admin health view and compute/cost metering.
 """
-type sonarScoreRecomputeRun_ {
+type mjBizAppsSonarScoreRecomputeRun_ {
   """Number of band transitions recorded during the run."""
   BandTransitions: Int
 
@@ -35106,13 +35106,13 @@ type sonarScoreRecomputeRun_ {
   TriggerType: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreBandTransitions_RecomputeRunIDArray: [sonarScoreBandTransition_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_RecomputeRunIDArray: [mjBizAppsSonarScoreBandTransition_!]!
 }
 
 """
 The current score for one anchor record under one model. Written back into MJ as a first-class entity.
 """
-type sonarScore_ {
+type mjBizAppsSonarScore_ {
   AnchorEntity: String!
   AnchorEntityID: String!
 
@@ -35176,13 +35176,13 @@ type sonarScore_ {
   TrendSlope: Float
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_ScoreFactorContributions_ScoreIDArray: [sonarScoreFactorContribution_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_ScoreIDArray: [mjBizAppsSonarScoreFactorContribution_!]!
 }
 
 """
 A reusable, first-class time window used when evaluating factors (e.g. trailing 90 days, current term, renewal window -90d).
 """
-type sonarTimeWindow_ {
+type mjBizAppsSonarTimeWindow_ {
   """
   For RenewalRelative/SinceEvent windows, the date field on the anchor record the window is measured from (e.g. RenewalDate).
   """
@@ -35212,5 +35212,5 @@ type sonarTimeWindow_ {
   WindowType: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
-  sonarSonar_Factors_TimeWindowIDArray: [sonarFactor_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_Factors_TimeWindowIDArray: [mjBizAppsSonarFactor_!]!
 }

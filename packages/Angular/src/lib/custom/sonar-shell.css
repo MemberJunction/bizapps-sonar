@@ -1,0 +1,107 @@
+/*
+ * Shared design foundation for every Sonar custom resource surface. Defining the brand
+ * palette + page primitives here (and referencing this file from each component's
+ * styleUrls) keeps one source of truth — Angular re-scopes these classes per component,
+ * so each surface gets its own encapsulated copy while the look stays identical.
+ */
+
+/* Brand tokens — pulled onto :host so a component can override one value locally. */
+:host {
+    --sonar-brand: #6366f1;          /* indigo — primary accent */
+    --sonar-brand-soft: #eef2ff;     /* tinted fill behind icons */
+    --sonar-ink: #0f172a;            /* near-black headings */
+    --sonar-muted: #64748b;          /* secondary text */
+    --sonar-border: #e2e8f0;         /* hairline dividers / card edges */
+    --sonar-surface: #ffffff;        /* card / panel background */
+    --sonar-radius: 12px;
+    --sonar-gap: 1rem;
+}
+
+/* Page frame: every surface is a padded column with a header then a body region. */
+.sonar-page {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: 100%;
+}
+
+/* Header: heading block on the left, an actions region reserved on the right. */
+.sonar-page__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--sonar-gap);
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 1.25rem;
+}
+.sonar-page__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+.sonar-page__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--sonar-radius);
+    background: var(--sonar-brand-soft);
+    color: var(--sonar-brand);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.sonar-page__title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--sonar-ink);
+}
+.sonar-page__subtitle {
+    margin: 0.125rem 0 0;
+    color: var(--sonar-muted);
+    font-size: 0.9rem;
+}
+/* Reserved for future toolbar buttons (New, Refresh, …) — laid out now so adding a
+   button later doesn't reshape the header. */
+.sonar-page__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Body: the surface's main content region; holds the empty-state until data lands. */
+.sonar-page__body {
+    flex: 1;
+}
+
+/* Empty-state: centered icon + message shown before the data layer is wired. */
+.sonar-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
+    padding: 3rem 1rem;
+    border: 1px dashed var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    background: var(--sonar-surface);
+    color: var(--sonar-muted);
+}
+.sonar-empty i {
+    font-size: 2rem;
+    color: var(--sonar-brand);
+    opacity: 0.7;
+}
+.sonar-empty h2 {
+    margin: 0.5rem 0 0;
+    font-size: 1.125rem;
+    color: var(--sonar-ink);
+}
+.sonar-empty p {
+    margin: 0;
+    max-width: 28rem;
+    font-size: 0.9rem;
+}
