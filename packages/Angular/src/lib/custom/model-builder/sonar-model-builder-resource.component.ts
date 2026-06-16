@@ -44,6 +44,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      *  builders are opened by the model's own actions (+ Add factor / Edit bands / Publish)
      *  and emit `close` to return here — keeps the builders inside the model workflow. */
     public readonly activeView = signal<"rubric" | "factor" | "bands" | "publish" | "newModel">("rubric");
+    /** The optional "who gets scored?" filter is collapsed by default to reduce friction —
+     *  most models score everyone, so we don't make every author confront a rule builder. */
+    public readonly scopeOpen = signal(false);
 
     private readonly modelService = inject(ScoreModelService);
 
