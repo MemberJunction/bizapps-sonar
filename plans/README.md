@@ -29,7 +29,7 @@ Engagement scoring is commoditized at the *score* layer and wide open at the *ac
 
 ## The one architectural idea
 
-**Configuration-as-data with a uniform Factor contract.** Models, factors, rubrics, windows, bands, write-back rules, and action playbooks are all rows in `__sonar`. Code is the engine that interprets them, plus escape-hatch **Actions** for arbitrary logic.
+**Configuration-as-data with a uniform Factor contract.** Models, factors, rubrics, windows, bands, write-back rules, and action playbooks are all rows in `__mj_BizAppsSonar`. Code is the engine that interprets them, plus escape-hatch **Actions** for arbitrary logic.
 
 - **Declarative factors** (count/sum/recency over a related entity + filter + window + normalization) compile to **set-based SQL** — whole population, one pass.
 - **Action-backed factors** (code, or **Runtime Actions** generated/tested/cataloged by the **Action Builder / CodeSmith** loop) cover the weird 20% — external models, custom decay, NLP sentiment — behind a **promotion gate** so generated code can't silently move production scores.
@@ -56,7 +56,7 @@ Engagement scoring is commoditized at the *score* layer and wide open at the *ac
 | §2 Strategic Context | Six competing zones, five wedges, the feature-vs-company reframe, what we're explicitly **not** doing, market sizing. |
 | §3 Commercial Model | Two deployment legs, pricing dimensions (population × model count), optional lift-based performance fee. |
 | §4 Product Architecture | Deployment/OpenApp packaging, surfaces, **the core conceptual model**, schema conventions, package layout. |
-| §5 Data Model (detailed) | **Full `__sonar` schema** — configuration, factors & windows, runtime output, recompute/audit, Action governance & write-back, action layer (v1), calibration network, templates — with columns, types, FKs, indexes, and design notes. |
+| §5 Data Model (detailed) | **Full `__mj_BizAppsSonar` schema** — configuration, factors & windows, runtime output, recompute/audit, Action governance & write-back, action layer (v1), calibration network, templates — with columns, types, FKs, indexes, and design notes. |
 | §6 Scoring Engine | Recompute pipeline, recompute strategy, explainability. |
 | §7 Factor & Rubric Authoring | Three authoring modes, declarative core vs Action plugin, the CodeSmith loop, governance gate, lift measurement. |
 | §8 AI Agent Roster | Model Builder, Explainer, Recompute Orchestrator, Dashboard Builder, Re-weight Advisor, Intervention Drafter, Calibration Aggregator, Action Builder. |
