@@ -121,6 +121,92 @@ columns already cover — and which matter far more here:
 - **Reuse:** this is the same `BaseAction` + metadata pattern we already used for `Sonar: Preview
   Model` / `Sonar: Recompute Model`, so the authoring + sync path is known.
 
+## Treating the demo as a third-party source (how MJ actually ingests external data)
+The demo data is a **third-party source**, not Sonar-owned config. MJ has first-class support
+for this (see MJ `packages/MJCore/docs/virtual-entities.md` + `organic-keys.md`), so we don't
+invent anything:
+
+- **Virtual Entities** — read-only entities backed by a **SQL view, no physical table**
+  (`VirtualEntity=1`; no spCreate/Update/Delete). CodeGen syncs their fields from `sys.columns`
+  on the view and can apply **soft PK/FK from config**. This surfaces seeded/external data as a
+  first-class, **scorable** entity without MJ owning a base table.
+- **Organic Keys** — relate records by shared business values (email, domain, …) instead of FKs,
+  for genuinely FK-less third-party data. Config-driven; transitive joins via views.
+- **Company Integrations** — the heavier ETL/sync framework (runs, watermarks, field/record
+  maps) for live external systems. Out of scope for the demo.
+
+**Registration is unavoidable but light:** a seeded table/view is invisible to Sonar's engine +
+pickers until MJ has entity metadata for it. The seed file still owns the *data* (third-party);
+CodeGen/virtual-entity registration just *reflects* it into the catalog so RunView + the engine
+can see it. "Seed file only, no registration at all" isn't possible while the engine reaches data
+through the MJ entity layer.
+
+### Engine fit (single-hop join)
+`FactorCompiler.resolveAnchorKeyColumn` resolves the source→anchor join via **FK metadata**
+(`field.RelatedEntityID === anchorEntityID`). So:
+- A **virtual entity + soft FK** to the anchor likely scores on the **v1 engine unchanged** (the
+  factor SQL selects from the view; the soft FK feeds the join). *Verify soft-FK config populates
+  `EntityField.RelatedEntityID`.*
+- **Pure organic-key** sources (no soft FK) are a real **engine gap** — the join would resolve
+  from organic-key metadata, not an FK field. A roadmap item, not a demo blocker.
+
+### Decision: Pattern 1 for the demo, Pattern 2 for real-world adoption
+Two patterns for where the association's data lives:
+- **Pattern 1 — schema in the MJ DB:** tables in the demo DB, real FK constraints, normal
+  read/write entities via CodeGen.
+- **Pattern 2 — separate DB, cross-DB views:** data stays in its own DB; MJ surfaces it as
+  read-only **virtual entities** over views; relationships via soft FKs / organic keys.
+
+**Resolved:**
+- **Demo (now) → Pattern 1.** Best for *us as developers*: real FKs auto-detect relationships,
+  the v1 engine scores it unchanged, one DB to inspect/debug/extend. `membership` is a real schema
+  *in* the sandboxed Sonar demo DB.
+- **Real associations → likely Pattern 2.** Most would rather keep their system-of-record in place
+  and have MJ read it via views than migrate it in. **Consequence:** the engine's **soft-FK +
+  organic-key join support is on the critical path to adoptability**, not optional polish — it's
+  what lets Sonar score data it doesn't own. Promote it on the engine roadmap accordingly.
+
+**Orthogonal:** catalog isolation (not dirtying the main `__mj` catalog) is handled by *which DB
+MJ connects to* — the sandbox `Sonar_Demo` instance — independent of Pattern 1 vs 2.
+
+## Sandboxing the demo (isolate every side effect)
+Goal: the demo data — and anything that stems from registering it — must be fully isolatable
+and tear-down-able, with **no churn to committed generated files** and ideally no residue in the
+main DB.
+
+Two facts make this clean:
+1. **`mj codegen --skipfiles`** runs only the DB-side registration (metadata sync + base views +
+   permissions) and **generates/alters zero repo files** (no TS entities, Angular, GraphQL, or
+   manifest). This removes the file-churn risk entirely. *(Note: CodeGen can't currently scope to
+   a single schema — per-schema scoping is a future plan in MJ — so `--skipfiles` is the right
+   lever, not a `--schema` flag.)*
+2. **The engine + pickers are metadata-driven** — they read `Metadata.Entities` / `EntityInfo`
+   and use generic `RunView`, not per-entity generated TS classes. So a demo entity registered
+   *metadata-only* via `--skipfiles` is scorable with no generated code. **Verify in a spike:** a
+   class-less, metadata-only entity scores end-to-end (engine `RunView` + factor SQL).
+
+That leaves only DB-side effects (`__mj.Entity`/`EntityField` rows + the `membership` schema,
+views, data). Two containment levels:
+
+- **Lighter — same dev DB + teardown:** register with `--skipfiles`; keep DDL/seed under `demo/`;
+  a teardown script drops the `membership` schema and deletes its `__mj.Entity`/`EntityField`
+  rows. Reversible, but shares the catalog. Set `recompile_mj_views: false` for the run so
+  existing base views aren't re-touched in the DB.
+- **Full sandbox — separate demo DB on the Docker container (chosen approach):** a new
+  `Sonar_Demo` database on the existing `sql_server_dev` SQL Server 2022 container (port 1433),
+  alongside `Sonar_Dev`. Teardown = **`DROP DATABASE Sonar_Demo`**. Zero residue in the main repo
+  *or* the main DB.
+  - **Must be a clone of `Sonar_Dev`, not a fresh DB.** Sonar's engine/pickers need the full stack
+    present — the `__mj` core catalog *and* `__mj_BizAppsSonar` (entities, engine seed, the Action
+    metadata). Clone via SQL Server `BACKUP DATABASE Sonar_Dev` → `RESTORE … AS Sonar_Demo` on the
+    same instance (carries the auth config too, so login is unchanged). Then add `membership`.
+  - **Point tools at it via `DB_DATABASE` override** (a demo `.env` / env var) — the API, Explorer,
+    CodeGen, and any DB scripts all read DB settings from `.env`, so flipping `DB_DATABASE=Sonar_Demo`
+    runs the whole stack against the sandbox.
+  - **Build order in the sandbox:** clone → `CREATE SCHEMA membership` + tables (FK constraints) →
+    seed ~15 members → `mj codegen --skipfiles` (registers entities + base views in `Sonar_Demo`
+    only; no repo files) → author the demo model → Simulate/Recompute.
+
 ## Open considerations
 - **Generated entity code ships, demo data doesn't.** CodeGen output for `membership` lands in
   the shared `packages/Entities` (committed). The *migration + seed* stay under `demo/` and run
