@@ -1,0 +1,106 @@
+<div class="sonar-page sonar-page--railed sonar-mgr">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <span class="sonar-page__icon"><i class="fa-solid fa-chart-line"></i></span>
+            <div>
+                <h1 class="sonar-page__title">{{ modelName() }}</h1>
+                <p class="sonar-page__subtitle">Engagement Manager · who to prioritize, and why</p>
+            </div>
+        </div>
+        <div class="sonar-page__actions">
+            <button class="sonar-btn" disabled title="Phase 2+ — action layer">Export cohort</button>
+            <button class="sonar-btn sonar-btn--primary" disabled title="Phase 2+ — action layer">Launch intervention</button>
+        </div>
+    </div>
+
+    <div class="sonar-page__body sonar-with-rail">
+        <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
+
+        <div class="sonar-with-rail__main">
+            @if (loaded() && members().length === 0) {
+                <div class="sonar-empty">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <h2>No scores to triage yet</h2>
+                    <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then members will appear here worst-first.</p>
+                </div>
+            } @else {
+                <!-- Band summary tiles. -->
+                <section class="sonar-stats">
+                    @for (t of tiles(); track t.label) {
+                        <div class="sonar-stat">
+                            <div class="sonar-stat__label">{{ t.label }}</div>
+                            <div class="sonar-stat__value sonar-text--{{ t.key }}">{{ t.pct }}%</div>
+                            <div class="sonar-stat__delta">{{ t.count }} member{{ t.count === 1 ? '' : 's' }}</div>
+                        </div>
+                    }
+                </section>
+
+                <div class="sonar-split">
+                    <!-- Triage list -->
+                    <section class="sonar-card">
+                        <div class="sonar-card__head">
+                            <div class="sonar-card__label">Triage · lowest scores first</div>
+                            <span class="sonar-chip">{{ members().length }} scored</span>
+                        </div>
+                        <div class="sonar-stack">
+                            @for (m of members(); track m.scoreId) {
+                                <button class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId" (click)="select(m)">
+                                    <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
+                                    <span class="sonar-dropper__main">
+                                        <span class="sonar-dropper__name">{{ m.name }}</span>
+                                        <span class="sonar-mono sonar-dropper__reason">score {{ m.normalizedScore }} / 100</span>
+                                    </span>
+                                    <span class="sonar-chip sonar-chip--{{ m.bandKey }}">{{ m.bandLabel }}</span>
+                                </button>
+                            }
+                        </div>
+                    </section>
+
+                    <!-- Member explainability drawer -->
+                    <section class="sonar-stack">
+                        @if (selected(); as sel) {
+                            <div class="sonar-card">
+                                <div class="sonar-card__head">
+                                    <div>
+                                        <div class="sonar-card__label">Member drill-down</div>
+                                        <div class="sonar-factor__name">{{ sel.name }}</div>
+                                    </div>
+                                    <div class="sonar-drill__score">
+                                        <div class="sonar-drill__num">{{ sel.normalizedScore }}</div>
+                                        <div class="sonar-chip sonar-chip--{{ sel.bandKey }}">{{ sel.bandLabel }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="sonar-stack sonar-drill__why">
+                                    <div class="sonar-card__label">Why this score</div>
+                                    @if (loadingDrawer()) {
+                                        <p class="sonar-faint" style="font-size:0.85rem">Loading breakdown…</p>
+                                    } @else if (contributions().length === 0) {
+                                        <p class="sonar-faint" style="font-size:0.85rem">No contribution breakdown recorded for this score.</p>
+                                    } @else {
+                                        @for (c of contributions(); track c.label) {
+                                            <div class="sonar-wf">
+                                                <span class="sonar-wf__val" [ngClass]="c.weightedValue < 0 ? 'sonar-neg' : 'sonar-pos'">{{ c.weightedValue > 0 ? '+' : '' }}{{ c.weightedValue }}</span>
+                                                <span class="sonar-wf__track"><span class="sonar-wf__bar" [ngClass]="c.weightedValue < 0 ? 'sonar-wf__bar--neg' : 'sonar-wf__bar--pos'" [style.width.%]="barWidth(c.weightedValue)"></span></span>
+                                                <span class="sonar-wf__label">{{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+
+                                <div class="sonar-drill__actions">
+                                    <button class="sonar-btn sonar-btn--primary" disabled title="Phase 2+ — action layer">Draft re-engagement</button>
+                                    <button class="sonar-btn" disabled title="Phase 2+ — action layer">Route to chapter rep</button>
+                                </div>
+                            </div>
+                            <div class="sonar-card sonar-note">
+                                <strong class="sonar-ink">Action layer (Phase 2+):</strong> launching an intervention will hold back a control
+                                group automatically, so reactivation lift is <em>measured</em>, not assumed.
+                            </div>
+                        }
+                    </section>
+                </div>
+            }
+        </div>
+    </div>
+</div>

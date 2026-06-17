@@ -155,7 +155,8 @@ export class FactorCompiler {
 
     /**
      * Resolve the factor's TimeWindow into a date column + day count. v1 supports Rolling
-     * windows (and "no window" when the factor has none); other window types are deferred.
+     * windows and "All Time" (no time bound); "no window" (factor has none) is also fine.
+     * Other window types (e.g. RenewalRelative) are deferred.
      */
     private async resolveWindow(
         factor: mjBizAppsSonarFactorEntity,
@@ -174,9 +175,13 @@ export class FactorCompiler {
                 `FactorCompiler: TimeWindow ${factor.TimeWindowID} not found.`,
             );
         }
+        // "All Time" means no time bound — aggregate over the entity's full history (no date filter).
+        if (tw.WindowType === "AllTime") {
+            return { dateColumn: null, windowLengthDays: null };
+        }
         if (tw.WindowType !== "Rolling") {
             throw new Error(
-                `FactorCompiler: only Rolling time windows are supported yet (got '${tw.WindowType}').`,
+                `FactorCompiler: only Rolling and All Time windows are supported yet (got '${tw.WindowType}').`,
             );
         }
         if (!tw.AnchorDateField || tw.LengthDays == null) {

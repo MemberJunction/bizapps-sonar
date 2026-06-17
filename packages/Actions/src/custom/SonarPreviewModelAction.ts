@@ -36,7 +36,9 @@ export class SonarPreviewModelAction extends BaseAction {
                 Success: true,
                 ResultCode: "SUCCESS",
                 Message: `Previewed ${payload.totalScored} record${payload.totalScored === 1 ? "" : "s"}.`,
-                Params: [...params.Params, { Name: "Result", Value: JSON.stringify(payload), Type: "Output" }],
+                // Type 'Both' (not 'Output') — the MJ ActionResolver only serializes 'Both' params
+                // into the GraphQL ResultData the client reads back.
+                Params: [...params.Params, { Name: "Result", Value: JSON.stringify(payload), Type: "Both" }],
             };
         } catch (e: unknown) {
             return { Success: false, ResultCode: "ERROR", Message: e instanceof Error ? e.message : String(e), Params: params.Params };

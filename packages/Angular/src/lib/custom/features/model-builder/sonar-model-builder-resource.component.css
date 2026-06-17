@@ -1,0 +1,106 @@
+/* Model Builder surface-specific styles. Shared primitives (page, card, chip, bars,
+   waterfall, ai panel) live in sonar-shell.css. */
+
+/* small text-color helpers used inline */
+.sonar-faint { color: var(--sonar-faint); }
+.sonar-ink { color: var(--sonar-ink); }
+
+/* Builder modal overlay — a dialog over the model, so the rubric stays in context. */
+.sonar-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.sonar-modal__scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(2px); }
+.sonar-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1040px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: var(--sonar-bg);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    box-shadow: var(--mj-shadow-2xl, 0 24px 64px -16px rgba(0, 0, 0, 0.4));
+    padding: 1.5rem;
+}
+
+/* Model switcher (horizontal pill list of models). */
+.sonar-models { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-models__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--sonar-border);
+    background: var(--sonar-surface);
+    color: var(--sonar-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sonar-models__item--active { color: var(--sonar-ink); border-color: var(--sonar-border-strong); background: var(--sonar-surface-sunken); }
+.sonar-models__item--ghost { color: var(--sonar-faint); cursor: not-allowed; }
+.sonar-models__item .sonar-dot { animation: none; }
+
+/* AI panel content. */
+.sonar-ai__head { margin-bottom: 0.6rem; }
+.sonar-ai__text { margin: 0; color: var(--sonar-muted); font-size: 0.9rem; line-height: 1.6; }
+
+/* Card header with an action on the right. */
+.sonar-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+
+/* Related entities grid. */
+.sonar-chips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.6rem; }
+.sonar-rel { position: relative; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); padding: 0.6rem 0.7rem; }
+.sonar-rel__alias { font-size: 0.72rem; color: var(--sonar-watch); }
+.sonar-rel__label { font-size: 0.85rem; margin-top: 0.2rem; }
+.sonar-rel__source { font-size: 0.72rem; color: var(--sonar-faint); }
+.sonar-rel__remove {
+    position: absolute; top: 0.3rem; right: 0.4rem;
+    border: none; background: transparent; cursor: pointer;
+    color: var(--sonar-faint); font-size: 0.75rem; line-height: 1; padding: 0.15rem;
+}
+.sonar-rel__remove:hover:not(:disabled) { color: var(--sonar-critical); }
+.sonar-rel--add {
+    display: flex; align-items: center; justify-content: center;
+    border: 1px dashed var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    color: var(--sonar-faint); font-size: 0.8rem; cursor: pointer;
+    background: transparent; padding: 0.6rem 0.7rem;
+}
+.sonar-rel--add:hover:not(:disabled) { color: var(--sonar-ink); border-color: var(--sonar-brand); }
+.sonar-rel-add-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.6rem; }
+.sonar-rel-add-row mj-combobox { flex: 1; }
+
+/* Rubric factor rows. */
+.sonar-factor__actions { display: flex; align-items: center; gap: 0.5rem; }
+.sonar-factor__remove {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--sonar-faint); font-size: 0.8rem; line-height: 1; padding: 0.2rem;
+}
+.sonar-factor__remove:hover:not(:disabled) { color: var(--sonar-critical); }
+.sonar-factor__tune { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; }
+.sonar-factor__tune input[type="range"] { flex: 1; accent-color: var(--sonar-brand); }
+.sonar-factor__weight { font-size: 0.75rem; color: var(--sonar-muted); min-width: 2.5rem; text-align: right; }
+.sonar-factor { border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); padding: 0.85rem 1rem; }
+.sonar-factor--accent { border-color: color-mix(in srgb, var(--sonar-watch) 35%, transparent); background: var(--sonar-watch-bg); }
+.sonar-factor__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.sonar-factor__name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.sonar-factor__detail { font-size: 0.72rem; color: var(--sonar-faint); margin-top: 0.25rem; }
+.sonar-factor__bar { height: 0.4rem; border-radius: 999px; background: var(--sonar-surface-sunken); margin-top: 0.7rem; overflow: hidden; }
+.sonar-factor__bar span { display: block; height: 100%; border-radius: 999px; background: var(--sonar-grad); }
+
+/* Sample member preview. */
+.sonar-member__num { font-size: 2.5rem; font-weight: 800; line-height: 1; margin: 0.3rem 0 0.5rem; }
+.sonar-member__num span { font-size: 1.1rem; color: var(--sonar-faint); font-weight: 600; }
+.sonar-member__why { margin-top: 1rem; gap: 0.5rem; }
+
+/* Captions / notes. */
+.sonar-note { font-size: 0.78rem; color: var(--sonar-muted); line-height: 1.5; margin: 0.75rem 0 0; }
+.sonar-bars__label { font-size: 0.72rem; color: var(--sonar-muted); }

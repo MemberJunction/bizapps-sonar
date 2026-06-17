@@ -25,7 +25,8 @@ export class SonarRecomputeModelAction extends BaseAction {
                 Success: run.status === "Succeeded",
                 ResultCode: run.status === "Succeeded" ? "SUCCESS" : "ERROR",
                 Message: `Recompute ${run.status.toLowerCase()} — scored ${run.recordsScored} record${run.recordsScored === 1 ? "" : "s"}.`,
-                Params: [...params.Params, { Name: "Result", Value: JSON.stringify(run), Type: "Output" }],
+                // Type 'Both' (not 'Output') — the MJ ActionResolver only serializes 'Both' params into ResultData.
+                Params: [...params.Params, { Name: "Result", Value: JSON.stringify(run), Type: "Both" }],
             };
         } catch (e: unknown) {
             return { Success: false, ResultCode: "ERROR", Message: e instanceof Error ? e.message : String(e), Params: params.Params };

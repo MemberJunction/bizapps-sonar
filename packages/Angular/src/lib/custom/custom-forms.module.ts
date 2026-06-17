@@ -9,25 +9,33 @@ import { FilterBuilderModule } from '@memberjunction/ng-filter-builder';
 // long entity pickers (anchor / data sources) where a native <select> would be unusable.
 import { MJComboboxComponent } from '@memberjunction/ng-ui-components';
 
-// Persona resource surfaces (each reachable via nav DriverClass).
-import { SonarOverviewResourceComponent } from './overview/sonar-overview-resource.component';
-import { SonarModelBuilderResourceComponent } from './model-builder/sonar-model-builder-resource.component';
-import { SonarEngagementManagerResourceComponent } from './engagement-manager/sonar-engagement-manager-resource.component';
-import { SonarAdminOpsResourceComponent } from './admin-ops/sonar-admin-ops-resource.component';
+// Feature surfaces (each reachable via nav DriverClass).
+import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
+import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
+import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
+import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin-ops-resource.component';
 
-// Reusable multi-select (combobox search + chips) — MJ has no drop-in for this.
-import { SonarMultiselectComponent } from './multiselect/sonar-multiselect.component';
-// Builders — hosted inside the Model Builder (not nav surfaces), opened via view switching.
-import { SonarModelSetupComponent } from './model-setup/sonar-model-setup.component';
-import { SonarFactorBuilderComponent } from './factor-builder/sonar-factor-builder.component';
-import { SonarScoreBandBuilderComponent } from './score-band-builder/sonar-score-band-builder.component';
-import { SonarPublishSnapshotComponent } from './publish-snapshot/sonar-publish-snapshot.component';
+// Shared UI — reusable across features.
+import { SonarMultiselectComponent } from './shared/multiselect/sonar-multiselect.component';
+import { SonarModelSidebarComponent } from './shared/model-sidebar/sonar-model-sidebar.component';
+
+// Model Builder's hosted builders — opened via view switching inside the feature.
+import { SonarModelSetupComponent } from './features/model-builder/builders/model-setup/sonar-model-setup.component';
+import { SonarFactorBuilderComponent } from './features/model-builder/builders/factor-builder/sonar-factor-builder.component';
+import { SonarScoreBandBuilderComponent } from './features/model-builder/builders/score-band-builder/sonar-score-band-builder.component';
+import { SonarPublishSnapshotComponent } from './features/model-builder/builders/publish-snapshot/sonar-publish-snapshot.component';
 
 /**
- * Custom (hand-written) Sonar Angular components, one per folder. Four persona surfaces
- * (Overview, Model Builder, Engagement Manager, Admin & Ops) reachable via nav DriverClass,
- * plus three builders hosted inside the Model Builder (Factor, Score-Band, Publish/Snapshot).
- * Imported after the generated forms module in public-api.ts.
+ * Custom (hand-written) Sonar Angular code, organized by the Core-Shared-Feature convention
+ * (see custom/README.md):
+ *   - core/services  — singleton, app-wide data services (injected providedIn:'root')
+ *   - shared/        — reusable, business-agnostic UI (model rail, multiselect) + the shared stylesheet
+ *   - features/      — self-contained surfaces: Overview, Model Builder (+ its hosted builders),
+ *                      Engagement Manager, Admin & Ops. Each reachable via a nav DriverClass.
+ *
+ * This NgModule declares every component (the package follows a module-declared pattern, not
+ * standalone). Imported after the generated forms module in public-api.ts so the custom
+ * @RegisterClass surfaces win on priority.
  */
 @NgModule({
     declarations: [
@@ -36,6 +44,7 @@ import { SonarPublishSnapshotComponent } from './publish-snapshot/sonar-publish-
         SonarEngagementManagerResourceComponent,
         SonarAdminOpsResourceComponent,
         SonarMultiselectComponent,
+        SonarModelSidebarComponent,
         SonarModelSetupComponent,
         SonarFactorBuilderComponent,
         SonarScoreBandBuilderComponent,

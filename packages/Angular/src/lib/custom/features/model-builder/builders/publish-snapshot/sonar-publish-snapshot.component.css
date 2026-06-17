@@ -1,0 +1,58 @@
+/* Publish & Snapshot surface-specific styles. Shared primitives live in sonar-shell.css. */
+
+.sonar-faint { color: var(--sonar-faint); }
+.sonar-ink { color: var(--sonar-ink); }
+.sonar-ps { display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* Pre-publish impact preview rows. */
+.sonar-impact { margin-top: 0.6rem; gap: 0.4rem; }
+.sonar-impact__row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.sonar-impact__label { flex: 1; color: var(--sonar-ink); }
+.sonar-impact__delta { min-width: 2.5rem; text-align: right; }
+
+.sonar-fb__bar { display: flex; align-items: center; gap: 1rem; }
+.sonar-fb__title { flex: 1; min-width: 0; }
+.sonar-fb__sub { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--sonar-muted); }
+.sonar-ps__title { font-size: 1.15rem; font-weight: 700; color: var(--sonar-ink); }
+.sonar-fb__actions { display: flex; gap: 0.5rem; }
+.sonar-fb__hint { font-size: 0.74rem; }
+
+.sonar-field {
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.45rem 0.6rem;
+    color: var(--sonar-ink);
+    font-size: 0.85rem;
+    width: 100%;
+}
+.sonar-field:focus { outline: none; border-color: var(--sonar-brand); }
+
+/* gate checklist */
+.sonar-ps__checks { gap: 0.85rem; margin-top: 0.5rem; }
+.sonar-ps__check { display: flex; align-items: flex-start; gap: 0.75rem; }
+.sonar-ps__icon {
+    width: 1.25rem; height: 1.25rem; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 0.7rem; margin-top: 0.1rem;
+}
+.sonar-ps__icon--pass { background: var(--sonar-healthy-bg); color: var(--sonar-healthy); }
+.sonar-ps__icon--fail { background: var(--sonar-critical-bg); color: var(--sonar-critical); }
+.sonar-ps__icon--na { background: var(--sonar-surface-sunken); color: var(--sonar-faint); }
+.sonar-ps__check-label { font-size: 0.88rem; }
+.sonar-ps__check-detail { font-size: 0.74rem; margin-top: 0.1rem; }
+
+.sonar-ps__verdict { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--sonar-border); }
+.sonar-ps__summary { margin-top: 1.25rem; }
+.sonar-ps__summary .sonar-card__label { margin-bottom: 0.4rem; }
+
+/* snapshot parts */
+.sonar-ps__parts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+.sonar-ps__part { border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); padding: 0.7rem 0.85rem; font-size: 0.85rem; }
+
+/* version history */
+.sonar-ps__versions { gap: 0.75rem; margin-top: 0.5rem; }
+.sonar-ps__version { border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); padding: 0.85rem; }
+.sonar-ps__version--current { border-color: color-mix(in srgb, var(--sonar-watch) 35%, transparent); background: var(--sonar-watch-bg); }
+.sonar-ps__version-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-ps__version-name { font-size: 0.88rem; font-weight: 600; }
+.sonar-ps__version-summary { font-size: 0.78rem; margin-top: 0.3rem; }

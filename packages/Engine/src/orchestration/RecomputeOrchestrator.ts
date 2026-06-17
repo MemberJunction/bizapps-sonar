@@ -291,8 +291,10 @@ export class RecomputeOrchestrator {
     private resolveNormalizationSpec(
         factor: mjBizAppsSonarFactorEntity,
     ): NormalizationSpec {
-        const method = factor.NormalizationMethod;
-        if (method !== "None" && method !== "MinMax") {
+        const method = factor.NormalizationMethod ?? "None";
+        // Supported population methods. Parameterized methods (Logistic/Banded/Lookup) read
+        // NormalizationParamsJSON and aren't wired yet — fail loud rather than silently mis-score.
+        if (method !== "None" && method !== "MinMax" && method !== "Percentile" && method !== "ZScore") {
             throw new Error(
                 `RecomputeOrchestrator: normalization method '${method}' not supported yet (factor ${factor.ID}).`,
             );

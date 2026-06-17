@@ -1,0 +1,105 @@
+<div class="sonar-page sonar-page--railed sonar-home">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <span class="sonar-page__icon"><i class="fa-solid fa-wave-square"></i></span>
+            <div>
+                <h1 class="sonar-page__title">{{ model() ? model()!.Name : 'Sonar' }}</h1>
+                <p class="sonar-page__subtitle">
+                    @if (model()) {
+                        Anchor: {{ anchorName() }} · {{ population() === null ? '—' : (population() | number) }} in population
+                    } @else {
+                        Your engagement-scoring models at a glance.
+                    }
+                </p>
+            </div>
+        </div>
+        @if (model()) {
+            <div class="sonar-page__actions">
+                <span class="sonar-chip" [ngClass]="statusClass(model()!.Status)">{{ model()!.Status }}</span>
+            </div>
+        }
+    </div>
+
+    <div class="sonar-page__body sonar-with-rail">
+        <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
+
+        <div class="sonar-with-rail__main">
+            @if (loaded() && !model()) {
+                <div class="sonar-empty">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <h2>No model selected</h2>
+                    <p>Pick a model from the rail, or open <strong>Model Builder</strong> to create your first one.</p>
+                </div>
+            } @else if (model()) {
+                <div class="sonar-stack">
+                    <!-- Config stats -->
+                    <section class="sonar-stats">
+                        <div class="sonar-stat">
+                            <div class="sonar-stat__label">In population</div>
+                            <div class="sonar-stat__value">{{ population() === null ? '—' : (population() | number) }}</div>
+                        </div>
+                        <div class="sonar-stat">
+                            <div class="sonar-stat__label">Signals</div>
+                            <div class="sonar-stat__value">{{ signalCount() }}</div>
+                        </div>
+                        <div class="sonar-stat">
+                            <div class="sonar-stat__label">Bands</div>
+                            <div class="sonar-stat__value">{{ bandCount() }}</div>
+                        </div>
+                        <div class="sonar-stat">
+                            <div class="sonar-stat__label">Members scored</div>
+                            <div class="sonar-stat__value">{{ scoredCount() | number }}</div>
+                        </div>
+                    </section>
+
+                    <!-- Persisted band distribution -->
+                    <section class="sonar-card">
+                        <div class="sonar-card__label">Band distribution <span class="sonar-faint">· last recompute</span></div>
+                        @if (distribution().length === 0) {
+                            <p class="sonar-faint" style="font-size:0.85rem; margin-top:0.5rem">
+                                No persisted scores yet. Publish the model, then run <strong class="sonar-ink">Recompute</strong> in Model Builder to populate this.
+                            </p>
+                        } @else {
+                            <div class="sonar-donut-wrap" style="margin-top:0.5rem">
+                                <svg class="sonar-donut" viewBox="0 0 42 42">
+                                    <circle class="sonar-donut__track" cx="21" cy="21" r="15.915" fill="none" stroke-width="3.5"></circle>
+                                    @for (s of donutSegments(); track s.label) {
+                                        <circle class="sonar-donut__seg sonar-donut__seg--{{ s.key }}" cx="21" cy="21" r="15.915"
+                                            fill="none" stroke-width="3.5" transform="rotate(-90 21 21)"
+                                            [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"></circle>
+                                    }
+                                    <text x="21" y="20.5" class="sonar-donut__total">{{ scoredCount() }}</text>
+                                    <text x="21" y="25" class="sonar-donut__total-label">scored</text>
+                                </svg>
+                                <div class="sonar-donut__legend">
+                                    @for (b of distribution(); track b.label) {
+                                        <div class="sonar-donut__legend-row">
+                                            <span class="sonar-donut__dot sonar-donut__dot--{{ b.key }}"></span>
+                                            <span class="sonar-donut__legend-label">{{ b.label }}</span>
+                                            <span class="sonar-mono sonar-text--{{ b.key }}">{{ b.count }} · {{ b.pct }}%</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </section>
+
+                    <!-- Needs attention -->
+                    @if (attention().length > 0) {
+                        <section class="sonar-group">
+                            <h2 class="sonar-group__title">Needs attention</h2>
+                            <div class="sonar-stack">
+                                @for (a of attention(); track a) {
+                                    <div class="sonar-card sonar-home__attention">
+                                        <i class="fa-solid fa-circle-exclamation"></i>
+                                        <span>{{ a }}</span>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -36,7 +36,7 @@
           "fields": {
             "ActionID": "@parent:ID",
             "Name": "Result",
-            "Type": "Output",
+            "Type": "Both",
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
@@ -141,7 +141,7 @@
           "fields": {
             "ActionID": "@parent:ID",
             "Name": "Result",
-            "Type": "Output",
+            "Type": "Both",
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
