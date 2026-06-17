@@ -1,0 +1,30 @@
+{
+  "entity": "MJ: Actions",
+  "filePattern": "**/.*.json",
+  "pull": {
+    "createNewFileIfNotFound": true,
+    "newFileName": ".sonar-actions.json",
+    "appendRecordsToExistingFile": true,
+    "updateExistingRecords": true,
+    "mergeStrategy": "merge",
+    "ignoreNullFields": true,
+    "ignoreVirtualFields": true,
+    "filter": "DriverClass IN ('SonarPreviewModel','SonarRecomputeModel')",
+    "lookupFields": {
+      "CategoryID": {
+        "entity": "MJ: Action Categories",
+        "field": "Name"
+      }
+    },
+    "relatedEntities": {
+      "MJ: Action Params": {
+        "entity": "MJ: Action Params",
+        "foreignKey": "ActionID"
+      },
+      "MJ: Action Result Codes": {
+        "entity": "MJ: Action Result Codes",
+        "foreignKey": "ActionID"
+      }
+    }
+  }
+}

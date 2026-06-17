@@ -6,8 +6,8 @@
         </div>
         <div class="sonar-fb__actions">
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
-            <button class="sonar-btn sonar-btn--primary" [disabled]="!canPublish()" title="Publishing wires up next">
-                Publish version {{ nextVersion() }}
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!canPublish() || publishing()" (click)="publish()">
+                {{ publishing() ? "Publishing…" : "Publish version " + nextVersion() }}
             </button>
         </div>
     </div>
@@ -35,6 +35,12 @@
                     <span class="sonar-faint sonar-fb__hint">These are re-checked automatically when you publish.</span>
                 </div>
 
+                @if (error()) {
+                    <div class="sonar-chip sonar-chip--critical" style="margin-top:0.75rem; white-space:normal; height:auto; padding:0.5rem 0.75rem">
+                        ⚠ {{ error() }}
+                    </div>
+                }
+
                 <div class="sonar-ps__summary">
                     <div class="sonar-card__label">What changed <span class="sonar-faint">(optional note)</span></div>
                     <input class="sonar-field" [ngModel]="changeSummary()" (ngModelChange)="changeSummary.set($event)" />
@@ -45,7 +51,7 @@
             <section class="sonar-card">
                 <div class="sonar-card__label">What gets saved in this version</div>
                 <div class="sonar-ps__parts">
-                    @for (p of snapshotParts; track p.title) {
+                    @for (p of snapshotParts(); track p.title) {
                         <div class="sonar-ps__part">
                             <div class="sonar-ink">{{ p.title }}</div>
                             <div class="sonar-faint sonar-ps__check-detail">{{ p.detail }}</div>
@@ -67,9 +73,12 @@
                                 <span class="sonar-ink sonar-ps__version-name">v{{ v.number }} — {{ v.label }}</span>
                                 @if (v.isCurrent) { <span class="sonar-chip sonar-chip--watch">live now</span> }
                             </div>
-                            <div class="sonar-faint sonar-ps__check-detail">{{ v.by }} · {{ v.when }}</div>
+                            <div class="sonar-faint sonar-ps__check-detail">{{ v.when }}</div>
                             @if (v.summary) { <div class="sonar-faint sonar-ps__version-summary">{{ v.summary }}</div> }
                         </div>
+                    }
+                    @if (versions().length === 0) {
+                        <p class="sonar-faint" style="font-size:0.85rem">No versions yet — publishing creates version 1.</p>
                     }
                 </div>
             </section>

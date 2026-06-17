@@ -7,7 +7,9 @@
         </div>
         <div class="sonar-fb__actions">
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
-            <button class="sonar-btn sonar-btn--primary" disabled title="Saving wires up next">Add to model</button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
+                {{ saving() ? "Adding…" : "Add to model" }}
+            </button>
         </div>
     </div>
 
@@ -27,8 +29,8 @@
                     @if (fieldRequired()) {
                         <select class="sonar-token" [ngModel]="aggregateField()" (ngModelChange)="aggregateField.set($event)">
                             <option value="" disabled>pick a value…</option>
-                            @for (f of relatedFields; track f) {
-                                <option [value]="f">{{ f }}</option>
+                            @for (f of aggregatableFields(); track f.name) {
+                                <option [value]="f.name">{{ f.label }}</option>
                             }
                         </select>
                     } @else {
@@ -36,15 +38,15 @@
                     }
 
                     in
-                    <select class="sonar-token sonar-token--entity" [ngModel]="relatedAlias()" (ngModelChange)="relatedAlias.set($event)">
-                        @for (r of relatedEntities; track r.alias) {
-                            <option [value]="r.alias">{{ r.label }}</option>
+                    <select class="sonar-token sonar-token--entity" [ngModel]="sourceId()" (ngModelChange)="sourceId.set($event)">
+                        @for (s of sources(); track s.id) {
+                            <option [value]="s.id">{{ s.label }}</option>
                         }
                     </select>
                     <br />over
-                    <select class="sonar-token" [ngModel]="window()" (ngModelChange)="window.set($event)">
-                        @for (w of windows; track w) {
-                            <option [value]="w">{{ w }}</option>
+                    <select class="sonar-token" [ngModel]="windowId()" (ngModelChange)="windowId.set($event)">
+                        @for (w of windows(); track w.id) {
+                            <option [value]="w.id">{{ w.name }}</option>
                         }
                     </select>
                     — and higher is
@@ -56,6 +58,12 @@
 
                 @if (!fieldRequired()) {
                     <p class="sonar-fb__hint">Counting just tallies the matching records — no value to pick.</p>
+                }
+                @if (sources().length === 0) {
+                    <p class="sonar-fb__hint">⚠ This model has no data sources yet — add one to the model before creating a signal.</p>
+                }
+                @if (fieldRequired() && aggregatableFields().length === 0) {
+                    <p class="sonar-fb__hint">⚠ No numeric fields found on that source to {{ aggregationLabels[aggregation()] | lowercase }}.</p>
                 }
             </section>
 
@@ -115,8 +123,17 @@
                 </div>
             </section>
 
-            <section class="sonar-card sonar-note">
-                When you add this signal to a model, you'll choose <strong class="sonar-ink">how much it counts</strong> (its weight) and whether it helps or hurts the score.
+            <section class="sonar-card">
+                <div class="sonar-card__label">How much should this signal count?</div>
+                <div class="sonar-fb__weight">
+                    <input type="range" min="0" max="100" [ngModel]="weight()" (ngModelChange)="weight.set(+$event)" />
+                    <span class="sonar-mono">{{ (weight() / 100) | number:'1.2-2' }}</span>
+                </div>
+                <div class="sonar-fb__mode">
+                    <label><input type="radio" name="weightMode" value="Additive" [ngModel]="weightMode()" (ngModelChange)="weightMode.set($event)" /> Helps the score</label>
+                    <label><input type="radio" name="weightMode" value="Penalty" [ngModel]="weightMode()" (ngModelChange)="weightMode.set($event)" /> Hurts the score</label>
+                </div>
+                <p class="sonar-fb__hint">Weight sets how strongly this signal pulls the score. “Hurts” turns it into a penalty (e.g. a lapsed certification).</p>
             </section>
         </div>
     </div>

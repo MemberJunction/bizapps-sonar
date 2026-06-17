@@ -47,6 +47,27 @@ export class ScoreModelService {
         return (await model.Save()) ? model : null;
     }
 
+    /**
+     * Publish a model: flip Status → 'Active' and Save(). The server-side ScoreModelEntityServer
+     * hook validates publishability (ValidateAsync) and snapshots an immutable ScoreModelVersion.
+     * On a blocked publish, Save() fails and the validation message comes back in LatestResult.
+     */
+    public async publish(modelId: string): Promise<{ ok: boolean; error?: string }> {
+        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
+        if (!model?.IsSaved) return { ok: false, error: "Model not found." };
+        model.Status = "Active";
+        const ok = await model.Save();
+        return ok ? { ok: true } : { ok: false, error: model.LatestResult?.Message || "Publish was blocked — the model isn't scoreable yet." };
+    }
+
+    /** Point a model at a band set (ScoreModel.BandSetID). Returns true on save. */
+    public async setBandSet(modelId: string, bandSetID: string): Promise<boolean> {
+        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
+        if (!model?.IsSaved) return false;
+        model.BandSetID = bandSetID;
+        return model.Save();
+    }
+
     /** The data sources (related entities) wired into a model. */
     public async dataSources(modelId: string): Promise<mjBizAppsSonarModelRelatedEntityEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>({

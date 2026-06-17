@@ -7,7 +7,9 @@
         <div class="sonar-fb__actions">
             @if (!coverageOk()) { <span class="sonar-faint sonar-fb__hint">⚠ bands have a gap or overlap</span> }
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
-            <button class="sonar-btn sonar-btn--primary" disabled title="Saving wires up next">Save bands</button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
+                {{ saving() ? "Saving…" : "Save bands" }}
+            </button>
         </div>
     </div>
 

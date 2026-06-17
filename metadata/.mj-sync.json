@@ -9,7 +9,8 @@
     "applications",
     "time-windows",
     "score-band-sets",
-    "score-bands"
+    "score-bands",
+    "actions"
   ],
   "sqlLogging": {
     "enabled": true,

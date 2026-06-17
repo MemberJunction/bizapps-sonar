@@ -11,6 +11,17 @@ export type NormalizationMethod = "None" | "MinMax";
 /** How a factor's weight combines in the rubric. */
 export type WeightMode = "Additive" | "Penalty";
 
+/** A display row for the model's rubric (a Model Factor joined to its Factor). */
+export interface RubricRow {
+    modelFactorId: string;
+    name: string;
+    detail: string;
+    /** Weight as a 0–100 percentage (stored as a 0–1 fraction; ×100 for display). */
+    weight: number;
+    /** Lowercased for the template's chip styling ("additive" | "penalty"). */
+    mode: "additive" | "penalty";
+}
+
 /** Fields to create a Declarative factor. AggregateFieldName is omitted for Count. */
 export interface CreateFactorInput {
     name: string;
@@ -43,6 +54,40 @@ export class FactorService {
             ResultType: "entity_object",
         });
         return result.Success ? result.Results ?? [] : [];
+    }
+
+    /** The model's rubric as display rows: each Model Factor joined to its Factor. */
+    public async rubricForModel(modelId: string): Promise<RubricRow[]> {
+        const modelFactors = await this.listForModel(modelId);
+        if (modelFactors.length === 0) return [];
+
+        const ids = modelFactors.map((m) => `'${m.FactorID}'`).join(",");
+        const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
+            EntityName: FACTOR,
+            ExtraFilter: `ID IN (${ids})`,
+            ResultType: "entity_object",
+        });
+        const factorById = new Map((factorsResult.Results ?? []).map((f) => [f.ID, f]));
+
+        return modelFactors.map((mf) => {
+            const f = factorById.get(mf.FactorID);
+            return {
+                modelFactorId: mf.ID,
+                name: f?.Name ?? "(factor)",
+                detail: this.describeFactor(f),
+                weight: Math.round((mf.Weight ?? 0) * 100),
+                mode: (mf.WeightMode ?? "Additive").toLowerCase() === "penalty" ? "penalty" : "additive",
+            } satisfies RubricRow;
+        });
+    }
+
+    /** Plain one-line description of a factor's measure (for the rubric row). */
+    private describeFactor(f?: mjBizAppsSonarFactorEntity): string {
+        if (!f) return "";
+        const measure = f.Aggregation === "Count" || !f.AggregateFieldName
+            ? f.Aggregation ?? "Count"
+            : `${f.Aggregation}(${f.AggregateFieldName})`;
+        return `${measure} · ${f.NormalizationMethod ?? "None"}`;
     }
 
     /** Create a Declarative factor row (not yet bound to a model's rubric). */

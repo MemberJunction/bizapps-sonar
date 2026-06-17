@@ -5,12 +5,14 @@
             <span class="sonar-page__icon"><i class="fa-solid fa-sliders"></i></span>
             <div>
                 <h1 class="sonar-page__title">Model Builder</h1>
-                <p class="sonar-page__subtitle">Anchor: {{ anchor }} · {{ population | number }} in population · {{ versionLabel }}</p>
+                <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} · {{ population() === null ? '—' : (population() | number) }} in population · {{ versionLabel() }}</p>
             </div>
         </div>
         <div class="sonar-page__actions">
-            <button class="sonar-btn" disabled title="Activates when the engine Action lands">Simulate</button>
-            <button class="sonar-btn sonar-btn--primary" (click)="activeView.set('publish')">Publish version</button>
+            <button class="sonar-btn" [disabled]="!selectedModelId() || simulating()" (click)="simulate()">
+                {{ simulating() ? "Simulating…" : "Simulate" }}
+            </button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('publish')">Publish version</button>
         </div>
     </div>
 
@@ -50,11 +52,16 @@
                 <section class="sonar-card">
                     <div class="sonar-card__label">Related entities wired in <span class="sonar-faint">(from MJ relationship metadata)</span></div>
                     <div class="sonar-chips-grid">
-                        <div *ngFor="let r of relatedEntities" class="sonar-rel">
-                            <div class="sonar-mono sonar-rel__alias">{{ r.alias }}</div>
-                            <div class="sonar-rel__label">{{ r.label }}</div>
-                            <div class="sonar-rel__source">{{ r.source }}</div>
-                        </div>
+                        @for (r of relatedEntities(); track r.alias) {
+                            <div class="sonar-rel">
+                                <div class="sonar-mono sonar-rel__alias">{{ r.alias }}</div>
+                                <div class="sonar-rel__label">{{ r.label }}</div>
+                                <div class="sonar-rel__source">{{ r.source }}</div>
+                            </div>
+                        }
+                        @if (relatedEntities().length === 0) {
+                            <div class="sonar-faint" style="font-size:0.8rem; align-self:center">No data sources wired in yet.</div>
+                        }
                         <div class="sonar-rel sonar-rel--add">+ map another entity</div>
                     </div>
                 </section>
@@ -65,7 +72,7 @@
                      Spike: sample fields, no persistence (see plans/factor-filter-authoring.md). -->
                 <section class="sonar-card">
                     <div class="sonar-card__label">
-                        Population filter <span class="sonar-faint">(which {{ anchor }} records this model scores)</span>
+                        Population filter <span class="sonar-faint">(which {{ anchorName() }} records this model scores)</span>
                     </div>
                     <mj-filter-builder
                         [fields]="populationFilterFields"
@@ -78,25 +85,27 @@
                 <!-- Rubric (factors + weights). -->
                 <section class="sonar-card">
                     <div class="sonar-card__head">
-                        <div class="sonar-card__label">Rubric — {{ rubric.length }} factors</div>
-                        <button class="sonar-btn" (click)="activeView.set('factor')">+ Add factor</button>
+                        <div class="sonar-card__label">Rubric — {{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</div>
+                        <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('factor')">+ Add factor</button>
                     </div>
                     <div class="sonar-stack">
-                        <div *ngFor="let f of rubric" class="sonar-factor" [class.sonar-factor--accent]="f.renewalRelative">
-                            <div class="sonar-factor__row">
-                                <div>
-                                    <div class="sonar-factor__name">
-                                        {{ f.name }}
-                                        <span *ngIf="f.renewalRelative" class="sonar-chip sonar-chip--watch">renewal-relative window</span>
+                        @for (f of rubric(); track f.modelFactorId) {
+                            <div class="sonar-factor">
+                                <div class="sonar-factor__row">
+                                    <div>
+                                        <div class="sonar-factor__name">{{ f.name }}</div>
+                                        <div class="sonar-mono sonar-factor__detail">{{ f.detail }}</div>
                                     </div>
-                                    <div class="sonar-mono sonar-factor__detail">{{ f.detail }}</div>
+                                    <span class="sonar-chip" [ngClass]="f.mode === 'penalty' ? 'sonar-chip--critical' : 'sonar-chip--watch'">
+                                        weight {{ (f.weight / 100) | number:'1.2-2' }} · {{ f.mode }}
+                                    </span>
                                 </div>
-                                <span class="sonar-chip" [ngClass]="f.mode === 'penalty' ? 'sonar-chip--critical' : 'sonar-chip--watch'">
-                                    weight {{ (f.weight / 100) | number:'1.2-2' }} · {{ f.mode }}
-                                </span>
+                                <div class="sonar-factor__bar"><span [style.width.%]="f.weight"></span></div>
                             </div>
-                            <div class="sonar-factor__bar"><span [style.width.%]="f.weight"></span></div>
-                        </div>
+                        }
+                        @if (rubric().length === 0) {
+                            <p class="sonar-faint" style="font-size:0.85rem">No signals yet — add one to start scoring this model.</p>
+                        }
                     </div>
                 </section>
             </div>
@@ -105,32 +114,47 @@
             <div class="sonar-stack">
                 <section class="sonar-card">
                     <div class="sonar-card__head">
-                        <div class="sonar-card__label">Live band distribution <span class="sonar-faint">· {{ population | number }} members</span></div>
+                        <div class="sonar-card__label">Live band distribution <span class="sonar-faint">· {{ population() === null ? '—' : (population() | number) }} members</span></div>
                         <button class="sonar-btn" (click)="activeView.set('bands')">Edit bands</button>
                     </div>
-                    <div class="sonar-bars">
-                        <div *ngFor="let b of bandDist" class="sonar-bars__col">
-                            <div class="sonar-bars__fill sonar-bars__fill--{{ b.band }}" [style.height.%]="b.pct"></div>
-                            <div class="sonar-bars__label">{{ b.label }}</div>
-                            <div class="sonar-mono sonar-text--{{ b.band }}">{{ b.pct }}%</div>
+                    @if (previewError()) {
+                        <div class="sonar-chip sonar-chip--critical" style="white-space:normal; height:auto; padding:0.5rem 0.75rem">⚠ {{ previewError() }}</div>
+                    }
+                    @if (!previewed()) {
+                        <p class="sonar-faint" style="font-size:0.85rem">Click <strong class="sonar-ink">Simulate</strong> to preview the score distribution on the live population.</p>
+                    } @else if (bandDist().length === 0) {
+                        <p class="sonar-faint" style="font-size:0.85rem">No scores yet — add signals to the rubric, then Simulate.</p>
+                    } @else {
+                        <div class="sonar-bars">
+                            @for (b of bandDist(); track b.label) {
+                                <div class="sonar-bars__col">
+                                    <div class="sonar-bars__fill sonar-bars__fill--{{ b.band }}" [style.height.%]="b.pct"></div>
+                                    <div class="sonar-bars__label">{{ b.label }}</div>
+                                    <div class="sonar-mono sonar-text--{{ b.band }}">{{ b.pct }}%</div>
+                                </div>
+                            }
                         </div>
-                    </div>
-                    <p class="sonar-note">Preview recomputes on a 5% sample as weights change. Full population scores on publish.</p>
+                        <p class="sonar-note">Preview computes on the live population without persisting. Recompute on publish writes the scores.</p>
+                    }
                 </section>
 
-                <section class="sonar-card">
-                    <div class="sonar-card__label">Sample member preview</div>
-                    <div class="sonar-factor__name">{{ sampleMember.name }}</div>
-                    <div class="sonar-member__num">{{ sampleMember.score }}<span>/100</span></div>
-                    <span class="sonar-chip sonar-chip--atrisk">At-Risk · ▼{{ -sampleMember.delta }} vs prior</span>
-                    <div class="sonar-stack sonar-member__why">
-                        <div *ngFor="let c of contributions" class="sonar-wf">
-                            <span class="sonar-wf__val" [ngClass]="c.value < 0 ? 'sonar-neg' : 'sonar-pos'">{{ c.value > 0 ? '+' : '' }}{{ c.value }}</span>
-                            <span class="sonar-wf__track"><span class="sonar-wf__bar" [ngClass]="c.value < 0 ? 'sonar-wf__bar--neg' : 'sonar-wf__bar--pos'" [style.width.%]="barWidth(c.value)"></span></span>
-                            <span class="sonar-wf__label">{{ c.label }}</span>
+                @if (sampleMember(); as sample) {
+                    <section class="sonar-card">
+                        <div class="sonar-card__label">Sample member preview</div>
+                        <div class="sonar-mono sonar-factor__detail">{{ sample.name }}</div>
+                        <div class="sonar-member__num">{{ sample.score }}<span>/100</span></div>
+                        <span class="sonar-chip sonar-chip--{{ sample.band }}">{{ sample.band }}</span>
+                        <div class="sonar-stack sonar-member__why">
+                            @for (c of contributions(); track c.label) {
+                                <div class="sonar-wf">
+                                    <span class="sonar-wf__val" [ngClass]="c.value < 0 ? 'sonar-neg' : 'sonar-pos'">{{ c.value > 0 ? '+' : '' }}{{ c.value }}</span>
+                                    <span class="sonar-wf__track"><span class="sonar-wf__bar" [ngClass]="c.value < 0 ? 'sonar-wf__bar--neg' : 'sonar-wf__bar--pos'" [style.width.%]="barWidth(c.value)"></span></span>
+                                    <span class="sonar-wf__label">{{ c.label }}</span>
+                                </div>
+                            }
                         </div>
-                    </div>
-                </section>
+                    </section>
+                }
 
                 <section class="sonar-card sonar-note">
                     <strong class="sonar-ink">Publishing creates an immutable version.</strong>
@@ -146,9 +170,26 @@
             <div class="sonar-modal__scrim" (click)="activeView.set('rubric')"></div>
             <div class="sonar-modal__panel">
                 @if (activeView() === 'newModel') { <sonar-model-setup (created)="onModelCreated($event)" (close)="activeView.set('rubric')"></sonar-model-setup> }
-                @if (activeView() === 'factor') { <sonar-factor-builder (close)="activeView.set('rubric')"></sonar-factor-builder> }
-                @if (activeView() === 'bands') { <sonar-score-band-builder (close)="activeView.set('rubric')"></sonar-score-band-builder> }
-                @if (activeView() === 'publish') { <sonar-publish-snapshot (close)="activeView.set('rubric')"></sonar-publish-snapshot> }
+                @if (activeView() === 'factor') {
+                    <sonar-factor-builder
+                        [modelId]="selectedModelId()"
+                        [anchorEntityID]="selectedModel()?.AnchorEntityID ?? null"
+                        [sources]="factorSources()"
+                        [windows]="timeWindows()"
+                        (saved)="onFactorSaved()"
+                        (close)="activeView.set('rubric')">
+                    </sonar-factor-builder>
+                }
+                @if (activeView() === 'bands') { <sonar-score-band-builder [bandSetId]="selectedModel()?.BandSetID ?? null" (saved)="onBandsSaved($event)" (close)="activeView.set('rubric')"></sonar-score-band-builder> }
+                @if (activeView() === 'publish') {
+                    <sonar-publish-snapshot
+                        [model]="selectedModel()"
+                        [signalCount]="rubric().length"
+                        [bandCount]="bandCount()"
+                        (published)="onPublished()"
+                        (close)="activeView.set('rubric')">
+                    </sonar-publish-snapshot>
+                }
             </div>
         </div>
         }

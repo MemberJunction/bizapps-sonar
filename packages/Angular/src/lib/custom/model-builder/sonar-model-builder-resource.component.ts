@@ -2,35 +2,39 @@ import { Component, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
+import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter } from "@memberjunction/ng-filter-builder";
+import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../services/score-model.service";
+import { FactorService, RubricRow } from "../services/factor.service";
+import { ScoreBandService } from "../services/score-band.service";
+import { SonarEngineService } from "../services/sonar-engine.service";
+import { FactorSource, FactorWindow } from "../factor-builder/sonar-factor-builder.component";
 
 /** A model in the left-rail list (loaded live from the DB). */
 interface ModelRow { id: string; name: string; }
 /** Band identity used for color coding across the surface. */
 type BandKey = "healthy" | "watch" | "atrisk" | "critical";
-/** How a factor's weight combines into the score (drives the chip color/label). */
-type WeightMode = "additive" | "penalty";
 
 /** A related entity wired into the model (maps to Model Related Entities). */
 interface RelatedEntity { alias: string; label: string; source: string; }
-/** A rubric row — a Factor bound into the model via a ModelFactor with a weight. */
-interface RubricFactor { name: string; detail: string; weight: number; mode: WeightMode; renewalRelative?: boolean; }
 /** One bar in the live band distribution preview. */
 interface BandSlice { label: string; pct: number; band: BandKey; }
 /** One line in the sample member's "why this score" breakdown. */
 interface Contribution { label: string; value: number; }
+/** The previewed sample member (from the engine, not sample data). */
+interface SampleMember { name: string; score: number; band: BandKey; }
 
 /**
  * Model Builder — the authoring surface: pick/active model, see the related entities wired
  * in, tune the rubric (factors + weights), and watch a live band distribution + sample
  * member preview. Reached via the nav item whose DriverClass = 'SonarModelBuilderResource'.
  *
- * All data here is SIMULATED sample data (shaped like the real entities) until the engine
- * and entity PRs land on this branch. Wiring seams are marked `TODO wire:`. The header
- * actions (Simulate / Publish) are intentionally inert — Simulate needs a server-side
- * engine Action, and Publish needs the ScoreModelEntityServer snapshot hook, neither of
- * which exists on this branch yet.
+ * Models, data sources, rubric, anchor + population are LIVE (read via the services / RunView).
+ * The right-rail band distribution + sample-member preview are still indicative samples — they
+ * need the server-side engine compute Action (RecomputeOrchestrator runs raw SQL and cannot run
+ * in the browser); those seams are marked `TODO wire:`. Simulate is inert for the same reason;
+ * Publish snapshots via the ScoreModelEntityServer hook (wired through the publish builder).
  */
 @RegisterClass(BaseResourceComponent, "SonarModelBuilderResource")
 @Component({
@@ -49,48 +53,42 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public readonly scopeOpen = signal(false);
 
     private readonly modelService = inject(ScoreModelService);
+    private readonly factorService = inject(FactorService);
+    private readonly bandService = inject(ScoreBandService);
+    private readonly engine = inject(SonarEngineService);
 
-    // --- header context ---
-    public anchor = "Member";
-    public population = 38402;
-    public versionLabel = "Draft v3 — unpublished changes";
+    // --- header context (resolved from the selected model) ---
+    public readonly anchorName = signal("—");
+    /** Real count of anchor records in scope, or null while loading / unknown. */
+    public readonly population = signal<number | null>(null);
+    public readonly versionLabel = signal("Draft — unpublished changes");
 
     // --- left rail: LIVE model list (real rows from the DB via ScoreModelService) ---
     public readonly liveModels = signal<ModelRow[]>([]);
     public readonly selectedModelId = signal<string | null>(null);
+    /** The full selected model entity (for BandSetID / AnchorEntityID the builders need). */
+    public readonly selectedModel = signal<mjBizAppsSonarScoreModelEntity | null>(null);
 
-    // --- related entities (TODO wire: RunView "MJ_BizApps_Sonar: Model Related Entities") ---
-    public relatedEntities: RelatedEntity[] = [
-        { alias: "crm_activity", label: "Activities", source: "Salesforce" },
-        { alias: "invoices", label: "Invoices", source: "Finance" },
-        { alias: "lms_completions", label: "Course Completions", source: "LMS" },
-        { alias: "event_regs", label: "Event Registrations", source: "Events" },
-        { alias: "community", label: "Community Posts", source: "Higher Logic" },
-    ];
+    // --- related entities wired into the model (real Model Related Entities) ---
+    public readonly relatedEntities = signal<RelatedEntity[]>([]);
+    /** Same data sources shaped for the factor builder's "records in …" picker. */
+    public readonly factorSources = signal<FactorSource[]>([]);
+    /** Seeded Time Windows for the factor builder's "over …" picker. */
+    public readonly timeWindows = signal<FactorWindow[]>([]);
 
-    // --- rubric (TODO wire: RunView "MJ_BizApps_Sonar: Model Factors" joined to Factors) ---
-    public rubric: RubricFactor[] = [
-        { name: "Certification status", detail: "lms_completions · Exists(active cert) · gate/penalty", weight: 30, mode: "penalty" },
-        { name: "Newsletter engagement", detail: "crm_activity · Count(Open,Click) · 90d · Percentile", weight: 20, mode: "additive" },
-        { name: "Event attendance", detail: "event_regs · Count(Attended) · 12m · Percentile", weight: 20, mode: "additive" },
-        { name: "Dues paid on time", detail: "invoices · Recency(paid) · current term · MinMax", weight: 15, mode: "additive" },
-        { name: "Renewal-window silence", detail: "crm_activity · TrendSlope · window: RenewalDate −90d", weight: 15, mode: "penalty", renewalRelative: true },
-    ];
+    // --- rubric: the model's real Model Factors joined to their Factors ---
+    public readonly rubric = signal<RubricRow[]>([]);
+    /** Number of bands in the model's band set (for the publish gate). */
+    public readonly bandCount = signal(0);
 
-    // --- right rail preview (TODO wire: engine computeScores on a sample population) ---
-    public bandDist: BandSlice[] = [
-        { label: "Healthy", pct: 61, band: "healthy" },
-        { label: "Watch", pct: 22, band: "watch" },
-        { label: "At-Risk", pct: 12, band: "atrisk" },
-        { label: "Critical", pct: 5, band: "critical" },
-    ];
-    public sampleMember = { name: "Maria Chen", score: 73, band: "atrisk" as BandKey, delta: -12 };
-    public contributions: Contribution[] = [
-        { label: "Cert lapsed", value: -22 },
-        { label: "Newsletter decay", value: -15 },
-        { label: "Events", value: 8 },
-        { label: "Dues on time", value: 5 },
-    ];
+    // --- right rail preview (LIVE via "Sonar: Preview Model" Action on Simulate) ---
+    public readonly bandDist = signal<BandSlice[]>([]);
+    public readonly sampleMember = signal<SampleMember | null>(null);
+    public readonly contributions = signal<Contribution[]>([]);
+    /** True once a preview has run; gates the "run a preview" hint vs. results. */
+    public readonly previewed = signal(false);
+    public readonly simulating = signal(false);
+    public readonly previewError = signal("");
 
     // --- population filter spike (UI only) -----------------------------------------------
     // Demonstrates the de-Kendo'd <mj-filter-builder> as the replacement for the deprecated
@@ -133,7 +131,18 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
     public override ngOnInit(): void {
         super.ngOnInit();
+        void this.loadTimeWindows();
         void this.loadModels();
+    }
+
+    /** Load the seeded Time Windows once (for the factor builder's "over …" picker). */
+    private async loadTimeWindows(): Promise<void> {
+        const result = await new RunView().RunView<mjBizAppsSonarTimeWindowEntity>({
+            EntityName: "MJ_BizApps_Sonar: Time Windows",
+            OrderBy: "Name ASC",
+            ResultType: "entity_object",
+        });
+        if (result.Success) this.timeWindows.set((result.Results ?? []).map((w) => ({ id: w.ID, name: w.Name })));
     }
 
     /** Load the live model list, then release the Explorer loading screen. */
@@ -142,7 +151,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             const models = await this.modelService.list();
             this.liveModels.set(models.map((m) => ({ id: m.ID, name: m.Name })));
             if (!this.selectedModelId() && models.length > 0) {
-                this.selectedModelId.set(models[0].ID);
+                await this.selectModel(models[0].ID);
             }
         } finally {
             // Always notify — the Explorer loading screen waits on this or it hangs.
@@ -153,27 +162,123 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** A model was just created in the setup modal — refresh, select it, close the modal. */
     public async onModelCreated(id: string): Promise<void> {
         await this.loadModels();
-        this.selectedModelId.set(id);
+        await this.selectModel(id);
+        this.activeView.set("rubric");
+    }
+
+    /** Bands were saved — attach the set to the model if it had none, then refresh + close. */
+    public async onBandsSaved(bandSetId: string): Promise<void> {
+        const model = this.selectedModel();
+        if (model && !model.BandSetID) {
+            await this.modelService.setBandSet(model.ID, bandSetId);
+            await this.selectModel(model.ID);
+        }
         this.activeView.set("rubric");
     }
 
     /** Width (%) of a contribution bar, scaled to the largest absolute contribution. */
     public barWidth(value: number): number {
-        const max = Math.max(...this.contributions.map((c) => Math.abs(c.value)), 1);
+        const max = Math.max(...this.contributions().map((c) => Math.abs(c.value)), 1);
         return Math.round((Math.abs(value) / max) * 100);
     }
 
-    /** Select a model in the left rail. */
-    public selectModel(id: string): void {
-        this.selectedModelId.set(id);
+    /** A factor was created + bound — refresh the rubric and return to it. */
+    public async onFactorSaved(): Promise<void> {
+        const id = this.selectedModelId();
+        if (id) this.rubric.set(await this.factorService.rubricForModel(id));
+        this.activeView.set("rubric");
     }
 
-    // TODO wire: preview compute — needs a server-side engine Action (RecomputeOrchestrator
-    // .computeScores runs raw SQL and cannot run in the browser). Inert until that exists.
-    public simulate(): void { /* no-op until the engine Action lands */ }
+    /** Select a model in the left rail and hydrate the full entity + its context. */
+    public async selectModel(id: string): Promise<void> {
+        this.selectedModelId.set(id);
+        const model = await this.modelService.get(id);
+        this.selectedModel.set(model);
+        await this.loadModelContext(model);
+    }
 
-    // TODO wire: set model.Status='Active' and Save() — the server ScoreModelEntityServer
-    // hook validates publishability and snapshots an immutable ScoreModelVersion. Inert
-    // until the server hooks land on this branch.
-    public publish(): void { /* no-op until the publish hook lands */ }
+    /** Load everything the surface shows for a model: anchor, population, sources, rubric. */
+    private async loadModelContext(model: mjBizAppsSonarScoreModelEntity | null): Promise<void> {
+        if (!model) {
+            this.relatedEntities.set([]);
+            this.factorSources.set([]);
+            this.rubric.set([]);
+            this.anchorName.set("—");
+            this.population.set(null);
+            return;
+        }
+        this.versionLabel.set(model.Status === "Active" ? "Published" : "Draft — unpublished changes");
+
+        const md = new Metadata();
+        const anchor = md.Entities.find((e) => e.ID === model.AnchorEntityID);
+        this.anchorName.set(anchor?.DisplayName || anchor?.Name || "—");
+
+        // Real count of anchor records in scope.
+        this.population.set(null);
+        if (anchor) {
+            const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
+            this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
+        }
+
+        // Data sources wired into the model (shaped for both the info card and the factor picker).
+        const sources = await this.modelService.dataSources(model.ID);
+        this.factorSources.set(sources.map((s) => {
+            const ent = md.Entities.find((e) => e.ID === s.RelatedEntityID);
+            return { id: s.ID, alias: s.Alias, label: ent?.DisplayName || ent?.Name || s.Alias, relatedEntityID: s.RelatedEntityID };
+        }));
+        this.relatedEntities.set(sources.map((s) => {
+            const ent = md.Entities.find((e) => e.ID === s.RelatedEntityID);
+            return { alias: s.Alias, label: ent?.DisplayName || ent?.Name || s.Alias, source: s.SourceSystemTag || "—" };
+        }));
+
+        // The model's rubric (Model Factors joined to Factors).
+        this.rubric.set(await this.factorService.rubricForModel(model.ID));
+
+        // Band count (for the publish gate).
+        this.bandCount.set(model.BandSetID ? (await this.bandService.getBands(model.BandSetID)).length : 0);
+    }
+
+    /** A version was published — refresh the model context (status flips) and return to the rubric. */
+    public async onPublished(): Promise<void> {
+        const id = this.selectedModelId();
+        if (id) await this.selectModel(id);
+        this.activeView.set("rubric");
+    }
+
+    /**
+     * Run a live preview via the "Sonar: Preview Model" Action (engine computeScores, no
+     * persistence) and populate the right rail with the real band distribution + sample member.
+     */
+    public async simulate(): Promise<void> {
+        const id = this.selectedModelId();
+        if (!id || this.simulating()) return;
+        this.simulating.set(true);
+        this.previewError.set("");
+        try {
+            const res = await this.engine.previewModel(id);
+            if (res.errors.length > 0) this.previewError.set(res.errors[0]);
+            this.bandDist.set(res.bandDistribution.map((b) => ({ label: b.label, pct: b.pct, band: this.bandKey(b.label) })));
+            const sample = res.sampleMember;
+            if (sample) {
+                this.sampleMember.set({ name: sample.anchorId, score: sample.score, band: this.bandKey(sample.band ?? "") });
+                const nameByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.name]));
+                this.contributions.set(sample.contributions.map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value })));
+            } else {
+                this.sampleMember.set(null);
+                this.contributions.set([]);
+            }
+            this.previewed.set(true);
+        } finally {
+            this.simulating.set(false);
+        }
+    }
+
+    /** Map an arbitrary band label to a color key for the preview bars. */
+    private bandKey(label: string): BandKey {
+        const l = label.toLowerCase();
+        if (l.includes("healthy")) return "healthy";
+        if (l.includes("critical")) return "critical";
+        if (l.includes("risk")) return "atrisk";
+        return "watch";
+    }
 }

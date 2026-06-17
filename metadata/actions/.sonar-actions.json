@@ -1,0 +1,212 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar: Preview Model",
+      "Description": "Computes engagement scores for a Sonar model WITHOUT persisting them and returns a band distribution + a sample-member breakdown. Read-only; safe on a draft model. Backs the Model Builder live preview / Simulate.",
+      "DriverClass": "SonarPreviewModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wave-square",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0001-4000-8000-000000000001"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID to preview."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:17.980Z",
+            "checksum": "881cf7f83ab27ab5811fc6021ae2c9fbe8d728de3992f3ae4705e4de07c278f5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Output",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { totalScored, bandDistribution[], sampleMember }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.015Z",
+            "checksum": "727507288b610f8f550ca5a9c5cdfa1356693dd1518faf8d6ce0d520766b7abc"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Preview computed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.051Z",
+            "checksum": "174a26733e564431ec17ccfcfe38ad1550b0d75ba05beda290519d79935a1da8"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.069Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The engine failed to compute scores."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.086Z",
+            "checksum": "7c0c74603cc3162771b9622f87d3affe0772c15d1486671467f4d8a11d1fe777"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:55:17.902Z",
+      "checksum": "4184fa546875d690081ddb4e1e7a2be5bd46ee0a625d33aa0ad8068f91e6e58f"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Recompute Model",
+      "Description": "Computes AND persists a full scoring run for a Sonar model (records a ScoreRecomputeRun, upserts Scores + contributions). Requires a published model (a Score must reference the version that produced it).",
+      "DriverClass": "SonarRecomputeModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-rotate",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0002-4000-8000-000000000002"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID to recompute (must be published)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.104Z",
+            "checksum": "a61f19a646b53d370c50ac70d8c5682e416fe63a0dbcc704ec969179e4333416"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Output",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { runId, status, recordsScored }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.135Z",
+            "checksum": "32c54d765a9b5d51cfadc3ba86c2c50e1eaf57f3410a9452b4560413e1406f26"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Recompute succeeded."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.162Z",
+            "checksum": "168c086e063871dae92726b8bc4b059736f14f9d1ffa46245b5116edd1d4b500"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.180Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The recompute run failed (e.g. model not published)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.197Z",
+            "checksum": "54596202d4335e1f8b6551a7eef508b3f7bb840ee4341e77d1838cd9fced8d4e"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:55:17.922Z",
+      "checksum": "d0b00bee53860060bd52155f7f3b3524398558eed7136eaf2a4735e616609d12"
+    }
+  }
+]

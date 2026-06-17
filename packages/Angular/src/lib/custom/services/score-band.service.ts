@@ -37,6 +37,17 @@ export class ScoreBandService {
         return result.Success ? result.Results ?? [] : [];
     }
 
+    /** Create or update a band set's identity (Name/Description). Returns the saved set. */
+    public async saveSet(input: { id?: string; name: string; description?: string }): Promise<mjBizAppsSonarScoreBandSetEntity | null> {
+        const set = input.id
+            ? await this.md.GetEntityObject<mjBizAppsSonarScoreBandSetEntity>(SCORE_BAND_SET, CompositeKey.FromID(input.id))
+            : await this.md.GetEntityObject<mjBizAppsSonarScoreBandSetEntity>(SCORE_BAND_SET);
+        if (!input.id) set.NewRecord();
+        set.Name = input.name;
+        if (input.description !== undefined) set.Description = input.description;
+        return (await set.Save()) ? set : null;
+    }
+
     /** The bands in a set, low score to high. */
     public async getBands(bandSetID: string): Promise<mjBizAppsSonarScoreBandEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
