@@ -8,3 +8,4 @@
  */
 export * from "./SonarPreviewModelAction";
 export * from "./SonarRecomputeModelAction";
+export * from "./SonarValidateFactorAction";

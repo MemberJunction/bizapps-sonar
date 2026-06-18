@@ -1,10 +1,13 @@
 import { Injectable } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
+import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 
-/** Action IDs — fixed in metadata/actions/.sonar-actions.json (pushed via mj sync). */
-const PREVIEW_MODEL_ACTION_ID = "5044A100-0001-4000-8000-000000000001";
-const RECOMPUTE_MODEL_ACTION_ID = "5044A100-0002-4000-8000-000000000002";
+/** Actions are invoked by their registered Name — the engine resolves the ID at runtime
+ *  (RunAction needs the ID, but we key on the stable name, not a hardcoded UUID). */
+const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
+const ACTION_RECOMPUTE_MODEL = "Sonar: Recompute Model";
+const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
 
 /** One bar of a model's band distribution. */
 export interface PreviewBand { label: string; count: number; pct: number; }
@@ -22,8 +25,10 @@ export interface PreviewModelResult {
 /** Result of a full recompute ("Sonar: Recompute Model"). */
 export interface RecomputeResult { runId: string; status: string; recordsScored: number; errors: string[]; }
 
-/** Result of validating/previewing a single factor (the future "Sonar: Validate Factor" Action). */
-export interface ValidateFactorResult { valid: boolean; errors: string[]; matching: number; strength: number; explanation: string; }
+/** Result of validating/previewing a single draft factor ("Sonar: Validate Factor"). */
+export interface ValidateFactorResult { valid: boolean; errors: string[]; matching: number; strength: number; explanation: string; anchorId: string | null; membersWithData: number; }
+/** Raw payload returned by the Validate Factor Action (engine FactorPreviewResult). */
+interface FactorPreviewPayload { membersWithData: number; sampleAnchorId: string | null; sampleRawValue: number | null; sampleStrength: number | null; }
 /** Draft factor config the preview validates (the unsaved builder state). */
 export interface FactorDraft {
     aggregation: string;
@@ -39,17 +44,36 @@ export interface FactorDraft {
  * The seam between the Sonar UI and the server-side scoring engine. The engine runs raw SQL on
  * the API tier (it cannot run in the browser), so these calls go through MJ Actions
  * (GraphQLActionClient.RunAction) wired to the engine's RecomputeOrchestrator:
- *   - previewModel → "Sonar: Preview Model"   (computeScores, no persistence)
- *   - recompute    → "Sonar: Recompute Model" (recompute, persists; needs a published model)
+ *   - previewModel  → "Sonar: Preview Model"    (computeScores, no persistence)
+ *   - recompute     → "Sonar: Recompute Model"  (recompute, persists; needs a published model)
+ *   - validateFactor→ "Sonar: Validate Factor"  (previewFactor — evaluate an unsaved draft factor)
  *
- * validateFactor still returns an indicative sample — the "Sonar: Validate Factor" Action
- * (compiling an unsaved draft factor) is not built yet.
+ * Actions are invoked by registered Name (resolveActionId looks up the ID, cached) so nothing
+ * hardcodes a UUID.
  */
 @Injectable({ providedIn: "root" })
 export class SonarEngineService {
     /** A GraphQLActionClient over the app's active data provider. */
     private actionClient(): GraphQLActionClient {
         return new GraphQLActionClient(Metadata.Provider as GraphQLDataProvider);
+    }
+
+    /** name → ID cache so we resolve each action's ID once. */
+    private readonly actionIdCache = new Map<string, string>();
+
+    /**
+     * Resolve (and cache) an Action's ID from its registered Name. RunAction keys on the ID,
+     * but we look it up by the stable Name via the cached ActionEngine catalog (MJ's idiomatic
+     * pattern) so nothing hardcodes a UUID — the metadata seed owns IDs, the client owns names.
+     */
+    private async resolveActionId(name: string): Promise<string | null> {
+        const cached = this.actionIdCache.get(name);
+        if (cached) return cached;
+        const provider = Metadata.Provider as GraphQLDataProvider;
+        await ActionEngineBase.Instance.Config(false, provider.CurrentUser, provider);
+        const action = ActionEngineBase.Instance.Actions.find((a) => a.Name === name);
+        if (action) this.actionIdCache.set(name, action.ID);
+        return action?.ID ?? null;
     }
 
     /**
@@ -73,7 +97,9 @@ export class SonarEngineService {
     /** Preview a model: compute scores (no persistence) and summarize into bands + a sample member. */
     public async previewModel(modelId: string): Promise<PreviewModelResult> {
         const empty: PreviewModelResult = { totalScored: 0, bandDistribution: [], sampleMember: null, errors: [] };
-        const result = await this.actionClient().RunAction(PREVIEW_MODEL_ACTION_ID, [
+        const actionId = await this.resolveActionId(ACTION_PREVIEW_MODEL);
+        if (!actionId) return { ...empty, errors: [`Action '${ACTION_PREVIEW_MODEL}' not found.`] };
+        const result = await this.actionClient().RunAction(actionId, [
             { Name: "ModelID", Value: modelId, Type: "Input" },
         ]);
         if (!result.Success) {
@@ -85,7 +111,9 @@ export class SonarEngineService {
 
     /** Recompute a model: compute AND persist a full run (requires a published model). */
     public async recompute(modelId: string): Promise<RecomputeResult> {
-        const result = await this.actionClient().RunAction(RECOMPUTE_MODEL_ACTION_ID, [
+        const actionId = await this.resolveActionId(ACTION_RECOMPUTE_MODEL);
+        if (!actionId) return { runId: "", status: "Failed", recordsScored: 0, errors: [`Action '${ACTION_RECOMPUTE_MODEL}' not found.`] };
+        const result = await this.actionClient().RunAction(actionId, [
             { Name: "ModelID", Value: modelId, Type: "Input" },
         ]);
         if (!result.Success) {
@@ -96,10 +124,35 @@ export class SonarEngineService {
     }
 
     /**
-     * TODO wire: the "Sonar: Validate Factor" Action (compile an unsaved draft factor and
-     * evaluate it on a sample). Not built yet — returns an indicative sample for the builder.
+     * Preview a draft factor on the live population via the "Sonar: Validate Factor" Action
+     * (engine previewFactor — same compile→evaluate→normalize path as a real recompute, so the
+     * numbers match the eventual score). Returns a representative member's matching count +
+     * normalized strength. `draft` must include `sourceRelatedEntityID`.
      */
-    public async validateFactor(_draft: FactorDraft): Promise<ValidateFactorResult> {
-        return { valid: true, errors: [], matching: 14, strength: 0.62, explanation: "14 matching records — stronger than most of the group." };
+    public async validateFactor(modelId: string, draft: FactorDraft): Promise<ValidateFactorResult> {
+        const empty: ValidateFactorResult = { valid: false, errors: [], matching: 0, strength: 0, explanation: "", anchorId: null, membersWithData: 0 };
+        const actionId = await this.resolveActionId(ACTION_VALIDATE_FACTOR);
+        if (!actionId) return { ...empty, errors: [`Action '${ACTION_VALIDATE_FACTOR}' not found.`] };
+        const result = await this.actionClient().RunAction(actionId, [
+            { Name: "ModelID", Value: modelId, Type: "Input" },
+            { Name: "DraftJSON", Value: JSON.stringify(draft), Type: "Input" },
+        ]);
+        if (!result.Success) {
+            return { ...empty, errors: [result.Message || "Preview failed."] };
+        }
+        const payload = this.extractResult<FactorPreviewPayload>(result);
+        if (!payload || payload.sampleRawValue === null) {
+            return { ...empty, valid: true, explanation: "No members have data for this signal yet." };
+        }
+        const strength = Math.round((payload.sampleStrength ?? 0) * 100) / 100;
+        return {
+            valid: true,
+            errors: [],
+            matching: payload.sampleRawValue,
+            strength,
+            explanation: `Across ${payload.membersWithData} member${payload.membersWithData === 1 ? "" : "s"} with data, the strongest measures ${payload.sampleRawValue}.`,
+            anchorId: payload.sampleAnchorId,
+            membersWithData: payload.membersWithData,
+        };
     }
 }

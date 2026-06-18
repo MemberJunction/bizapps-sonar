@@ -42,11 +42,6 @@
 .sonar-fb__hint { font-size: 0.74rem; margin-top: 0.5rem; color: var(--sonar-muted); }
 .sonar-sentence__word { font-weight: 600; color: var(--sonar-muted); }
 
-/* Advanced disclosure. */
-.sonar-fb__adv-toggle { background: none; border: none; padding: 0; cursor: pointer; }
-.sonar-fb__adv { margin-top: 0.75rem; }
-.sonar-fb__adv-row { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: var(--sonar-muted); }
-
 /* generic field input */
 .sonar-field {
     background: var(--sonar-surface-sunken);

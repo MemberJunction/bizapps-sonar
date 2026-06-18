@@ -124,6 +124,10 @@ button, input, select, textarea {
 
 /* Main content + fixed right rail (e.g. Model Builder preview, Manager drill-down). */
 .sonar-split { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+/* Grid items default to min-width:auto, so a wide child (e.g. the filter builder's button row)
+   can push a track past the container and cause horizontal overflow. min-width:0 lets the tracks
+   shrink and the content wrap/scroll within its column instead. */
+.sonar-split > *, .sonar-cols-2 > * { min-width: 0; }
 .sonar-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
 .sonar-stack { display: flex; flex-direction: column; gap: 1rem; }
 @media (max-width: 1100px) {

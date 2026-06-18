@@ -3,9 +3,7 @@
 .sonar-faint { color: var(--sonar-faint); }
 .sonar-ink { color: var(--sonar-ink); }
 
-.sonar-briefing { margin: 0.5rem 0 0; font-size: 1rem; line-height: 1.6; color: var(--sonar-ink); }
-
-/* Biggest-drops list rows. */
+/* Triage list rows. */
 .sonar-dropper {
     display: flex;
     align-items: center;
@@ -33,8 +31,11 @@
 /* Drill-down. */
 .sonar-drill__score { text-align: right; }
 .sonar-drill__num { font-size: 2rem; font-weight: 800; line-height: 1; }
-.sonar-drill__traj { margin-top: 1rem; }
-.sonar-spark { width: 100%; height: 4rem; margin-top: 0.4rem; }
-.sonar-spark polyline { fill: none; stroke: var(--sonar-watch); stroke-width: 2; }
-.sonar-drill__why { margin-top: 1rem; gap: 0.5rem; }
+.sonar-drill__why { margin-top: 1rem; gap: 0.75rem; }
 .sonar-drill__actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+/* Per-factor calculation breakdown ("the math"). */
+.sonar-calc { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.6rem 0.7rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface); }
+.sonar-calc__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-calc__label { font-size: 0.85rem; font-weight: 600; color: var(--sonar-ink); }
+.sonar-calc__chain { font-size: 0.72rem; color: var(--sonar-muted); }

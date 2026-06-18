@@ -30,25 +30,6 @@
     padding: 1.5rem;
 }
 
-/* Model switcher (horizontal pill list of models). */
-.sonar-models { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.sonar-models__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.85rem;
-    border-radius: 999px;
-    border: 1px solid var(--sonar-border);
-    background: var(--sonar-surface);
-    color: var(--sonar-muted);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-.sonar-models__item--active { color: var(--sonar-ink); border-color: var(--sonar-border-strong); background: var(--sonar-surface-sunken); }
-.sonar-models__item--ghost { color: var(--sonar-faint); cursor: not-allowed; }
-.sonar-models__item .sonar-dot { animation: none; }
-
 /* AI panel content. */
 .sonar-ai__head { margin-bottom: 0.6rem; }
 .sonar-ai__text { margin: 0; color: var(--sonar-muted); font-size: 0.9rem; line-height: 1.6; }
@@ -93,8 +74,6 @@
 .sonar-factor__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .sonar-factor__name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .sonar-factor__detail { font-size: 0.72rem; color: var(--sonar-faint); margin-top: 0.25rem; }
-.sonar-factor__bar { height: 0.4rem; border-radius: 999px; background: var(--sonar-surface-sunken); margin-top: 0.7rem; overflow: hidden; }
-.sonar-factor__bar span { display: block; height: 100%; border-radius: 999px; background: var(--sonar-grad); }
 
 /* Sample member preview. */
 .sonar-member__num { font-size: 2.5rem; font-weight: 800; line-height: 1; margin: 0.3rem 0 0.5rem; }

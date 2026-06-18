@@ -6,7 +6,7 @@ import {
     mjBizAppsSonarScoreBandEntity,
     mjBizAppsSonarScoreRecomputeRunEntity,
 } from "@mj-biz-apps/sonar-entities";
-import { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
+import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
 import {
     NormalizationEngine,
@@ -26,6 +26,30 @@ export interface RecomputeRunResult {
     runId: string;
     status: "Succeeded" | "Failed";
     recordsScored: number;
+}
+
+/** A draft (unsaved) declarative factor to preview — the factor builder's live config.
+ *  Enum fields reuse the Factor entity's own types so they line up on assignment. */
+export interface FactorPreviewDraft {
+    sourceRelatedEntityID: string;
+    aggregation: mjBizAppsSonarFactorEntity["Aggregation"];
+    aggregateFieldName?: string;
+    filterExpression?: string;
+    timeWindowID?: string;
+    normalizationMethod: mjBizAppsSonarFactorEntity["NormalizationMethod"];
+    higherIsBetter: boolean;
+}
+
+/** Result of previewing a draft factor over the live population (no persistence). */
+export interface FactorPreviewResult {
+    /** Members in the population that had data for this factor. */
+    membersWithData: number;
+    /** A representative member (the highest raw value), or null if none had data. */
+    sampleAnchorId: string | null;
+    /** That member's raw aggregate ("matching records"), or null. */
+    sampleRawValue: number | null;
+    /** That member's normalized contribution (0–1 strength), or null. */
+    sampleStrength: number | null;
 }
 
 /**
@@ -52,6 +76,77 @@ export class RecomputeOrchestrator {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
         return this.computeForModel(model, asOf, contextUser);
+    }
+
+    /**
+     * Preview an UNSAVED draft factor over the live population without persisting anything —
+     * powers the factor builder's live sample. Builds a transient Factor, then compiles +
+     * evaluates + normalizes it through the exact same path a real recompute uses (so the
+     * preview matches the eventual score), and returns a representative member's raw value +
+     * normalized strength.
+     */
+    public async previewFactor(
+        modelId: string,
+        draft: FactorPreviewDraft,
+        asOf: Date,
+        contextUser: UserInfo,
+    ): Promise<FactorPreviewResult> {
+        const empty: FactorPreviewResult = { membersWithData: 0, sampleAnchorId: null, sampleRawValue: null, sampleStrength: null };
+        const model = await this.loadModel(modelId, contextUser);
+        const anchorIds = await this.resolvePopulation(model, contextUser);
+        if (anchorIds.length === 0) return empty;
+
+        const factor = await this.buildDraftFactor(model, draft, contextUser);
+        const evaluator = await this.compiler.compile(factor, contextUser);
+        const results = await evaluator.evaluateBatch(anchorIds, asOf, { contextUser });
+        this.normalizer.normalize(this.resolveNormalizationSpec(factor), results);
+        return this.summarizeFactorPreview(results);
+    }
+
+    /** Build a transient (unsaved) Declarative Factor from the draft config for ad-hoc compile. */
+    private async buildDraftFactor(
+        model: mjBizAppsSonarScoreModelEntity,
+        draft: FactorPreviewDraft,
+        contextUser: UserInfo,
+    ): Promise<mjBizAppsSonarFactorEntity> {
+        const md = new Metadata();
+        const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(
+            "MJ_BizApps_Sonar: Factors",
+            contextUser,
+        );
+        factor.NewRecord();
+        factor.Name = "(preview)";
+        factor.FactorType = "Declarative";
+        factor.AnchorEntityID = model.AnchorEntityID;
+        factor.ScoreModelID = model.ID;
+        factor.SourceRelatedEntityID = draft.sourceRelatedEntityID;
+        factor.Aggregation = draft.aggregation;
+        if (draft.aggregateFieldName) factor.AggregateFieldName = draft.aggregateFieldName;
+        if (draft.filterExpression) factor.FilterExpression = draft.filterExpression;
+        if (draft.timeWindowID) factor.TimeWindowID = draft.timeWindowID;
+        factor.NormalizationMethod = draft.normalizationMethod;
+        factor.OutputMin = 0;
+        factor.OutputMax = 1;
+        factor.HigherIsBetter = draft.higherIsBetter;
+        return factor;
+    }
+
+    /** Pick the highest-raw-value member with data as the representative sample. */
+    private summarizeFactorPreview(results: Map<string, FactorResult>): FactorPreviewResult {
+        let sampleId: string | null = null;
+        let sampleRaw: number | null = null;
+        let sampleStrength: number | null = null;
+        let withData = 0;
+        for (const [anchorId, r] of results) {
+            if (!r.hadData || r.rawValue === null) continue;
+            withData++;
+            if (sampleRaw === null || r.rawValue > sampleRaw) {
+                sampleId = anchorId;
+                sampleRaw = r.rawValue;
+                sampleStrength = r.normalizedContribution ?? 0;
+            }
+        }
+        return { membersWithData: withData, sampleAnchorId: sampleId, sampleRawValue: sampleRaw, sampleStrength };
     }
 
     /**

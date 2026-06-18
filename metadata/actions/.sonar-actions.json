@@ -46,8 +46,8 @@
             "ID": "5044A100-0001-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-16T21:55:18.015Z",
-            "checksum": "727507288b610f8f550ca5a9c5cdfa1356693dd1518faf8d6ce0d520766b7abc"
+            "lastModified": "2026-06-17T20:01:41.088Z",
+            "checksum": "9202aea40eb79cb66d9ffb30f6716a757b9f3cb995c472299337b5d883c828e8"
           }
         }
       ],
@@ -151,8 +151,8 @@
             "ID": "5044A100-0002-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-16T21:55:18.135Z",
-            "checksum": "32c54d765a9b5d51cfadc3ba86c2c50e1eaf57f3410a9452b4560413e1406f26"
+            "lastModified": "2026-06-17T20:01:41.119Z",
+            "checksum": "e9965270ac58169586d3993a0117c9c9046c6623738ec905f48b38a24e5092a5"
           }
         }
       ],
@@ -207,6 +207,129 @@
     "sync": {
       "lastModified": "2026-06-16T21:55:17.922Z",
       "checksum": "d0b00bee53860060bd52155f7f3b3524398558eed7136eaf2a4735e616609d12"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Validate Factor",
+      "Description": "Evaluates an unsaved draft declarative factor over the live population WITHOUT persisting, returning a representative member's raw value + normalized strength. Backs the Factor Builder live preview; read-only, safe on a draft model.",
+      "DriverClass": "SonarValidateFactor",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-flask",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0003-4000-8000-000000000003"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID the draft factor belongs to."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.185Z",
+            "checksum": "5f01e01aa5d82f9d4d033c8b9b3cbf99b452a68da984c7090784bea995468e7a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "DraftJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON of the draft factor: { sourceRelatedEntityID, aggregation, aggregateFieldName?, filterExpression?, timeWindowID?, normalizationMethod, higherIsBetter }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.219Z",
+            "checksum": "d5d84cca85ccb87b5b413c9cebbe2fce7ea0e77ced257ddce0032f91178ea73d"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { membersWithData, sampleAnchorId, sampleRawValue, sampleStrength }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.248Z",
+            "checksum": "edcc32f8c49153c078af3f69042c64e4ce01036be3e69cd384b8e60c75b05a86"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Preview computed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.286Z",
+            "checksum": "174a26733e564431ec17ccfcfe38ad1550b0d75ba05beda290519d79935a1da8"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.307Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The engine failed to evaluate the draft factor."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-17T20:01:41.325Z",
+            "checksum": "144f66bf6dab695f8167dae107f777fac5008138866ec47d2b5cff7cf0a89c7c"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-17T20:01:41.054Z",
+      "checksum": "9bfc18ed1040cff005ff7b174dadda276f455bb8d743c776c3c249c9238393f6"
     }
   }
 ]

@@ -27,8 +27,19 @@ export interface ScoredMember {
     bandKey: BandKey;
     computedAt: Date | null;
 }
-/** One line of a score's "why" breakdown (a ScoreFactorContribution joined to its factor). */
-export interface ScoreContribution { label: string; weightedValue: number; rawValue: number; hadData: boolean; }
+/** One line of a score's "why" breakdown — the full raw → normalized → weighted chain, so the
+ *  math is traceable (a ScoreFactorContribution joined to its factor). */
+export interface ScoreContribution {
+    label: string;
+    rawValue: number;
+    /** The factor's 0–1 value after normalization. */
+    normalizedValue: number;
+    /** weight × normalizedValue — what this factor added to the raw score. */
+    weightedValue: number;
+    /** Share of the score this factor accounts for (0–1). */
+    percentOfTotal: number;
+    hadData: boolean;
+}
 
 /**
  * Read access to PERSISTED scores (written by the Recompute Action via ScoreWriter). Distinct
@@ -98,11 +109,14 @@ export class ScoreReadService {
         });
         const nameById = new Map((factorsResult.Results ?? []).map((f) => [f.ID, f.Name]));
 
+        const round = (n: number): number => Math.round(n * 100) / 100;
         return rows
             .map((r) => ({
                 label: nameById.get(r.FactorID) ?? "Signal",
-                weightedValue: Math.round((r.WeightedContribution ?? 0) * 100) / 100,
                 rawValue: r.RawValue ?? 0,
+                normalizedValue: round(r.NormalizedValue ?? 0),
+                weightedValue: round(r.WeightedContribution ?? 0),
+                percentOfTotal: r.PercentOfTotal ?? 0,
                 hadData: r.HadData ?? false,
             }))
             .sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue));

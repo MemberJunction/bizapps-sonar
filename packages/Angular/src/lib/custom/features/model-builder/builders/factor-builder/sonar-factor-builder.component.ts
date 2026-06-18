@@ -1,7 +1,11 @@
 import { Component, computed, effect, inject, input, output, signal } from "@angular/core";
-import { Metadata } from "@memberjunction/core";
+import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, NormalizationMethod, WeightMode } from "../../../../core/services/factor.service";
+import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
+
+/** View-model for the live factor preview (a representative member's real numbers). */
+interface PreviewVM { sampleName: string; matching: number; strength: number; explanation: string; membersWithData: number; }
 
 /** Aggregations the v1 engine compiler actually implements (factorSql.ts). */
 const V1_AGGREGATIONS = ["Count", "Sum", "Avg", "Min", "Max", "DistinctCount"] as const;
@@ -43,6 +47,7 @@ export interface FactorWindow { id: string; name: string; }
 })
 export class SonarFactorBuilderComponent {
     private readonly factorService = inject(FactorService);
+    private readonly engine = inject(SonarEngineService);
 
     // --- context from the host (the selected model) ---
     public readonly modelId = input<string | null>(null);
@@ -75,7 +80,6 @@ export class SonarFactorBuilderComponent {
     public readonly windowId = signal<string | null>(null);
     public readonly normalization = signal<NormalizationMethod>("MinMax");
     public readonly higherIsBetter = signal(true);
-    public readonly advancedOpen = signal(false);
     public readonly saving = signal(false);
 
     // --- weight / mode (how the signal counts in the rubric) ---
@@ -93,6 +97,17 @@ export class SonarFactorBuilderComponent {
             const wins = this.windows();
             if (!this.windowId() && wins.length > 0) this.windowId.set(wins[0].id);
         });
+        // Live preview: whenever any draft input changes, debounce then re-evaluate on the
+        // real population. Reading the signals here registers them as effect dependencies.
+        effect(() => {
+            const model = this.modelId();
+            const source = this.selectedSource();
+            this.aggregation(); this.aggregateField(); this.windowId();
+            this.normalization(); this.higherIsBetter(); this.filter();
+            if (this.previewTimer) clearTimeout(this.previewTimer);
+            if (!model || !source) { this.preview.set(null); return; }
+            this.previewTimer = setTimeout(() => void this.runPreview(), 500);
+        });
     }
 
     /** The currently chosen data source (resolved from sourceId). */
@@ -109,17 +124,33 @@ export class SonarFactorBuilderComponent {
             .map((fld) => ({ name: fld.Name, label: fld.DisplayName || fld.Name }));
     });
 
-    // --- filter (REAL mj-filter-builder) ---
-    /** TODO wire: build from the source entity's MJ field metadata (currently generic). */
-    public readonly filterFields: FilterFieldInfo[] = [
-        { name: "Type", displayName: "Type", type: "string" },
-        { name: "Channel", displayName: "Channel", type: "string" },
-        { name: "OccurredOn", displayName: "Occurred on", type: "date" },
-    ];
+    // --- filter (REAL mj-filter-builder, fields from the chosen source entity's metadata) ---
+    /** The filterable columns of the selected source entity (so authors filter on real fields,
+     *  e.g. Payments → PaymentType/Amount/PaidOn). PK + MJ system columns are hidden as noise. */
+    public readonly filterFields = computed<FilterFieldInfo[]>(() => {
+        const src = this.selectedSource();
+        const entity = src ? new Metadata().Entities.find((e) => e.ID === src.relatedEntityID) : null;
+        if (!entity) return [];
+        return entity.Fields
+            .filter((f) => !f.IsPrimaryKey && !f.Name.startsWith("__mj_"))
+            .map((f) => ({ name: f.Name, displayName: f.DisplayName || f.Name, type: this.filterFieldType(f.Type) }));
+    });
     public readonly filter = signal<CompositeFilterDescriptor>(createEmptyFilter());
 
-    // --- preview (TODO wire: "Sonar: Validate Factor" Action — indicative sample for now) ---
-    public readonly preview = signal<{ matching: number; strength: number; valid: boolean }>({ matching: 14, strength: 0.62, valid: true });
+    /** Map an MJ/SQL column type to the filter builder's coarse type. */
+    private filterFieldType(sqlType: string | null): "string" | "number" | "date" | "boolean" {
+        const t = (sqlType ?? "").toLowerCase();
+        if (NUMERIC_TYPES.has(t)) return "number";
+        if (t === "bit") return "boolean";
+        if (t.includes("date") || t.includes("time")) return "date";
+        return "string";
+    }
+
+    // --- live preview (real, via the "Sonar: Validate Factor" engine Action) ---
+    public readonly preview = signal<PreviewVM | null>(null);
+    public readonly previewing = signal(false);
+    public readonly previewError = signal("");
+    private previewTimer: ReturnType<typeof setTimeout> | null = null;
 
     /** "Count" tallies matching records — no field needed; the others measure a field. */
     public readonly fieldRequired = computed(() => this.aggregation() !== "Count");
@@ -134,13 +165,67 @@ export class SonarFactorBuilderComponent {
         (!this.fieldRequired() || this.aggregateField().trim().length > 0),
     );
 
-    public toggleAdvanced(): void {
-        this.advancedOpen.set(!this.advancedOpen());
+    /** Switching the source changes which columns exist, so reset the filter + chosen field to
+     *  avoid conditions/fields that reference the previous entity. */
+    public onSourceChange(id: string | null): void {
+        this.sourceId.set(id);
+        this.filter.set(createEmptyFilter());
+        this.aggregateField.set("");
     }
 
     public onFilterChange(f: CompositeFilterDescriptor): void {
+        // The preview effect tracks filter(), so setting it re-runs the live preview (debounced).
         this.filter.set(f);
-        // TODO wire: re-run preview via the "Sonar: Validate Factor" Action.
+    }
+
+    /**
+     * Evaluate the current draft on the live population via the engine and show a representative
+     * member. Guards: needs a model + source (and a field for non-Count aggregations).
+     */
+    private async runPreview(): Promise<void> {
+        const modelId = this.modelId();
+        const source = this.selectedSource();
+        if (!modelId || !source || (this.fieldRequired() && !this.aggregateField().trim())) {
+            this.preview.set(null);
+            return;
+        }
+        this.previewing.set(true);
+        this.previewError.set("");
+        try {
+            const res = await this.engine.validateFactor(modelId, {
+                aggregation: this.aggregation(),
+                sourceRelatedEntityID: source.id,
+                aggregateFieldName: this.fieldRequired() ? this.aggregateField().trim() : undefined,
+                filterExpression: this.filterExpression(),
+                timeWindowID: this.windowId() ?? undefined,
+                normalizationMethod: this.normalization(),
+                higherIsBetter: this.higherIsBetter(),
+            });
+            if (res.errors.length > 0) {
+                this.previewError.set(res.errors[0]);
+                this.preview.set(null);
+                return;
+            }
+            const sampleName = res.anchorId ? await this.resolveSampleName(res.anchorId) : "A member";
+            this.preview.set({ sampleName, matching: res.matching, strength: res.strength, explanation: res.explanation, membersWithData: res.membersWithData });
+        } finally {
+            this.previewing.set(false);
+        }
+    }
+
+    /** Resolve a friendly name for the sample anchor (the engine returns only its ID). */
+    private async resolveSampleName(anchorId: string): Promise<string> {
+        const entId = this.anchorEntityID();
+        const ent = entId ? new Metadata().Entities.find((e) => e.ID === entId) : null;
+        if (!ent) return anchorId;
+        const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
+        const res = await new RunView().RunView<Record<string, unknown>>({ EntityName: ent.Name, ExtraFilter: `${pk}='${anchorId}'`, ResultType: "simple" });
+        const row = res.Success ? res.Results?.[0] : undefined;
+        if (!row) return anchorId;
+        const pick = (k: string): string | null => { const v = row[k]; return v != null && v !== "" ? String(v) : null; };
+        const nameField = ent.Fields.find((f) => f.IsNameField)?.Name;
+        const composed = [pick("FirstName"), pick("LastName")].filter(Boolean).join(" ");
+        return (nameField ? pick(nameField) : null) || composed || pick("Name") || pick("Email") || anchorId;
     }
 
     /** Serialize the filter only when it has REAL conditions — prune blank/value-less rules

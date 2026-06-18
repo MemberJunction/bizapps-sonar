@@ -24,6 +24,7 @@
                     <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then members will appear here worst-first.</p>
                 </div>
             } @else {
+              <div class="sonar-stack">
                 <!-- Band summary tiles. -->
                 <section class="sonar-stats">
                     @for (t of tiles(); track t.label) {
@@ -79,12 +80,28 @@
                                         <p class="sonar-faint" style="font-size:0.85rem">No contribution breakdown recorded for this score.</p>
                                     } @else {
                                         @for (c of contributions(); track c.label) {
-                                            <div class="sonar-wf">
-                                                <span class="sonar-wf__val" [ngClass]="c.weightedValue < 0 ? 'sonar-neg' : 'sonar-pos'">{{ c.weightedValue > 0 ? '+' : '' }}{{ c.weightedValue }}</span>
-                                                <span class="sonar-wf__track"><span class="sonar-wf__bar" [ngClass]="c.weightedValue < 0 ? 'sonar-wf__bar--neg' : 'sonar-wf__bar--pos'" [style.width.%]="barWidth(c.weightedValue)"></span></span>
-                                                <span class="sonar-wf__label">{{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }</span>
+                                            <div class="sonar-calc">
+                                                <div class="sonar-calc__head">
+                                                    <span class="sonar-calc__label">{{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }</span>
+                                                    <span class="sonar-mono sonar-pos">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
+                                                </div>
+                                                <div class="sonar-calc__chain sonar-mono">
+                                                    raw <strong class="sonar-ink">{{ c.rawValue }}</strong>
+                                                    → ranks <strong class="sonar-ink">{{ c.normalizedValue }}</strong> / 1.0 vs. the group
+                                                    <span class="sonar-faint">· {{ (c.percentOfTotal * 100) | number:'1.0-0' }}% of the score</span>
+                                                </div>
+                                                <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" [style.width.%]="c.percentOfTotal * 100"></span></span>
                                             </div>
                                         }
+                                        <p class="sonar-fb__hint">
+                                            Each signal's <strong class="sonar-ink">points</strong> are its share of the score, so they
+                                            add up to <strong class="sonar-ink">{{ sel.normalizedScore }} / 100</strong>. A signal earns
+                                            a bigger share when the member ranks high on it (toward 1.0) and it carries more weight.
+                                            @if (missingSignals().length > 0) {
+                                                <br><span class="sonar-neg">⚠ No data for {{ missingSignals().join(', ') }}</span> — the engine
+                                                counts {{ missingSignals().length === 1 ? 'it' : 'them' }} as 0, which drags the score down.
+                                            }
+                                        </p>
                                     }
                                 </div>
 
@@ -100,6 +117,7 @@
                         }
                     </section>
                 </div>
+              </div>
             }
         </div>
     </div>

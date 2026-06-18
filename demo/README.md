@@ -3,7 +3,7 @@
 A **throwaway sandbox database** for demoing/testing Sonar against realistic third-party
 association data — and, because it's a full clone, a real-data **dev environment you can point
 the stack at** whenever that's useful. Fully isolated from the working `Sonar_Dev` DB and
-`DROP`-able at any time. See [../plans/demo-association.md](../plans/demo-association.md) for the design.
+`DROP`-able at any time. See [../plans/demo.md](../plans/demo.md) for the design + demo script.
 
 - **`Sonar_Demo`** = a clone of `Sonar_Dev` (full MJ + Sonar stack) on the same `sql_server_dev`
   container, plus a `membership` business schema (Pattern 1: data lives in the MJ DB).
