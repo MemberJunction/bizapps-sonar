@@ -1,11 +1,18 @@
 [
   {
     "fields": {
-      "SchemaName": "__mj_BizAppsSonar",
+      "SchemaName": "__sonar",
       "EntityIDMin": 1,
       "EntityIDMax": 1000000,
-      "EntityNamePrefix": "MJ_BizApps_Sonar: ",
-      "Description": "MJ_BizApps_Sonar: Configurable engagement scoring engine"
+      "EntityNamePrefix": "Sonar: ",
+      "Description": "Sonar: Configurable engagement scoring engine"
+    },
+    "primaryKey": {
+      "ID": "005DDE0A-555D-4F40-AA93-3AA64E444C19"
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:23:04.780Z",
+      "checksum": "beaf3d9a152f943fe4c745f2873d08d62c9ce2cbe6740c05a4daa3aea3db983f"
     }
   }
 ]
