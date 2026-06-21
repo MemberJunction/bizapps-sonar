@@ -86,6 +86,9 @@ model and Recompute. The whole sandbox is droppable (`DROP DATABASE Sonar_Demo`)
 
 ## Part 2 — The demo sandbox
 
+> **Default population is now MJ `AssociationDB` (`AssociationDemo` schema) — see [Part 3](#demo-population-mj-associationdb-default--hand-seeded-membership-minimal-fallback).** The hand-seeded
+> `membership` schema below is retained as a minimal, hand-traceable fallback. Both live in `Sonar_Demo`.
+
 **Why it exists:** Sonar scores a *business* anchor, but this environment only has `__mj` (core) and
 `__mj_BizAppsSonar` (Sonar's infra) — no business-domain entities. A small self-contained **demo
 association** gives a realistic anchor + activity sources so we can author a *real* model and get
@@ -179,6 +182,58 @@ Quick look: `SELECT * FROM membership.Member;` (etc.) against `Sonar_Demo`.
   organic-key join support is **on the critical path to adoptability**, not optional polish — a
   pure organic-key source (no soft FK) is a real engine gap (`FactorCompiler` resolves the join from
   FK metadata today). Promote it on the engine roadmap accordingly.
+
+### Demo population: MJ `AssociationDB` (default) + hand-seeded `membership` (minimal fallback)
+**`AssociationDemo` is now the default demo population** — MJ's *American Cheese Industry Association*
+sample, installed and registered into `Sonar_Demo`. The 15-member hand-seeded `membership` schema
+(Part 2) is retained as a minimal, fully-hand-traceable fallback for unit-level reasoning.
+
+**The dataset (verified counts in `Sonar_Demo.AssociationDemo`):**
+- **2,000 members**, **58 tables**, 13 domains, **evergreen dates** (`GETDATE()`-relative, ~5 years
+  deep — so windowed factors always have fresh data and recompute-over-time yields real trends).
+- **18 member-linked signal tables** = factor candidates: `EventRegistration`, `Enrollment`,
+  `Certification`, `ContinuingEducation`, `Invoice`, `EmailSend`, `PostReaction`, `ResourceDownload`,
+  `CommitteeMembership`, `ChapterMembership`, `AdvocacyAction`, `CampaignMember`, … 
+- **Density is real:** e.g. **6,851 event registrations across 1,924 of 2,000 members** (~3.5 each) —
+  not a toy. Domain volumes: 60 courses, 413 certifications, 110 products, 50 forum threads, etc.
+
+**Why it fits Sonar (not just "more rows"):**
+- **Anchor = `Member`.** It even ships an `EngagementScore` column — but it's **empty (all 0)**, so
+  the slot is there waiting for Sonar to compute and fill it. Nice narrative: "MJ left the score
+  blank; Sonar is the engine that fills it."
+- **Many signals → the "unify many signals" wedge** — events, learning, certs, dues, community, email
+  engagement, governance, all on one anchor.
+- **Real outcome signal for the action layer + lift.** `AssociationDemo.Membership`
+  (`Status`, `RenewalDate`, `AutoRenew`) breaks down **Active 1,721 / Lapsed 402 / Cancelled 14** —
+  a genuine ~400-member at-risk cohort that *is* the segment to intervene on. (Plus `Certification`
+  renewals as a second churn signal.)
+- **Realistic scale** makes Percentile/ZScore normalization meaningful (coarse at 15 members).
+
+**Running it (no MJAPI edit — coexists with the dev stack):**
+`npm run start:api:demo` loads `demo/demo.env` (`DB_DATABASE=Sonar_Demo`, `GRAPHQL_PORT=4112`) and runs
+MJAPI against `Sonar_Demo` on its own port — the dev stack (API 4102 / Explorer 4302) keeps running.
+Point Explorer at the 4112 API to author/score on the cheese data.
+
+**Setup as installed (reproducible — already done):**
+1. Data → `MJ/Demos/AssociationDB/.env` with `DB_NAME=Sonar_Demo` (gitignored; MJ repo, not ours) →
+   `./prepare_build.sh --skip-docs` builds `tmp/combined_build.sql` host-side (no DB).
+2. Run it against `Sonar_Demo` via the **running `sql_server_dev` container's** `sqlcmd` with `-C`
+   (host has no `sqlcmd`; the container's self-signed cert needs `-C`, which bare `install.sh` omits):
+   `docker cp tmp/combined_build.sql sql_server_dev:/tmp/` →
+   `docker exec sql_server_dev /opt/mssql-tools18/bin/sqlcmd -S localhost -d Sonar_Demo -U sa -P … -C -i /tmp/combined_build.sql`.
+   *(One benign `Msg 911` — a stray `USE [AssociationDB2]` in the legislative script — is harmless;
+   all inserts are schema-qualified, so data still lands in `AssociationDemo`.)*
+3. Register as MJ entities with **zero repo churn**: `npm run mj:codegen:demo` — runs
+   `mj codegen --skipfiles` against `Sonar_Demo` using `demo/codegen/mj.config.cjs` (DB-side metadata
+   + base views only; no TS/Angular/GraphQL files). Verify: 58 rows in `__mj.Entity` where
+   `SchemaName='AssociationDemo'`.
+
+**Follow-ups before this is fully the scripted default:**
+- The Part 1 Act 1–3 narrative still references the 15-member model; **re-cut it on a `Member`-anchored
+  cheese model** once one is authored (real scores/bands can't be hand-quoted until then).
+- **`__mj*` picker scoping:** demo CodeGen already `excludeSchemas: ['sys','staging','dbo','__mj']`,
+  but the *UI* pickers still surface `__mj*` entities at runtime — the picker exclusion
+  (see [`roadmap.md`](roadmap.md)) should land before authoring on this data.
 
 ### Action-backed / LLM factor candidates (why the escape hatch exists)
 Demo factors are all declarative. Seeding 1–2 **Action-backed** factors would show what the

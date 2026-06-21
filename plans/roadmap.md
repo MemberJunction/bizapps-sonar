@@ -22,6 +22,27 @@ unused by code · ⬜ not started.
 
 ---
 
+## Staged PR rollout off `next`
+
+The big integration branch (`sonar_app_nav`) is being broken into small, reviewable PRs. `sonar_app_nav` is the source of truth; each PR is path-checked out of it onto a fresh branch cut from `next`, built, and verified in isolation.
+
+| PR | Scope | Depends on | Status |
+|---|---|---|---|
+| #1 | Initial schema migration + generated entities | — | ✅ merged |
+| #2 | `sonar-engine` scoring pipeline (`packages/Engine`) | — (leaf) | 🟦 open |
+| #3 | ScoreModel server hooks (`CoreEntitiesServer`) + seed metadata (`metadata/` minus `actions/`) | entities | 🟦 open |
+| #4 | **Actions** — `packages/Actions` + `metadata/actions/` | **#2 merged** (imports engine) | ⬜ next up |
+| #5 | **Angular UI** — `packages/Angular` (~41 files) + `apps/MJExplorer/index.html` + `apps/MJAPI/schema.graphql` | #2–#4 | ⬜ |
+| #6 | **Docs + demo sandbox** — `plans/` (consolidated docs) + `demo/` (Pattern-1 membership schema, seed, clone/apply scripts) + `scripts/` | — | ⬜ |
+
+**Notes:**
+- **#4 is the first merge-blocked PR** — `packages/Actions` imports `@mj-biz-apps/sonar-engine`, so it can't build off `next` until #2 lands. Options: wait for #2, or stack the actions branch on `sonar_engine_pipeline`.
+- **`metadata/actions/` rides with #4, not #3** — registering Action DriverClasses without the action code on `next` would create non-runnable rows. `.mj-sync.json`'s `directoryOrder` already lists `actions`, so #4 drops in with no config edit.
+- Changesets are authored fresh per PR (one per published package touched); metadata and docs need none (not npm packages).
+- **CI gap (deferred):** `build.yml` builds packages but runs no tests, so the engine's vitest suite isn't gated in CI. Wiring a `turbo test` task + a `build.yml` test step is an independent improvement, not yet scheduled.
+
+---
+
 ## MVP scope & product shape (the agreed bar)
 
 - **Audience:** internal / stakeholder **demo** (and a hand-held design-partner association).
@@ -53,7 +74,8 @@ unused by code · ⬜ not started.
 | `ScoreModelVersion` (immutable snapshot) | 🟡 | Created on publish + listed in publish modal. `ConfigSnapshotJSON`, rollback, version-diff not built. |
 | `ModelRelatedEntity` | ✅ | Add/remove data sources wired. `RelationshipPath` is empty (single-hop only). |
 | `ScoreBandSet` / `ScoreBand` | ✅ | Band builder works; bands drive distribution + colors. |
-| ScoreModel inert columns | 🟦 | `PopulationFilter`, `RecomputeMode/Cron`, `AsOfStrategy`, `IsCalibrated`, `TrendWindowDays`, `EffectiveFrom/To`, `CombineExpression` exist but are unused by the engine. |
+| `PopulationFilter` | ✅ | Authored in the builder (real anchor columns), persisted on the model, and applied by the engine (compiled to a SQL `WHERE` over the full anchor entity). |
+| ScoreModel inert columns | 🟦 | `RecomputeMode/Cron`, `AsOfStrategy`, `IsCalibrated`, `TrendWindowDays`, `EffectiveFrom/To`, `CombineExpression` exist but are unused by the engine. |
 
 ### §5.2 Factors & windows
 | Capability | Status | Notes |
@@ -61,9 +83,9 @@ unused by code · ⬜ not started.
 | Declarative factors | 🟡 | `Count/Sum/Avg/Min/Max/DistinctCount` work. `Recency/RatePerPeriod/Exists/TrendSlope` ⬜. |
 | `TimeWindow` | 🟡 | `Rolling` + `AllTime` compile. `Calendar/SinceEvent/RenewalRelative` ⬜. |
 | `ModelFactor` weight | ✅ | Weight + live tuning work. |
-| `ModelFactor.WeightMode` | 🟡 | **UI shows additive/penalty, but the engine only does additive** — "penalty/hurts" does not actually subtract yet. Multiplier/Gate/Bonus ⬜. |
+| `ModelFactor.WeightMode` | 🟡 | Penalty **hidden in the UI** (additive-only) so it no longer implies behavior the engine lacks; engine is WeightedSum only. Penalty/Multiplier/Gate/Bonus deferred to the `ICombineStrategy` work; field retained. |
 | Caps/floors, `TrendWeight` | ⬜ | Columns exist; engine ignores them. |
-| `MissingDataPolicy` | 🟦 | Column + UI mode exist; engine excludes no-data anchors (doesn't apply Zero/NeutralMidpoint). |
+| `MissingDataPolicy` | ✅ | Engine honors it per `ModelFactor`: **Zero** (count 0, keep weight — default via `ModelDefault`), **NeutralMidpoint** (0.5), **Exclude** (drop from numerator + denominator). Full population scored so no-data members surface at the floor; `MissingDataApplied` persisted. |
 | Normalization | 🟡 | `None/MinMax/Percentile/ZScore` ✅. `Logistic/Banded/Lookup` ⬜ (storage `NormalizationParamsJSON` ready). |
 | ActionBacked / DerivedFromScore / Constant factors | ⬜ | Only `Declarative` implemented. The uniform `IFactorEvaluator` contract exists, so the seam is ready. |
 
@@ -94,8 +116,8 @@ unused by code · ⬜ not started.
 |---|---|---|
 | `FactorCompiler` (declarative → set-based SQL) | 🟡 | Single-hop joins, Rolling+AllTime windows, filter pruning. Multi-hop + recency decay ⬜. |
 | `NormalizationEngine` | 🟡 | 4 of 7 methods (see §5.2). Calibrated/benchmark basis ⬜. |
-| `ScoringEngine` | 🟡 | WeightedSum (as weighted average) only. WeightMode/caps/TrendWeight/other CombineStrategies ⬜. |
-| `RecomputeOrchestrator` | 🟡 | compute + persist work. Population = **whole anchor entity** (PopulationFilter ignored). On-demand preview ✅; scheduled/event-driven/incremental ⬜. |
+| `ScoringEngine` | 🟡 | WeightedSum (weighted average) with a **per-anchor denominator** + **MissingDataPolicy** (Zero/NeutralMidpoint/Exclude) applied. WeightMode/caps/TrendWeight/other CombineStrategies ⬜. |
+| `RecomputeOrchestrator` | 🟡 | compute + persist work. Population applies **`PopulationFilter`** (compiled to inline SQL) over the **full** anchor entity (`IgnoreMaxRows` — RunView otherwise caps at the entity's `UserViewMaxRows`=1000). On-demand preview ✅; scheduled/event-driven/incremental ⬜. |
 | `ScoreWriter` | 🟡 | Writes Score + contributions row-by-row. Does **not** write ScoreHistory/ScoreBandTransition; no diff/bulk path. |
 | Band + trend + confidence | 🟡 | Band assignment ✅. Trend/delta/confidence ⬜. |
 
@@ -130,9 +152,15 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 1. **Capability docs — ✅ done.** [`engine.md`](engine.md) documents the scoring engine + declarative-factor capabilities (the MVP-bar requirement); [`demo.md`](demo.md) holds the demo script.
 2. **Engagement Manager #4 polish** — per-row top-driver label + a band/score filter on the triage list. (Trend is out — needs ScoreHistory.)
 3. **Shared "why this score" waterfall component** — currently duplicated in the builder preview and the EM drawer; the plan calls for one reusable component.
-4. **Two UI-implies-behavior honesty bugs** (decide: wire or hide):
-   - **Population filter** — UI authors it; engine ignores it (scores everyone).
-   - **Penalty weight mode** — UI offers "hurts the score"; engine treats it as additive.
+4. **Two UI-implies-behavior honesty bugs — ✅ resolved:**
+   - **Population filter — wired.** Builder authors real anchor fields → persisted to `ScoreModel.PopulationFilter` → engine compiles + applies it (verified: 2,000 → 442 on `Industry contains "Cheese Production"`).
+   - **Penalty weight mode — hidden.** "Hurts the score" removed from the UI; engine stays additive (penalty deferred to `ICombineStrategy`). *(Also fixed in passing: missing-data policy wired with a Zero default, and a RunView 1,000-row population cap.)*
+5. **Schema scoping on the entity pickers** — exclude `__mj*` (MJ system + Sonar-infra) entities
+   from the anchor / data-source pickers by default, with a config override. Today both pickers load
+   *every* registered entity unfiltered, so system tables (`MJ: Users`, `Sonar: Score Models`) are
+   selectable as factor sources — produces garbage / fails at query time, and becomes acute the
+   moment a richer demo population lands. Mirrors the existing field-level `__mj_` filter in the
+   factor builder. (Design note below.)
 
 ## Gaps to reach *plan.md Phase-1 "commercial v1"* (large, the real roadmap)
 - **Action layer** (segments → interventions → holdout → measured lift) + Intervention Drafter agent — the headline v1 commitment.
@@ -150,11 +178,14 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 |---|---|---|
 | ✅ Engine + factor-capability docs (your "explain the hard parts" add **and** the MVP-bar spec) | Doc (#2) | Done → [`engine.md`](engine.md) |
 | Normalization Tier B (Logistic/Banded/Lookup) | Engine | Post-MVP |
-| Wire **penalty** weight mode in the engine | Engine fix | MVP-ish (honesty) |
-| Wire or hide the **population filter** | Engine/UI | MVP decision |
+| ✅ Population filter — wired (real anchor fields → persisted → engine applies) | Engine/UI | Done |
+| ✅ Missing-data policy — wired (`ModelDefault`→Zero; Neutral/Exclude per-factor) | Engine | Done |
+| Penalty weight mode — **hidden** in UI; engine wiring deferred to `ICombineStrategy` | Engine | Deferred (honesty kept) |
 | Trend/history (`ScoreHistory`) → EM sparkline + "movers" | Engine + UI | Phase-1 |
 | Plain-language AI summary (Explainer-lite) | AI | Phase-1 demo flavor |
-| _(your additions go here)_ | | |
+| Exclude `__mj*` schemas from entity / factor-source pickers (+ config override) | UI + Engine | MVP-ish (demo data makes it acute) |
+| ✅ Adopt MJ `AssociationDB` (American Cheese Industry Assoc.) as the **default** demo population | Demo/data | Done → installed + registered in `Sonar_Demo` (`--skipfiles`, no repo churn); now the default (see [`demo.md`](demo.md)) |
+| **AI-generated custom Actions** — describe an action in natural language → **Action Builder** uses **CodeSmith** (MJ's codegen) to generate + test it → wrapped as a `Draft` **Runtime Action**, gated to `Approved` by `ActionPromotion` before a live model can use it. Plan frames this for `ActionBacked` *factors*; the brainstorm extends it to *intervention* actions too (mint "send re-engagement email", "create follow-up task", etc. on demand instead of binding a fixed catalog). | AI + Actions | Phase 2 (plan §7.3) — rides on the hand-bound action layer working first |
 
 ---
 
@@ -162,7 +193,7 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 
 **Now — finish the credible demo (closes MVP bar):**
 1. ✅ Done — `engine.md` (engine + factor capabilities) + `demo.md` (demo script) (workstream #2).
-2. Decide population filter + penalty mode: wire the cheap one(s) or hide to stop implying behavior.
+2. ✅ Done — population filter wired, missing-data policy wired (Zero default), penalty hidden; RunView 1,000-row population cap fixed.
 3. EM top-driver + filter; extract the shared waterfall component.
 
 **Next — the "trajectory" tier (unlocks several plan promises at once):**
@@ -242,7 +273,35 @@ a seam earns its keep only when variants diverge in *mechanics/config/dependenci
 value — and convert on the **second divergent case**, never speculatively.
 
 ### Penalty / WeightMode — deferred (agreed)
-The rubric UI offers "Hurts the score" (Penalty) but the engine treats every factor as additive, and
-the intent largely overlaps the working "more is a warning sign" direction control. Decision: **leave
-the control in place but unwired for now**; demo additive-only (see `demo.md` guardrails). Revisit as
+Penalty would need a deliberate denominator/bounding design, and its intent largely overlaps the
+working "more is a warning sign" direction control. Decision: **the "Hurts the score" control is now
+hidden** (the UI is additive-only, so it no longer implies behavior the engine lacks); the `WeightMode`
+field is retained for the future. Revisit as
 part of the `ICombineStrategy` work above, with a deliberate bounding/denominator design.
+
+### Entity-picker schema scoping — rule once, enforce server-side
+**What:** exclude internal MJ schemas (`__mj*` — covers both `__mj` and Sonar's own
+`__mj_BizAppsSonar`) from the anchor + related-entity pickers so only business entities are
+selectable as factor sources. Config-driven so a deployment can override.
+
+**Why split client + server (the architecture call):**
+- The full entity metadata is **already shipped to the browser** (`Metadata().Entities`), so the
+  **picker filter is client-side** — a server roundtrip buys nothing for display. Same shape as the
+  existing field-level `!Name.startsWith("__mj_")` filter in the factor builder.
+- But a client filter only *hides* bad choices; it doesn't *prevent* them. The **authoritative gate
+  is a `ValidateAsync` override on the `ModelRelatedEntity` server entity** (same pattern as the
+  `ScoreModel` publish/validate hooks in `CoreEntitiesServer`) that rejects an excluded-schema
+  source at persistence — catching the UI, the API, *and* the future server-side AI Model Builder
+  agent (which would bypass a client-only filter) in one place.
+- The exclusion list lives **once, server-side** (an MJ EntitySetting or Sonar config). That single
+  source is also the override hook — edit the setting, no code change.
+
+**MJ precedent (reuse, don't reinvent):** `excludeSchemas` in `mj.config.cjs` is **build-time only**
+(controls CodeGen generation; does *not* filter the runtime picker — `Metadata().Entities` returns
+all registered entities regardless). At runtime `EntityInfo` exposes `SchemaName` (authoritative),
+`Status`, `IncludeInAPI`, and a `ScopeDefault` hint — but none enforce picker visibility, so the
+rule is ours to add on top of `SchemaName`.
+
+**Open call:** whether to also exclude `__mj_BizAppsSonar` (Sonar's own `Score`/`ScoreModel`). Lean:
+exclude from the default declarative picker but keep the override — model-on-model composition
+(`DerivedFromScore`) is a deliberate advanced path, not everyday-list material.
