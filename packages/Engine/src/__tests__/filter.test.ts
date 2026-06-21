@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     compileFilter,
+    compileFilterInline,
     CompositeFilterDescriptor,
 } from "../factors/filter";
 
@@ -115,5 +116,41 @@ describe("compileFilter", () => {
                 columns,
             ),
         ).toThrow(/requires a value/);
+    });
+});
+
+describe("compileFilterInline", () => {
+    it("returns null for no / empty filter", () => {
+        expect(compileFilterInline(null, columns)).toBeNull();
+        expect(compileFilterInline(group("and"), columns)).toBeNull();
+    });
+
+    it("inlines a string value with single quotes doubled (injection-safe)", () => {
+        const sql = compileFilterInline(
+            group("and", { field: "Notes", operator: "eq", value: "O'Brien" }),
+            columns,
+        );
+        expect(sql).toBe("([Notes] = 'O''Brien')");
+    });
+
+    it("inlines numbers bare and combines a group", () => {
+        const sql = compileFilterInline(
+            group(
+                "and",
+                { field: "Amount", operator: "gte", value: 100 },
+                { field: "ActivityType", operator: "eq", value: "Event" },
+            ),
+            columns,
+        );
+        expect(sql).toBe("([Amount] >= 100 AND [ActivityType] = 'Event')");
+    });
+
+    it("still validates field names (delegates to compileFilter)", () => {
+        expect(() =>
+            compileFilterInline(
+                group("and", { field: "DROP TABLE", operator: "eq", value: "x" }),
+                columns,
+            ),
+        ).toThrow(/not a column/);
     });
 });

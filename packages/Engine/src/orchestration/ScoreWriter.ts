@@ -59,6 +59,9 @@ export class ScoreWriter {
                 EntityName: "MJ_BizApps_Sonar: Scores",
                 ExtraFilter: `ScoreModelID='${model.ID}'`,
                 ResultType: "entity_object",
+                // One Score per anchor — must diff against ALL of them, or a re-recompute of a
+                // >1000-member model would miss existing rows and double-write. (Scale path: batch.)
+                IgnoreMaxRows: true,
             },
             contextUser,
         );
@@ -88,6 +91,8 @@ export class ScoreWriter {
                 EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
                 ExtraFilter: `ScoreID IN (${scoreIds.join(",")})`,
                 ResultType: "entity_object",
+                // N×factors rows — clear ALL of them, not just the first 1000. (Scale path: set-based delete.)
+                IgnoreMaxRows: true,
             },
             contextUser,
         );
@@ -154,7 +159,7 @@ export class ScoreWriter {
             row.PercentOfTotal =
                 result.rawScore !== 0 ? c.weightedValue / result.rawScore : null;
             row.HadData = c.hadData;
-            row.MissingDataApplied = false;
+            row.MissingDataApplied = c.missingDataApplied;
             if (!(await row.Save())) {
                 LogError(
                     `ScoreWriter: failed to save contribution (factor ${c.factorId}) for score ${scoreId}.`,

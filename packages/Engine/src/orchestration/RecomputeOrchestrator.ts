@@ -1,4 +1,8 @@
-import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { EntityInfo, LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import {
+    compileFilterInline,
+    CompositeFilterDescriptor,
+} from "../factors/filter";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
@@ -13,6 +17,7 @@ import {
     NormalizationSpec,
 } from "../normalization/NormalizationEngine";
 import {
+    EffectiveMissingDataPolicy,
     ScoreBandDef,
     ScoreResult,
     ScoringEngine,
@@ -210,7 +215,7 @@ export class RecomputeOrchestrator {
             contextUser,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
-        return this.scorer.score(scoringSpec, factors);
+        return this.scorer.score(scoringSpec, factors, anchorIds);
     }
 
     /** Open a ScoreRecomputeRun in the Running state. */
@@ -293,16 +298,46 @@ export class RecomputeOrchestrator {
             );
         }
         const pk = anchorEntity.PrimaryKeys[0].Name;
+        const extraFilter = this.compilePopulationFilter(model, anchorEntity);
         const rv = new RunView();
         const result = await rv.RunView<Record<string, string>>(
             {
                 EntityName: anchorEntity.Name,
                 ResultType: "simple",
                 Fields: [pk],
+                ExtraFilter: extraFilter ?? undefined,
+                // Score the WHOLE population — RunView otherwise caps at the entity's
+                // UserViewMaxRows (1000), which would silently leave most members unscored.
+                // (A future scale path batches/paginates; for now we resolve all anchor IDs.)
+                IgnoreMaxRows: true,
             },
             contextUser,
         );
         return result.Success ? (result.Results ?? []).map((r) => r[pk]) : [];
+    }
+
+    /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
+     *  a RunView ExtraFilter. Reuses compileFilter for field validation + structure, then inlines
+     *  the parameters as escaped literals because RunView's ExtraFilter has no parameter binding.
+     *  Returns null when the model has no population filter (the whole anchor entity is scored). */
+    private compilePopulationFilter(
+        model: mjBizAppsSonarScoreModelEntity,
+        anchorEntity: EntityInfo,
+    ): string | null {
+        const raw = model.PopulationFilter;
+        if (!raw || raw.trim().length === 0) {
+            return null;
+        }
+        let parsed: CompositeFilterDescriptor;
+        try {
+            parsed = JSON.parse(raw) as CompositeFilterDescriptor;
+        } catch {
+            throw new Error(
+                `RecomputeOrchestrator: ScoreModel ${model.ID} has an invalid PopulationFilter (not valid JSON).`,
+            );
+        }
+        const validColumns = anchorEntity.Fields.map((f) => f.Name);
+        return compileFilterInline(parsed, validColumns);
     }
 
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
@@ -337,6 +372,7 @@ export class RecomputeOrchestrator {
                 factorId: factor.ID,
                 modelFactorId: mf.ID,
                 weight: mf.Weight ?? 0,
+                missingDataPolicy: this.resolveMissingDataPolicy(mf),
                 results,
             });
         }
@@ -400,6 +436,17 @@ export class RecomputeOrchestrator {
             outputMax: factor.OutputMax ?? 1,
             higherIsBetter: factor.HigherIsBetter ?? true,
         };
+    }
+
+    /** Resolve a factor's missing-data policy. The schema default "ModelDefault" resolves to
+     *  "Zero": no data on an engagement signal means genuinely zero activity, so it should pull
+     *  the score down — and fully-missing members still surface at the floor rather than
+     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this. */
+    private resolveMissingDataPolicy(
+        modelFactor: mjBizAppsSonarModelFactorEntity,
+    ): EffectiveMissingDataPolicy {
+        const policy = modelFactor.MissingDataPolicy ?? "ModelDefault";
+        return policy === "ModelDefault" ? "Zero" : policy;
     }
 
     /** Resolve the model's score scale + bands into a ScoringSpec. */
