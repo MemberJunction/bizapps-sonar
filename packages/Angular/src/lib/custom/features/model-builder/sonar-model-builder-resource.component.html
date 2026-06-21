@@ -114,7 +114,9 @@
                                         <div class="sonar-mono sonar-factor__detail">{{ f.detail }}</div>
                                     </div>
                                     <div class="sonar-factor__actions">
-                                        <span class="sonar-chip" [ngClass]="f.mode === 'penalty' ? 'sonar-chip--critical' : 'sonar-chip--watch'">{{ f.mode }}</span>
+                                        @if (f.mode === 'penalty') {
+                                            <span class="sonar-chip sonar-chip--critical">penalty</span>
+                                        }
                                         <button class="sonar-factor__remove" title="Remove signal" [disabled]="factorBusy()" (click)="removeFactor(f.modelFactorId)">✕</button>
                                     </div>
                                 </div>

@@ -3,7 +3,7 @@ import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { Metadata, RunView } from "@memberjunction/core";
-import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter } from "@memberjunction/ng-filter-builder";
+import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService, RubricRow } from "../../core/services/factor.service";
@@ -13,6 +13,12 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { ToastService } from "../../core/services/toast.service";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
+
+/** SQL types treated as numeric when mapping anchor columns to filter fields. */
+const NUMERIC_TYPES = new Set(["int", "bigint", "smallint", "tinyint", "decimal", "numeric", "money", "smallmoney", "float", "real"]);
+
+/** Filter operators that need no value (so a condition using them is complete on its own). */
+const NULL_FILTER_OPERATORS = new Set(["isnull", "isnotnull", "isempty", "isnotempty"]);
 
 /** Band identity used for color coding across the surface. */
 type BandKey = "healthy" | "watch" | "atrisk" | "critical";
@@ -125,36 +131,64 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         });
     });
 
-    // --- population filter spike (UI only) -----------------------------------------------
-    // Demonstrates the de-Kendo'd <mj-filter-builder> as the replacement for the deprecated
-    // Kendo expression UI. This authors ScoreModel.PopulationFilter — "which anchor records
-    // are in scope" — as a CompositeFilterDescriptor (MJ's standard {logic, filters[]} JSON).
-    //
-    // TODO wire: `populationFilterFields` is hardcoded sample metadata. Real wiring builds it
-    // from the anchor entity's MJ field metadata (md.EntityByName(anchor).Fields -> FilterFieldInfo).
-    // TODO wire: persist `populationFilter` onto the ScoreModel entity once the schema + CodeGen land.
+    // --- population filter -----------------------------------------------------------------
+    // The de-Kendo'd <mj-filter-builder> authors ScoreModel.PopulationFilter — "which anchor
+    // records this model scores" — as a CompositeFilterDescriptor (MJ's standard {logic,
+    // filters[]} JSON). Fields are the anchor entity's real columns (built on model load); the
+    // filter is persisted to the model and applied by the engine when it resolves the population
+    // (RecomputeOrchestrator.compilePopulationFilter).
 
-    /** Fields the user can filter the anchor population on (sample data shaped like a Member entity). */
-    public populationFilterFields: FilterFieldInfo[] = [
-        { name: "Status", displayName: "Membership status", type: "string",
-          valueList: [
-              { value: "Active", label: "Active" },
-              { value: "Lapsed", label: "Lapsed" },
-              { value: "Pending", label: "Pending" },
-          ] },
-        { name: "MembershipType", displayName: "Membership type", type: "string" },
-        { name: "JoinDate", displayName: "Join date", type: "date" },
-        { name: "RenewalDate", displayName: "Renewal date", type: "date" },
-        { name: "AutoRenew", displayName: "Auto-renew enabled", type: "boolean" },
-    ];
+    /** Fields the user can filter the anchor population on — the anchor entity's real columns
+     *  (rebuilt in loadModelContext from the selected model's anchor). */
+    public populationFilterFields: FilterFieldInfo[] = [];
 
     /** The current population filter (the builder reads + emits this CompositeFilterDescriptor). */
     public populationFilter: CompositeFilterDescriptor = createEmptyFilter();
 
-    /** Called whenever the user edits a rule in the filter builder. Spike: just store it. */
-    public onPopulationFilterChange(filter: CompositeFilterDescriptor): void {
+    /** Persist the authored filter onto ScoreModel.PopulationFilter. Persists only a clear (no
+     *  conditions → null, score the whole anchor entity) or a COMPLETE filter — never a half-typed
+     *  condition, whose empty value would compile to a misleading WHERE at recompute time. */
+    public async onPopulationFilterChange(filter: CompositeFilterDescriptor): Promise<void> {
         this.populationFilter = filter;
-        // TODO wire: mark the ScoreModel dirty / enable Publish once persistence exists.
+        const model = this.selectedModel();
+        if (!model) return;
+        if (filter.filters.length === 0) {
+            await this.modelService.setPopulationFilter(model.ID, null);
+        } else if (this.isFilterComplete(filter)) {
+            await this.modelService.setPopulationFilter(model.ID, JSON.stringify(filter));
+        }
+        // otherwise: mid-edit (a condition without a value yet) — keep it local, don't persist.
+    }
+
+    /** True when every leaf is usable: a null-operator (needs no value), or a value-taking
+     *  operator with a non-empty value. Guards against persisting a half-authored filter. */
+    private isFilterComplete(node: CompositeFilterDescriptor): boolean {
+        return node.filters.every((child) =>
+            isCompositeFilter(child)
+                ? this.isFilterComplete(child)
+                : NULL_FILTER_OPERATORS.has(child.operator) ||
+                  (child.value !== undefined && child.value !== null && child.value !== ""),
+        );
+    }
+
+    /** SQL type → filter-builder field type (mirrors the factor builder's mapping). */
+    private filterFieldType(sqlType: string | null): "string" | "number" | "date" | "boolean" {
+        const t = (sqlType ?? "").toLowerCase();
+        if (NUMERIC_TYPES.has(t)) return "number";
+        if (t === "bit") return "boolean";
+        if (t.includes("date") || t.includes("time")) return "date";
+        return "string";
+    }
+
+    /** Parse a persisted PopulationFilter JSON back into a filter tree (empty when absent/invalid). */
+    private parsePopulationFilter(raw: string | null): CompositeFilterDescriptor {
+        if (!raw) return createEmptyFilter();
+        try {
+            const parsed = JSON.parse(raw) as CompositeFilterDescriptor;
+            return parsed && Array.isArray(parsed.filters) ? parsed : createEmptyFilter();
+        } catch {
+            return createEmptyFilter();
+        }
     }
 
     public async GetResourceDisplayName(_data: ResourceData): Promise<string> {
@@ -318,6 +352,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.rubric.set([]);
             this.anchorName.set("—");
             this.population.set(null);
+            this.populationFilterFields = [];
+            this.populationFilter = createEmptyFilter();
             return;
         }
         this.versionLabel.set(model.Status === "Active" ? "Published" : "Draft — unpublished changes");
@@ -325,6 +361,14 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const md = new Metadata();
         const anchor = md.Entities.find((e) => e.ID === model.AnchorEntityID);
         this.anchorName.set(anchor?.DisplayName || anchor?.Name || "—");
+
+        // Population filter: the anchor's real columns + the model's saved filter.
+        this.populationFilterFields = anchor
+            ? anchor.Fields
+                  .filter((f) => !f.IsPrimaryKey && !f.Name.startsWith("__mj_"))
+                  .map((f) => ({ name: f.Name, displayName: f.DisplayName || f.Name, type: this.filterFieldType(f.Type) }))
+            : [];
+        this.populationFilter = this.parsePopulationFilter(model.PopulationFilter);
 
         // Real count of anchor records in scope.
         this.population.set(null);

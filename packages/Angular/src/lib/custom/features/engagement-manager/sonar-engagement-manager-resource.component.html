@@ -17,7 +17,7 @@
         <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
 
         <div class="sonar-with-rail__main">
-            @if (loaded() && members().length === 0) {
+            @if (loaded() && tiles().length === 0) {
                 <div class="sonar-empty">
                     <i class="fa-solid fa-chart-line"></i>
                     <h2>No scores to triage yet</h2>
@@ -28,11 +28,14 @@
                 <!-- Band summary tiles. -->
                 <section class="sonar-stats">
                     @for (t of tiles(); track t.label) {
-                        <div class="sonar-stat">
+                        <button type="button" class="sonar-stat sonar-stat--clickable"
+                                [class.sonar-stat--active]="selectedBand()?.bandId === t.bandId"
+                                (click)="filterByBand(t)"
+                                [title]="selectedBand()?.bandId === t.bandId ? 'Clear filter' : 'Filter triage to ' + t.label">
                             <div class="sonar-stat__label">{{ t.label }}</div>
                             <div class="sonar-stat__value sonar-text--{{ t.key }}">{{ t.pct }}%</div>
                             <div class="sonar-stat__delta">{{ t.count }} member{{ t.count === 1 ? '' : 's' }}</div>
-                        </div>
+                        </button>
                     }
                 </section>
 
@@ -40,8 +43,53 @@
                     <!-- Triage list -->
                     <section class="sonar-card">
                         <div class="sonar-card__head">
-                            <div class="sonar-card__label">Triage · lowest scores first</div>
-                            <span class="sonar-chip">{{ members().length }} scored</span>
+                            <div class="sonar-card__label">
+                                Triage · lowest scores first
+                                @if (selectedBand(); as b) {
+                                    <button type="button" class="sonar-chip sonar-chip--{{ b.key }}" (click)="filterByBand(b)" title="Clear filter">{{ b.label }} ✕</button>
+                                }
+                            </div>
+                            <span class="sonar-chip">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
+                        </div>
+                        <div class="sonar-filters">
+                            <div class="sonar-combo">
+                                <i class="fa-solid fa-magnifying-glass sonar-combo__icon"></i>
+                                <input type="search" #nameInput class="sonar-combo__input" placeholder="Search members…" autocomplete="off"
+                                       role="combobox" [attr.aria-expanded]="showSuggest()"
+                                       [value]="nameQuery()"
+                                       (input)="onNameInput(nameInput.value)"
+                                       (keydown)="onNameKeydown($event)"
+                                       (focus)="suggestions().length && showSuggest.set(true)"
+                                       (blur)="hideSuggestSoon()" />
+                                @if (showSuggest() && suggestions().length) {
+                                    <ul class="sonar-combo__menu" role="listbox">
+                                        @for (s of suggestions(); track s.scoreId; let i = $index) {
+                                            <li class="sonar-combo__opt" role="option"
+                                                [class.sonar-combo__opt--active]="i === activeSuggest()"
+                                                (mousedown)="pickSuggestion(s)">
+                                                <span class="sonar-combo__opt-main">
+                                                    <span class="sonar-combo__opt-name">{{ s.name }}</span>
+                                                    @if (s.secondary) { <span class="sonar-combo__opt-sub">{{ s.secondary }}</span> }
+                                                </span>
+                                                <span class="sonar-mono sonar-combo__opt-score">{{ s.normalizedScore }}</span>
+                                                <span class="sonar-chip sonar-chip--{{ s.bandKey }}">{{ s.bandLabel }}</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                            <div class="sonar-filters__range">
+                                <span class="sonar-filters__lbl">score</span>
+                                <input type="number" #minInput class="sonar-filters__num" min="0" max="100" placeholder="min"
+                                       [value]="minScore() ?? ''" (change)="setScoreBound('min', minInput.value)" />
+                                <span class="sonar-filters__dash">–</span>
+                                <input type="number" #maxInput class="sonar-filters__num" min="0" max="100" placeholder="max"
+                                       [value]="maxScore() ?? ''" (change)="setScoreBound('max', maxInput.value)" />
+                            </div>
+                            <button type="button" class="sonar-btn sonar-filters__sort" (click)="toggleSort()"
+                                    [title]="sortDir() === 'asc' ? 'Worst first — click for best first' : 'Best first — click for worst first'">
+                                {{ sortDir() === 'asc' ? '↑ Worst first' : '↓ Best first' }}
+                            </button>
                         </div>
                         <div class="sonar-stack">
                             @for (m of members(); track m.scoreId) {
@@ -55,6 +103,13 @@
                                 </button>
                             }
                         </div>
+                        @if (total() > 0) {
+                            <div class="sonar-pager">
+                                <button type="button" class="sonar-btn sonar-btn--ghost" [disabled]="!hasPrev()" (click)="prevPage()">‹ Prev</button>
+                                <span class="sonar-mono sonar-pager__info">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
+                                <button type="button" class="sonar-btn sonar-btn--ghost" [disabled]="!hasNext()" (click)="nextPage()">Next ›</button>
+                            </div>
+                        }
                     </section>
 
                     <!-- Member explainability drawer -->

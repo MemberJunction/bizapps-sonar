@@ -139,11 +139,7 @@
                     <input type="range" min="0" max="100" [ngModel]="weight()" (ngModelChange)="weight.set(+$event)" />
                     <span class="sonar-mono">{{ (weight() / 100) | number:'1.2-2' }}</span>
                 </div>
-                <div class="sonar-fb__mode">
-                    <label><input type="radio" name="weightMode" value="Additive" [ngModel]="weightMode()" (ngModelChange)="weightMode.set($event)" /> Helps the score</label>
-                    <label><input type="radio" name="weightMode" value="Penalty" [ngModel]="weightMode()" (ngModelChange)="weightMode.set($event)" /> Hurts the score</label>
-                </div>
-                <p class="sonar-fb__hint">Weight sets how strongly this signal pulls the score. “Hurts” turns it into a penalty (e.g. a lapsed certification).</p>
+                <p class="sonar-fb__hint">Weight sets how strongly this signal pulls the score, relative to the model's other signals.</p>
             </section>
         </div>
     </div>

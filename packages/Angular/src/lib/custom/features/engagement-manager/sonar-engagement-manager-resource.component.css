@@ -39,3 +39,53 @@
 .sonar-calc__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .sonar-calc__label { font-size: 0.85rem; font-weight: 600; color: var(--sonar-ink); }
 .sonar-calc__chain { font-size: 0.72rem; color: var(--sonar-muted); }
+
+/* Clickable band-filter tiles + server-side triage pagination. */
+.sonar-stat--clickable { font: inherit; text-align: left; width: 100%; cursor: pointer; }
+.sonar-stat--clickable:hover { border-color: var(--sonar-accent, #22d3ee); }
+.sonar-stat--active { border-color: var(--sonar-accent, #22d3ee); box-shadow: inset 0 0 0 1px var(--sonar-accent, #22d3ee); }
+.sonar-pager { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; }
+.sonar-pager__info { font-size: 0.8rem; color: var(--sonar-muted); }
+
+/* --- Triage filter toolbar (name autosuggest + score range + sort) --- */
+.sonar-filters {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.6rem; margin: 0.25rem 0 0.75rem;
+    background: var(--sonar-surface-sunken, var(--sonar-surface));
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+}
+.sonar-filters input, .sonar-filters .sonar-btn { font: inherit; height: 2rem; box-sizing: border-box; }
+.sonar-filters input {
+    padding: 0 0.55rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface); color: var(--sonar-ink);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.sonar-filters input:focus {
+    outline: none; border-color: var(--sonar-accent, #22d3ee);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent, #22d3ee) 18%, transparent);
+}
+
+/* Search combobox + typeahead menu. */
+.sonar-combo { position: relative; flex: 1 1 200px; min-width: 160px; }
+.sonar-combo__icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--sonar-muted); pointer-events: none; }
+.sonar-combo__input { width: 100%; padding-left: 1.9rem !important; }
+.sonar-combo__menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+    margin: 0; padding: 0.25rem; list-style: none; max-height: 16rem; overflow-y: auto;
+    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm); box-shadow: var(--mj-shadow-md, 0 8px 24px -8px rgba(15, 23, 42, 0.35));
+}
+.sonar-combo__opt { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: var(--sonar-radius-sm); cursor: pointer; font-size: 0.85rem; color: var(--sonar-ink); }
+.sonar-combo__opt:hover, .sonar-combo__opt--active { background: var(--sonar-surface-sunken, rgba(34, 211, 238, 0.1)); }
+.sonar-combo__opt--active { box-shadow: inset 2px 0 0 var(--sonar-accent, #22d3ee); }
+.sonar-combo__opt-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.sonar-combo__opt-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sonar-combo__opt-sub { font-size: 0.72rem; color: var(--sonar-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sonar-combo__opt-score { font-size: 0.8rem; color: var(--sonar-muted); flex: 0 0 auto; }
+
+/* Score range + sort. */
+.sonar-filters__range { display: flex; align-items: center; gap: 0.4rem; }
+.sonar-filters__lbl { font-size: 0.7rem; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.sonar-filters__num { width: 3.5rem; text-align: center; }
+.sonar-filters__dash { color: var(--sonar-muted); }
+.sonar-filters__sort { white-space: nowrap; }

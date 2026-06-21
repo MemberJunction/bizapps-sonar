@@ -68,6 +68,15 @@ export class ScoreModelService {
         return model.Save();
     }
 
+    /** Persist the population filter (ScoreModel.PopulationFilter) — a CompositeFilterDescriptor
+     *  JSON string, or null to clear it (score the whole anchor entity). Returns true on save. */
+    public async setPopulationFilter(modelId: string, filterJson: string | null): Promise<boolean> {
+        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
+        if (!model?.IsSaved) return false;
+        model.PopulationFilter = filterJson;
+        return model.Save();
+    }
+
     /** The data sources (related entities) wired into a model. */
     public async dataSources(modelId: string): Promise<mjBizAppsSonarModelRelatedEntityEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>({
