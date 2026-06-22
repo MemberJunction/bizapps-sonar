@@ -1,7 +1,9 @@
-import { Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
+import { RunView } from "@memberjunction/core";
+import { mjBizAppsSonarScoreModelVersionEntity } from "@mj-biz-apps/sonar-entities";
 
 /** A recompute run row (maps to MJ_BizApps_Sonar: Score Recompute Runs). */
 interface RunRow {
@@ -38,12 +40,8 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
         { model: "Donor Propensity · v1", trigger: "Manual", scope: "Full", scored: 12041, changed: 2330, moves: 41, duration: "1m 12s", cost: "88 u", ok: true, statusLabel: "ok" },
     ];
 
-    // TODO wire: RunView "MJ_BizApps_Sonar: Score Model Versions" OrderBy VersionNumber DESC.
-    public versions: VersionRow[] = [
-        { label: "v3 — renewal-window decay", by: "S. Patel", when: "Jun 9", current: true },
-        { label: "v2 — added event attendance", by: "S. Patel", when: "May 2", current: false },
-        { label: "v1 — initial rubric", by: "D. Cho", when: "Apr 14", current: false },
-    ];
+    /** Published versions across all models — wired to real ScoreModelVersion rows. */
+    public readonly versions = signal<VersionRow[]>([]);
 
     // TODO wire: RunView "MJ_BizApps_Sonar: Score Model Audit Events" OrderBy ChangedAt DESC.
     public audit: AuditRow[] = [
@@ -61,7 +59,30 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
 
     public override ngOnInit(): void {
         super.ngOnInit();
+        void this.loadVersions();
         this.NotifyLoadComplete();
+    }
+
+    /** Load every published version across models, newest first (the denormalized view carries
+     *  the model name + publisher, so no extra lookups). */
+    private async loadVersions(): Promise<void> {
+        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+            EntityName: "MJ_BizApps_Sonar: Score Model Versions",
+            OrderBy: "PublishedAt DESC",
+            ResultType: "entity_object",
+        });
+        if (!result.Success) return;
+        this.versions.set((result.Results ?? []).map((v) => ({
+            label: `${v.ScoreModel ?? "Model"} · v${v.VersionNumber}${v.VersionLabel ? ` — ${v.VersionLabel}` : ""}`,
+            by: v.PublishedByUser ?? "—",
+            when: this.formatWhen(v.PublishedAt),
+            current: v.IsCurrent ?? false,
+        })));
+    }
+
+    /** Short "Mon D" label for a publish date (em dash when absent). */
+    private formatWhen(date: Date | null): string {
+        return date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";
     }
 
     // TODO wire: trigger a Manual recompute — needs a server-side engine Action

@@ -90,6 +90,10 @@
 .sonar-filters__dash { color: var(--sonar-muted); }
 .sonar-filters__sort { white-space: nowrap; }
 
+/* "scored by vN" badge + stale note in the drill-down. */
+.sonar-drill__version { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.35rem; }
+.sonar-drill__stale { font-size: 0.72rem; }
+
 /* --- Trend indicator (delta since last recompute) --- */
 .sonar-trend { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
 .sonar-dropper__reason .sonar-trend { margin-left: 0.45rem; }

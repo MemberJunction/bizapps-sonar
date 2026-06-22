@@ -33,12 +33,28 @@ export class ScoreWriter {
         const existing = await this.loadExistingScores(model, contextUser);
         await this.clearOldContributions(existing, contextUser);
 
+        // Trend baseline: Delta/Trend compare the new score to the snapshot ~TrendWindowDays ago
+        // (a real "change over N days", not just "since last run"). When the model has no
+        // TrendWindowDays, fall back to the immediately-prior score.
+        const trendDays = model.TrendWindowDays;
+        const baselines =
+            trendDays != null && trendDays > 0
+                ? await this.loadTrendBaselines(model, this.subtractDays(asOf, trendDays), contextUser)
+                : null;
+
         let recordsScored = 0;
         for (const [anchorRecordId, result] of scores) {
             const prior = existing.get(anchorRecordId);
-            // Capture the prior score/band BEFORE we overwrite the row — powers Delta/Trend + transitions.
-            const prevScore = prior?.NormalizedScore ?? null;
-            const prevBand = prior?.BandID ?? null;
+            const priorBand = prior?.BandID ?? null; // immediately-prior band — for run-over-run transitions
+            // Trend baseline: the window-ago snapshot, or (no window configured) the prior score.
+            const baseline = baselines
+                ? baselines.get(anchorRecordId) ?? null
+                : prior && prior.NormalizedScore != null
+                  ? { score: prior.NormalizedScore, band: prior.BandID ?? null }
+                  : null;
+            const prevScore = baseline?.score ?? null;
+            const prevBand = baseline?.band ?? null;
+
             const score = prior ?? (await this.newScore(contextUser));
             this.applyScore(score, model, versionId, anchorRecordId, asOf, result, prevScore, prevBand);
             if (!(await score.Save())) {
@@ -49,13 +65,52 @@ export class ScoreWriter {
             }
             await this.insertContributions(score.ID, result, contextUser);
             await this.writeHistory(score, result, contextUser);
-            // A band change on an already-scored anchor is a transition (first-ever scoring isn't).
-            if (prior && prevBand !== result.bandId) {
-                await this.writeBandTransition(model, anchorRecordId, prevBand, result, score.Delta, runId, contextUser);
+            // A band change is a transition measured run-over-run (vs the immediately-prior band),
+            // independent of the trend window; its Direction comes from the run-over-run move.
+            if (prior && priorBand !== result.bandId) {
+                const lastRunDelta = prior.NormalizedScore != null ? result.normalizedScore - prior.NormalizedScore : null;
+                await this.writeBandTransition(model, anchorRecordId, priorBand, result, lastRunDelta, runId, contextUser);
             }
             recordsScored++;
         }
         return recordsScored;
+    }
+
+    /** `asOf` minus N days — the trend-window cutoff date. */
+    private subtractDays(asOf: Date, days: number): Date {
+        return new Date(asOf.getTime() - days * 24 * 60 * 60 * 1000);
+    }
+
+    /**
+     * The trend baseline per anchor: the most recent ScoreHistory snapshot at/before `cutoff`
+     * (so Delta = now − "the score ~TrendWindowDays ago"). One query for the whole model
+     * (IgnoreMaxRows), reduced to the latest pre-cutoff row per anchor. Anchors with no history
+     * that old get no baseline → null Delta/Trend ("not enough history yet").
+     * Scale note: this scans the model's pre-cutoff history; history retention (deferred) bounds it.
+     */
+    private async loadTrendBaselines(
+        model: mjBizAppsSonarScoreModelEntity,
+        cutoff: Date,
+        contextUser: UserInfo,
+    ): Promise<Map<string, { score: number | null; band: string | null }>> {
+        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Score Histories",
+                ExtraFilter: `ScoreModelID='${model.ID}' AND AsOfDate <= '${cutoff.toISOString()}'`,
+                OrderBy: "AsOfDate DESC",
+                ResultType: "entity_object",
+                IgnoreMaxRows: true,
+            },
+            contextUser,
+        );
+        const byAnchor = new Map<string, { score: number | null; band: string | null }>();
+        for (const h of result.Success ? (result.Results ?? []) : []) {
+            // Ordered AsOfDate DESC → the first row seen per anchor is the most recent pre-cutoff one.
+            if (!byAnchor.has(h.AnchorRecordID)) {
+                byAnchor.set(h.AnchorRecordID, { score: h.NormalizedScore, band: h.BandID });
+            }
+        }
+        return byAnchor;
     }
 
     /** Current Score rows for this model, keyed by AnchorRecordID (for find-or-create). */

@@ -4,7 +4,7 @@ import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
-import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService, RubricRow, EditFactorVM } from "../../core/services/factor.service";
 import { ScoreBandService } from "../../core/services/score-band.service";
@@ -56,7 +56,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Which view is showing: the rubric (default) or one of the hosted builders. The
      *  builders are opened by the model's own actions (+ Add factor / Edit bands / Publish)
      *  and emit `close` to return here — keeps the builders inside the model workflow. */
-    public readonly activeView = signal<"rubric" | "factor" | "bands" | "publish" | "newModel">("rubric");
+    public readonly activeView = signal<"rubric" | "factor" | "bands" | "publish" | "newModel" | "versions">("rubric");
     /** The optional "who gets scored?" filter is collapsed by default to reduce friction —
      *  most models score everyone, so we don't make every author confront a rule builder. */
     public readonly scopeOpen = signal(false);
@@ -151,7 +151,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public async onPopulationFilterChange(filter: CompositeFilterDescriptor): Promise<void> {
         this.populationFilter = filter;
         const model = this.selectedModel();
-        if (!model) return;
+        if (!model || this.isPublished()) return;
         if (filter.filters.length === 0) {
             await this.modelService.setPopulationFilter(model.ID, null);
         } else if (this.isFilterComplete(filter)) {
@@ -253,13 +253,14 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
     /** Open the factor builder to ADD a new signal (clears any prior edit context). */
     public openFactorCreate(): void {
+        if (this.isPublished()) return;
         this.editFactor.set(null);
         this.activeView.set("factor");
     }
 
     /** Open the factor builder to EDIT an existing rubric signal — pre-load its full config. */
     public async openFactorEdit(modelFactorId: string): Promise<void> {
-        if (this.factorBusy()) return;
+        if (this.factorBusy() || this.isPublished()) return;
         const vm = await this.factorService.loadFactorForEdit(modelFactorId);
         if (!vm) { this.toast.error("Couldn't open that signal for editing."); return; }
         this.editFactor.set(vm);
@@ -295,6 +296,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      * needs ≥2 factors — by design.)
      */
     public onWeightInput(modelFactorId: string, pct: number): void {
+        if (this.isPublished()) return;
         this.rubric.set(this.rubric().map((r) => (r.modelFactorId === modelFactorId ? { ...r, weight: pct } : r)));
         this.pendingWeights.set(modelFactorId, pct / 100);
         if (this.tuneTimer) clearTimeout(this.tuneTimer);
@@ -312,7 +314,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Remove a factor from the rubric (unbinds its Model Factor), then refresh. */
     public async removeFactor(modelFactorId: string): Promise<void> {
         const id = this.selectedModelId();
-        if (!id || this.factorBusy()) return;
+        if (!id || this.factorBusy() || this.isPublished()) return;
         this.factorBusy.set(true);
         try {
             if (await this.factorService.unbind(modelFactorId)) {
@@ -330,7 +332,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public async addSource(): Promise<void> {
         const model = this.selectedModel();
         const entityId = this.newSourceId();
-        if (!model || !entityId || this.sourceBusy()) return;
+        if (!model || !entityId || this.sourceBusy() || this.isPublished()) return;
         this.sourceBusy.set(true);
         try {
             const ent = new Metadata().Entities.find((e) => e.ID === entityId);
@@ -349,7 +351,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Remove a data source (deletes its Model Related Entity), then refresh context. */
     public async removeSource(modelRelatedEntityId: string): Promise<void> {
         const model = this.selectedModel();
-        if (!model || this.sourceBusy()) return;
+        if (!model || this.sourceBusy() || this.isPublished()) return;
         this.sourceBusy.set(true);
         try {
             if (await this.modelService.removeDataSource(modelRelatedEntityId)) await this.loadModelContext(model);
@@ -381,7 +383,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.populationFilter = createEmptyFilter();
             return;
         }
-        this.versionLabel.set(model.Status === "Active" ? "Published" : "Draft — unpublished changes");
+        await this.setVersionLabel(model);
 
         const md = new Metadata();
         const anchor = md.Entities.find((e) => e.ID === model.AnchorEntityID);
@@ -418,6 +420,33 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
         // Band count (for the publish gate).
         this.bandCount.set(model.BandSetID ? (await this.bandService.getBands(model.BandSetID)).length : 0);
+    }
+
+    /** Header version label: "Published · v3" when active (resolving the current version's number),
+     *  else the draft notice. */
+    private async setVersionLabel(model: mjBizAppsSonarScoreModelEntity): Promise<void> {
+        if (model.Status !== "Active") {
+            this.versionLabel.set("Draft — unpublished changes");
+            return;
+        }
+        let label = "Published";
+        if (model.CurrentVersionID) {
+            const res = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+                EntityName: "MJ_BizApps_Sonar: Score Model Versions",
+                ExtraFilter: `ID='${model.CurrentVersionID}'`,
+                ResultType: "entity_object",
+            });
+            const v = res.Success ? res.Results?.[0] : null;
+            if (v) label = `Published · v${v.VersionNumber}`;
+        }
+        this.versionLabel.set(label);
+    }
+
+    /** A rollback published a new version — reload the model context (rubric + status + version changed). */
+    public async onVersionRestored(): Promise<void> {
+        const id = this.selectedModelId();
+        if (id) await this.selectModel(id);
+        await this.sidebar?.refresh();
     }
 
     /** A version was published — refresh the model context (status flips) and return to the rubric. */
@@ -460,6 +489,30 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
     /** True once the model is published (a recompute can persist scores against its version). */
     public readonly canRecompute = computed(() => this.selectedModel()?.Status === "Active");
+
+    /** Published models are LOCKED for editing — scores stay reproducible against the current
+     *  version. Rubric/factor/source/band/population edits are disabled until the model is
+     *  unpublished to a draft (then re-published as a new version). */
+    public readonly isPublished = computed(() => this.selectedModel()?.Status === "Active");
+    public readonly unpublishing = signal(false);
+
+    /** Drop a published model back to Draft so it can be edited, then refresh + return to the rubric. */
+    public async unpublishToEdit(): Promise<void> {
+        const id = this.selectedModelId();
+        if (!id || this.unpublishing()) return;
+        this.unpublishing.set(true);
+        try {
+            if (await this.modelService.unpublishToDraft(id)) {
+                await this.selectModel(id);
+                await this.sidebar?.refresh();
+                this.toast.success("Unpublished to a draft — edit freely, then publish a new version.");
+            } else {
+                this.toast.error("Couldn't unpublish this model. Please try again.");
+            }
+        } finally {
+            this.unpublishing.set(false);
+        }
+    }
 
     /**
      * Recompute the model: compute AND persist a full run via the "Sonar: Recompute Model"

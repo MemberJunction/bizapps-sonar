@@ -57,7 +57,7 @@
                 <section class="sonar-card">
                     <div class="sonar-card__label">Published versions</div>
                     <div class="sonar-stack">
-                        @for (v of versions; track v.label) {
+                        @for (v of versions(); track $index) {
                             <div class="sonar-list-row">
                                 <div>
                                     <div class="sonar-list-row__title">{{ v.label }}</div>
@@ -65,6 +65,9 @@
                                 </div>
                                 @if (v.current) { <span class="sonar-chip sonar-chip--healthy">current</span> }
                             </div>
+                        }
+                        @if (versions().length === 0) {
+                            <p class="sonar-faint" style="font-size:0.85rem">No published versions yet.</p>
                         }
                     </div>
                 </section>

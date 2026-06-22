@@ -321,12 +321,11 @@ for this (currently `"[]"`, ignored). Work: resolve a join path (auto = BFS over
 explicit when ambiguous) → emit the intervening JOINs → guard fan-out (`COUNT(DISTINCT …)` on
 one-to-many hops). Surfaced by the "Email Engagements"/"Email Clicks" attempts on the cheese model.
 
-**Factor editing UI (in progress).** Rubric rows are weight-slider + remove only; no way to edit a
-factor's definition without delete/re-add. Building: click-to-edit (pencil) that reopens the factor
-builder pre-loaded, saving back to the existing Factor/ModelFactor. Plus **filter the source-entity
-dropdown to entities with a direct FK to the anchor** (would have hidden the wrong-dataset "Email
-Engagements" entirely) and **hide window types the engine can't run yet** (RenewalRelative/SinceEvent
-currently selectable → fail at recompute). Editing a factor leaves prior scores stale until recompute.
+**Factor editing UI.** ✅ *done.* Click-to-edit (pencil) reopens the factor builder pre-loaded and
+saves back to the existing Factor/ModelFactor (`FactorService.loadFactorForEdit`/`updateFactor`);
+source dropdown filtered to entities with a direct FK to the anchor. Editing leaves prior scores
+stale until recompute. **Still TODO:** hide window types the engine can't run yet
+(RenewalRelative/SinceEvent are selectable → would fail at recompute).
 
 **Deferred: full purge of the `membership` (old dummy) dataset.** Decided to defer. When done:
 delete the 2 old Sonar models (Demo Member Engagement — Active w/ version+scores; Context Test Model —
@@ -336,6 +335,58 @@ Draft) + dependents, **keeping band set `7E3B9C42` (shared with the cheese model
 the entities via **drop-tables-then-CodeGen-reconcile** — NOT hand-deleted `__mj.Entity` rows (would
 leave metadata inconsistent and can break the demo). Already done: removed the stray
 `email_engagements` ModelRelatedEntity link from the cheese model.
+
+---
+
+## Versioning & history — locked decisions (2026-06-22)
+
+Reviewed the score-history + model-versioning gaps; the three decisions below are settled.
+
+**Decision 1 — Published models are LOCKED.** ✅ *built (UI guard).* The model-builder disables
+rubric/factor/source/band/population editing on a Published model behind a "Published & locked" banner
+with **Unpublish to edit** (`ScoreModelService.unpublishToDraft` → Draft); editing stays free in Draft,
+then a publish creates a new version. Because edits can't land on a Published model, its **live config
+can't drift from its current version** — so the engine reading *live* config is now equivalent to
+reading the snapshot, and the separate "engine scores from `ConfigSnapshotJSON`" change is **no longer
+needed** (left as optional hardening). The cheese demo was re-published so its current version matches
+its live config.
+
+**Decision 2 — Trend uses a real historical window (`TrendWindowDays`).** ✅ *built.* `ScoreWriter`
+compares each score to the `ScoreHistory` snapshot ~`TrendWindowDays` ago (latest point at/under the
+cutoff, one batched lookup), falling back to since-last-run when unset. Band transitions stay
+run-over-run (decoupled from the trend window).
+
+**Model version UI.** *(partly done)* Done: **Admin & Ops "Published versions" wired to real data**
+(was hardcoded sample rows); **Model Builder header shows the live version** ("Published · v1"); and a
+**dedicated per-model Versions view** (`SonarVersionHistoryComponent`, opened from a "Versions" button)
+— a timeline + a read-only render of each version's frozen `ConfigSnapshotJSON` (anchor, population,
+rubric with measure/window/normalization/weight, bands); a **version diff** in that view ("Changes vs
+[baseline]" — added/removed/changed signals with field-level deltas, model + band changes); and
+**"scored by vN"** in the EM drill-down (a chip resolving each Score's `ScoreModelVersionID` to its
+number, flagged stale + "recompute to refresh" when older than the model's current version); and
+**rollback** — a per-version "Restore" (inline confirm) that re-applies a version's frozen config to
+the live rubric and publishes it as a NEW version labeled "Rollback of vN" (history stays intact;
+bands left alone since band sets can be shared). Re-applies to live because the engine scores from
+live config, not the snapshot. **Diff-based** (not teardown): factors are matched by name and updated
+in place — keeping their IDs + existing contribution rows — missing ones created, and only factors
+the target lacks are deleted (clearing just their contributions). So a small change costs a couple of
+row updates, not a mass delete. Updated factors' scores are stale until the next recompute (surfaced
+by the scored-by-vN badge). **Scale note:** removed-factor contribution clearing is still per-row —
+the set-based-delete / server-Action path remains the optimization for large populations. (Admin &
+Ops recompute-runs + audit-trail lists are still placeholder data — separate wiring.) **Version UI is now feature-complete
+for v1.**
+
+**Decision 3 — History retention as a setting — DEFERRED (needs a migration).** Expose a cleanup rule
+(e.g. "drop history older than 3 years") as a per-model setting (`ScoreModel.HistoryRetentionDays`)
+with sensible presets, then a recompute/job prunes beyond it. That column is a migration, so deferred
+per request. Until then history is keep-everything (fine at demo scale).
+
+**Cheap history fixes worth doing alongside (no migration):**
+- **Idempotent snapshots:** upsert `ScoreHistory` on `(model, anchor, asOf)` instead of always
+  appending, so re-running a recompute/backfill at the same as-of doesn't duplicate points. (The
+  index `IX_ScoreHistory_Model_Anchor_AsOf` exists but is non-unique.)
+- **Historical "why":** surface the stored `ContributionsJSON` so a past snapshot is explainable
+  (currently captured but never read).
 
 ---
 

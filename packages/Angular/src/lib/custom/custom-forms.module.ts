@@ -24,6 +24,7 @@ import { SonarModelSetupComponent } from './features/model-builder/builders/mode
 import { SonarFactorBuilderComponent } from './features/model-builder/builders/factor-builder/sonar-factor-builder.component';
 import { SonarScoreBandBuilderComponent } from './features/model-builder/builders/score-band-builder/sonar-score-band-builder.component';
 import { SonarPublishSnapshotComponent } from './features/model-builder/builders/publish-snapshot/sonar-publish-snapshot.component';
+import { SonarVersionHistoryComponent } from './features/model-builder/builders/version-history/sonar-version-history.component';
 
 /**
  * Custom (hand-written) Sonar Angular code, organized by the Core-Shared-Feature convention
@@ -48,7 +49,8 @@ import { SonarPublishSnapshotComponent } from './features/model-builder/builders
         SonarModelSetupComponent,
         SonarFactorBuilderComponent,
         SonarScoreBandBuilderComponent,
-        SonarPublishSnapshotComponent
+        SonarPublishSnapshotComponent,
+        SonarVersionHistoryComponent
     ],
     imports: [
         CommonModule,

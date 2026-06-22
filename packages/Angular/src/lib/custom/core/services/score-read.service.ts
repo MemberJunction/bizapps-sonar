@@ -5,6 +5,7 @@ import {
     mjBizAppsSonarScoreBandEntity,
     mjBizAppsSonarScoreFactorContributionEntity,
     mjBizAppsSonarScoreHistoryEntity,
+    mjBizAppsSonarScoreModelVersionEntity,
     mjBizAppsSonarFactorEntity,
 } from "@mj-biz-apps/sonar-entities";
 
@@ -12,6 +13,7 @@ const SCORE = "MJ_BizApps_Sonar: Scores";
 const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
 const CONTRIBUTION = "MJ_BizApps_Sonar: Score Factor Contributions";
 const SCORE_HISTORY = "MJ_BizApps_Sonar: Score Histories";
+const SCORE_MODEL_VERSION = "MJ_BizApps_Sonar: Score Model Versions";
 const FACTOR = "MJ_BizApps_Sonar: Factors";
 
 /** Trend of a score vs. its previous recompute (mirrors Score.TrendDirection). */
@@ -35,6 +37,8 @@ export interface ScoredMember {
     delta: number | null;
     /** Up/Flat/Down vs. the previous recompute; null on first scoring. */
     trendDirection: TrendDirection | null;
+    /** The model version that produced this score (null if unresolved) — for the "scored by vN" badge. */
+    versionNumber: number | null;
 }
 
 /** One point in a member's score history — drives the drill-down sparkline. */
@@ -211,6 +215,7 @@ export class ScoreReadService {
         if (scores.length === 0) return [];
         const bandById = await this.loadBands(scores);
         const names = await this.resolveAnchorNames(scores);
+        const versionById = await this.loadVersionNumbers(scores);
         return scores.map((s) => {
             const label = s.BandID ? bandById.get(s.BandID)?.Label ?? "Unbanded" : "Unbanded";
             return {
@@ -223,8 +228,35 @@ export class ScoreReadService {
                 computedAt: s.ComputedAt ?? null,
                 delta: s.Delta != null ? Math.round(s.Delta) : null,
                 trendDirection: s.TrendDirection ?? null,
+                versionNumber: s.ScoreModelVersionID ? versionById.get(s.ScoreModelVersionID) ?? null : null,
             } satisfies ScoredMember;
         });
+    }
+
+    /** The version number for one version ID (the model's current version) — to compare against
+     *  each member's scored-by version and flag stale scores. */
+    public async versionNumberFor(versionId: string | null): Promise<number | null> {
+        if (!versionId) return null;
+        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+            EntityName: SCORE_MODEL_VERSION,
+            ExtraFilter: `ID='${versionId}'`,
+            ResultType: "entity_object",
+        });
+        const v = result.Success ? result.Results?.[0] : null;
+        return v ? v.VersionNumber : null;
+    }
+
+    /** Map the ScoreModelVersionIDs referenced by a set of scores to their version numbers
+     *  (one RunView, IN clause) — powers the "scored by vN" badge. */
+    private async loadVersionNumbers(scores: mjBizAppsSonarScoreEntity[]): Promise<Map<string, number>> {
+        const ids = [...new Set(scores.map((s) => s.ScoreModelVersionID).filter((id): id is string => !!id))];
+        if (ids.length === 0) return new Map();
+        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+            EntityName: SCORE_MODEL_VERSION,
+            ExtraFilter: `ID IN (${ids.map((id) => `'${id}'`).join(",")})`,
+            ResultType: "entity_object",
+        });
+        return new Map((result.Results ?? []).map((v) => [v.ID, v.VersionNumber]));
     }
 
     /** A single score's contribution breakdown (factor name + weighted value), largest first. */

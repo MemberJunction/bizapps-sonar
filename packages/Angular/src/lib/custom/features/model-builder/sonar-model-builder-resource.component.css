@@ -71,6 +71,13 @@
     color: var(--sonar-faint); font-size: 0.78rem; line-height: 1; padding: 0.2rem;
 }
 .sonar-factor__edit:hover:not(:disabled) { color: var(--sonar-accent, #22d3ee); }
+
+/* Published-model lock banner + read-only filter overlay. */
+.sonar-locked { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-color: color-mix(in srgb, var(--sonar-watch, #0ea5e9) 40%, var(--sonar-border)); }
+.sonar-locked__main { display: flex; align-items: flex-start; gap: 0.7rem; }
+.sonar-locked__main i { color: var(--sonar-watch, #0ea5e9); margin-top: 0.15rem; }
+.sonar-locked__text { font-size: 0.82rem; color: var(--sonar-muted); margin: 0.15rem 0 0; max-width: 46ch; }
+.sonar-locked__field { pointer-events: none; opacity: 0.55; }
 .sonar-factor__tune { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sonar-factor__tune input[type="range"] { flex: 1; accent-color: var(--sonar-brand); }
 .sonar-factor__weight { font-size: 0.75rem; color: var(--sonar-muted); min-width: 2.5rem; text-align: right; }

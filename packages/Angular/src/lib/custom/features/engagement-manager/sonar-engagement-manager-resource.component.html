@@ -155,6 +155,12 @@
                                     <div>
                                         <div class="sonar-card__label">Member drill-down</div>
                                         <div class="sonar-factor__name">{{ sel.name }}</div>
+                                        @if (sel.versionNumber !== null) {
+                                            <div class="sonar-drill__version">
+                                                <span class="sonar-chip" [class.sonar-chip--atrisk]="selectedStale()" [title]="selectedStale() ? 'This score was computed under an older model version' : 'Computed under the current model version'">scored by v{{ sel.versionNumber }}</span>
+                                                @if (selectedStale()) { <span class="sonar-neg sonar-drill__stale">⚠ older than live v{{ currentVersionNumber() }} — recompute to refresh</span> }
+                                            </div>
+                                        }
                                     </div>
                                     <div class="sonar-drill__score">
                                         <div class="sonar-drill__num">{{ sel.normalizedScore }}</div>

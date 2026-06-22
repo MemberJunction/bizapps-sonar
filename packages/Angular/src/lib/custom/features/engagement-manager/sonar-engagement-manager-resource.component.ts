@@ -39,6 +39,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly contributions = signal<ScoreContribution[]>([]);
     public readonly loadingDrawer = signal(false);
 
+    /** The model's current published version number — members scored under an older version are stale. */
+    public readonly currentVersionNumber = signal<number | null>(null);
+    /** The selected member's score came from an older version than the model's current one. */
+    public readonly selectedStale = computed(() => {
+        const m = this.selected();
+        const cur = this.currentVersionNumber();
+        return !!m && m.versionNumber != null && cur != null && m.versionNumber !== cur;
+    });
+
     // --- score history (sparkline) + movers since last run ---
     public readonly history = signal<ScoreHistoryPoint[]>([]);
     public readonly movers = signal<{ risers: ScoredMember[]; fallers: ScoredMember[] }>({ risers: [], fallers: [] });
@@ -122,6 +131,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.showSuggest.set(false);
         this.pinnedAnchorId.set(null);
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
+        this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
         this.showMovers.set(false);
         const [dist, rubric, movers] = await Promise.all([
             this.scoreRead.distributionForModel(id),

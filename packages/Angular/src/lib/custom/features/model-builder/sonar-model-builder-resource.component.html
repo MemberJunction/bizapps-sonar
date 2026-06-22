@@ -17,6 +17,7 @@
                     {{ recomputing() ? "Recomputing…" : "Recompute" }}
                 </button>
             }
+            <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('versions')" title="Browse this model's published versions">Versions</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('publish')">Publish version</button>
         </div>
     </div>
@@ -43,13 +44,28 @@
                     </div>
                 </section>
 
+                <!-- Published models are LOCKED — scores stay reproducible against the current
+                     version. Editing requires unpublishing to a draft, then publishing a new version. -->
+                @if (isPublished()) {
+                    <section class="sonar-card sonar-locked">
+                        <div class="sonar-locked__main">
+                            <i class="fa-solid fa-lock"></i>
+                            <div>
+                                <div class="sonar-card__label">Published &amp; locked</div>
+                                <p class="sonar-locked__text">This model's scores are reproducible against its published version, so the rubric is read-only. Unpublish to a draft to make changes, then publish a new version.</p>
+                            </div>
+                        </div>
+                        <button class="sonar-btn" [disabled]="unpublishing()" (click)="unpublishToEdit()">{{ unpublishing() ? "Unpublishing…" : "Unpublish to edit" }}</button>
+                    </section>
+                }
+
                 <!-- Data sources — related entities the model reads signals from (add/remove). -->
                 <section class="sonar-card">
                     <div class="sonar-card__label">Data sources <span class="sonar-faint">(related entities this model reads signals from)</span></div>
                     <div class="sonar-chips-grid">
                         @for (r of relatedEntities(); track r.id) {
                             <div class="sonar-rel">
-                                <button class="sonar-rel__remove" title="Remove data source" [disabled]="sourceBusy()" (click)="removeSource(r.id)">✕</button>
+                                <button class="sonar-rel__remove" title="Remove data source" [disabled]="sourceBusy() || isPublished()" (click)="removeSource(r.id)">✕</button>
                                 <div class="sonar-mono sonar-rel__alias">{{ r.alias }}</div>
                                 <div class="sonar-rel__label">{{ r.label }}</div>
                                 <div class="sonar-rel__source">{{ r.source }}</div>
@@ -59,7 +75,7 @@
                             <div class="sonar-faint" style="font-size:0.8rem; align-self:center">No data sources yet — map one to start adding signals.</div>
                         }
                         @if (!addingSource()) {
-                            <button class="sonar-rel sonar-rel--add" [disabled]="!selectedModelId()" (click)="addingSource.set(true)">+ map another entity</button>
+                            <button class="sonar-rel sonar-rel--add" [disabled]="!selectedModelId() || isPublished()" (click)="addingSource.set(true)">+ map another entity</button>
                         }
                     </div>
 
@@ -91,19 +107,22 @@
                     <div class="sonar-card__label">
                         Population filter <span class="sonar-faint">(which {{ anchorName() }} records this model scores)</span>
                     </div>
-                    <mj-filter-builder
-                        [fields]="populationFilterFields"
-                        [filter]="populationFilter"
-                        [showSummary]="true"
-                        (filterChange)="onPopulationFilterChange($event)">
-                    </mj-filter-builder>
+                    <!-- Locked (pointer-events off) on a published model; the change handler also no-ops. -->
+                    <div [class.sonar-locked__field]="isPublished()">
+                        <mj-filter-builder
+                            [fields]="populationFilterFields"
+                            [filter]="populationFilter"
+                            [showSummary]="true"
+                            (filterChange)="onPopulationFilterChange($event)">
+                        </mj-filter-builder>
+                    </div>
                 </section>
 
                 <!-- Rubric (factors + weights). -->
                 <section class="sonar-card">
                     <div class="sonar-card__head">
                         <div class="sonar-card__label">Rubric — {{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</div>
-                        <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="openFactorCreate()">+ Add factor</button>
+                        <button class="sonar-btn" [disabled]="!selectedModelId() || isPublished()" (click)="openFactorCreate()">+ Add factor</button>
                     </div>
                     <div class="sonar-stack">
                         @for (f of rubric(); track f.modelFactorId) {
@@ -117,12 +136,12 @@
                                         @if (f.mode === 'penalty') {
                                             <span class="sonar-chip sonar-chip--critical">penalty</span>
                                         }
-                                        <button class="sonar-factor__edit" title="Edit signal" [disabled]="factorBusy()" (click)="openFactorEdit(f.modelFactorId)"><i class="fa-solid fa-pen"></i></button>
-                                        <button class="sonar-factor__remove" title="Remove signal" [disabled]="factorBusy()" (click)="removeFactor(f.modelFactorId)">✕</button>
+                                        <button class="sonar-factor__edit" title="Edit signal" [disabled]="factorBusy() || isPublished()" (click)="openFactorEdit(f.modelFactorId)"><i class="fa-solid fa-pen"></i></button>
+                                        <button class="sonar-factor__remove" title="Remove signal" [disabled]="factorBusy() || isPublished()" (click)="removeFactor(f.modelFactorId)">✕</button>
                                     </div>
                                 </div>
                                 <div class="sonar-factor__tune">
-                                    <input type="range" min="0" max="100" step="1" [ngModel]="f.weight" (ngModelChange)="onWeightInput(f.modelFactorId, +$event)" />
+                                    <input type="range" min="0" max="100" step="1" [disabled]="isPublished()" [ngModel]="f.weight" (ngModelChange)="onWeightInput(f.modelFactorId, +$event)" />
                                     <span class="sonar-mono sonar-factor__weight">{{ (f.weight / 100) | number:'1.2-2' }}</span>
                                 </div>
                             </div>
@@ -139,7 +158,7 @@
                 <section class="sonar-card">
                     <div class="sonar-card__head">
                         <div class="sonar-card__label">Live band distribution <span class="sonar-faint">· {{ population() === null ? '—' : (population() | number) }} members</span></div>
-                        <button class="sonar-btn" (click)="activeView.set('bands')">Edit bands</button>
+                        <button class="sonar-btn" [disabled]="isPublished()" (click)="activeView.set('bands')">Edit bands</button>
                     </div>
                     @if (previewError()) {
                         <div class="sonar-chip sonar-chip--critical" style="white-space:normal; height:auto; padding:0.5rem 0.75rem">⚠ {{ previewError() }}</div>
@@ -218,6 +237,7 @@
                     </sonar-factor-builder>
                 }
                 @if (activeView() === 'bands') { <sonar-score-band-builder [bandSetId]="selectedModel()?.BandSetID ?? null" (saved)="onBandsSaved($event)" (close)="activeView.set('rubric')"></sonar-score-band-builder> }
+                @if (activeView() === 'versions') { <sonar-version-history [modelId]="selectedModelId()" [windows]="timeWindows()" (restored)="onVersionRestored()" (close)="activeView.set('rubric')"></sonar-version-history> }
                 @if (activeView() === 'publish') {
                     <sonar-publish-snapshot
                         [model]="selectedModel()"
