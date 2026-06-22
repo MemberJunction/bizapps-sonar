@@ -4,13 +4,18 @@ import {
     mjBizAppsSonarScoreEntity,
     mjBizAppsSonarScoreBandEntity,
     mjBizAppsSonarScoreFactorContributionEntity,
+    mjBizAppsSonarScoreHistoryEntity,
     mjBizAppsSonarFactorEntity,
 } from "@mj-biz-apps/sonar-entities";
 
 const SCORE = "MJ_BizApps_Sonar: Scores";
 const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
 const CONTRIBUTION = "MJ_BizApps_Sonar: Score Factor Contributions";
+const SCORE_HISTORY = "MJ_BizApps_Sonar: Score Histories";
 const FACTOR = "MJ_BizApps_Sonar: Factors";
+
+/** Trend of a score vs. its previous recompute (mirrors Score.TrendDirection). */
+export type TrendDirection = "Up" | "Flat" | "Down";
 
 /** Band identity used for color coding across every Sonar surface. */
 export type BandKey = "healthy" | "watch" | "atrisk" | "critical";
@@ -26,6 +31,19 @@ export interface ScoredMember {
     bandLabel: string;
     bandKey: BandKey;
     computedAt: Date | null;
+    /** Change in normalized score since the previous recompute (rounded); null on first scoring. */
+    delta: number | null;
+    /** Up/Flat/Down vs. the previous recompute; null on first scoring. */
+    trendDirection: TrendDirection | null;
+}
+
+/** One point in a member's score history — drives the drill-down sparkline. */
+export interface ScoreHistoryPoint {
+    computedAt: Date;
+    asOf: Date | null;
+    normalizedScore: number;
+    bandLabel: string;
+    bandKey: BandKey;
 }
 /** One line of a score's "why" breakdown — the full raw → normalized → weighted chain, so the
  *  math is traceable (a ScoreFactorContribution joined to its factor). */
@@ -129,10 +147,71 @@ export class ScoreReadService {
         const scores = result.Success ? result.Results ?? [] : [];
         const total = result.TotalRowCount ?? scores.length;
         if (scores.length === 0) return { members: [], total };
+        return { members: await this.toScoredMembers(scores), total };
+    }
 
+    /**
+     * The biggest movers since the previous recompute, split into risers (score went up) and
+     * fallers (down). Reads `Score.Delta` (set by ScoreWriter), so it's two small top-N queries —
+     * no full-population scan. Members scored only once (Delta null) are excluded by `Delta <>/> 0`.
+     */
+    public async moversForModel(modelId: string, limit = 5): Promise<{ risers: ScoredMember[]; fallers: ScoredMember[] }> {
+        const [risers, fallers] = await Promise.all([
+            this.queryMovers(modelId, "desc", limit),
+            this.queryMovers(modelId, "asc", limit),
+        ]);
+        return { risers, fallers };
+    }
+
+    /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
+    private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
+        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+            EntityName: SCORE,
+            ExtraFilter: `ScoreModelID='${modelId}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
+            OrderBy: `Delta ${dir === "desc" ? "DESC" : "ASC"}`,
+            MaxRows: limit,
+            ResultType: "entity_object",
+        });
+        const scores = result.Success ? result.Results ?? [] : [];
+        return this.toScoredMembers(scores);
+    }
+
+    /**
+     * A member's score history for the sparkline — every persisted ScoreHistory snapshot for this
+     * model+anchor, oldest first. Uncapped: a sparkline needs the whole series, and per-member it's
+     * one row per recompute (small).
+     */
+    public async historyForMember(modelId: string, anchorRecordId: string): Promise<ScoreHistoryPoint[]> {
+        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
+            EntityName: SCORE_HISTORY,
+            ExtraFilter: `ScoreModelID='${modelId}' AND AnchorRecordID='${anchorRecordId}'`,
+            // Order by the business "as of" date (the trajectory's time axis), then ComputedAt to
+            // break ties — a backfill writes several rows at the same wall-clock but distinct AsOf.
+            OrderBy: "AsOfDate ASC, ComputedAt ASC",
+            ResultType: "entity_object",
+            IgnoreMaxRows: true,
+        });
+        const rows = result.Success ? result.Results ?? [] : [];
+        if (rows.length === 0) return [];
+        const bandById = await this.loadBandsByIds(rows.map((r) => r.BandID));
+        return rows.map((r) => {
+            const label = r.BandID ? bandById.get(r.BandID)?.Label ?? "Unbanded" : "Unbanded";
+            return {
+                computedAt: r.ComputedAt,
+                asOf: r.AsOfDate ?? null,
+                normalizedScore: Math.round(r.NormalizedScore ?? 0),
+                bandLabel: label,
+                bandKey: this.bandKey(label),
+            } satisfies ScoreHistoryPoint;
+        });
+    }
+
+    /** Resolve bands + anchor names for a set of scores and map them to presentation-ready rows. */
+    private async toScoredMembers(scores: mjBizAppsSonarScoreEntity[]): Promise<ScoredMember[]> {
+        if (scores.length === 0) return [];
         const bandById = await this.loadBands(scores);
         const names = await this.resolveAnchorNames(scores);
-        const members = scores.map((s) => {
+        return scores.map((s) => {
             const label = s.BandID ? bandById.get(s.BandID)?.Label ?? "Unbanded" : "Unbanded";
             return {
                 scoreId: s.ID,
@@ -142,9 +221,10 @@ export class ScoreReadService {
                 bandLabel: label,
                 bandKey: this.bandKey(label),
                 computedAt: s.ComputedAt ?? null,
+                delta: s.Delta != null ? Math.round(s.Delta) : null,
+                trendDirection: s.TrendDirection ?? null,
             } satisfies ScoredMember;
         });
-        return { members, total };
     }
 
     /** A single score's contribution breakdown (factor name + weighted value), largest first. */
@@ -240,7 +320,12 @@ export class ScoreReadService {
 
     /** Band rows referenced by a set of scores, keyed by ID (for label lookup). */
     private async loadBands(scores: mjBizAppsSonarScoreEntity[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
-        const ids = [...new Set(scores.map((s) => s.BandID).filter((id): id is string => !!id))];
+        return this.loadBandsByIds(scores.map((s) => s.BandID));
+    }
+
+    /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID. */
+    private async loadBandsByIds(rawIds: (string | null)[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
+        const ids = [...new Set(rawIds.filter((id): id is string => !!id))];
         if (ids.length === 0) return new Map();
         const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
             EntityName: SCORE_BAND,

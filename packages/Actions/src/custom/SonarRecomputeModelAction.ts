@@ -9,7 +9,9 @@ import { RecomputeOrchestrator } from "@mj-biz-apps/sonar-engine";
  * contributions, marks the run Succeeded/Failed. Requires a PUBLISHED model (a persisted Score
  * must reference the ScoreModelVersion that produced it).
  *
- * Input param:  ModelID (string)
+ * Input params: ModelID (string), AsOf (optional ISO date string — the "as of" business date the
+ *               windowed factors are evaluated against; defaults to now). AsOf lets an operator
+ *               backfill a trajectory by recomputing at several past dates.
  * Output param: Result  (JSON string of { runId, status, recordsScored })
  */
 @RegisterClass(BaseAction, "SonarRecomputeModel")
@@ -19,8 +21,12 @@ export class SonarRecomputeModelAction extends BaseAction {
         if (!modelId) {
             return { Success: false, ResultCode: "VALIDATION_ERROR", Message: "ModelID is required.", Params: params.Params };
         }
+        const asOf = this.resolveAsOf(params);
+        if (asOf === "invalid") {
+            return { Success: false, ResultCode: "VALIDATION_ERROR", Message: "AsOf must be a valid date string.", Params: params.Params };
+        }
         try {
-            const run = await new RecomputeOrchestrator().recompute(modelId, new Date(), params.ContextUser);
+            const run = await new RecomputeOrchestrator().recompute(modelId, asOf, params.ContextUser);
             return {
                 Success: run.status === "Succeeded",
                 ResultCode: run.status === "Succeeded" ? "SUCCESS" : "ERROR",
@@ -37,5 +43,13 @@ export class SonarRecomputeModelAction extends BaseAction {
     private getInput(params: RunActionParams, name: string): string | null {
         const p = params.Params.find((x: ActionParam) => x.Name === name);
         return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
+    }
+
+    /** The as-of date for this run: the AsOf param if given+valid, else now. "invalid" on a bad string. */
+    private resolveAsOf(params: RunActionParams): Date | "invalid" {
+        const raw = this.getInput(params, "AsOf");
+        if (!raw) return new Date();
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? "invalid" : d;
     }
 }

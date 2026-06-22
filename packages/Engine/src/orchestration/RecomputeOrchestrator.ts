@@ -182,6 +182,7 @@ export class RecomputeOrchestrator {
                 scores,
                 asOf,
                 contextUser,
+                run.ID,
             );
             await this.finishRun(run, "Succeeded", recordsScored);
             return { runId: run.ID, status: "Succeeded", recordsScored };

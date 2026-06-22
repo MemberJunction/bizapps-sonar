@@ -39,6 +39,41 @@
                     }
                 </section>
 
+                <!-- Movers since last run -->
+                @if (hasMovers()) {
+                    <section class="sonar-card sonar-movers">
+                        <button type="button" class="sonar-movers__head" (click)="toggleMovers()" [attr.aria-expanded]="showMovers()">
+                            <span class="sonar-card__label">Movers since last run</span>
+                            <span class="sonar-chip">{{ movers().fallers.length }} down · {{ movers().risers.length }} up</span>
+                            <i class="fa-solid" [class.fa-chevron-down]="!showMovers()" [class.fa-chevron-up]="showMovers()"></i>
+                        </button>
+                        @if (showMovers()) {
+                            <div class="sonar-movers__cols">
+                                <div class="sonar-movers__col">
+                                    <div class="sonar-movers__col-label sonar-neg">Biggest drops</div>
+                                    @for (m of movers().fallers; track m.scoreId) {
+                                        <button class="sonar-mover" (click)="select(m)">
+                                            <span class="sonar-mover__name">{{ m.name }}</span>
+                                            <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
+                                            <span class="sonar-trend sonar-trend--neg">↓ {{ deltaLabel(m.delta) }}</span>
+                                        </button>
+                                    } @empty { <span class="sonar-faint sonar-mover__empty">No drops</span> }
+                                </div>
+                                <div class="sonar-movers__col">
+                                    <div class="sonar-movers__col-label sonar-pos">Biggest gains</div>
+                                    @for (m of movers().risers; track m.scoreId) {
+                                        <button class="sonar-mover" (click)="select(m)">
+                                            <span class="sonar-mover__name">{{ m.name }}</span>
+                                            <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
+                                            <span class="sonar-trend sonar-trend--pos">↑ {{ deltaLabel(m.delta) }}</span>
+                                        </button>
+                                    } @empty { <span class="sonar-faint sonar-mover__empty">No gains</span> }
+                                </div>
+                            </div>
+                        }
+                    </section>
+                }
+
                 <div class="sonar-split">
                     <!-- Triage list -->
                     <section class="sonar-card">
@@ -97,7 +132,7 @@
                                     <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
                                     <span class="sonar-dropper__main">
                                         <span class="sonar-dropper__name">{{ m.name }}</span>
-                                        <span class="sonar-mono sonar-dropper__reason">score {{ m.normalizedScore }} / 100</span>
+                                        <span class="sonar-mono sonar-dropper__reason">score {{ m.normalizedScore }} / 100@if (m.delta !== null && m.delta !== 0) { <span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> }</span>
                                     </span>
                                     <span class="sonar-chip sonar-chip--{{ m.bandKey }}">{{ m.bandLabel }}</span>
                                 </button>
@@ -124,6 +159,18 @@
                                     <div class="sonar-drill__score">
                                         <div class="sonar-drill__num">{{ sel.normalizedScore }}</div>
                                         <div class="sonar-chip sonar-chip--{{ sel.bandKey }}">{{ sel.bandLabel }}</div>
+                                        @if (spark(); as sp) {
+                                            <svg class="sonar-spark" viewBox="0 0 120 28" preserveAspectRatio="none" role="img" aria-label="Score history">
+                                                <path class="sonar-spark__area" [attr.d]="sp.area"></path>
+                                                <path class="sonar-spark__line sonar-spark__line--{{ sel.bandKey }}" [attr.d]="sp.line"></path>
+                                                <circle class="sonar-spark__dot sonar-spark__dot--{{ sel.bandKey }}" [attr.cx]="sp.lastX" [attr.cy]="sp.lastY" r="2.2"></circle>
+                                            </svg>
+                                            @if (sel.delta !== null && sel.delta !== 0) {
+                                                <div class="sonar-trend sonar-trend--{{ trendTone(sel.trendDirection) }}">{{ trendArrow(sel.trendDirection) }} {{ deltaLabel(sel.delta) }} since last run</div>
+                                            }
+                                        } @else if (history().length === 1) {
+                                            <div class="sonar-faint sonar-spark__hint">First snapshot — trend appears next recompute</div>
+                                        }
                                     </div>
                                 </div>
 

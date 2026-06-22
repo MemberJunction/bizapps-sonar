@@ -213,6 +213,132 @@ network, full templates.
 
 ---
 
+## Score & outcome history — build plan (Phase A done; B–D pending)
+
+The "trajectory tier" (sequence #4–5) and the prerequisite for the **action layer** (gives the
+score-based outcome signal + trend/delta segments). **No migration needed** — `ScoreHistory`,
+`ScoreBandTransition`, and `Score`'s `PreviousNormalizedScore`/`Delta`/`TrendDirection`/
+`DataCompleteness` columns all already exist; this is pure engine + UI wiring.
+
+**Phase A — engine (`ScoreWriter` + orchestrator).** ✅ *done (build clean, 44/44 tests pass)*
+- Trend on `Score`: from the existing row (already loaded for diffing) set `PreviousNormalizedScore`,
+  `PreviousBandID`, `Delta = new − prev`, `TrendDirection` (Up/Flat/Down, ±0.5 deadband),
+  `DataCompleteness` (fraction of counted factors with real data). `TrendDirection`/`Delta` null on
+  first-ever scoring (no prior).
+- `ScoreHistory` snapshot per scored anchor each recompute. **Schema note:** the real `ScoreHistory`
+  has no `ScoreID`/`RawScore`/`Delta` — it's the leaner set `ScoreModelID`/`ScoreModelVersionID`/
+  `AnchorEntityID`/`AnchorRecordID`/`NormalizedScore`/`BandID`/`AsOfDate`/`ComputedAt`/
+  `DataCompleteness`/`Confidence` + `ContributionsJSON`. `Delta` lives on `Score` only and is
+  re-derivable from consecutive history rows, so no loss.
+- `ScoreBandTransition` when `BandID` changes on an already-scored anchor. **Schema note:** real
+  fields are `ScoreModelID`/`AnchorRecordID`/`FromBandID`/`ToBandID`/`Direction`/`OccurredAt`/
+  `RecomputeRunID`/`Handled` — no `AnchorEntityID`/`Delta` column; `Direction` from `Delta` sign
+  (≥0 = Improving), `Handled=false`. Run ID threaded through `ScoreWriter.write(…, runId)`.
+- Deferred: `TrendSlope` (needs ≥2 history points), `Confidence` (needs a model) — left null.
+
+**Phase B — read service.** ✅ *done (build clean)* `ScoredMember` gains `delta`/`trendDirection`
+(from `Score.Delta`/`TrendDirection`, populated via a shared `toScoredMembers` mapper);
+`historyForMember(modelId, anchorRecordId)` (oldest-first `ScoreHistory` series for a sparkline,
+uncapped); `moversForModel(modelId, limit)` → `{ risers, fallers }` via two top-N `Delta` queries
+(`> 0` / `< 0`), so no full scan. Movers read `Score.Delta` rather than `ScoreBandTransition` — the
+transition table stays reserved for the action-layer queue.
+
+**Phase C — EM UI.** ✅ *done (build clean)* Per-row delta indicator + trend arrow on triage rows
+(↑/↓ + signed delta, green rise / red drop, hidden when flat or first-scored); inline SVG sparkline
+in the drill-down header (120×28, Y-scaled to the member's own min/max, band-colored, "first
+snapshot" hint when only one point); collapsible "Movers since last run" card (biggest drops /
+biggest gains, click-to-drill). Pure SVG + signals — no charting lib. Surfaces stay empty/flat
+until history accrues (Phase D).
+
+**Phase D — demo enablement.** ✅ *done (verified live in the EM).* The cheese factor was repointed
+from AllTime to a **Rolling-90d window on `RegistrationDate`** (via the AnchorDateField bridge — see
+Time windows), then recomputed at four `asOf` dates (2026-03-23 / 04-22 / 05-22 / 06-22) via a
+standalone orchestrator script (`setupSQLServerClient` against Sonar_Demo — no GraphQL/auth). Result:
+4 distinct `ScoreHistory` snapshots × 2000 members, avg score climbing 26.6 → 33.9 → 34.9 → 35.0;
+movers = 600 risers / 1043 fallers (swings to +93 / −97). The Recompute action's optional `AsOf` param
+(✅) and `historyForMember` ordering by `AsOfDate` (✅) support the backfill. Verified in the
+Engagement Manager: per-row trend deltas (↓ −33 …), the **Movers since last run** panel (drops/gains),
+and the drill-down **sparkline** + "↑ +93 since last run" all render against the live data.
+
+**Demo-state note:** the cheese model now scores on Rolling-90d registrations (was AllTime). The bridge
+TimeWindow row `EBEE0EF7-…` carries `AnchorDateField='RegistrationDate'` as the related date column —
+to be migrated onto `Factor.DateField` when that lands (the published version snapshot still reflects
+the old AllTime config, but recompute reads live config, so scoring is correct).
+
+**Decisions:** `ScoreBandTransition.Direction` from `Delta` sign (higher = Improving); a history row
+per recompute per scored anchor (change-only diffing is the deferred scale path); `TrendSlope`/
+`Confidence` deferred.
+
+---
+
+## Time windows — status & follow-ups
+
+The engine now models all five `TimeWindow` types. The SQL layer (`factorSql.ts`) is complete and
+unit-tested for **Rolling** (days + months), **Calendar** (month/quarter/year), **SinceEvent**, and
+**RenewalRelative** (`AllTime` = no bound). `CompiledWindow` is a discriminated union; per-anchor
+windows (SinceEvent/RenewalRelative) emit a 1:1 anchor JOIN and read a bound off the anchor row.
+48/48 engine tests pass.
+
+**Done now (no migration):** `FactorCompiler` wires **Rolling** and **Calendar**. `SinceEvent`/
+`RenewalRelative` are SQL-complete but throw a clear "not yet configurable" error — they need a
+*second* date column (related activity date AND a distinct anchor boundary date), which the schema
+can't express today.
+
+**The schema gap.** Nothing in config names the **related-entity activity-date column** (e.g.
+`RegistrationDate` — the "when did it happen" column every windowed type filters on). It's not on
+`TimeWindow` (which must stay reusable/entity-agnostic), `Factor`, or `ModelRelatedEntity`. The
+current engine reading it from `TimeWindow.AnchorDateField` is a latent bug: a Rolling window with
+`AnchorDateField=null` (as the seeds have) silently counts everything. Masked only because the live
+cheese factor is AllTime.
+
+**Follow-ups (deferred — migration paused by request):**
+1. **Add `Factor.DateField`** (nullable nvarchar) — the related activity-date column. Migration + codegen.
+   It's intrinsic to the factor's data definition, keeps `TimeWindow` reusable.
+2. **Flip the bridge:** `resolveWindow` currently sources the related date column from
+   `TimeWindow.AnchorDateField` as a TEMPORARY bridge (emits the predicate only when set, so nothing
+   regresses). Once `Factor.DateField` exists, read it from there and free `AnchorDateField` to mean
+   only the anchor boundary date.
+3. **Wire `SinceEvent`/`RenewalRelative`** in `FactorCompiler` (related date = `Factor.DateField`,
+   anchor boundary = `TimeWindow.AnchorDateField`); remove the throw.
+4. **Factor-builder UI:** expose `DateField` (a dropdown of the related entity's date columns) so an
+   operator sets it explicitly — wrong-but-silent is the worst failure for an explainable scorer.
+5. **Calendar:** org-specific "terms" (beyond month/quarter/year) need a calendar/term table — deferred.
+
+**Unblocks Phase D.** Once a Rolling-90d-on-`RegistrationDate` factor is configurable, point the cheese
+model at it, republish, and run the `AsOf` backfill. (Interim option: the AnchorDateField bridge can
+already make a Rolling window filter on `RegistrationDate` without the migration, at the cost of
+overloading that field.)
+
+---
+
+## Backlog — factors, relationships, demo data
+
+**Multi-hop factors (via `RelationshipPath`).** The `FactorCompiler` is single-hop today —
+`resolveAnchorKeyColumn` requires the related entity to have exactly one direct FK to the anchor.
+Signals that reach the anchor through an intermediate (e.g. *email clicks per member* =
+`Member → EmailSend → EmailClick`) can't be expressed. `ModelRelatedEntity.RelationshipPath` exists
+for this (currently `"[]"`, ignored). Work: resolve a join path (auto = BFS over MJ's FK graph, or
+explicit when ambiguous) → emit the intervening JOINs → guard fan-out (`COUNT(DISTINCT …)` on
+one-to-many hops). Surfaced by the "Email Engagements"/"Email Clicks" attempts on the cheese model.
+
+**Factor editing UI (in progress).** Rubric rows are weight-slider + remove only; no way to edit a
+factor's definition without delete/re-add. Building: click-to-edit (pencil) that reopens the factor
+builder pre-loaded, saving back to the existing Factor/ModelFactor. Plus **filter the source-entity
+dropdown to entities with a direct FK to the anchor** (would have hidden the wrong-dataset "Email
+Engagements" entirely) and **hide window types the engine can't run yet** (RenewalRelative/SinceEvent
+currently selectable → fail at recompute). Editing a factor leaves prior scores stale until recompute.
+
+**Deferred: full purge of the `membership` (old dummy) dataset.** Decided to defer. When done:
+delete the 2 old Sonar models (Demo Member Engagement — Active w/ version+scores; Context Test Model —
+Draft) + dependents, **keeping band set `7E3B9C42` (shared with the cheese model)**; then remove the
+5 `membership` entities + tables (Members 15, EmailEngagement 36, EventRegistration 27, Certification
+9, Payment 20 = 107 rows). Do the model deletes via the entity layer (cascade/integrity), and remove
+the entities via **drop-tables-then-CodeGen-reconcile** — NOT hand-deleted `__mj.Entity` rows (would
+leave metadata inconsistent and can break the demo). Already done: removed the stray
+`email_engagements` ModelRelatedEntity link from the cheese model.
+
+---
+
 ## Design notes
 
 ### `ICombineStrategy` — the combine-layer Strategy seam (do it on the 2nd strategy)

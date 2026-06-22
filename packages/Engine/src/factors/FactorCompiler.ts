@@ -6,18 +6,12 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
-import { CompiledFactorSpec, buildAggregateExpression } from "./factorSql";
+import { CompiledFactorSpec, CompiledWindow, buildAggregateExpression, windowNeedsAnchorJoin } from "./factorSql";
 import {
     CompiledFilter,
     CompositeFilterDescriptor,
     compileFilter,
 } from "./filter";
-
-/** The date pieces resolved from a factor's TimeWindow (both null when there is no window). */
-interface WindowSpec {
-    dateColumn: string | null;
-    windowLengthDays: number | null;
-}
 
 /**
  * Factory. Turns a factor's stored configuration into a ready-to-run evaluator (config in →
@@ -43,16 +37,20 @@ export class FactorCompiler {
             relatedEntity,
             factor.AnchorEntityID,
         );
-        const window = await this.resolveWindow(factor, contextUser);
         const validColumns = relatedEntity.Fields.map((f) => f.Name);
+        const window = await this.resolveWindow(factor, validColumns, contextUser);
         const filter = this.resolveFilter(factor, validColumns);
+        const anchorJoin = windowNeedsAnchorJoin(window)
+            ? this.resolveAnchorTable(factor.AnchorEntityID)
+            : { table: null, pkColumn: null };
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
             relatedTable: `[${relatedEntity.SchemaName}].[${relatedEntity.BaseTable}]`,
             anchorKeyColumn,
-            dateColumn: window.dateColumn,
-            windowLengthDays: window.windowLengthDays,
+            window,
+            anchorTable: anchorJoin.table,
+            anchorPkColumn: anchorJoin.pkColumn,
             // The aggregate expression validates AggregateFieldName against the related
             // entity's real columns, so it is built here (after the entity is resolved).
             aggregateSql: buildAggregateExpression(
@@ -64,6 +62,19 @@ export class FactorCompiler {
             filterParams: filter.params,
         };
         return new CompiledFactorEvaluator(spec);
+    }
+
+    /** The anchor entity's table (bracket-quoted) + PK column, for per-anchor window joins. */
+    private resolveAnchorTable(anchorEntityID: string): { table: string; pkColumn: string } {
+        const anchor = new Metadata().EntityByID(anchorEntityID);
+        if (!anchor) {
+            throw new Error(`FactorCompiler: anchor entity ${anchorEntityID} not found in metadata.`);
+        }
+        const pk = anchor.PrimaryKeys[0]?.Name;
+        if (!pk) {
+            throw new Error(`FactorCompiler: anchor entity '${anchor.Name}' has no primary key.`);
+        }
+        return { table: `[${anchor.SchemaName}].[${anchor.BaseTable}]`, pkColumn: pk };
     }
 
     /**
@@ -154,16 +165,20 @@ export class FactorCompiler {
     }
 
     /**
-     * Resolve the factor's TimeWindow into a date column + day count. v1 supports Rolling
-     * windows and "All Time" (no time bound); "no window" (factor has none) is also fine.
-     * Other window types (e.g. RenewalRelative) are deferred.
+     * Resolve the factor's TimeWindow into a {@link CompiledWindow} (or null for AllTime / no
+     * window). Rolling and Calendar are wired; SinceEvent and RenewalRelative are implemented in
+     * the SQL layer but not yet wireable here — they need a SECOND date column (the related
+     * activity date AND a distinct anchor boundary date), and the schema can't express both until
+     * `Factor.DateField` lands (see roadmap). Until then the related date column is sourced from
+     * `TimeWindow.AnchorDateField` as a temporary bridge.
      */
     private async resolveWindow(
         factor: mjBizAppsSonarFactorEntity,
+        validColumns: string[],
         contextUser: UserInfo,
-    ): Promise<WindowSpec> {
+    ): Promise<CompiledWindow | null> {
         if (!factor.TimeWindowID) {
-            return { dateColumn: null, windowLengthDays: null };
+            return null;
         }
         const md = new Metadata();
         const tw = await md.GetEntityObject<mjBizAppsSonarTimeWindowEntity>(
@@ -171,27 +186,64 @@ export class FactorCompiler {
             contextUser,
         );
         if (!(await tw.Load(factor.TimeWindowID))) {
-            throw new Error(
-                `FactorCompiler: TimeWindow ${factor.TimeWindowID} not found.`,
-            );
+            throw new Error(`FactorCompiler: TimeWindow ${factor.TimeWindowID} not found.`);
         }
         // "All Time" means no time bound — aggregate over the entity's full history (no date filter).
         if (tw.WindowType === "AllTime") {
-            return { dateColumn: null, windowLengthDays: null };
+            return null;
         }
-        if (tw.WindowType !== "Rolling") {
+        // TEMPORARY BRIDGE: the related activity-date column belongs on Factor.DateField (pending
+        // migration); until then it is read from AnchorDateField. A window with no date column set
+        // degrades to "no time bound" rather than silently mis-filtering.
+        const dateColumn = this.bridgeDateColumn(tw, validColumns);
+        if (!dateColumn) {
+            return null;
+        }
+        switch (tw.WindowType) {
+            case "Rolling":
+                if (tw.LengthDays == null && tw.LengthMonths == null) {
+                    throw new Error(`FactorCompiler: Rolling window ${tw.ID} needs LengthDays or LengthMonths.`);
+                }
+                return { kind: "Rolling", dateColumn, lengthDays: tw.LengthDays, lengthMonths: tw.LengthMonths };
+            case "Calendar":
+                return { kind: "Calendar", dateColumn, period: this.calendarPeriod(tw) };
+            case "SinceEvent":
+            case "RenewalRelative":
+                throw new Error(
+                    `FactorCompiler: '${tw.WindowType}' windows are implemented in SQL but not yet configurable — ` +
+                        `they need a distinct anchor boundary date, which requires Factor.DateField (roadmapped).`,
+                );
+            default:
+                throw new Error(`FactorCompiler: unsupported window type '${tw.WindowType}'.`);
+        }
+    }
+
+    /** Bridge source for the related activity-date column (TimeWindow.AnchorDateField), validated
+     *  against the related entity's real columns (typo / injection guard). Null when unset. */
+    private bridgeDateColumn(tw: mjBizAppsSonarTimeWindowEntity, validColumns: string[]): string | null {
+        if (!tw.AnchorDateField) {
+            return null;
+        }
+        const match = validColumns.find((c) => c.toLowerCase() === tw.AnchorDateField!.toLowerCase());
+        if (!match) {
             throw new Error(
-                `FactorCompiler: only Rolling and All Time windows are supported yet (got '${tw.WindowType}').`,
+                `FactorCompiler: window date field '${tw.AnchorDateField}' is not a column on the related entity.`,
             );
         }
-        if (!tw.AnchorDateField || tw.LengthDays == null) {
-            throw new Error(
-                `FactorCompiler: Rolling window ${tw.ID} needs both AnchorDateField and LengthDays.`,
-            );
+        return match;
+    }
+
+    /** Map a Calendar window's length to a named period: 1mo → month, 3mo → quarter, 12mo → year. */
+    private calendarPeriod(tw: mjBizAppsSonarTimeWindowEntity): "month" | "quarter" | "year" {
+        switch (tw.LengthMonths) {
+            case 1: return "month";
+            case 3: return "quarter";
+            case 12: return "year";
+            default:
+                throw new Error(
+                    `FactorCompiler: Calendar window ${tw.ID} supports LengthMonths of 1 (month), 3 (quarter), or 12 (year); ` +
+                        `org-specific 'terms' are not supported yet (got ${tw.LengthMonths}).`,
+                );
         }
-        return {
-            dateColumn: tw.AnchorDateField,
-            windowLengthDays: tw.LengthDays,
-        };
     }
 }

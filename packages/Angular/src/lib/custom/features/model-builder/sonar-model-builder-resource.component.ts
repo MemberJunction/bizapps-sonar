@@ -6,7 +6,7 @@ import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
-import { FactorService, RubricRow } from "../../core/services/factor.service";
+import { FactorService, RubricRow, EditFactorVM } from "../../core/services/factor.service";
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
@@ -248,11 +248,36 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         return Math.round((Math.abs(value) / max) * 100);
     }
 
-    /** A factor was created + bound — refresh the rubric + rail signal count, then return. */
+    /** The factor being edited (null = the builder is in create mode). */
+    public readonly editFactor = signal<EditFactorVM | null>(null);
+
+    /** Open the factor builder to ADD a new signal (clears any prior edit context). */
+    public openFactorCreate(): void {
+        this.editFactor.set(null);
+        this.activeView.set("factor");
+    }
+
+    /** Open the factor builder to EDIT an existing rubric signal — pre-load its full config. */
+    public async openFactorEdit(modelFactorId: string): Promise<void> {
+        if (this.factorBusy()) return;
+        const vm = await this.factorService.loadFactorForEdit(modelFactorId);
+        if (!vm) { this.toast.error("Couldn't open that signal for editing."); return; }
+        this.editFactor.set(vm);
+        this.activeView.set("factor");
+    }
+
+    /** Leave the factor builder without saving — clear edit context. */
+    public closeFactorBuilder(): void {
+        this.editFactor.set(null);
+        this.activeView.set("rubric");
+    }
+
+    /** A factor was created/edited — refresh the rubric + rail signal count, then return. */
     public async onFactorSaved(): Promise<void> {
         const id = this.selectedModelId();
         if (id) this.rubric.set(await this.factorService.rubricForModel(id));
         await this.sidebar?.refresh();
+        this.editFactor.set(null);
         this.activeView.set("rubric");
     }
 

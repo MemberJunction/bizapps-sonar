@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
-import { FactorService, Aggregation, NormalizationMethod, WeightMode } from "../../../../core/services/factor.service";
+import { FactorService, Aggregation, EditFactorVM, NormalizationMethod, WeightMode } from "../../../../core/services/factor.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 
 /** View-model for the live factor preview (a representative member's real numbers). */
@@ -56,6 +56,9 @@ export class SonarFactorBuilderComponent {
     public readonly sources = input<FactorSource[]>([]);
     /** Time window options (seeded Time Windows). */
     public readonly windows = input<FactorWindow[]>([]);
+    /** When set, the builder edits this existing factor instead of creating a new one. */
+    public readonly edit = input<EditFactorVM | null>(null);
+    public readonly editing = computed(() => !!this.edit());
 
     /** Raised when the user closes the builder (Cancel). */
     public readonly close = output<void>();
@@ -87,15 +90,38 @@ export class SonarFactorBuilderComponent {
     public readonly weight = signal(20);
     public readonly weightMode = signal<WeightMode>("Additive");
 
+    /** True once an edit VM has been hydrated into the composer signals (one-shot guard). */
+    private hydrated = false;
+
     constructor() {
-        // Default the source + window pickers to the first option once the host supplies them.
+        // Edit mode: pre-fill the composer from the loaded factor exactly once. Runs before the
+        // "default to first option" effects so they see populated values and skip.
         effect(() => {
-            const srcs = this.sources();
-            if (!this.sourceId() && srcs.length > 0) this.sourceId.set(srcs[0].id);
+            const vm = this.edit();
+            if (!vm || this.hydrated) return;
+            this.hydrated = true;
+            this.factorName.set(vm.name);
+            this.aggregation.set(vm.aggregation);
+            this.sourceId.set(vm.sourceRelatedEntityID);
+            this.aggregateField.set(vm.aggregateFieldName ?? "");
+            this.windowId.set(vm.timeWindowID);
+            this.normalization.set(vm.normalizationMethod);
+            this.higherIsBetter.set(vm.higherIsBetter);
+            this.weight.set(vm.weightPct);
+            this.weightMode.set(vm.weightMode);
+            if (vm.filterExpression) {
+                try { this.filter.set(JSON.parse(vm.filterExpression) as CompositeFilterDescriptor); } catch { /* keep empty */ }
+            }
+        });
+        // Default the source + window pickers to the first option once the host supplies them
+        // (skipped in edit mode — the hydrate effect owns those values).
+        effect(() => {
+            const srcs = this.selectableSources();
+            if (!this.editing() && !this.sourceId() && srcs.length > 0) this.sourceId.set(srcs[0].id);
         });
         effect(() => {
             const wins = this.windows();
-            if (!this.windowId() && wins.length > 0) this.windowId.set(wins[0].id);
+            if (!this.editing() && !this.windowId() && wins.length > 0) this.windowId.set(wins[0].id);
         });
         // Live preview: whenever any draft input changes, debounce then re-evaluate on the
         // real population. Reading the signals here registers them as effect dependencies.
@@ -112,6 +138,22 @@ export class SonarFactorBuilderComponent {
 
     /** The currently chosen data source (resolved from sourceId). */
     public readonly selectedSource = computed(() => this.sources().find((s) => s.id === this.sourceId()) ?? null);
+
+    /** Sources the engine can actually score against this anchor: those whose related entity has a
+     *  direct FK to the anchor (single-hop). The currently-selected source is always kept so an
+     *  in-progress/edited choice never vanishes. Prevents picking unrelated entities (which would
+     *  only fail later at recompute with "expected exactly one foreign key … found 0"). */
+    public readonly selectableSources = computed<FactorSource[]>(() => {
+        const anchorId = this.anchorEntityID();
+        const current = this.sourceId();
+        if (!anchorId) return this.sources();
+        const md = new Metadata();
+        return this.sources().filter((s) => {
+            if (s.id === current) return true;
+            const ent = md.Entities.find((e) => e.ID === s.relatedEntityID);
+            return !!ent && ent.Fields.some((f) => f.RelatedEntityID === anchorId);
+        });
+    });
 
     /** Aggregatable (numeric) fields on the chosen source entity, from MJ metadata. */
     public readonly aggregatableFields = computed<{ name: string; label: string }[]>(() => {
@@ -256,24 +298,24 @@ export class SonarFactorBuilderComponent {
         const source = this.selectedSource();
         if (!this.canSave() || !modelId || !anchorEntityID || !source) return;
 
+        const input = {
+            name: this.factorName().trim(),
+            anchorEntityID,
+            scoreModelID: modelId,
+            sourceRelatedEntityID: source.id,
+            aggregation: this.aggregation(),
+            aggregateFieldName: this.fieldRequired() ? this.aggregateField().trim() : undefined,
+            filterExpression: this.filterExpression(),
+            timeWindowID: this.windowId() ?? undefined,
+            normalizationMethod: this.normalization(),
+            higherIsBetter: this.higherIsBetter(),
+        };
         this.saving.set(true);
         try {
-            const ok = await this.factorService.createAndBind(
-                {
-                    name: this.factorName().trim(),
-                    anchorEntityID,
-                    scoreModelID: modelId,
-                    sourceRelatedEntityID: source.id,
-                    aggregation: this.aggregation(),
-                    aggregateFieldName: this.fieldRequired() ? this.aggregateField().trim() : undefined,
-                    filterExpression: this.filterExpression(),
-                    timeWindowID: this.windowId() ?? undefined,
-                    normalizationMethod: this.normalization(),
-                    higherIsBetter: this.higherIsBetter(),
-                },
-                this.weight() / 100,
-                this.weightMode(),
-            );
+            const vm = this.edit();
+            const ok = vm
+                ? await this.factorService.updateFactor(vm.modelFactorId, vm.factorId, input, this.weight() / 100, this.weightMode())
+                : await this.factorService.createAndBind(input, this.weight() / 100, this.weightMode());
             if (ok) this.saved.emit();
         } finally {
             this.saving.set(false);

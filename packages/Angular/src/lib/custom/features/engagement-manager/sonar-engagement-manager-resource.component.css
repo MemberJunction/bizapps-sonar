@@ -89,3 +89,46 @@
 .sonar-filters__num { width: 3.5rem; text-align: center; }
 .sonar-filters__dash { color: var(--sonar-muted); }
 .sonar-filters__sort { white-space: nowrap; }
+
+/* --- Trend indicator (delta since last recompute) --- */
+.sonar-trend { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.sonar-dropper__reason .sonar-trend { margin-left: 0.45rem; }
+.sonar-trend--pos { color: var(--sonar-healthy); }
+.sonar-trend--neg { color: var(--sonar-critical); }
+.sonar-trend--flat { color: var(--sonar-muted); }
+
+/* --- Movers since last run --- */
+.sonar-movers { padding: 0; overflow: hidden; }
+.sonar-movers__head {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    padding: 0.7rem 0.85rem; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;
+}
+.sonar-movers__head .sonar-card__label { flex: 1; }
+.sonar-movers__head i { color: var(--sonar-muted); font-size: 0.75rem; }
+.sonar-movers__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0 0.85rem 0.85rem; }
+@media (max-width: 560px) { .sonar-movers__cols { grid-template-columns: 1fr; } }
+.sonar-movers__col { display: flex; flex-direction: column; gap: 0.3rem; }
+.sonar-movers__col-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.sonar-mover {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left; font: inherit; cursor: pointer;
+    padding: 0.4rem 0.5rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
+}
+.sonar-mover:hover { border-color: var(--sonar-accent, #22d3ee); }
+.sonar-mover__name { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sonar-mover__score { font-size: 0.8rem; color: var(--sonar-muted); }
+.sonar-mover__empty { font-size: 0.78rem; padding: 0.3rem 0.1rem; }
+
+/* --- Score-history sparkline (drill-down) --- */
+.sonar-spark { display: block; width: 120px; height: 28px; margin: 0.5rem 0 0.15rem auto; overflow: visible; }
+.sonar-spark__area { fill: color-mix(in srgb, var(--sonar-accent, #22d3ee) 12%, transparent); stroke: none; }
+.sonar-spark__line { fill: none; stroke: var(--sonar-accent, #22d3ee); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.sonar-spark__line--healthy  { stroke: var(--sonar-healthy); }
+.sonar-spark__line--watch    { stroke: var(--sonar-watch); }
+.sonar-spark__line--atrisk   { stroke: var(--sonar-atrisk); }
+.sonar-spark__line--critical { stroke: var(--sonar-critical); }
+.sonar-spark__dot { fill: var(--sonar-accent, #22d3ee); }
+.sonar-spark__dot--healthy  { fill: var(--sonar-healthy); }
+.sonar-spark__dot--watch    { fill: var(--sonar-watch); }
+.sonar-spark__dot--atrisk   { fill: var(--sonar-atrisk); }
+.sonar-spark__dot--critical { fill: var(--sonar-critical); }
+.sonar-spark__hint { font-size: 0.7rem; margin-top: 0.4rem; max-width: 9rem; margin-left: auto; }

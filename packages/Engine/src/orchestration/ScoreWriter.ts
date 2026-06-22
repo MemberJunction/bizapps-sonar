@@ -3,6 +3,8 @@ import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarScoreEntity,
     mjBizAppsSonarScoreFactorContributionEntity,
+    mjBizAppsSonarScoreHistoryEntity,
+    mjBizAppsSonarScoreBandTransitionEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
 
@@ -23,6 +25,7 @@ export class ScoreWriter {
         scores: Map<string, ScoreResult>,
         asOf: Date,
         contextUser: UserInfo,
+        runId?: string,
     ): Promise<number> {
         if (scores.size === 0) {
             return 0;
@@ -32,10 +35,12 @@ export class ScoreWriter {
 
         let recordsScored = 0;
         for (const [anchorRecordId, result] of scores) {
-            const score =
-                existing.get(anchorRecordId) ??
-                (await this.newScore(contextUser));
-            this.applyScore(score, model, versionId, anchorRecordId, asOf, result);
+            const prior = existing.get(anchorRecordId);
+            // Capture the prior score/band BEFORE we overwrite the row — powers Delta/Trend + transitions.
+            const prevScore = prior?.NormalizedScore ?? null;
+            const prevBand = prior?.BandID ?? null;
+            const score = prior ?? (await this.newScore(contextUser));
+            this.applyScore(score, model, versionId, anchorRecordId, asOf, result, prevScore, prevBand);
             if (!(await score.Save())) {
                 LogError(
                     `ScoreWriter: failed to save Score for anchor ${anchorRecordId}: ${score.LatestResult?.CompleteMessage ?? "unknown"}`,
@@ -43,6 +48,11 @@ export class ScoreWriter {
                 continue;
             }
             await this.insertContributions(score.ID, result, contextUser);
+            await this.writeHistory(score, result, contextUser);
+            // A band change on an already-scored anchor is a transition (first-ever scoring isn't).
+            if (prior && prevBand !== result.bandId) {
+                await this.writeBandTransition(model, anchorRecordId, prevBand, result, score.Delta, runId, contextUser);
+            }
             recordsScored++;
         }
         return recordsScored;
@@ -115,7 +125,8 @@ export class ScoreWriter {
         return score;
     }
 
-    /** Set the score's fields from the computed result. Trend/confidence fields stay null in v1. */
+    /** Set the score's fields from the computed result, plus trend vs. the prior score.
+     *  TrendSlope + Confidence stay null (deferred — need a history series / a calibrated model). */
     private applyScore(
         score: mjBizAppsSonarScoreEntity,
         model: mjBizAppsSonarScoreModelEntity,
@@ -123,6 +134,8 @@ export class ScoreWriter {
         anchorRecordId: string,
         asOf: Date,
         result: ScoreResult,
+        prevScore: number | null,
+        prevBand: string | null,
     ): void {
         score.ScoreModelID = model.ID;
         score.ScoreModelVersionID = versionId;
@@ -131,9 +144,29 @@ export class ScoreWriter {
         score.RawScore = result.rawScore;
         score.NormalizedScore = result.normalizedScore;
         score.BandID = result.bandId;
+        score.PreviousNormalizedScore = prevScore;
+        score.PreviousBandID = prevBand;
+        score.Delta = prevScore !== null ? result.normalizedScore - prevScore : null;
+        score.TrendDirection = this.trendDirection(score.Delta);
+        score.DataCompleteness = this.dataCompleteness(result);
         score.ComputedAt = new Date();
         score.AsOfDate = asOf;
         score.IsStale = false;
+    }
+
+    /** Up / Flat / Down from the score delta (null when there's no prior score to compare).
+     *  ±0.5 deadband so float noise on a 0–100 scale doesn't read as movement. */
+    private trendDirection(delta: number | null): "Up" | "Flat" | "Down" | null {
+        if (delta === null) return null;
+        if (delta > 0.5) return "Up";
+        if (delta < -0.5) return "Down";
+        return "Flat";
+    }
+
+    /** Fraction (0–1) of the counted factors that had real data for this anchor. */
+    private dataCompleteness(result: ScoreResult): number | null {
+        if (result.contributions.length === 0) return null;
+        return result.contributions.filter((c) => c.hadData).length / result.contributions.length;
     }
 
     /** Insert the fresh contribution breakdown for one score. */
@@ -165,6 +198,76 @@ export class ScoreWriter {
                     `ScoreWriter: failed to save contribution (factor ${c.factorId}) for score ${scoreId}.`,
                 );
             }
+        }
+    }
+
+    /**
+     * Append an immutable ScoreHistory snapshot for this anchor on this recompute. The current
+     * Score row is overwritten in place each run, so history is what gives us a time series
+     * (sparklines, movers, "was X, now Y"). ContributionsJSON freezes the breakdown at this point
+     * so a snapshot stays explainable even after the rubric changes.
+     */
+    private async writeHistory(
+        score: mjBizAppsSonarScoreEntity,
+        result: ScoreResult,
+        contextUser: UserInfo,
+    ): Promise<void> {
+        const md = new Metadata();
+        const hist = await md.GetEntityObject<mjBizAppsSonarScoreHistoryEntity>(
+            "MJ_BizApps_Sonar: Score Histories",
+            contextUser,
+        );
+        hist.NewRecord();
+        hist.ScoreModelID = score.ScoreModelID;
+        hist.ScoreModelVersionID = score.ScoreModelVersionID;
+        hist.AnchorEntityID = score.AnchorEntityID;
+        hist.AnchorRecordID = score.AnchorRecordID;
+        hist.NormalizedScore = result.normalizedScore;
+        hist.BandID = result.bandId;
+        hist.DataCompleteness = score.DataCompleteness;
+        hist.AsOfDate = score.AsOfDate;
+        hist.ComputedAt = score.ComputedAt;
+        hist.ContributionsJSON = JSON.stringify(result.contributions);
+        if (!(await hist.Save())) {
+            LogError(
+                `ScoreWriter: failed to save ScoreHistory for anchor ${score.AnchorRecordID}: ${hist.LatestResult?.CompleteMessage ?? "unknown"}`,
+            );
+        }
+    }
+
+    /**
+     * Record a band crossing (e.g. Healthy → At-Risk) so the action layer has a queue to react to.
+     * Handled=false marks it un-actioned; Direction is the human read of the move. Only called
+     * when the band actually changed on an already-scored anchor.
+     */
+    private async writeBandTransition(
+        model: mjBizAppsSonarScoreModelEntity,
+        anchorRecordId: string,
+        fromBandId: string | null,
+        result: ScoreResult,
+        delta: number | null,
+        runId: string | undefined,
+        contextUser: UserInfo,
+    ): Promise<void> {
+        const md = new Metadata();
+        const tr = await md.GetEntityObject<mjBizAppsSonarScoreBandTransitionEntity>(
+            "MJ_BizApps_Sonar: Score Band Transitions",
+            contextUser,
+        );
+        tr.NewRecord();
+        tr.ScoreModelID = model.ID;
+        tr.AnchorRecordID = anchorRecordId;
+        tr.FromBandID = fromBandId;
+        tr.ToBandID = result.bandId;
+        // delta>=0 means the normalized score rose — moving toward a better band.
+        tr.Direction = (delta ?? 0) >= 0 ? "Improving" : "Worsening";
+        tr.OccurredAt = new Date();
+        if (runId) tr.RecomputeRunID = runId;
+        tr.Handled = false;
+        if (!(await tr.Save())) {
+            LogError(
+                `ScoreWriter: failed to save ScoreBandTransition for anchor ${anchorRecordId}: ${tr.LatestResult?.CompleteMessage ?? "unknown"}`,
+            );
         }
     }
 }

@@ -103,7 +103,7 @@
                 <section class="sonar-card">
                     <div class="sonar-card__head">
                         <div class="sonar-card__label">Rubric — {{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</div>
-                        <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('factor')">+ Add factor</button>
+                        <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="openFactorCreate()">+ Add factor</button>
                     </div>
                     <div class="sonar-stack">
                         @for (f of rubric(); track f.modelFactorId) {
@@ -117,6 +117,7 @@
                                         @if (f.mode === 'penalty') {
                                             <span class="sonar-chip sonar-chip--critical">penalty</span>
                                         }
+                                        <button class="sonar-factor__edit" title="Edit signal" [disabled]="factorBusy()" (click)="openFactorEdit(f.modelFactorId)"><i class="fa-solid fa-pen"></i></button>
                                         <button class="sonar-factor__remove" title="Remove signal" [disabled]="factorBusy()" (click)="removeFactor(f.modelFactorId)">✕</button>
                                     </div>
                                 </div>
@@ -202,7 +203,7 @@
         <!-- Builders open in a modal over the model. Click the scrim (or a builder's Cancel) to dismiss. -->
         @if (activeView() !== 'rubric') {
         <div class="sonar-modal">
-            <div class="sonar-modal__scrim" (click)="activeView.set('rubric')"></div>
+            <div class="sonar-modal__scrim" (click)="closeFactorBuilder()"></div>
             <div class="sonar-modal__panel">
                 @if (activeView() === 'newModel') { <sonar-model-setup (created)="onModelCreated($event)" (close)="activeView.set('rubric')"></sonar-model-setup> }
                 @if (activeView() === 'factor') {
@@ -211,8 +212,9 @@
                         [anchorEntityID]="selectedModel()?.AnchorEntityID ?? null"
                         [sources]="factorSources()"
                         [windows]="timeWindows()"
+                        [edit]="editFactor()"
                         (saved)="onFactorSaved()"
-                        (close)="activeView.set('rubric')">
+                        (close)="closeFactorBuilder()">
                     </sonar-factor-builder>
                 }
                 @if (activeView() === 'bands') { <sonar-score-band-builder [bandSetId]="selectedModel()?.BandSetID ?? null" (saved)="onBandsSaved($event)" (close)="activeView.set('rubric')"></sonar-score-band-builder> }

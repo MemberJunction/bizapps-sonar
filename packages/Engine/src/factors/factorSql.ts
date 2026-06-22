@@ -2,6 +2,28 @@ import type { FactorResult } from "../contracts/IFactorEvaluator";
 import type { FilterValue } from "./filter";
 
 /**
+ * A compiled time window — the date bound applied to the related table's activity-date column.
+ * A discriminated union so each window type carries exactly the fields it needs, and the SQL
+ * builder switches on `kind`. `dateColumn` is the related-entity column we test (e.g.
+ * "RegistrationDate"); the per-anchor kinds also reference an anchor boundary column.
+ *
+ *  - Rolling          — `(asOf − length, asOf]`; length in days OR months. Same shape for everyone.
+ *  - Calendar         — the calendar period containing asOf (month/quarter/year), period-start → asOf.
+ *  - SinceEvent       — `[anchorDate + offset, asOf]`; window STARTS at a per-anchor date (e.g. join date).
+ *  - RenewalRelative  — `[anchorDate + offset, anchorDate]` capped at asOf; window ENDS at a per-anchor date.
+ */
+export type CompiledWindow =
+    | { kind: "Rolling"; dateColumn: string; lengthDays: number | null; lengthMonths: number | null }
+    | { kind: "Calendar"; dateColumn: string; period: "month" | "quarter" | "year" }
+    | { kind: "SinceEvent"; dateColumn: string; anchorDateColumn: string; offsetDays: number }
+    | { kind: "RenewalRelative"; dateColumn: string; anchorDateColumn: string; offsetDays: number };
+
+/** Window kinds whose bounds come from a per-anchor date column (so the query must join the anchor). */
+export function windowNeedsAnchorJoin(window: CompiledWindow | null): boolean {
+    return window?.kind === "SinceEvent" || window?.kind === "RenewalRelative";
+}
+
+/**
  * A declarative factor reduced to the few SQL-ready pieces the evaluator needs. Produced
  * by the FactorCompiler (translation); consumed by CompiledFactorEvaluator (execution).
  * Runtime inputs (anchorIds, asOf) are NOT part of the spec — they are bound at run time.
@@ -13,10 +35,11 @@ export interface CompiledFactorSpec {
     relatedTable: string;
     /** Column on the related table that points at the anchor (the GROUP BY / IN key). */
     anchorKeyColumn: string;
-    /** Date column the time window filters on (TimeWindow.AnchorDateField); null = no window. */
-    dateColumn: string | null;
-    /** Rolling window length in days; null = no window (count everything). */
-    windowLengthDays: number | null;
+    /** The compiled time window, or null for "no time bound" (AllTime / no window). */
+    window: CompiledWindow | null;
+    /** Anchor table (bracket-quoted) + its PK — only set when {@link windowNeedsAnchorJoin}. */
+    anchorTable?: string | null;
+    anchorPkColumn?: string | null;
     /** The SQL aggregate expression, e.g. "COUNT(*)". The compiler picks this per Aggregation. */
     aggregateSql: string;
     /** Optional parameterized WHERE fragment from the factor's FilterExpression (null = no filter). */
@@ -45,28 +68,66 @@ export function buildFactorSql(
 ): string {
     const idList = anchorIds.map((id) => `'${id}'`).join(",");
     const key = `[${spec.anchorKeyColumn}]`;
-    const where = [`${key} IN (${idList})`, ...windowClause(spec)];
+    const where = [`${key} IN (${idList})`, ...windowClause(spec.window)];
     if (spec.filterClause) {
         where.push(spec.filterClause);
     }
+    // Per-anchor windows (SinceEvent/RenewalRelative) read a date off the anchor row, so the
+    // anchor table is joined as `a`. The FK→PK join is 1:1, so it never fans out the aggregate.
+    const from = windowNeedsAnchorJoin(spec.window)
+        ? `FROM ${spec.relatedTable}\nJOIN ${spec.anchorTable} a ON a.[${spec.anchorPkColumn}] = ${key}`
+        : `FROM ${spec.relatedTable}`;
     return [
         `SELECT ${key} AS anchorId, ${spec.aggregateSql} AS rawValue`,
-        `FROM ${spec.relatedTable}`,
+        from,
         `WHERE ${where.join(" AND ")}`,
         `GROUP BY ${key}`,
     ].join("\n");
 }
 
-/** The two date predicates for a rolling window, or nothing when there is no window. */
-function windowClause(spec: CompiledFactorSpec): string[] {
-    if (!spec.dateColumn || spec.windowLengthDays == null) {
+/** The date predicate(s) for a window (per kind), or nothing when there is no window. */
+function windowClause(window: CompiledWindow | null): string[] {
+    if (!window) {
         return [];
     }
-    const col = `[${spec.dateColumn}]`;
-    return [
-        `${col} > DATEADD(day, -${spec.windowLengthDays}, @asOf)`,
-        `${col} <= @asOf`,
-    ];
+    const col = `[${window.dateColumn}]`;
+    switch (window.kind) {
+        case "Rolling": {
+            // Months take precedence when set (DATEADD month handles variable month lengths).
+            const start =
+                window.lengthMonths != null
+                    ? `DATEADD(month, -${window.lengthMonths}, @asOf)`
+                    : `DATEADD(day, -${window.lengthDays}, @asOf)`;
+            return [`${col} > ${start}`, `${col} <= @asOf`];
+        }
+        case "Calendar":
+            return [`${col} >= ${calendarPeriodStart(window.period)}`, `${col} <= @asOf`];
+        case "SinceEvent":
+            return [
+                `${col} >= DATEADD(day, ${window.offsetDays}, a.[${window.anchorDateColumn}])`,
+                `${col} <= @asOf`,
+            ];
+        case "RenewalRelative":
+            // Window brackets the per-anchor date; also capped at @asOf so a historical recompute
+            // never counts activity dated after its as-of date.
+            return [
+                `${col} >= DATEADD(day, ${window.offsetDays}, a.[${window.anchorDateColumn}])`,
+                `${col} <= a.[${window.anchorDateColumn}]`,
+                `${col} <= @asOf`,
+            ];
+    }
+}
+
+/** SQL for the start of the calendar period containing @asOf (aligned to real calendar boundaries). */
+function calendarPeriodStart(period: "month" | "quarter" | "year"): string {
+    switch (period) {
+        case "month":
+            return `DATEFROMPARTS(YEAR(@asOf), MONTH(@asOf), 1)`;
+        case "quarter":
+            return `DATEFROMPARTS(YEAR(@asOf), (DATEPART(quarter, @asOf) - 1) * 3 + 1, 1)`;
+        case "year":
+            return `DATEFROMPARTS(YEAR(@asOf), 1, 1)`;
+    }
 }
 
 /**
@@ -93,11 +154,26 @@ export function mapAggregateRows(
 
 /** Human-readable derivation for the explainability layer. */
 function explain(spec: CompiledFactorSpec, rawValue: number): string {
-    const window =
-        spec.windowLengthDays != null
-            ? ` in the last ${spec.windowLengthDays} days`
-            : "";
-    return `${rawValue} matching ${spec.relatedTable} record(s)${window}`;
+    return `${rawValue} matching ${spec.relatedTable} record(s)${windowPhrase(spec.window)}`;
+}
+
+/** A short natural-language description of a window, for explanation text ("" when none). */
+function windowPhrase(window: CompiledWindow | null): string {
+    if (!window) {
+        return "";
+    }
+    switch (window.kind) {
+        case "Rolling":
+            return window.lengthMonths != null
+                ? ` in the last ${window.lengthMonths} months`
+                : ` in the last ${window.lengthDays} days`;
+        case "Calendar":
+            return ` this ${window.period}`;
+        case "SinceEvent":
+            return ` since ${window.anchorDateColumn}`;
+        case "RenewalRelative":
+            return ` in the ${Math.abs(window.offsetDays)} days around ${window.anchorDateColumn}`;
+    }
 }
 
 /** SQL aggregate functions keyed by Factor.Aggregation — the ones that take a column. */

@@ -3,12 +3,12 @@
     <div class="sonar-fb__bar">
         <div class="sonar-fb__title">
             <input class="sonar-fb__name" [ngModel]="factorName()" (ngModelChange)="factorName.set($event)" placeholder="Name this signal" />
-            <p class="sonar-fb__sub">A signal measures one thing about each member.</p>
+            <p class="sonar-fb__sub">{{ editing() ? "Editing this signal — changes apply on the next recompute." : "A signal measures one thing about each member." }}</p>
         </div>
         <div class="sonar-fb__actions">
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
-                {{ saving() ? "Adding…" : "Add to model" }}
+                {{ saving() ? (editing() ? "Saving…" : "Adding…") : (editing() ? "Save changes" : "Add to model") }}
             </button>
         </div>
     </div>
@@ -39,7 +39,7 @@
 
                     in
                     <select class="sonar-token sonar-token--entity" [ngModel]="sourceId()" (ngModelChange)="onSourceChange($event)">
-                        @for (s of sources(); track s.id) {
+                        @for (s of selectableSources(); track s.id) {
                             <option [value]="s.id">{{ s.label }}</option>
                         }
                     </select>

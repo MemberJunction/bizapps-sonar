@@ -38,6 +38,24 @@ export interface CreateFactorInput {
     higherIsBetter: boolean;
 }
 
+/** The full editable state of a bound factor — loaded to pre-fill the builder for editing. */
+export interface EditFactorVM {
+    modelFactorId: string;
+    factorId: string;
+    name: string;
+    sourceRelatedEntityID: string | null;
+    aggregation: Aggregation;
+    aggregateFieldName: string | null;
+    /** Serialized CompositeFilterDescriptor, or null. */
+    filterExpression: string | null;
+    timeWindowID: string | null;
+    normalizationMethod: NormalizationMethod;
+    higherIsBetter: boolean;
+    /** Weight as a 0–100 percentage (stored as 0–1). */
+    weightPct: number;
+    weightMode: WeightMode;
+}
+
 /**
  * Data access for Factors (the signals) and their bindings into a model's rubric
  * (Model Factors). Declarative factors only in v1 — FactorType is pinned to 'Declarative'.
@@ -131,6 +149,55 @@ export class FactorService {
         if (!factor) return false;
         const binding = await this.bindToModel(input.scoreModelID, factor.ID, weight, weightMode);
         return binding !== null;
+    }
+
+    /** Load a bound factor's full editable state (Model Factor + its Factor) for the edit dialog. */
+    public async loadFactorForEdit(modelFactorId: string): Promise<EditFactorVM | null> {
+        const mf = await this.md.GetEntityObject<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR, CompositeKey.FromID(modelFactorId));
+        if (!mf?.IsSaved) return null;
+        const factor = await this.md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, CompositeKey.FromID(mf.FactorID));
+        if (!factor?.IsSaved) return null;
+        return {
+            modelFactorId: mf.ID,
+            factorId: factor.ID,
+            name: factor.Name ?? "",
+            sourceRelatedEntityID: factor.SourceRelatedEntityID ?? null,
+            aggregation: (factor.Aggregation ?? "Count") as Aggregation,
+            aggregateFieldName: factor.AggregateFieldName ?? null,
+            filterExpression: factor.FilterExpression ?? null,
+            timeWindowID: factor.TimeWindowID ?? null,
+            normalizationMethod: (factor.NormalizationMethod ?? "MinMax") as NormalizationMethod,
+            higherIsBetter: factor.HigherIsBetter ?? true,
+            weightPct: Math.round((mf.Weight ?? 0) * 100),
+            weightMode: (mf.WeightMode ?? "Additive") === "Penalty" ? "Penalty" : "Additive",
+        };
+    }
+
+    /**
+     * Update an existing factor's definition and its rubric binding's weight/mode. Clears the
+     * fields that no longer apply (e.g. AggregateFieldName when switching to Count) so stale
+     * config can't linger. The model's existing Scores were computed with the OLD definition, so
+     * they're left stale until the next recompute (the caller should re-run).
+     */
+    public async updateFactor(modelFactorId: string, factorId: string, input: CreateFactorInput, weight: number, weightMode: WeightMode): Promise<boolean> {
+        const factor = await this.md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, CompositeKey.FromID(factorId));
+        if (!factor?.IsSaved) return false;
+        factor.Name = input.name;
+        factor.Slug = this.slugify(input.name);
+        factor.SourceRelatedEntityID = input.sourceRelatedEntityID;
+        factor.Aggregation = input.aggregation;
+        factor.AggregateFieldName = input.aggregateFieldName ?? null;
+        factor.FilterExpression = input.filterExpression ?? null;
+        factor.TimeWindowID = input.timeWindowID ?? null;
+        factor.NormalizationMethod = input.normalizationMethod;
+        factor.HigherIsBetter = input.higherIsBetter;
+        if (!(await factor.Save())) return false;
+
+        const mf = await this.md.GetEntityObject<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR, CompositeKey.FromID(modelFactorId));
+        if (!mf?.IsSaved) return false;
+        mf.Weight = weight;
+        mf.WeightMode = weightMode;
+        return mf.Save();
     }
 
     /** Update a rubric binding's weight (0–1 fraction). For live what-if tuning. */

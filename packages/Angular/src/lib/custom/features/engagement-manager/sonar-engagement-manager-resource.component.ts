@@ -4,7 +4,7 @@ import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
-import { BandSlice, MemberSuggestion, ScoreContribution, ScoreReadService, ScoredMember } from "../../core/services/score-read.service";
+import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, ScoreReadService, ScoredMember, TrendDirection } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 
 /**
@@ -38,6 +38,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly selected = signal<ScoredMember | null>(null);
     public readonly contributions = signal<ScoreContribution[]>([]);
     public readonly loadingDrawer = signal(false);
+
+    // --- score history (sparkline) + movers since last run ---
+    public readonly history = signal<ScoreHistoryPoint[]>([]);
+    public readonly movers = signal<{ risers: ScoredMember[]; fallers: ScoredMember[] }>({ risers: [], fallers: [] });
+    public readonly showMovers = signal(false);
+    public readonly hasMovers = computed(() => this.movers().risers.length > 0 || this.movers().fallers.length > 0);
+
+    /** SVG sparkline geometry from the selected member's history (null if < 2 points to draw). */
+    public readonly spark = computed(() => this.buildSpark(this.history()));
     /** All signal names in the model's rubric (to spot ones the member has no data for). */
     public readonly rubricNames = signal<string[]>([]);
 
@@ -113,14 +122,20 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.showSuggest.set(false);
         this.pinnedAnchorId.set(null);
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
-        const [dist, rubric] = await Promise.all([
+        this.showMovers.set(false);
+        const [dist, rubric, movers] = await Promise.all([
             this.scoreRead.distributionForModel(id),
             this.factorService.rubricForModel(id),
+            this.scoreRead.moversForModel(id),
         ]);
         this.tiles.set(dist.slices);
         this.rubricNames.set(rubric.map((r) => r.name));
+        this.movers.set(movers);
         await this.loadMembers();
     }
+
+    /** Show/hide the "movers since last run" panel. */
+    public toggleMovers(): void { this.showMovers.update((v) => !v); }
 
     /** (Re)load the current page of the triage list under the active band filter, then open the
      *  top row's drawer so the surface always lands on something useful. */
@@ -219,12 +234,19 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         await this.loadMembers();
     }
 
-    /** Open a member in the explainability drawer — fetch the persisted contribution breakdown. */
+    /** Open a member in the explainability drawer — fetch the contribution breakdown + score history. */
     public async select(m: ScoredMember): Promise<void> {
         this.selected.set(m);
         this.loadingDrawer.set(true);
+        this.history.set([]);
+        const modelId = this.current.modelId();
         try {
-            this.contributions.set(await this.scoreRead.contributionsForScore(m.scoreId));
+            const [contributions, history] = await Promise.all([
+                this.scoreRead.contributionsForScore(m.scoreId),
+                modelId ? this.scoreRead.historyForMember(modelId, m.anchorRecordId) : Promise.resolve([]),
+            ]);
+            this.contributions.set(contributions);
+            this.history.set(history);
         } finally {
             this.loadingDrawer.set(false);
         }
@@ -233,5 +255,41 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     /** Initials for a member's avatar. */
     public initials(name: string): string {
         return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "—";
+    }
+
+    /** Arrow glyph for a trend direction (↑ rising score, ↓ falling, → flat). */
+    public trendArrow(dir: TrendDirection | null): string {
+        return dir === "Up" ? "↑" : dir === "Down" ? "↓" : "→";
+    }
+
+    /** Color tone for a trend: a rising engagement score is good (pos), a falling one bad (neg). */
+    public trendTone(dir: TrendDirection | null): "pos" | "neg" | "flat" {
+        return dir === "Up" ? "pos" : dir === "Down" ? "neg" : "flat";
+    }
+
+    /** Signed delta label, e.g. "+4" / "−6" (null delta → empty). */
+    public deltaLabel(delta: number | null): string {
+        if (delta == null || delta === 0) return "";
+        return delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`;
+    }
+
+    /**
+     * Build an SVG sparkline from a member's score history. Maps each snapshot to a point in a
+     * 120×28 viewBox (newest on the right), scaling Y to the series' own min/max so small moves
+     * are visible. Returns null when there's < 2 points (nothing to draw a line through yet).
+     */
+    private buildSpark(points: ScoreHistoryPoint[]): { line: string; area: string; lastX: number; lastY: number } | null {
+        if (points.length < 2) return null;
+        const W = 120, H = 28, pad = 3;
+        const scores = points.map((p) => p.normalizedScore);
+        const min = Math.min(...scores), max = Math.max(...scores);
+        const span = max - min || 1;
+        const x = (i: number): number => pad + (i / (points.length - 1)) * (W - 2 * pad);
+        const y = (v: number): number => H - pad - ((v - min) / span) * (H - 2 * pad);
+        const coords = points.map((p, i) => ({ x: x(i), y: y(p.normalizedScore) }));
+        const line = coords.map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(" ");
+        const last = coords[coords.length - 1];
+        const area = `${line} L${last.x.toFixed(1)},${H - pad} L${coords[0].x.toFixed(1)},${H - pad} Z`;
+        return { line, area, lastX: last.x, lastY: last.y };
     }
 }

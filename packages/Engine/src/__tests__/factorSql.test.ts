@@ -6,13 +6,12 @@ import {
     CompiledFactorSpec,
 } from "../factors/factorSql";
 
-/** A windowed declarative-Count spec, like the "Recent Activity Count" example. */
+/** A rolling-window declarative-Count spec, like the "Recent Activity Count" example. */
 const windowedSpec: CompiledFactorSpec = {
     factorId: "fac-100",
     relatedTable: "[CRM].[Activity]",
     anchorKeyColumn: "MemberID",
-    dateColumn: "ActivityDate",
-    windowLengthDays: 90,
+    window: { kind: "Rolling", dateColumn: "ActivityDate", lengthDays: 90, lengthMonths: null },
     aggregateSql: "COUNT(*)",
 };
 
@@ -28,19 +27,73 @@ describe("buildFactorSql", () => {
         expect(sql).toContain("[ActivityDate] > DATEADD(day, -90, @asOf)");
         expect(sql).toContain("[ActivityDate] <= @asOf");
         expect(sql).toContain("GROUP BY [MemberID]");
+        // No per-anchor window → no anchor join.
+        expect(sql).not.toContain("JOIN");
     });
 
     it("omits the date predicates when there is no window", () => {
-        const noWindow: CompiledFactorSpec = {
-            ...windowedSpec,
-            dateColumn: null,
-            windowLengthDays: null,
-        };
+        const noWindow: CompiledFactorSpec = { ...windowedSpec, window: null };
         const sql = buildFactorSql(noWindow, ["m1"]);
 
         expect(sql).not.toContain("DATEADD");
         expect(sql).not.toContain("ActivityDate");
         expect(sql).toContain("[MemberID] IN ('m1')");
+    });
+
+    it("uses DATEADD month for a rolling window measured in months", () => {
+        const monthly: CompiledFactorSpec = {
+            ...windowedSpec,
+            window: { kind: "Rolling", dateColumn: "ActivityDate", lengthDays: null, lengthMonths: 12 },
+        };
+        const sql = buildFactorSql(monthly, ["m1"]);
+
+        expect(sql).toContain("[ActivityDate] > DATEADD(month, -12, @asOf)");
+        expect(sql).toContain("[ActivityDate] <= @asOf");
+    });
+
+    it("bounds a calendar window from the period start to @asOf", () => {
+        const cases: Array<[("month" | "quarter" | "year"), string]> = [
+            ["month", "DATEFROMPARTS(YEAR(@asOf), MONTH(@asOf), 1)"],
+            ["quarter", "DATEFROMPARTS(YEAR(@asOf), (DATEPART(quarter, @asOf) - 1) * 3 + 1, 1)"],
+            ["year", "DATEFROMPARTS(YEAR(@asOf), 1, 1)"],
+        ];
+        for (const [period, start] of cases) {
+            const sql = buildFactorSql(
+                { ...windowedSpec, window: { kind: "Calendar", dateColumn: "ActivityDate", period } },
+                ["m1"],
+            );
+            expect(sql).toContain(`[ActivityDate] >= ${start}`);
+            expect(sql).toContain("[ActivityDate] <= @asOf");
+        }
+    });
+
+    it("joins the anchor and bounds from a per-anchor date for SinceEvent", () => {
+        const sinceEvent: CompiledFactorSpec = {
+            ...windowedSpec,
+            window: { kind: "SinceEvent", dateColumn: "ActivityDate", anchorDateColumn: "JoinDate", offsetDays: 0 },
+            anchorTable: "[membership].[Member]",
+            anchorPkColumn: "ID",
+        };
+        const sql = buildFactorSql(sinceEvent, ["m1"]);
+
+        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [MemberID]");
+        expect(sql).toContain("[ActivityDate] >= DATEADD(day, 0, a.[JoinDate])");
+        expect(sql).toContain("[ActivityDate] <= @asOf");
+    });
+
+    it("brackets the per-anchor date and caps at @asOf for RenewalRelative", () => {
+        const renewal: CompiledFactorSpec = {
+            ...windowedSpec,
+            window: { kind: "RenewalRelative", dateColumn: "ActivityDate", anchorDateColumn: "RenewalDate", offsetDays: -90 },
+            anchorTable: "[membership].[Member]",
+            anchorPkColumn: "ID",
+        };
+        const sql = buildFactorSql(renewal, ["m1"]);
+
+        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [MemberID]");
+        expect(sql).toContain("[ActivityDate] >= DATEADD(day, -90, a.[RenewalDate])");
+        expect(sql).toContain("[ActivityDate] <= a.[RenewalDate]");
+        expect(sql).toContain("[ActivityDate] <= @asOf");
     });
 });
 

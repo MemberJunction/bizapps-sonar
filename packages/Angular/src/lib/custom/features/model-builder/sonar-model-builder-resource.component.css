@@ -66,6 +66,11 @@
     color: var(--sonar-faint); font-size: 0.8rem; line-height: 1; padding: 0.2rem;
 }
 .sonar-factor__remove:hover:not(:disabled) { color: var(--sonar-critical); }
+.sonar-factor__edit {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--sonar-faint); font-size: 0.78rem; line-height: 1; padding: 0.2rem;
+}
+.sonar-factor__edit:hover:not(:disabled) { color: var(--sonar-accent, #22d3ee); }
 .sonar-factor__tune { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; }
 .sonar-factor__tune input[type="range"] { flex: 1; accent-color: var(--sonar-brand); }
 .sonar-factor__weight { font-size: 0.75rem; color: var(--sonar-muted); min-width: 2.5rem; text-align: right; }
