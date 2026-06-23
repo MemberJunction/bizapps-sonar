@@ -1,6 +1,7 @@
 import { Component, computed, inject, output, signal } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
+import { reachableFromAnchor } from "../../../../core/entity-graph";
 
 /** An MJ entity the user can pick as the anchor or a data source. */
 interface EntityOption { id: string; name: string; }
@@ -33,10 +34,27 @@ export class SonarModelSetupComponent {
     public readonly saving = signal(false);
     public readonly error = signal<string | null>(null);
 
-    /** Every MJ entity, sorted by name — the anchor + data-source pickers read this. */
-    public readonly entityOptions: EntityOption[] = new Metadata().Entities
+    /** Business entities only (MJ `__mj*` system/infra tables excluded from both pickers). */
+    private readonly businessEntities = new Metadata().Entities.filter(
+        (e) => !e.SchemaName?.startsWith("__mj"),
+    );
+
+    /** Anchor picker: any business entity (reachability is measured FROM the anchor, so it isn't filtered). */
+    public readonly anchorOptions: EntityOption[] = this.businessEntities
         .map((e) => ({ id: e.ID, name: e.Name }))
         .sort((a, b) => a.name.localeCompare(b.name));
+
+    /** Data-source picker: only entities the engine can score against the chosen anchor (reachable
+     *  by a single FK path). Empty until an anchor is picked. */
+    public readonly sourceOptions = computed<EntityOption[]>(() => {
+        const anchorId = this.anchorEntityID();
+        if (!anchorId) return [];
+        const reachable = reachableFromAnchor(this.businessEntities, anchorId);
+        return this.businessEntities
+            .filter((e) => reachable.has(e.ID))
+            .map((e) => ({ id: e.ID, name: e.Name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    });
 
     public readonly canSave = computed(() => this.name().trim().length > 0 && this.anchorEntityID().length > 0 && !this.saving());
 
@@ -64,7 +82,7 @@ export class SonarModelSetupComponent {
 
     /** Derive a short alias from the entity's name (e.g. "Activities" -> "activities"). */
     private aliasFor(entityId: string): string {
-        const name = this.entityOptions.find((e) => e.id === entityId)?.name ?? entityId;
+        const name = this.anchorOptions.find((e) => e.id === entityId)?.name ?? entityId;
         return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
     }
 }

@@ -1,5 +1,8 @@
-# GENERAL RULE
-Don't say "You're absolutely right" each time I correct you. Mix it up, that's so boring!
+# RESPONSE STYLE
+- Be concise and easy to understand. Lead with the answer or result; cut preamble, recap, and self-narration.
+- Prefer short paragraphs and tight bullet lists. Use tables/sections only when they earn their place — don't pad.
+- Explain a piece of jargon briefly the first time it appears (the dev is newer to these systems), then move on. Teach when it helps a decision; don't over-explain.
+- Don't say "You're absolutely right" each time I correct you. Mix it up, that's so boring!
 
 # Sonar Development Guide
 

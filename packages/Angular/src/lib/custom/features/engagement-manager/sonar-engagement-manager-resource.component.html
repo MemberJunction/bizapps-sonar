@@ -25,8 +25,8 @@
                 </div>
             } @else {
               <div class="sonar-stack">
-                <!-- Band summary tiles. -->
-                <section class="sonar-stats">
+                <!-- Band summary tiles (compact, left-clustered filters). -->
+                <section class="sonar-stats sonar-mgr__bands">
                     @for (t of tiles(); track t.label) {
                         <button type="button" class="sonar-stat sonar-stat--clickable"
                                 [class.sonar-stat--active]="selectedBand()?.bandId === t.bandId"
@@ -86,59 +86,73 @@
                             </div>
                             <span class="sonar-chip">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
                         </div>
-                        <div class="sonar-filters">
-                            <div class="sonar-combo">
-                                <i class="fa-solid fa-magnifying-glass sonar-combo__icon"></i>
-                                <input type="search" #nameInput class="sonar-combo__input" placeholder="Search members…" autocomplete="off"
-                                       role="combobox" [attr.aria-expanded]="showSuggest()"
-                                       [value]="nameQuery()"
-                                       (input)="onNameInput(nameInput.value)"
-                                       (keydown)="onNameKeydown($event)"
-                                       (focus)="suggestions().length && showSuggest.set(true)"
-                                       (blur)="hideSuggestSoon()" />
-                                @if (showSuggest() && suggestions().length) {
-                                    <ul class="sonar-combo__menu" role="listbox">
-                                        @for (s of suggestions(); track s.scoreId; let i = $index) {
-                                            <li class="sonar-combo__opt" role="option"
-                                                [class.sonar-combo__opt--active]="i === activeSuggest()"
-                                                (mousedown)="pickSuggestion(s)">
-                                                <span class="sonar-combo__opt-main">
-                                                    <span class="sonar-combo__opt-name">{{ s.name }}</span>
-                                                    @if (s.secondary) { <span class="sonar-combo__opt-sub">{{ s.secondary }}</span> }
-                                                </span>
-                                                <span class="sonar-mono sonar-combo__opt-score">{{ s.normalizedScore }}</span>
-                                                <span class="sonar-chip sonar-chip--{{ s.bandKey }}">{{ s.bandLabel }}</span>
-                                            </li>
-                                        }
-                                    </ul>
+                        <sonar-filter-bar>
+                            <sonar-search-field [value]="nameQuery()" [suggestions]="suggestions()" placeholder="Search members…"
+                                (valueChange)="onSearchValue($event)" (search)="onFilterSearch($event)" (pick)="onFilterPick($event)">
+                                <!-- Rich member suggestion row (the field owns the menu chrome + keyboard). -->
+                                <ng-template #suggestion let-s>
+                                    <span class="sonar-combo__opt-main">
+                                        <span class="sonar-combo__opt-name">{{ s.name }}</span>
+                                        @if (s.secondary) { <span class="sonar-combo__opt-sub">{{ s.secondary }}</span> }
+                                    </span>
+                                    <span class="sonar-mono sonar-combo__opt-score">{{ s.normalizedScore }}</span>
+                                    <span class="sonar-chip sonar-chip--{{ s.bandKey }}">{{ s.bandLabel }}</span>
+                                </ng-template>
+                            </sonar-search-field>
+                            <sonar-range-filter label="score" [value]="{ min: minScore(), max: maxScore() }" [min]="0" [max]="100"
+                                (valueChange)="onScoreRange($event)"></sonar-range-filter>
+                            <sonar-toggle-filter [value]="sortDir()" [on]="sortAsc" [off]="sortDesc"
+                                (valueChange)="onSortChange($event)"></sonar-toggle-filter>
+                        </sonar-filter-bar>
+                        @if (error()) {
+                            <!-- Error state -->
+                            <div class="sonar-empty sonar-empty--error">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <h2>Couldn't load members</h2>
+                                <p>{{ error() }}</p>
+                                <button class="sonar-btn sonar-btn--primary" (click)="retry()">Retry</button>
+                            </div>
+                        } @else if (loadingMembers()) {
+                            <!-- Loading skeleton — mirrors the triage row layout (avatar · name/score · chip). -->
+                            <div class="sonar-stack" aria-busy="true" aria-label="Loading members">
+                                @for (i of skeletonRows; track i) {
+                                    <div class="sonar-dropper sonar-dropper--skeleton">
+                                        <span class="sonar-skeleton sonar-skeleton--circle" style="width:2.1rem; height:2.1rem; flex:0 0 auto"></span>
+                                        <span class="sonar-dropper__main">
+                                            <span class="sonar-skeleton sonar-skeleton--text" style="width:55%"></span>
+                                            <span class="sonar-skeleton sonar-skeleton--text" style="width:35%"></span>
+                                        </span>
+                                        <span class="sonar-skeleton" style="width:3.5rem; height:1.1rem; border-radius:999px"></span>
+                                    </div>
                                 }
                             </div>
-                            <div class="sonar-filters__range">
-                                <span class="sonar-filters__lbl">score</span>
-                                <input type="number" #minInput class="sonar-filters__num" min="0" max="100" placeholder="min"
-                                       [value]="minScore() ?? ''" (change)="setScoreBound('min', minInput.value)" />
-                                <span class="sonar-filters__dash">–</span>
-                                <input type="number" #maxInput class="sonar-filters__num" min="0" max="100" placeholder="max"
-                                       [value]="maxScore() ?? ''" (change)="setScoreBound('max', maxInput.value)" />
+                        } @else if (members().length === 0) {
+                            <!-- Empty: filters/band matched nothing (distinct from the no-scores-at-all state above). -->
+                            <div class="sonar-empty sonar-empty--inline">
+                                <i class="fa-solid fa-filter-circle-xmark"></i>
+                                <h2>No members match</h2>
+                                <p>No scored members fit the current search, score range, or band. Adjust or clear the filters.</p>
                             </div>
-                            <button type="button" class="sonar-btn sonar-filters__sort" (click)="toggleSort()"
-                                    [title]="sortDir() === 'asc' ? 'Worst first — click for best first' : 'Best first — click for worst first'">
-                                {{ sortDir() === 'asc' ? '↑ Worst first' : '↓ Best first' }}
-                            </button>
-                        </div>
-                        <div class="sonar-stack">
-                            @for (m of members(); track m.scoreId) {
-                                <button class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId" (click)="select(m)">
-                                    <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
-                                    <span class="sonar-dropper__main">
-                                        <span class="sonar-dropper__name">{{ m.name }}</span>
-                                        <span class="sonar-mono sonar-dropper__reason">score {{ m.normalizedScore }} / 100@if (m.delta !== null && m.delta !== 0) { <span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> }</span>
-                                    </span>
-                                    <span class="sonar-chip sonar-chip--{{ m.bandKey }}">{{ m.bandLabel }}</span>
-                                </button>
-                            }
-                        </div>
-                        @if (total() > 0) {
+                        } @else {
+                            <div class="sonar-stack">
+                                @for (m of members(); track m.scoreId) {
+                                    <button class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId" (click)="select(m)">
+                                        <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
+                                        <span class="sonar-dropper__main">
+                                            <span class="sonar-dropper__name">{{ m.name }}</span>
+                                            @if (m.delta !== null && m.delta !== 0) {
+                                                <span class="sonar-dropper__reason"><span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> since last run</span>
+                                            }
+                                        </span>
+                                        <span class="sonar-dropper__score">
+                                            <span class="sonar-mono sonar-dropper__num">{{ m.normalizedScore }}</span><span class="sonar-dropper__denom">/100</span>
+                                        </span>
+                                        <span class="sonar-chip sonar-chip--{{ m.bandKey }} sonar-dropper__band">{{ m.bandLabel }}</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        @if (total() > 0 && !loadingMembers() && !error()) {
                             <div class="sonar-pager">
                                 <button type="button" class="sonar-btn sonar-btn--ghost" [disabled]="!hasPrev()" (click)="prevPage()">‹ Prev</button>
                                 <span class="sonar-mono sonar-pager__info">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
@@ -191,7 +205,7 @@
                                             <div class="sonar-calc">
                                                 <div class="sonar-calc__head">
                                                     <span class="sonar-calc__label">{{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }</span>
-                                                    <span class="sonar-mono sonar-pos">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
+                                                    <span class="sonar-mono" [class.sonar-pos]="(c.percentOfTotal * sel.normalizedScore) >= 0.5" [class.sonar-faint]="(c.percentOfTotal * sel.normalizedScore) < 0.5">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
                                                 </div>
                                                 <div class="sonar-calc__chain sonar-mono">
                                                     raw <strong class="sonar-ink">{{ c.rawValue }}</strong>

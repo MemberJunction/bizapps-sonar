@@ -20,13 +20,26 @@
 .sonar-dropper__avatar {
     width: 2.1rem; height: 2.1rem; border-radius: 999px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; font-weight: 700; color: #04121f; background: var(--sonar-grad);
+    /* Neutral identity chip — accent is rationed away from the 50-row list so it lands elsewhere. */
+    font-size: 0.7rem; font-weight: 700;
+    color: var(--sonar-muted); background: color-mix(in srgb, var(--sonar-ink) 8%, var(--sonar-surface));
 }
 .sonar-dropper__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
-.sonar-dropper__name { font-size: 0.88rem; font-weight: 600; }
+.sonar-dropper__name { font-size: 0.9rem; font-weight: 600; }
 .sonar-dropper__reason { font-size: 0.72rem; color: var(--sonar-faint); }
-.sonar-dropper__score { display: flex; flex-direction: column; align-items: flex-end; }
-.sonar-dropper__num { font-weight: 700; }
+/* Score leads the row — big, right-aligned, tabular — so the worst-first list is scannable. */
+.sonar-dropper__score { display: flex; align-items: baseline; justify-content: flex-end; gap: 0.1rem; min-width: 3.75rem; }
+.sonar-dropper__num { font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; color: var(--sonar-ink); }
+.sonar-dropper__denom { font-size: 0.72rem; color: var(--sonar-faint); }
+.sonar-dropper__band { flex: 0 0 auto; min-width: 5rem; text-align: center; }
+
+/* Compact band filter tiles — left-clustered, not stretched full-width. */
+.sonar-mgr__bands { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-mgr__bands .sonar-stat { flex: 0 1 220px; }
+
+/* Loading-skeleton row — same layout as a real triage row, non-interactive. */
+.sonar-dropper--skeleton { cursor: default; pointer-events: none; }
+.sonar-dropper--skeleton .sonar-dropper__main { gap: 0.4rem; }
 
 /* Drill-down. */
 .sonar-drill__score { text-align: right; }
@@ -47,48 +60,12 @@
 .sonar-pager { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.75rem; }
 .sonar-pager__info { font-size: 0.8rem; color: var(--sonar-muted); }
 
-/* --- Triage filter toolbar (name autosuggest + score range + sort) --- */
-.sonar-filters {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0.6rem; margin: 0.25rem 0 0.75rem;
-    background: var(--sonar-surface-sunken, var(--sonar-surface));
-    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
-}
-.sonar-filters input, .sonar-filters .sonar-btn { font: inherit; height: 2rem; box-sizing: border-box; }
-.sonar-filters input {
-    padding: 0 0.55rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
-    background: var(--sonar-surface); color: var(--sonar-ink);
-    transition: border-color 0.12s ease, box-shadow 0.12s ease;
-}
-.sonar-filters input:focus {
-    outline: none; border-color: var(--sonar-accent, #22d3ee);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent, #22d3ee) 18%, transparent);
-}
-
-/* Search combobox + typeahead menu. */
-.sonar-combo { position: relative; flex: 1 1 200px; min-width: 160px; }
-.sonar-combo__icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--sonar-muted); pointer-events: none; }
-.sonar-combo__input { width: 100%; padding-left: 1.9rem !important; }
-.sonar-combo__menu {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
-    margin: 0; padding: 0.25rem; list-style: none; max-height: 16rem; overflow-y: auto;
-    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
-    border-radius: var(--sonar-radius-sm); box-shadow: var(--mj-shadow-md, 0 8px 24px -8px rgba(15, 23, 42, 0.35));
-}
-.sonar-combo__opt { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: var(--sonar-radius-sm); cursor: pointer; font-size: 0.85rem; color: var(--sonar-ink); }
-.sonar-combo__opt:hover, .sonar-combo__opt--active { background: var(--sonar-surface-sunken, rgba(34, 211, 238, 0.1)); }
-.sonar-combo__opt--active { box-shadow: inset 2px 0 0 var(--sonar-accent, #22d3ee); }
+/* Triage filters now use the shared <sonar-filter-bar> (chrome lives there). These styles only
+   cover the projected suggestion-ROW content (rendered into the bar's menu via ng-template). */
 .sonar-combo__opt-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 .sonar-combo__opt-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sonar-combo__opt-sub { font-size: 0.72rem; color: var(--sonar-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sonar-combo__opt-score { font-size: 0.8rem; color: var(--sonar-muted); flex: 0 0 auto; }
-
-/* Score range + sort. */
-.sonar-filters__range { display: flex; align-items: center; gap: 0.4rem; }
-.sonar-filters__lbl { font-size: 0.7rem; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.sonar-filters__num { width: 3.5rem; text-align: center; }
-.sonar-filters__dash { color: var(--sonar-muted); }
-.sonar-filters__sort { white-space: nowrap; }
 
 /* "scored by vN" badge + stale note in the drill-down. */
 .sonar-drill__version { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.35rem; }
@@ -101,38 +78,7 @@
 .sonar-trend--neg { color: var(--sonar-critical); }
 .sonar-trend--flat { color: var(--sonar-muted); }
 
-/* --- Movers since last run --- */
-.sonar-movers { padding: 0; overflow: hidden; }
-.sonar-movers__head {
-    display: flex; align-items: center; gap: 0.6rem; width: 100%;
-    padding: 0.7rem 0.85rem; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;
-}
-.sonar-movers__head .sonar-card__label { flex: 1; }
-.sonar-movers__head i { color: var(--sonar-muted); font-size: 0.75rem; }
-.sonar-movers__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0 0.85rem 0.85rem; }
-@media (max-width: 560px) { .sonar-movers__cols { grid-template-columns: 1fr; } }
-.sonar-movers__col { display: flex; flex-direction: column; gap: 0.3rem; }
-.sonar-movers__col-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-.sonar-mover {
-    display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left; font: inherit; cursor: pointer;
-    padding: 0.4rem 0.5rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
-}
-.sonar-mover:hover { border-color: var(--sonar-accent, #22d3ee); }
-.sonar-mover__name { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sonar-mover__score { font-size: 0.8rem; color: var(--sonar-muted); }
-.sonar-mover__empty { font-size: 0.78rem; padding: 0.3rem 0.1rem; }
-
-/* --- Score-history sparkline (drill-down) --- */
-.sonar-spark { display: block; width: 120px; height: 28px; margin: 0.5rem 0 0.15rem auto; overflow: visible; }
-.sonar-spark__area { fill: color-mix(in srgb, var(--sonar-accent, #22d3ee) 12%, transparent); stroke: none; }
-.sonar-spark__line { fill: none; stroke: var(--sonar-accent, #22d3ee); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.sonar-spark__line--healthy  { stroke: var(--sonar-healthy); }
-.sonar-spark__line--watch    { stroke: var(--sonar-watch); }
-.sonar-spark__line--atrisk   { stroke: var(--sonar-atrisk); }
-.sonar-spark__line--critical { stroke: var(--sonar-critical); }
-.sonar-spark__dot { fill: var(--sonar-accent, #22d3ee); }
-.sonar-spark__dot--healthy  { fill: var(--sonar-healthy); }
-.sonar-spark__dot--watch    { fill: var(--sonar-watch); }
-.sonar-spark__dot--atrisk   { fill: var(--sonar-atrisk); }
-.sonar-spark__dot--critical { fill: var(--sonar-critical); }
-.sonar-spark__hint { font-size: 0.7rem; margin-top: 0.4rem; max-width: 9rem; margin-left: auto; }
+/* Movers feed + score-history sparkline now live in sonar-shell.css (shared with the Overview).
+   EM keeps only its local placement tweaks for the drill-down sparkline. */
+.sonar-spark { margin: 0.5rem 0 0.15rem auto; }
+.sonar-spark__hint { margin-left: auto; }

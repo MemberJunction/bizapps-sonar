@@ -52,8 +52,14 @@ produce only 11 scores).
 
 ### Concept 2 — Normalization (raw value → 0–1) — the important part
 Normalization maps each raw value onto a common 0–1 scale so factors with different magnitudes are
-comparable. **All implemented methods are population-relative** — they rank/scale a member *against
-the other members*, not against an absolute target. Four methods work today:
+comparable. **Seven methods work today, in two families.** *Population-relative* methods rank/scale a
+member **against the other members** (so a member's score depends on the cohort). *Per-value
+(parameterized)* methods map each value through a fixed curve or table from `NormalizationParamsJSON`,
+**independent of the population** (the same raw value always yields the same result). Every method is
+an `INormalizationStrategy` behind a registry, so the rubric and explainability never branch on which
+one ran.
+
+**Population-relative** (need the whole population in one pass; `None` is a plain passthrough):
 
 | Method | What it does | Good when | Watch out |
 |---|---|---|---|
@@ -61,6 +67,27 @@ the other members*, not against an absolute target. Four methods work today:
 | **MinMax** | `(x − min) / (max − min)` across the population | Simple, intuitive default | One outlier (a "whale") flattens everyone else toward 0 |
 | **Percentile** | Member's *rank* within the population (0–1) | Robust to outliers; "top 20%" framing | The top member can't reach exactly 1.0 (see below) |
 | **ZScore** | Standard deviations from the mean, clamped to ±3 then mapped to 0–1 | When spread/variance is what matters | Needs enough spread; flat populations collapse to 0.5 |
+
+**Per-value / parameterized** (read `NormalizationParamsJSON`; each member scored on a fixed rule, not vs. the cohort):
+
+| Method | What it does | Params | Good when |
+|---|---|---|---|
+| **Logistic** | Sigmoid curve `1 / (1 + e^(−steepness·(x − midpoint)))` → 0–1 | `{ midpoint, steepness }` | Diminishing returns — the first units of activity matter most; you have a fixed "what's healthy" target rather than a cohort to rank against |
+| **Banded** | Bucket the value by ascending thresholds, emit each band's 0–1 `output` | `{ bands: [{ max, output }] }` (`max: null` = open top) | Explicit business cutoffs ("≥3 events = strong"). A value above all finite bands with no open top → neutral 0.5 |
+| **Lookup** | Exact-match table `value → output`, else `fallback` | `{ entries: [{ value, output }], fallback }` | Discrete coded signals (status code → strength). Exact match only — no ranges/nearest |
+
+**Picking a method — start from the question you're asking:**
+
+| You want… | Use |
+|---|---|
+| Rank a member against the cohort | `Percentile` (robust) / `ZScore` (spread-sensitive) |
+| Linear scale against the cohort's min/max | `MinMax` |
+| A fixed "healthy target" with diminishing returns | `Logistic` |
+| Explicit tiers / business cutoffs | `Banded` |
+| A category-code → strength mapping | `Lookup` |
+| The raw value is already 0–1 | `None` |
+
+The split that matters: the first three are **population-relative** (the answer changes as the cohort changes); the last three are **per-value** (a fixed rule, same answer regardless of who else is scored).
 
 **MinMax vs Percentile, concretely.** Take event counts `[0,0,0,7,7,20]`:
 - **MinMax** maps the max (20) → 1.0 and everyone relative to it; the two 7s land at `7/20 = 0.35`,
@@ -80,6 +107,12 @@ against.)
 
 `HigherIsBetter` (UI: "where more is a good sign / a warning sign") flips the direction: when false,
 a higher raw value yields a *lower* contribution (e.g. "days since last login").
+
+**All seven share the same tail.** Whatever 0–1 fraction a method produces still passes through
+`HigherIsBetter` (direction) and `OutputMin`/`OutputMax` (scaling) — so a Banded `output` of 0.2 with
+`higherIsBetter: false` on a 0–100 scale lands at 80. The three parameterized methods are validated
+when the factor is resolved: a missing or malformed `NormalizationParamsJSON` throws a clear,
+field-level error rather than silently mis-scoring.
 
 ### Concept 3 — The rubric (combine into one score)
 The score is a **weighted average of the normalized factors, scaled to 0–100** (`ScoringEngine`):
@@ -139,11 +172,11 @@ more is a good sign, normalized by Percentile, weight 0.30.* Every clause is a c
 | Dimension | Supported values |
 |---|---|
 | **Aggregation** | `Count`, `Sum`, `Avg`, `Min`, `Max`, `DistinctCount` (Sum/Avg/Min/Max need a numeric field) |
-| **Source** | One related entity, **single join hop** |
+| **Source** | One related entity — **single or multi-hop** via `RelationshipPath` (e.g. Member → EmailSend → EmailClick) |
 | **Filter** | A condition tree over the related entity (`mj-filter-builder`); empty = include all |
 | **Time window** | `Rolling` (trailing N days) and `AllTime` |
 | **Direction** | `HigherIsBetter` true/false |
-| **Normalization** | `None`, `MinMax`, `Percentile`, `ZScore` (all population-relative) |
+| **Normalization** | `None`, `MinMax`, `Percentile`, `ZScore` (population-relative) + `Logistic`, `Banded`, `Lookup` (per-value, from `NormalizationParamsJSON`) |
 | **Weight** | 0–1 fraction (additive; relative to other factors) |
 
 **What that covers:** most engagement signals are "how much / how many of some activity" — event
@@ -179,8 +212,7 @@ is the highest-leverage way to actually earn the 80% claim.
 | Penalty / multiplier / gate weight modes, caps, floors, trend-weight | Engine is additive-only |
 | `MissingDataPolicy` | No-data members excluded, not scored Zero/NeutralMidpoint |
 | Trend / history / confidence | `ScoreHistory`, `ScoreBandTransition`, Delta, TrendDirection, Confidence unwritten |
-| Normalization: Logistic / Banded / Lookup | Storage (`NormalizationParamsJSON`) ready; math not built |
-| Aggregations: Recency, RatePerPeriod, Exists, TrendSlope; recency decay; multi-hop joins | Not compiled |
+| Aggregations: Recency, RatePerPeriod, Exists, TrendSlope; recency decay | Not compiled |
 | Windows: Calendar / SinceEvent / **RenewalRelative** | Only Rolling + AllTime (renewal-window is a flagship plan.md example — notable gap) |
 | Action-backed / DerivedFromScore / Constant factors | Only Declarative; the `IFactorEvaluator` seam is ready for the rest |
 | Calibrated (cross-tenant benchmark) normalization | Not built |

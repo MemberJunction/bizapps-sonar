@@ -15,6 +15,7 @@ import { FactorCompiler } from "../factors/FactorCompiler";
 import {
     NormalizationEngine,
     NormalizationSpec,
+    parseNormalizationParams,
 } from "../normalization/NormalizationEngine";
 import {
     EffectiveMissingDataPolicy,
@@ -42,6 +43,8 @@ export interface FactorPreviewDraft {
     filterExpression?: string;
     timeWindowID?: string;
     normalizationMethod: mjBizAppsSonarFactorEntity["NormalizationMethod"];
+    /** NormalizationParamsJSON for parameterized methods (Logistic/Banded/Lookup). */
+    normalizationParamsJSON?: string;
     higherIsBetter: boolean;
 }
 
@@ -130,6 +133,7 @@ export class RecomputeOrchestrator {
         if (draft.filterExpression) factor.FilterExpression = draft.filterExpression;
         if (draft.timeWindowID) factor.TimeWindowID = draft.timeWindowID;
         factor.NormalizationMethod = draft.normalizationMethod;
+        if (draft.normalizationParamsJSON) factor.NormalizationParamsJSON = draft.normalizationParamsJSON;
         factor.OutputMin = 0;
         factor.OutputMax = 1;
         factor.HigherIsBetter = draft.higherIsBetter;
@@ -419,23 +423,19 @@ export class RecomputeOrchestrator {
         return byId;
     }
 
-    /** Resolve a factor's normalization config; fail loud on methods we don't support yet. */
+    /** Resolve a factor's normalization config. Parameterized methods (Logistic/Banded/Lookup)
+     *  read + validate NormalizationParamsJSON; the pure methods take no params. parse* throws
+     *  loud on missing/malformed config rather than letting a bad shape mis-score. */
     private resolveNormalizationSpec(
         factor: mjBizAppsSonarFactorEntity,
     ): NormalizationSpec {
         const method = factor.NormalizationMethod ?? "None";
-        // Supported population methods. Parameterized methods (Logistic/Banded/Lookup) read
-        // NormalizationParamsJSON and aren't wired yet — fail loud rather than silently mis-score.
-        if (method !== "None" && method !== "MinMax" && method !== "Percentile" && method !== "ZScore") {
-            throw new Error(
-                `RecomputeOrchestrator: normalization method '${method}' not supported yet (factor ${factor.ID}).`,
-            );
-        }
         return {
             method,
             outputMin: factor.OutputMin ?? 0,
             outputMax: factor.OutputMax ?? 1,
             higherIsBetter: factor.HigherIsBetter ?? true,
+            params: parseNormalizationParams(method, factor.NormalizationParamsJSON),
         };
     }
 

@@ -25,23 +25,28 @@
                     <table class="sonar-table">
                         <thead>
                             <tr>
-                                <th>Model</th><th>Trigger</th><th>Scope</th><th>Scored</th><th>Changed</th>
-                                <th>Band moves</th><th>Duration</th><th>Cost</th><th>Status</th>
+                                <th>Model</th><th>Trigger</th><th>Scope</th>
+                                <th class="sonar-num">Scored</th><th class="sonar-num">Changed</th>
+                                <th class="sonar-num">Band moves</th><th class="sonar-num">Duration</th>
+                                <th class="sonar-num">Cost</th><th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @for (r of runs; track r.model) {
+                            @for (r of runs(); track $index) {
                                 <tr>
                                     <td>{{ r.model }}</td>
                                     <td class="sonar-faint">{{ r.trigger }}</td>
                                     <td class="sonar-faint">{{ r.scope }}</td>
-                                    <td class="sonar-mono">{{ r.scored | number }}</td>
-                                    <td class="sonar-mono">{{ r.changed | number }}</td>
-                                    <td class="sonar-mono sonar-text--atrisk">{{ r.moves }}</td>
-                                    <td class="sonar-mono">{{ r.duration }}</td>
-                                    <td class="sonar-mono sonar-faint">{{ r.cost }}</td>
+                                    <td class="sonar-mono sonar-num">{{ r.scored | number }}</td>
+                                    <td class="sonar-mono sonar-num">{{ r.changed | number }}</td>
+                                    <td class="sonar-mono sonar-num" [class.sonar-text--atrisk]="r.moves > 0" [class.sonar-num--zero]="r.moves === 0">{{ r.moves | number }}</td>
+                                    <td class="sonar-mono sonar-num">{{ r.duration }}</td>
+                                    <td class="sonar-mono sonar-num sonar-faint">{{ r.cost }}</td>
                                     <td><span class="sonar-chip" [ngClass]="r.ok ? 'sonar-chip--healthy' : 'sonar-chip--atrisk'">{{ r.statusLabel }}</span></td>
                                 </tr>
+                            }
+                            @if (runs().length === 0) {
+                                <tr><td colspan="9" class="sonar-faint sonar-table__empty">No recompute runs yet.</td></tr>
                             }
                         </tbody>
                     </table>
@@ -75,13 +80,16 @@
                 <section class="sonar-card">
                     <div class="sonar-card__label">Config audit trail</div>
                     <div class="sonar-stack">
-                        @for (a of audit; track $index) {
+                        @for (a of audit(); track $index) {
                             <div class="sonar-list-row">
                                 <div>
                                     <div class="sonar-list-row__title">{{ a.what }} <span class="sonar-faint">· {{ a.change }}</span></div>
                                     <div class="sonar-faint sonar-list-row__sub">{{ a.by }} · {{ a.when }}</div>
                                 </div>
                             </div>
+                        }
+                        @if (audit().length === 0) {
+                            <p class="sonar-faint" style="font-size:0.85rem">No config changes recorded yet.</p>
                         }
                     </div>
                 </section>

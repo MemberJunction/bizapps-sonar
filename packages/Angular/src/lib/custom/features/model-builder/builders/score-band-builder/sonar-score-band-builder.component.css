@@ -33,7 +33,7 @@
 
 /* number line */
 .sonar-sb__line { display: flex; height: 3rem; border-radius: var(--sonar-radius-sm); overflow: hidden; }
-.sonar-sb__seg { display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 600; color: #04121f; min-width: 0; overflow: hidden; white-space: nowrap; }
+.sonar-sb__seg { display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 600; color: var(--sonar-on-band); min-width: 0; overflow: hidden; white-space: nowrap; }
 .sonar-sb__marker-track { position: relative; height: 1.5rem; }
 .sonar-sb__marker { position: absolute; top: 0.25rem; transform: translateX(-50%); white-space: nowrap; }
 .sonar-sb__try { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }

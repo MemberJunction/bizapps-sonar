@@ -24,6 +24,9 @@ export type BandKey = "healthy" | "watch" | "atrisk" | "critical";
 
 /** One slice of a model's persisted band distribution. */
 export interface BandSlice { bandId: string | null; label: string; key: BandKey; count: number; pct: number; }
+/** Population band distribution at one point in time — one per distinct AsOfDate in ScoreHistory.
+ *  Drives the Overview engagement-trend chart (band mix over recomputes). */
+export interface BandTrendPoint { asOf: Date; counts: Record<BandKey, number>; total: number; }
 /** A scored anchor record (a persisted Score row), with its display name + band resolved. */
 export interface ScoredMember {
     scoreId: string;
@@ -118,6 +121,54 @@ export class ScoreReadService {
         });
         slices.sort((a, b) => b.count - a.count);
         return { slices, total };
+    }
+
+    /**
+     * Population band distribution OVER TIME — one point per distinct AsOfDate in ScoreHistory,
+     * counting members per band at each date. Drives the Overview engagement-trend chart. Capped
+     * to the most recent `maxPoints` dates so a long history stays readable and the transfer
+     * bounded. Reads only the three columns the chart needs (simple result, not entity objects).
+     */
+    public async distributionTrendForModel(modelId: string, maxPoints = 12): Promise<BandTrendPoint[]> {
+        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
+            EntityName: SCORE_HISTORY,
+            ExtraFilter: `ScoreModelID='${modelId}'`,
+            Fields: ["AsOfDate", "ComputedAt", "BandID"],
+            OrderBy: "AsOfDate ASC, ComputedAt ASC",
+            ResultType: "simple",
+            IgnoreMaxRows: true,
+        });
+        const rows = result.Success ? result.Results ?? [] : [];
+        if (rows.length === 0) return [];
+        const bandById = await this.loadBandsByIds(rows.map((r) => r.BandID));
+        return this.bucketTrend(rows, bandById, maxPoints);
+    }
+
+    /** Bucket history rows by AsOfDate (day granularity) into per-band counts, keep the most
+     *  recent `maxPoints` dates. AsOfDate is the trajectory axis; fall back to ComputedAt if null. */
+    private bucketTrend(
+        rows: mjBizAppsSonarScoreHistoryEntity[],
+        bandById: Map<string, mjBizAppsSonarScoreBandEntity>,
+        maxPoints: number,
+    ): BandTrendPoint[] {
+        const byDay = new Map<string, BandTrendPoint>();
+        for (const r of rows) {
+            const when = r.AsOfDate ?? r.ComputedAt;
+            if (!when) continue;
+            const date = new Date(when);
+            const dayKey = date.toISOString().slice(0, 10);
+            const point = byDay.get(dayKey) ?? { asOf: date, counts: this.emptyCounts(), total: 0 };
+            const label = r.BandID ? bandById.get(r.BandID)?.Label ?? "Unbanded" : "Unbanded";
+            point.counts[this.bandKey(label)] += 1;
+            point.total += 1;
+            byDay.set(dayKey, point);
+        }
+        const ordered = [...byDay.values()].sort((a, b) => a.asOf.getTime() - b.asOf.getTime());
+        return ordered.slice(-maxPoints);
+    }
+
+    private emptyCounts(): Record<BandKey, number> {
+        return { healthy: 0, watch: 0, atrisk: 0, critical: 0 };
     }
 
     /**

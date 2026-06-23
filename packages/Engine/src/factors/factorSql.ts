@@ -24,6 +24,25 @@ export function windowNeedsAnchorJoin(window: CompiledWindow | null): boolean {
 }
 
 /**
+ * One intermediate JOIN from the leaf (measure) table toward the anchor — a multi-hop step
+ * (e.g. EmailClick → EmailSend on the way to Member). Built by FactorCompiler from
+ * `ModelRelatedEntity.RelationshipPath`. Each hop follows a foreign key on the LEFT (child)
+ * side to the joined parent's primary key, so every hop is many-to-one *toward* the anchor —
+ * which means no row fan-out and `COUNT(*)`/`SUM` stay correct.
+ */
+export interface CompiledJoin {
+    /** Bracket-quoted joined (parent) table, e.g. "[comm].[EmailSend]". */
+    table: string;
+    /** Alias for the joined table within the query, e.g. "h1". */
+    alias: string;
+    /** Already-qualified SQL ref of the FK column on the LEFT side
+     *  (the leaf's full table name on hop 1, the previous hop's alias after that). */
+    leftRef: string;
+    /** Column on the joined table the FK points to (its PK), e.g. "ID". */
+    rightColumn: string;
+}
+
+/**
  * A declarative factor reduced to the few SQL-ready pieces the evaluator needs. Produced
  * by the FactorCompiler (translation); consumed by CompiledFactorEvaluator (execution).
  * Runtime inputs (anchorIds, asOf) are NOT part of the spec — they are bound at run time.
@@ -31,10 +50,13 @@ export function windowNeedsAnchorJoin(window: CompiledWindow | null): boolean {
 export interface CompiledFactorSpec {
     /** The Factor this spec was compiled from (for explanation text / debugging). */
     factorId: string;
-    /** Fully-qualified related table, already bracket-quoted, e.g. "[CRM].[Activity]". */
+    /** Fully-qualified related (leaf/measure) table, already bracket-quoted, e.g. "[CRM].[Activity]". */
     relatedTable: string;
-    /** Column on the related table that points at the anchor (the GROUP BY / IN key). */
+    /** The column holding the anchor FK (the GROUP BY / IN key). Single-hop: on `relatedTable`.
+     *  Multi-hop: on the last `joins` entry's table (qualified by that alias). */
     anchorKeyColumn: string;
+    /** Intermediate JOINs from the leaf toward the anchor (multi-hop). Empty/absent = single-hop. */
+    joins?: CompiledJoin[];
     /** The compiled time window, or null for "no time bound" (AllTime / no window). */
     window: CompiledWindow | null;
     /** Anchor table (bracket-quoted) + its PK — only set when {@link windowNeedsAnchorJoin}. */
@@ -67,19 +89,30 @@ export function buildFactorSql(
     anchorIds: string[],
 ): string {
     const idList = anchorIds.map((id) => `'${id}'`).join(",");
-    const key = `[${spec.anchorKeyColumn}]`;
+    const joins = spec.joins ?? [];
+    // Multi-hop: the anchor FK lives on the last joined (anchor-adjacent) table, so qualify the
+    // key by that alias. Single-hop: it's a bare column on the leaf table. (Leaf columns used by
+    // the aggregate/filter/window stay bare — multi-hop v1 assumes leaf column names don't
+    // collide with the joined tables'; SQL Server fails loud on an ambiguous column if they do.)
+    const key = joins.length
+        ? `${joins[joins.length - 1].alias}.[${spec.anchorKeyColumn}]`
+        : `[${spec.anchorKeyColumn}]`;
     const where = [`${key} IN (${idList})`, ...windowClause(spec.window)];
     if (spec.filterClause) {
         where.push(spec.filterClause);
     }
+    const from = [`FROM ${spec.relatedTable}`];
+    for (const j of joins) {
+        from.push(`JOIN ${j.table} ${j.alias} ON ${j.leftRef} = ${j.alias}.[${j.rightColumn}]`);
+    }
     // Per-anchor windows (SinceEvent/RenewalRelative) read a date off the anchor row, so the
     // anchor table is joined as `a`. The FK→PK join is 1:1, so it never fans out the aggregate.
-    const from = windowNeedsAnchorJoin(spec.window)
-        ? `FROM ${spec.relatedTable}\nJOIN ${spec.anchorTable} a ON a.[${spec.anchorPkColumn}] = ${key}`
-        : `FROM ${spec.relatedTable}`;
+    if (windowNeedsAnchorJoin(spec.window)) {
+        from.push(`JOIN ${spec.anchorTable} a ON a.[${spec.anchorPkColumn}] = ${key}`);
+    }
     return [
         `SELECT ${key} AS anchorId, ${spec.aggregateSql} AS rawValue`,
-        from,
+        from.join("\n"),
         `WHERE ${where.join(" AND ")}`,
         `GROUP BY ${key}`,
     ].join("\n");

@@ -1,4 +1,5 @@
 import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { SQLServerDataProvider } from "@memberjunction/sqlserver-dataprovider";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarScoreEntity,
@@ -31,7 +32,7 @@ export class ScoreWriter {
             return 0;
         }
         const existing = await this.loadExistingScores(model, contextUser);
-        await this.clearOldContributions(existing, contextUser);
+        await this.clearOldContributions(model, contextUser);
 
         // Trend baseline: Delta/Trend compare the new score to the snapshot ~TrendWindowDays ago
         // (a real "change over N days", not just "since last run"). When the model has no
@@ -138,36 +139,29 @@ export class ScoreWriter {
     }
 
     /**
-     * Delete the existing contribution rows for every score we are about to rewrite
-     * (the "replace" half of replace-contributions). One RunView + per-row deletes — fine
-     * at modest scale; the bulk path collapses this into a set-based delete.
+     * Delete the existing contribution rows for this model's scores (the "replace" half of
+     * replace-contributions). Set-based: ONE `DELETE … JOIN Score` instead of loading N×factor
+     * rows and deleting each — a recomputed model has one contribution per scored member per
+     * factor, so the per-row path cost a round trip apiece. The subquery scales to any population
+     * (no inlined ID list). Runs raw SQL via the SQL Server provider (engine is server-side).
      */
     private async clearOldContributions(
-        existing: Map<string, mjBizAppsSonarScoreEntity>,
+        model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
     ): Promise<void> {
-        const scoreIds = [...existing.values()].map((s) => `'${s.ID}'`);
-        if (scoreIds.length === 0) {
+        const md = new Metadata();
+        const contrib = md.Entities.find((e) => e.Name === "MJ_BizApps_Sonar: Score Factor Contributions");
+        const score = md.Entities.find((e) => e.Name === "MJ_BizApps_Sonar: Scores");
+        if (!contrib || !score) {
+            LogError("ScoreWriter: could not resolve Score/Contribution entities for set-based delete.");
             return;
         }
-        const rv = new RunView();
-        const result = await rv.RunView<mjBizAppsSonarScoreFactorContributionEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
-                ExtraFilter: `ScoreID IN (${scoreIds.join(",")})`,
-                ResultType: "entity_object",
-                // N×factors rows — clear ALL of them, not just the first 1000. (Scale path: set-based delete.)
-                IgnoreMaxRows: true,
-            },
-            contextUser,
-        );
-        for (const row of result.Success ? (result.Results ?? []) : []) {
-            if (!(await row.Delete())) {
-                LogError(
-                    `ScoreWriter: failed to delete stale contribution ${row.ID}.`,
-                );
-            }
-        }
+        const sql =
+            `DELETE c FROM [${contrib.SchemaName}].[${contrib.BaseTable}] c ` +
+            `INNER JOIN [${score.SchemaName}].[${score.BaseTable}] s ON s.ID = c.ScoreID ` +
+            `WHERE s.ScoreModelID = @modelId`;
+        const provider = Metadata.Provider as SQLServerDataProvider;
+        await provider.ExecuteSQL(sql, { modelId: model.ID }, undefined, contextUser);
     }
 
     private async newScore(contextUser: UserInfo): Promise<mjBizAppsSonarScoreEntity> {

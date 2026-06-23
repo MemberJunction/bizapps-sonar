@@ -1,0 +1,9 @@
+.sonar-range { display: flex; align-items: center; gap: 0.4rem; }
+.sonar-range__lbl { font-size: 0.7rem; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.sonar-range__num { width: 4rem; text-align: center; }
+/* Hide the native number-spinner arrows: they eat the input's right edge and clip the centered
+   "min"/"max" placeholder (→ "mir"/"ma"), and look clunky in a filter. */
+.sonar-range__num::-webkit-outer-spin-button,
+.sonar-range__num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sonar-range__num { -moz-appearance: textfield; appearance: textfield; }
+.sonar-range__dash { color: var(--sonar-muted); }

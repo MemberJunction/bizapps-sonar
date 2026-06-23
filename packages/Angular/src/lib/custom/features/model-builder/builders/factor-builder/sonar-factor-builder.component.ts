@@ -3,6 +3,7 @@ import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, EditFactorVM, NormalizationMethod, WeightMode } from "../../../../core/services/factor.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
+import { reachableFromAnchor } from "../../../../core/entity-graph";
 
 /** View-model for the live factor preview (a representative member's real numbers). */
 interface PreviewVM { sampleName: string; matching: number; strength: number; explanation: string; membersWithData: number; }
@@ -139,20 +140,25 @@ export class SonarFactorBuilderComponent {
     /** The currently chosen data source (resolved from sourceId). */
     public readonly selectedSource = computed(() => this.sources().find((s) => s.id === this.sourceId()) ?? null);
 
-    /** Sources the engine can actually score against this anchor: those whose related entity has a
-     *  direct FK to the anchor (single-hop). The currently-selected source is always kept so an
-     *  in-progress/edited choice never vanishes. Prevents picking unrelated entities (which would
-     *  only fail later at recompute with "expected exactly one foreign key … found 0"). */
+    /** Sources the engine can actually score against this anchor: those it can reach by a single
+     *  unambiguous FK path — a direct FK (single-hop) OR a multi-hop chain the engine auto-resolves
+     *  (canAutoResolvePath mirrors the engine's findAutoPathHops). The currently-selected source is
+     *  always kept so an in-progress/edited choice never vanishes. Excludes unrelated entities and
+     *  ambiguous-path ones, which would only fail later at recompute. */
     public readonly selectableSources = computed<FactorSource[]>(() => {
         const anchorId = this.anchorEntityID();
         const current = this.sourceId();
         if (!anchorId) return this.sources();
-        const md = new Metadata();
-        return this.sources().filter((s) => {
-            if (s.id === current) return true;
-            const ent = md.Entities.find((e) => e.ID === s.relatedEntityID);
-            return !!ent && ent.Fields.some((f) => f.RelatedEntityID === anchorId);
-        });
+        // Reachability runs over BUSINESS entities only: MJ's `__mj*` system/infra tables would add
+        // spurious alternate FK routes and make legit multi-hop sources look ambiguous (excluded).
+        // One BFS → a set, then membership-test each wired source.
+        const entities = new Metadata().Entities.filter(
+            (e) => !e.SchemaName?.startsWith("__mj"),
+        );
+        const reachable = reachableFromAnchor(entities, anchorId);
+        return this.sources().filter(
+            (s) => s.id === current || reachable.has(s.relatedEntityID),
+        );
     });
 
     /** Aggregatable (numeric) fields on the chosen source entity, from MJ metadata. */

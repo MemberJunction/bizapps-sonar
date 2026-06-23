@@ -202,7 +202,7 @@
                         <div class="sonar-stack sonar-member__why">
                             @for (c of contributions(); track c.label) {
                                 <div class="sonar-wf">
-                                    <span class="sonar-wf__val" [ngClass]="c.value < 0 ? 'sonar-neg' : 'sonar-pos'">{{ c.value > 0 ? '+' : '' }}{{ c.value }}</span>
+                                    <span class="sonar-wf__val" [ngClass]="c.value < 0 ? 'sonar-neg' : c.value > 0 ? 'sonar-pos' : ''">{{ c.value > 0 ? '+' : '' }}{{ c.value }}</span>
                                     <span class="sonar-wf__track"><span class="sonar-wf__bar" [ngClass]="c.value < 0 ? 'sonar-wf__bar--neg' : 'sonar-wf__bar--pos'" [style.width.%]="barWidth(c.value)"></span></span>
                                     <span class="sonar-wf__label">{{ c.label }}</span>
                                 </div>

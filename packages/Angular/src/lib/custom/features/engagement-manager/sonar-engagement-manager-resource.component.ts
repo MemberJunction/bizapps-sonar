@@ -6,6 +6,8 @@ import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
 import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, ScoreReadService, ScoredMember, TrendDirection } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
+import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 
 /**
  * Engagement Manager — the read surface for the people who act on scores. Scoped to the
@@ -38,6 +40,12 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly selected = signal<ScoredMember | null>(null);
     public readonly contributions = signal<ScoreContribution[]>([]);
     public readonly loadingDrawer = signal(false);
+    /** Triage list is fetching (drives the skeleton that mirrors the rows). */
+    public readonly loadingMembers = signal(false);
+    /** A load failed (drives the error state); null when healthy. */
+    public readonly error = signal<string | null>(null);
+    /** Fixed placeholder rows for the loading skeleton (mirrors the triage list). */
+    public readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
 
     /** The model's current published version number — members scored under an older version are stale. */
     public readonly currentVersionNumber = signal<number | null>(null);
@@ -79,12 +87,13 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly anchorEntityId = signal<string | null>(null);
     /** When a suggestion is picked, pin to that exact anchor record (overrides the name substring). */
     private readonly pinnedAnchorId = signal<string | null>(null);
-    private nameDebounce: ReturnType<typeof setTimeout> | null = null;
 
-    // --- name-search autosuggest (typeahead) ---
+    // --- name-search typeahead suggestions (the shared FilterBar owns the menu + keyboard) ---
     public readonly suggestions = signal<MemberSuggestion[]>([]);
-    public readonly showSuggest = signal(false);
-    public readonly activeSuggest = signal(-1);
+
+    /** Sort toggle options (worst-first ↔ best-first) for the shared SonarToggleFilter. */
+    public readonly sortAsc: SonarToggleOption = { value: "asc", label: "↑ Worst first", title: "Worst first — click for best first" };
+    public readonly sortDesc: SonarToggleOption = { value: "desc", label: "↓ Best first", title: "Best first — click for worst first" };
 
     /** Rubric signals with NO contribution for the selected member — the engine scores these as
      *  0 but still counts their weight, which drags the score down (the hidden reason a score can
@@ -128,7 +137,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.maxScore.set(null);
         this.sortDir.set("asc");
         this.suggestions.set([]);
-        this.showSuggest.set(false);
         this.pinnedAnchorId.set(null);
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
         this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
@@ -153,22 +161,34 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         const id = this.current.modelId();
         if (!id) { this.members.set([]); this.total.set(0); this.selected.set(null); this.contributions.set([]); return; }
         const band = this.selectedBand();
-        const { members, total } = await this.scoreRead.membersForModel(id, {
-            page: this.page(),
-            pageSize: SonarEngagementManagerResourceComponent.PAGE_SIZE,
-            bandId: band ? band.bandId : undefined,
-            minScore: this.minScore(),
-            maxScore: this.maxScore(),
-            nameQuery: this.nameQuery(),
-            anchorEntityId: this.anchorEntityId() ?? undefined,
-            anchorRecordId: this.pinnedAnchorId() ?? undefined,
-            sortDir: this.sortDir(),
-        });
-        this.members.set(members);
-        this.total.set(total);
-        if (members.length > 0) await this.select(members[0]);
-        else { this.selected.set(null); this.contributions.set([]); }
+        this.loadingMembers.set(true);
+        this.error.set(null);
+        try {
+            const { members, total } = await this.scoreRead.membersForModel(id, {
+                page: this.page(),
+                pageSize: SonarEngagementManagerResourceComponent.PAGE_SIZE,
+                bandId: band ? band.bandId : undefined,
+                minScore: this.minScore(),
+                maxScore: this.maxScore(),
+                nameQuery: this.nameQuery(),
+                anchorEntityId: this.anchorEntityId() ?? undefined,
+                anchorRecordId: this.pinnedAnchorId() ?? undefined,
+                sortDir: this.sortDir(),
+            });
+            this.members.set(members);
+            this.total.set(total);
+            if (members.length > 0) await this.select(members[0]);
+            else { this.selected.set(null); this.contributions.set([]); }
+        } catch {
+            this.error.set("Couldn't load members. Please retry.");
+            this.members.set([]); this.total.set(0); this.selected.set(null); this.contributions.set([]);
+        } finally {
+            this.loadingMembers.set(false);
+        }
     }
+
+    /** Retry after an error — reload the current page. */
+    public async retry(): Promise<void> { await this.loadMembers(); }
 
     /** Click a band tile to filter the triage list to it; click the active one again to clear. */
     public async filterByBand(slice: BandSlice): Promise<void> {
@@ -181,65 +201,49 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public async nextPage(): Promise<void> { if (this.hasNext()) { this.page.update((p) => p + 1); await this.loadMembers(); } }
     public async prevPage(): Promise<void> { if (this.hasPrev()) { this.page.update((p) => p - 1); await this.loadMembers(); } }
 
-    /** Member-name search — typing un-pins any picked member (back to substring), debounced;
-     *  filters the list AND refreshes the typeahead suggestions. */
-    public onNameInput(value: string): void {
+    /** Search text changed — update the query + un-pin any picked member (reload is deferred to the
+     *  debounced `search` event from the field). */
+    public onSearchValue(value: string): void {
         this.nameQuery.set(value);
         this.pinnedAnchorId.set(null);
-        if (this.nameDebounce) clearTimeout(this.nameDebounce);
-        this.nameDebounce = setTimeout(async () => {
-            this.page.set(0);
-            await this.loadMembers();
-            await this.refreshSuggestions(value);
-        }, 250);
+    }
+
+    /** Score range changed — apply both bounds, reset to page 0, reload. */
+    public async onScoreRange(range: SonarRange): Promise<void> {
+        this.minScore.set(range.min);
+        this.maxScore.set(range.max);
+        this.page.set(0);
+        await this.loadMembers();
+    }
+
+    /** Sort direction toggled — reset to page 0, reload. */
+    public async onSortChange(dir: string): Promise<void> {
+        this.sortDir.set(dir === "desc" ? "desc" : "asc");
+        this.page.set(0);
+        await this.loadMembers();
+    }
+
+    /** Debounced search query from the FilterBar — reload the page and refresh typeahead suggestions. */
+    public async onFilterSearch(query: string): Promise<void> {
+        this.page.set(0);
+        await this.loadMembers();
+        await this.refreshSuggestions(query);
     }
 
     /** Fetch rich typeahead suggestions for the current query (needs ≥2 chars + a known anchor). */
     private async refreshSuggestions(value: string): Promise<void> {
         const id = this.anchorEntityId();
         const modelId = this.current.modelId();
-        if (!id || !modelId || value.trim().length < 2) { this.suggestions.set([]); this.showSuggest.set(false); return; }
-        const hits = await this.scoreRead.suggestMembers(modelId, id, value.trim());
-        this.suggestions.set(hits);
-        this.activeSuggest.set(-1);
-        this.showSuggest.set(hits.length > 0);
+        if (!id || !modelId || value.trim().length < 2) { this.suggestions.set([]); return; }
+        this.suggestions.set(await this.scoreRead.suggestMembers(modelId, id, value.trim()));
     }
 
-    /** Pick a suggestion — pin to that EXACT member (by ID) so same-named members don't all match. */
-    public async pickSuggestion(s: MemberSuggestion): Promise<void> {
+    /** A suggestion was picked in the FilterBar — pin to that EXACT member (by ID), then reload. */
+    public async onFilterPick(item: unknown): Promise<void> {
+        const s = item as MemberSuggestion;
         this.nameQuery.set(s.name);
         this.pinnedAnchorId.set(s.anchorRecordId);
         this.suggestions.set([]);
-        this.showSuggest.set(false);
-        this.page.set(0);
-        await this.loadMembers();
-    }
-
-    /** Keyboard nav within the suggestion list (↑/↓ move, Enter picks the highlighted, Esc closes). */
-    public onNameKeydown(ev: KeyboardEvent): void {
-        if (!this.showSuggest()) return;
-        const n = this.suggestions().length;
-        if (ev.key === "ArrowDown") { ev.preventDefault(); this.activeSuggest.update((i) => Math.min(i + 1, n - 1)); }
-        else if (ev.key === "ArrowUp") { ev.preventDefault(); this.activeSuggest.update((i) => Math.max(i - 1, 0)); }
-        else if (ev.key === "Enter") { const i = this.activeSuggest(); if (i >= 0 && i < n) { ev.preventDefault(); void this.pickSuggestion(this.suggestions()[i]); } }
-        else if (ev.key === "Escape") { this.showSuggest.set(false); }
-    }
-
-    /** Hide the suggestion menu shortly after blur, so a mousedown on an option still registers. */
-    public hideSuggestSoon(): void { setTimeout(() => this.showSuggest.set(false), 150); }
-
-    /** Set a score bound (clamped 0–100; empty clears it), reset to page 0, reload. */
-    public async setScoreBound(which: "min" | "max", value: string): Promise<void> {
-        const raw = value.trim();
-        const n = raw === "" ? null : Math.max(0, Math.min(100, Number(raw)));
-        (which === "min" ? this.minScore : this.maxScore).set(n != null && Number.isNaN(n) ? null : n);
-        this.page.set(0);
-        await this.loadMembers();
-    }
-
-    /** Flip worst-first ↔ best-first ordering. */
-    public async toggleSort(): Promise<void> {
-        this.sortDir.update((d) => (d === "asc" ? "desc" : "asc"));
         this.page.set(0);
         await this.loadMembers();
     }

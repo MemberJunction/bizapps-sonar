@@ -172,3 +172,69 @@ describe("mapAggregateRows", () => {
         expect(map.has("m2")).toBe(false);
     });
 });
+
+describe("buildFactorSql — multi-hop joins", () => {
+    // "Email clicks per member" = Member → EmailSend → EmailClick. The leaf (EmailClick) has no
+    // FK to Member; it reaches the anchor through EmailSend, whose MemberID is the anchor key.
+    const emailClicks: CompiledFactorSpec = {
+        factorId: "fac-mh",
+        relatedTable: "[comm].[EmailClick]",
+        anchorKeyColumn: "MemberID",
+        joins: [
+            {
+                table: "[comm].[EmailSend]",
+                alias: "h1",
+                leftRef: "[comm].[EmailClick].[EmailSendID]",
+                rightColumn: "ID",
+            },
+        ],
+        window: null,
+        aggregateSql: "COUNT(*)",
+    };
+
+    it("emits the intervening JOIN and qualifies the anchor key by the last hop's alias", () => {
+        const sql = buildFactorSql(emailClicks, ["m1", "m2"]);
+
+        expect(sql).toContain("SELECT h1.[MemberID] AS anchorId, COUNT(*) AS rawValue");
+        expect(sql).toContain("FROM [comm].[EmailClick]");
+        expect(sql).toContain(
+            "JOIN [comm].[EmailSend] h1 ON [comm].[EmailClick].[EmailSendID] = h1.[ID]",
+        );
+        expect(sql).toContain("h1.[MemberID] IN ('m1','m2')");
+        expect(sql).toContain("GROUP BY h1.[MemberID]");
+    });
+
+    it("chains hops: each later hop joins off the previous alias, key on the last", () => {
+        const twoHop: CompiledFactorSpec = {
+            ...emailClicks,
+            joins: [
+                {
+                    table: "[comm].[EmailSend]",
+                    alias: "h1",
+                    leftRef: "[comm].[EmailClick].[EmailSendID]",
+                    rightColumn: "ID",
+                },
+                {
+                    table: "[comm].[Campaign]",
+                    alias: "h2",
+                    leftRef: "h1.[CampaignID]",
+                    rightColumn: "ID",
+                },
+            ],
+            anchorKeyColumn: "OwnerMemberID",
+        };
+        const sql = buildFactorSql(twoHop, ["m1"]);
+
+        expect(sql).toContain("JOIN [comm].[EmailSend] h1 ON [comm].[EmailClick].[EmailSendID] = h1.[ID]");
+        expect(sql).toContain("JOIN [comm].[Campaign] h2 ON h1.[CampaignID] = h2.[ID]");
+        expect(sql).toContain("GROUP BY h2.[OwnerMemberID]");
+    });
+
+    it("single-hop spec (no joins) is unchanged — bare anchor key, no JOIN", () => {
+        const sql = buildFactorSql({ ...emailClicks, joins: [] }, ["m1"]);
+
+        expect(sql).toContain("SELECT [MemberID] AS anchorId");
+        expect(sql).toContain("GROUP BY [MemberID]");
+        expect(sql).not.toContain("JOIN");
+    });
+});

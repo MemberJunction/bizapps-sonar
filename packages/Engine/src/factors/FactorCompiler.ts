@@ -6,7 +6,7 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
-import { CompiledFactorSpec, CompiledWindow, buildAggregateExpression, windowNeedsAnchorJoin } from "./factorSql";
+import { CompiledFactorSpec, CompiledJoin, CompiledWindow, buildAggregateExpression, windowNeedsAnchorJoin } from "./factorSql";
 import {
     CompiledFilter,
     CompositeFilterDescriptor,
@@ -22,6 +22,142 @@ import {
  * single-hop related entity; and a Rolling time window (or none). Anything outside that
  * throws a clear error rather than silently emitting wrong SQL — we widen deliberately.
  */
+/** One hop of a `ModelRelatedEntity.RelationshipPath`: the FK column to follow toward the anchor.
+ *  `entity` (the join target's name) is optional/informational — the target is derived from FK metadata. */
+export interface RelationshipHop {
+    fk: string;
+    entity?: string;
+}
+
+/**
+ * Parse `ModelRelatedEntity.RelationshipPath` into ordered hops (leaf → anchor). Empty / "[]" /
+ * null → no path (single-hop). Anything else must be a JSON array of `{ fk }` objects; malformed
+ * config throws rather than silently degrading to single-hop. Pure + unit-testable.
+ */
+export function parseRelationshipPath(raw: string | null): RelationshipHop[] {
+    if (!raw || raw.trim() === "" || raw.trim() === "[]") {
+        return [];
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        throw new Error("FactorCompiler: RelationshipPath is not valid JSON.");
+    }
+    if (!Array.isArray(parsed)) {
+        throw new Error(
+            "FactorCompiler: RelationshipPath must be a JSON array of hops, e.g. [{ \"fk\": \"EmailSendID\" }].",
+        );
+    }
+    return parsed.map((hop, i) => {
+        if (typeof hop !== "object" || hop === null) {
+            throw new Error(`FactorCompiler: RelationshipPath hop ${i} must be an object.`);
+        }
+        const rec = hop as Record<string, unknown>;
+        if (typeof rec.fk !== "string" || rec.fk.length === 0) {
+            throw new Error(
+                `FactorCompiler: RelationshipPath hop ${i} needs a non-empty string 'fk'.`,
+            );
+        }
+        return {
+            fk: rec.fk,
+            entity: typeof rec.entity === "string" ? rec.entity : undefined,
+        };
+    });
+}
+
+/** Minimal entity shape the auto path-finder needs (EntityInfo satisfies it structurally). */
+export interface FkGraphEntity {
+    ID: string;
+    Name: string;
+    Fields: { Name: string; RelatedEntityID: string | null }[];
+}
+
+/** Max hops the auto-resolver searches before giving up (bounds pathological graphs). */
+const MAX_AUTO_PATH_DEPTH = 5;
+
+/**
+ * Auto-resolve the FK path from a leaf entity back to the anchor by BFS *outward from the anchor*
+ * over reverse-FK (parent→child, one-to-many) edges — "what data hangs off the anchor." Returns
+ * the leaf→anchor hops the join-walker consumes (the final anchor-adjacent→anchor FK is left for
+ * resolveAnchorKeyColumn). Because every edge followed is a single child→parent FK on the return
+ * trip, each leaf row maps to exactly one anchor → no fan-out, no DISTINCT needed. Guards:
+ *   - unreachable (no descendant FK chain within maxDepth) → throw, suggest explicit RelationshipPath;
+ *   - ambiguous (≥2 shortest paths) → throw, require explicit RelationshipPath.
+ * Pure over the entity list (no metadata I/O), so directly unit-testable.
+ */
+export function findAutoPathHops(
+    entities: FkGraphEntity[],
+    anchorEntityID: string,
+    leafEntityID: string,
+    maxDepth: number = MAX_AUTO_PATH_DEPTH,
+): RelationshipHop[] {
+    // Reverse-FK adjacency: parentID → [{ childID, fk }]. An FK on child C pointing to parent P
+    // is the outward edge P → C (traversing it is one-to-many; the return C → P is many-to-one).
+    const childrenOf = new Map<string, { childID: string; fk: string }[]>();
+    for (const e of entities) {
+        for (const f of e.Fields) {
+            if (!f.RelatedEntityID) continue;
+            const list = childrenOf.get(f.RelatedEntityID) ?? [];
+            list.push({ childID: e.ID, fk: f.Name });
+            childrenOf.set(f.RelatedEntityID, list);
+        }
+    }
+
+    // Level-order BFS from the anchor; track distance, count of shortest paths (for ambiguity),
+    // and one predecessor edge (valid to follow because the path is unique when pathCount === 1).
+    const dist = new Map<string, number>([[anchorEntityID, 0]]);
+    const pathCount = new Map<string, number>([[anchorEntityID, 1]]);
+    const pred = new Map<string, { fromID: string; fk: string }>();
+    const queue: string[] = [anchorEntityID];
+    while (queue.length) {
+        const cur = queue.shift() as string;
+        const d = dist.get(cur) as number;
+        if (d >= maxDepth) continue;
+        for (const edge of childrenOf.get(cur) ?? []) {
+            if (!dist.has(edge.childID)) {
+                dist.set(edge.childID, d + 1);
+                pathCount.set(edge.childID, pathCount.get(cur) as number);
+                pred.set(edge.childID, { fromID: cur, fk: edge.fk });
+                queue.push(edge.childID);
+            } else if (dist.get(edge.childID) === d + 1) {
+                // Another equally-short route into this node → accumulate (ambiguity signal).
+                pathCount.set(
+                    edge.childID,
+                    (pathCount.get(edge.childID) as number) + (pathCount.get(cur) as number),
+                );
+            }
+        }
+    }
+
+    const nameOf = (id: string) => entities.find((e) => e.ID === id)?.Name ?? id;
+    if (!dist.has(leafEntityID)) {
+        throw new Error(
+            `FactorCompiler: no foreign-key path from the anchor to '${nameOf(leafEntityID)}' within ${maxDepth} hops — add a relationship or set an explicit RelationshipPath.`,
+        );
+    }
+    if ((pathCount.get(leafEntityID) ?? 0) > 1) {
+        throw new Error(
+            `FactorCompiler: multiple foreign-key paths from the anchor to '${nameOf(leafEntityID)}' — set an explicit RelationshipPath to disambiguate.`,
+        );
+    }
+
+    // Walk predecessors leaf → anchor, building the anchor→leaf FK list. The walker wants the
+    // leaf-side hops only (it resolves the anchor-adjacent→anchor FK itself), so drop that first
+    // FK and reverse into leaf→anchor order.
+    const anchorToLeafFks: string[] = [];
+    let node = leafEntityID;
+    while (node !== anchorEntityID) {
+        const step = pred.get(node) as { fromID: string; fk: string };
+        anchorToLeafFks.unshift(step.fk);
+        node = step.fromID;
+    }
+    return anchorToLeafFks
+        .slice(1)
+        .reverse()
+        .map((fk) => ({ fk }));
+}
+
 export class FactorCompiler {
     public async compile(
         factor: mjBizAppsSonarFactorEntity,
@@ -29,15 +165,18 @@ export class FactorCompiler {
     ): Promise<IFactorEvaluator> {
         this.assertSupported(factor);
 
-        const relatedEntity = await this.resolveRelatedEntity(
+        const { leafEntity, relationshipPath } = await this.resolveSource(
             factor,
             contextUser,
         );
-        const anchorKeyColumn = this.resolveAnchorKeyColumn(
-            relatedEntity,
+        // Resolve the path from the leaf (measure) entity to the anchor: single-hop (leaf has a
+        // direct FK to the anchor) or multi-hop (follow RelationshipPath, emitting JOINs).
+        const { joins, anchorKeyColumn } = this.resolveJoinPath(
+            leafEntity,
+            relationshipPath,
             factor.AnchorEntityID,
         );
-        const validColumns = relatedEntity.Fields.map((f) => f.Name);
+        const validColumns = leafEntity.Fields.map((f) => f.Name);
         const window = await this.resolveWindow(factor, validColumns, contextUser);
         const filter = this.resolveFilter(factor, validColumns);
         const anchorJoin = windowNeedsAnchorJoin(window)
@@ -46,8 +185,9 @@ export class FactorCompiler {
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
-            relatedTable: `[${relatedEntity.SchemaName}].[${relatedEntity.BaseTable}]`,
+            relatedTable: `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`,
             anchorKeyColumn,
+            joins,
             window,
             anchorTable: anchorJoin.table,
             anchorPkColumn: anchorJoin.pkColumn,
@@ -112,14 +252,15 @@ export class FactorCompiler {
     }
 
     /**
-     * Find the entity that holds the signal data. v1 uses the model-scoped related entity
-     * (Factor.SourceRelatedEntityID → ModelRelatedEntity → RelatedEntityID); library
-     * factors (SourceEntityID) are deferred.
+     * Find the leaf (signal) entity and its anchor→leaf RelationshipPath. v1 uses the
+     * model-scoped related entity (Factor.SourceRelatedEntityID → ModelRelatedEntity →
+     * RelatedEntityID); library factors (SourceEntityID) are deferred. RelationshipPath
+     * (also on ModelRelatedEntity) drives multi-hop resolution.
      */
-    private async resolveRelatedEntity(
+    private async resolveSource(
         factor: mjBizAppsSonarFactorEntity,
         contextUser: UserInfo,
-    ): Promise<EntityInfo> {
+    ): Promise<{ leafEntity: EntityInfo; relationshipPath: string | null }> {
         if (!factor.SourceRelatedEntityID) {
             throw new Error(
                 `FactorCompiler: factor ${factor.ID} has no SourceRelatedEntityID (library factors not supported yet).`,
@@ -135,13 +276,90 @@ export class FactorCompiler {
                 `FactorCompiler: ModelRelatedEntity ${factor.SourceRelatedEntityID} not found.`,
             );
         }
-        const entity = md.EntityByID(mre.RelatedEntityID);
-        if (!entity) {
+        const leafEntity = md.EntityByID(mre.RelatedEntityID);
+        if (!leafEntity) {
             throw new Error(
                 `FactorCompiler: related entity ${mre.RelatedEntityID} not found in metadata.`,
             );
         }
-        return entity;
+        return { leafEntity, relationshipPath: mre.RelationshipPath };
+    }
+
+    /**
+     * Resolve how the leaf reaches the anchor, in priority order:
+     *   1. explicit `RelationshipPath` (the disambiguation override) → walk it;
+     *   2. else a single direct FK leaf→anchor → single-hop (unchanged);
+     *   3. else **auto-resolve** by BFS from the anchor (findAutoPathHops) → multi-hop.
+     * The walk emits a JOIN per hop until the last entity is anchor-adjacent. Every hop is
+     * many-to-one toward the anchor, so the aggregate never fans out.
+     */
+    private resolveJoinPath(
+        leafEntity: EntityInfo,
+        relationshipPath: string | null,
+        anchorEntityID: string,
+    ): { joins: CompiledJoin[]; anchorKeyColumn: string } {
+        let hops = parseRelationshipPath(relationshipPath);
+        // No explicit path + no direct FK to the anchor → try to discover the path automatically.
+        if (
+            hops.length === 0 &&
+            leafEntity.Fields.filter((f) => f.RelatedEntityID === anchorEntityID).length === 0
+        ) {
+            hops = findAutoPathHops(
+                new Metadata().Entities,
+                anchorEntityID,
+                leafEntity.ID,
+            );
+        }
+        if (hops.length === 0) {
+            return {
+                joins: [],
+                anchorKeyColumn: this.resolveAnchorKeyColumn(leafEntity, anchorEntityID),
+            };
+        }
+        const md = new Metadata();
+        const joins: CompiledJoin[] = [];
+        let current = leafEntity;
+        // Hop 1's FK lives on the leaf, referenced by its full table name; later hops reference
+        // the previous join's alias.
+        let leftQualifier = `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`;
+
+        hops.forEach((hop, i) => {
+            const fkField = current.Fields.find(
+                (f) => f.Name.toLowerCase() === hop.fk.toLowerCase() && f.RelatedEntityID,
+            );
+            if (!fkField?.RelatedEntityID) {
+                throw new Error(
+                    `FactorCompiler: RelationshipPath hop ${i} — '${hop.fk}' is not a foreign key on '${current.Name}'.`,
+                );
+            }
+            const next = md.EntityByID(fkField.RelatedEntityID);
+            if (!next) {
+                throw new Error(
+                    `FactorCompiler: RelationshipPath hop ${i} — target entity ${fkField.RelatedEntityID} not in metadata.`,
+                );
+            }
+            const rightColumn = next.PrimaryKeys[0]?.Name;
+            if (!rightColumn) {
+                throw new Error(
+                    `FactorCompiler: RelationshipPath hop ${i} — target '${next.Name}' has no primary key.`,
+                );
+            }
+            const alias = `h${i + 1}`;
+            joins.push({
+                table: `[${next.SchemaName}].[${next.BaseTable}]`,
+                alias,
+                leftRef: `${leftQualifier}.[${fkField.Name}]`,
+                rightColumn,
+            });
+            current = next;
+            leftQualifier = alias;
+        });
+
+        // After the chain, `current` is the anchor-adjacent entity — it holds the FK to the anchor.
+        return {
+            joins,
+            anchorKeyColumn: this.resolveAnchorKeyColumn(current, anchorEntityID),
+        };
     }
 
     /**

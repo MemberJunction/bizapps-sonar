@@ -59,8 +59,8 @@ The big integration branch (`sonar_app_nav`) is being broken into small, reviewa
   lifecycle); the sidebar/Overview only **reflect** the current version, never duplicate the
   management UI. This rule resolves surface overlap.
 - **Explicitly deferred (parked, not forgotten):** template *system* (MVP keeps a seeded example
-  model), engine maturity (full MissingDataPolicy, normalization beyond None/MinMax/Percentile/
-  ZScore, Action-backed & LLM factors, multi-hop joins, combine strategies beyond WeightedSum),
+  model), engine maturity (calibrated/benchmark normalization basis, Action-backed & LLM factors,
+  combine strategies beyond WeightedSum),
   Pattern 2 / member-360 / org rollups, and production hardening (auth scoping, perf, RBAC).
 
 ---
@@ -72,7 +72,7 @@ The big integration branch (`sonar_app_nav`) is being broken into small, reviewa
 |---|---|---|
 | `ScoreModel` | ✅ | CRUD via UI; create/publish/setBandSet/data-sources all work. |
 | `ScoreModelVersion` (immutable snapshot) | 🟡 | Created on publish + listed in publish modal. `ConfigSnapshotJSON`, rollback, version-diff not built. |
-| `ModelRelatedEntity` | ✅ | Add/remove data sources wired. `RelationshipPath` is empty (single-hop only). |
+| `ModelRelatedEntity` | ✅ | Add/remove data sources wired. `RelationshipPath` now drives **multi-hop** factor joins (explicit path; empty = single-hop). |
 | `ScoreBandSet` / `ScoreBand` | ✅ | Band builder works; bands drive distribution + colors. |
 | `PopulationFilter` | ✅ | Authored in the builder (real anchor columns), persisted on the model, and applied by the engine (compiled to a SQL `WHERE` over the full anchor entity). |
 | ScoreModel inert columns | 🟦 | `RecomputeMode/Cron`, `AsOfStrategy`, `IsCalibrated`, `TrendWindowDays`, `EffectiveFrom/To`, `CombineExpression` exist but are unused by the engine. |
@@ -86,7 +86,7 @@ The big integration branch (`sonar_app_nav`) is being broken into small, reviewa
 | `ModelFactor.WeightMode` | 🟡 | Penalty **hidden in the UI** (additive-only) so it no longer implies behavior the engine lacks; engine is WeightedSum only. Penalty/Multiplier/Gate/Bonus deferred to the `ICombineStrategy` work; field retained. |
 | Caps/floors, `TrendWeight` | ⬜ | Columns exist; engine ignores them. |
 | `MissingDataPolicy` | ✅ | Engine honors it per `ModelFactor`: **Zero** (count 0, keep weight — default via `ModelDefault`), **NeutralMidpoint** (0.5), **Exclude** (drop from numerator + denominator). Full population scored so no-data members surface at the floor; `MissingDataApplied` persisted. |
-| Normalization | 🟡 | `None/MinMax/Percentile/ZScore` ✅. `Logistic/Banded/Lookup` ⬜ (storage `NormalizationParamsJSON` ready). |
+| Normalization | ✅ | All 7 methods built via an `INormalizationStrategy` registry: population-relative `None/MinMax/Percentile/ZScore` + per-value `Logistic/Banded/Lookup` (read + validate `NormalizationParamsJSON`). Calibrated/benchmark basis ⬜ (§5.7). |
 | ActionBacked / DerivedFromScore / Constant factors | ⬜ | Only `Declarative` implemented. The uniform `IFactorEvaluator` contract exists, so the seam is ready. |
 
 ### §5.3 Runtime output
@@ -114,8 +114,8 @@ The big integration branch (`sonar_app_nav`) is being broken into small, reviewa
 ### §6 Scoring engine (`sonar-engine`)
 | Capability | Status | Notes |
 |---|---|---|
-| `FactorCompiler` (declarative → set-based SQL) | 🟡 | Single-hop joins, Rolling+AllTime windows, filter pruning. Multi-hop + recency decay ⬜. |
-| `NormalizationEngine` | 🟡 | 4 of 7 methods (see §5.2). Calibrated/benchmark basis ⬜. |
+| `FactorCompiler` (declarative → set-based SQL) | 🟡 | Single- **and multi-hop** joins (via `RelationshipPath`; explicit path ✅, auto-BFS ⬜), Rolling+Calendar windows, filter pruning. Recency decay ⬜. |
+| `NormalizationEngine` | 🟡 | All 7 methods dispatched via the `INormalizationStrategy` registry (see §5.2). Calibrated/benchmark basis ⬜. |
 | `ScoringEngine` | 🟡 | WeightedSum (weighted average) with a **per-anchor denominator** + **MissingDataPolicy** (Zero/NeutralMidpoint/Exclude) applied. WeightMode/caps/TrendWeight/other CombineStrategies ⬜. |
 | `RecomputeOrchestrator` | 🟡 | compute + persist work. Population applies **`PopulationFilter`** (compiled to inline SQL) over the **full** anchor entity (`IgnoreMaxRows` — RunView otherwise caps at the entity's `UserViewMaxRows`=1000). On-demand preview ✅; scheduled/event-driven/incremental ⬜. |
 | `ScoreWriter` | 🟡 | Writes Score + contributions row-by-row. Does **not** write ScoreHistory/ScoreBandTransition; no diff/bulk path. |
@@ -177,7 +177,7 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 | Item | Type | Bar |
 |---|---|---|
 | ✅ Engine + factor-capability docs (your "explain the hard parts" add **and** the MVP-bar spec) | Doc (#2) | Done → [`engine.md`](engine.md) |
-| Normalization Tier B (Logistic/Banded/Lookup) | Engine | Post-MVP |
+| ✅ Normalization Tier B (Logistic/Banded/Lookup) + `INormalizationStrategy` registry | Engine | Done → all 7 methods, `parseNormalizationParams` validation, 21 unit tests |
 | ✅ Population filter — wired (real anchor fields → persisted → engine applies) | Engine/UI | Done |
 | ✅ Missing-data policy — wired (`ModelDefault`→Zero; Neutral/Exclude per-factor) | Engine | Done |
 | Penalty weight mode — **hidden** in UI; engine wiring deferred to `ICombineStrategy` | Engine | Deferred (honesty kept) |
@@ -199,7 +199,7 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 **Next — the "trajectory" tier (unlocks several plan promises at once):**
 4. Write `ScoreHistory` + `ScoreBandTransition` in `ScoreWriter`; compute Delta/Trend/Confidence.
 5. EM trend sparkline + a "movers since last run" view (rides #4).
-6. Normalization Tier B + remaining aggregations (Recency/Rate/Exists) — widen factor coverage.
+6. ✅ Normalization Tier B (Logistic/Banded/Lookup) done; remaining: aggregations (Recency/Rate/Exists) — widen factor coverage.
 
 **Later — the plan's v1 "product" (the defensible part):**
 7. Action layer: `ScoreSegment` → `Intervention` → holdout → `InterventionOutcome` + lift; Intervention Drafter.
@@ -313,13 +313,28 @@ overloading that field.)
 
 ## Backlog — factors, relationships, demo data
 
-**Multi-hop factors (via `RelationshipPath`).** The `FactorCompiler` is single-hop today —
-`resolveAnchorKeyColumn` requires the related entity to have exactly one direct FK to the anchor.
-Signals that reach the anchor through an intermediate (e.g. *email clicks per member* =
-`Member → EmailSend → EmailClick`) can't be expressed. `ModelRelatedEntity.RelationshipPath` exists
-for this (currently `"[]"`, ignored). Work: resolve a join path (auto = BFS over MJ's FK graph, or
-explicit when ambiguous) → emit the intervening JOINs → guard fan-out (`COUNT(DISTINCT …)` on
-one-to-many hops). Surfaced by the "Email Engagements"/"Email Clicks" attempts on the cheese model.
+**Multi-hop factors (via `RelationshipPath`). ✅ explicit path built.** `FactorCompiler` resolves an
+explicit `ModelRelatedEntity.RelationshipPath` (`[{ fk }]`, ordered leaf → anchor) into the
+intervening JOINs, qualifying the anchor key by the last hop's alias (`parseRelationshipPath` +
+`resolveJoinPath` → `CompiledJoin[]` → `buildFactorSql`). Every hop follows an FK to its parent
+(many-to-one *toward* the anchor), so there's no row fan-out — `COUNT(*)`/`SUM` stay correct without
+`DISTINCT`. Empty path = single-hop (unchanged; existing tests green). Unblocks *email clicks per
+member* (`Member → EmailSend → EmailClick`).
+
+**Auto-resolution ✅ built (`findAutoPathHops`).** When a factor has no explicit `RelationshipPath`
+*and* no direct FK to the anchor, the compiler discovers the path by **BFS outward from the anchor**
+over reverse-FK (parent→child) edges — "what data hangs off the anchor." Resolution priority:
+explicit path → single direct FK → auto. Guards: **unreachable** (no descendant FK chain within 5
+hops) throws; **ambiguous** (≥2 shortest paths, via shortest-path counting) throws and asks for an
+explicit path. Only 1:N edges are followed, so the return trip is N:1 and fan-out-free by
+construction. The path-finder is pure over the entity list (unit-tested: linear/3-hop/direct/
+unreachable/ambiguous/depth).
+
+**Follow-ups ⬜:** (1) one-to-many ("fan-out") hops with a `COUNT(DISTINCT)` guard — auto-resolve
+deliberately won't traverse them (pure-descendant 1:N only), so org-rollup-style "up-then-down"
+paths still need explicit handling; (2) leaf/joined column-name collisions — v1 keeps leaf columns
+bare, so SQL Server errors loud if a leaf column name also exists on a joined table; (3) surface the
+reachable-entity set (the same BFS) to the builder's source picker.
 
 **Factor editing UI.** ✅ *done.* Click-to-edit (pencil) reopens the factor builder pre-loaded and
 saves back to the existing Factor/ModelFactor (`FactorService.loadFactorForEdit`/`updateFactor`);
@@ -426,15 +441,16 @@ weight modes are built, build them inside the relevant `ICombineStrategy`, not a
 
 ### Other strategy-seam candidates (same pattern, marked for later)
 The engine has a recurring shape — *a schema enum + a dispatch that handles a subset and throws on
-the rest* — which is where the `IFactorEvaluator`/`ICombineStrategy` pattern pays off. The two
-strongest beyond combine:
+the rest* — which is where the `IFactorEvaluator`/`ICombineStrategy` pattern pays off. Two were
+identified beyond combine; the first is now built:
 
-1. **`INormalizationStrategy` — normalization.** `NormalizationEngine.normalize` is already a
-   `switch` over None/MinMax/Percentile/ZScore (population-scoped `(spec, Map) → void`), with three
-   more in the schema (Logistic/Banded/Lookup). Those three are **parameterized** (read
-   `NormalizationParamsJSON` — midpoint/steepness, thresholds, lookup table), and that per-method
-   config is what would clutter the switch. **Convert the switch to a registry when you add the
-   parameterized three** — the four pure methods are fine as a switch until then.
+1. **`INormalizationStrategy` — normalization. ✅ Built.** `NormalizationEngine` now dispatches
+   through an `INormalizationStrategy` registry (`createNormalizationRegistry`) instead of a switch.
+   The four population methods (None/MinMax/Percentile/ZScore) were lifted into strategy classes
+   verbatim, and the three **parameterized** methods (Logistic/Banded/Lookup — read
+   `NormalizationParamsJSON`: midpoint/steepness, thresholds, lookup table, validated by
+   `parseNormalizationParams`) were added as peers. This was the textbook case: convert on the
+   *second divergent case* (the parameterized three), not speculatively — exactly as the rule below says.
 2. **`IWindowResolver` — time windows.** `FactorCompiler.resolveWindow` handles AllTime/Rolling and
    throws on Calendar/SinceEvent/**RenewalRelative**. RenewalRelative ("90 days before renewal") is
    a flagship plan example with genuinely different mechanics (reads an anchor date field + offset).

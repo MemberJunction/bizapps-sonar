@@ -11,6 +11,107 @@
 }
 .sonar-home__model-name { font-weight: 600; font-size: 0.95rem; color: var(--sonar-ink); }
 
+/* ── Hero: the screen's single anchor ───────────────────────────────────────
+   One card gets the strongest treatment — a solid deep-brand fill (derived from
+   the accent token, darkened with black; no invented hue, no gradient). Every
+   other card on the page stays light/neutral so this is unmistakably THE focal
+   point. Brand accent lives essentially here and nowhere else; the donut and the
+   headline % use semantic band colors (real status, not decoration). Shadow and
+   radius are identical to every other card — the dominance is fill + hierarchy,
+   not heavier chrome. */
+:host {
+    --sonar-hero-ink: #f4f8fb;
+    --sonar-hero-faint: color-mix(in srgb, #f4f8fb 58%, transparent);
+    --sonar-hero-line: color-mix(in srgb, #ffffff 15%, transparent);
+}
+.sonar-home__hero {
+    /* The brand signature: a VIOLET panel in BOTH modes (the reference dashboards carry a colored
+       hero across themes). Hero text is the fixed near-white --sonar-hero-ink, legible on the
+       violet in either theme. Light mode wants a VIBRANT violet (not a dark slab — a dark block
+       reads heavy on the airy light page), kept just deep enough for white text. The dark
+       override below uses a calmer mix that reads as a "lit" panel on the navy page. */
+    background: color-mix(in srgb, var(--sonar-accent) 88%, #4a3da8);
+    color: var(--sonar-hero-ink);
+    border-radius: var(--sonar-radius);
+    box-shadow: var(--mj-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+    padding: 2rem;
+}
+:host-context([data-theme="dark"]) .sonar-home__hero {
+    background: color-mix(in srgb, var(--sonar-accent) 50%, #15122b);
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 30%, var(--sonar-border));
+}
+.sonar-home__hero-eyebrow {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--sonar-hero-faint); margin-bottom: 1.5rem;
+}
+.sonar-home__hero-eyebrow i { margin-right: 0.5rem; }
+
+/* Hero content flows in one row — donut · headline · legend — clustered to the left with calm
+   whitespace on the right at wide widths; wraps gracefully when space gets tight. */
+.sonar-home__hero-body { display: flex; align-items: center; flex-wrap: wrap; gap: 2rem; }
+.sonar-home__hero-donut { width: 150px; height: 150px; flex: none; }
+.sonar-home__hero-lead-zone { display: flex; flex-direction: column; gap: 0.5rem; }
+.sonar-home__hero .sonar-donut__track { stroke: var(--sonar-hero-line); }
+.sonar-home__hero .sonar-donut__total { fill: var(--sonar-hero-ink); }
+.sonar-home__hero .sonar-donut__total-label { fill: var(--sonar-hero-faint); }
+
+/* Aggressive value-over-label gap: the % is huge + bold, its label small + quiet. */
+.sonar-home__hero-lead { display: flex; align-items: baseline; gap: 0.75rem; }
+.sonar-home__hero-pct { font-size: 3.25rem; font-weight: 800; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.sonar-home__hero-pct--healthy  { color: var(--sonar-healthy); }
+.sonar-home__hero-pct--watch    { color: var(--sonar-watch); }
+.sonar-home__hero-pct--atrisk   { color: var(--sonar-atrisk); }
+.sonar-home__hero-pct--critical { color: var(--sonar-critical); }
+.sonar-home__hero-leadlabel { font-size: 1.05rem; font-weight: 600; color: var(--sonar-hero-ink); }
+.sonar-home__hero-sub { margin: 0; font-size: 0.82rem; color: var(--sonar-hero-faint); }
+
+/* Pushed to the right edge so the hero reads as a summary bar (headline left · breakdown right),
+   filling the width instead of leaving a sparse gap. margin-left:auto does the pushing. */
+.sonar-home__hero-legend { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 14rem; margin-left: auto; padding-left: 2rem; border-left: 1px solid var(--sonar-hero-line); align-self: stretch; }
+.sonar-home__hero-legrow { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.sonar-home__hero-legname { flex: 1; color: var(--sonar-hero-ink); }
+.sonar-home__hero-legval { color: var(--sonar-hero-faint); font-variant-numeric: tabular-nums; }
+.sonar-home__hero-empty { font-size: 0.9rem; color: var(--sonar-hero-faint); margin: 0; }
+.sonar-home__hero-empty strong { color: var(--sonar-hero-ink); font-weight: 600; }
+/* While loading, the hero keeps the neutral card surface (no brand fill on shimmer). */
+.sonar-home__hero--skeleton { background: var(--sonar-surface); border: 1px solid var(--sonar-border); color: inherit; padding: 2rem; border-radius: var(--sonar-radius); }
+
+/* ── Supporting config stats: quiet, neutral, balanced quad ──────────────────
+   Big confident value, small muted label (matches the hero's value-over-label
+   gap). Icon chips are NEUTRAL ink — accent is rationed to the hero anchor. */
+/* In the right zone the four stats sit as a balanced 2×2; collapse to one column only when tiny. */
+.sonar-stats--quad { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.sonar-stat--iconed { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.sonar-stat__text { min-width: 0; }
+.sonar-stat__icon {
+    width: 2.25rem; height: 2.25rem; border-radius: var(--sonar-radius-sm); flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+    /* Soft brand-tinted chip (one hue, repeated uniformly — cohesive, not scattered). Adds the
+       "designed" touch the reference stat cards have, while the accent stays a single color. */
+    color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 14%, var(--sonar-surface));
+}
+
+/* ── Insights row: engagement-trend chart (left) + movers rail (right) ───────
+   Sits below the hero so the page reads hero → how it's trending → who moved.
+   The chart takes the wide column; the movers rail is fixed-width and stacks its
+   two groups vertically (narrow column, so one-up rows beat a cramped 2-up grid). */
+/* Each insight card sizes to its own content (the movers rail is short when quiet, so it
+   shouldn't stretch to the chart's height and leave a tall void). */
+.sonar-home__insights { align-items: start; }
+.sonar-home__trend { display: flex; flex-direction: column; }
+/* Header row: chart caption (left) + the current value as a quiet lead number (right). */
+.sonar-home__trend-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.sonar-home__trend-now { font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 0.35rem; }
+.sonar-home__trend-now span { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
+.sonar-trendline { margin-top: 0.5rem; }
+
+/* Movers rail: stack the gains/drops groups in the narrow column; rows are read-only here. */
+.sonar-home__movers .sonar-movers__cols { grid-template-columns: 1fr; gap: 1rem; }
+.sonar-home__movers .sonar-mover--static { cursor: default; }
+.sonar-home__movers .sonar-mover--static:hover { border-color: var(--sonar-border); }
+.sonar-home__movers-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding: 1.25rem 1rem 1.75rem; margin: 0; font-size: 0.85rem; color: var(--sonar-muted); }
+.sonar-home__movers-empty i { font-size: 1.4rem; color: var(--sonar-faint); }
+
 /* "Needs attention" nudge. */
 .sonar-home__attention {
     display: flex;

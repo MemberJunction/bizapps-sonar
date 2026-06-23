@@ -25,7 +25,7 @@
         <div class="sonar-card__label">What does it score? <span class="sonar-faint">(the anchor)</span></div>
         <p class="sonar-fb__hint">One row is scored per record of this entity — members, donors, chapters, etc.</p>
         <mj-combobox
-            [Data]="entityOptions"
+            [Data]="anchorOptions"
             TextField="name"
             ValueField="id"
             [ValuePrimitive]="true"
@@ -40,7 +40,7 @@
         <div class="sonar-card__label">Where do its signals come from? <span class="sonar-faint">(data sources)</span></div>
         <p class="sonar-fb__hint">Related entities like activities, invoices, or event registrations. Search to add; you can add more later too.</p>
         <sonar-multiselect
-            [data]="entityOptions"
+            [data]="sourceOptions()"
             [selected]="dataSourceIds()"
             (selectedChange)="dataSourceIds.set($event)"
             placeholder="Search entities to add…">

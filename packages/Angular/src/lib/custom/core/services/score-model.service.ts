@@ -265,7 +265,7 @@ export class ScoreModelService {
         return result.Success ? result.Results ?? [] : [];
     }
 
-    /** Wire a related entity into a model (default Left join, the engine's single-hop case). */
+    /** Wire a related entity into a model (default Left join). */
     public async addDataSource(input: AddDataSourceInput): Promise<mjBizAppsSonarModelRelatedEntityEntity | null> {
         const ds = await this.md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY);
         ds.NewRecord();
@@ -273,9 +273,10 @@ export class ScoreModelService {
         ds.RelatedEntityID = input.relatedEntityID;
         ds.Alias = input.alias;
         ds.JoinType = "Left";
-        // RelationshipPath is NOT NULL. For v1 single-hop sources the engine resolves the
-        // direct FK itself, so an empty path is valid. TODO wire: derive the real traversal
-        // from MJ relationship metadata for multi-hop sources (Phase 2+).
+        // Empty RelationshipPath = let the engine resolve the join itself: a direct FK (single-hop)
+        // or, for a source with no direct FK, an auto-resolved multi-hop path (findAutoPathHops).
+        // An explicit path would only be needed to disambiguate when several paths exist (not
+        // authored in the UI yet).
         ds.RelationshipPath = "[]";
         return (await ds.Save()) ? ds : null;
     }

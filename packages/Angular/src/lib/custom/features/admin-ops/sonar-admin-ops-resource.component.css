@@ -2,20 +2,58 @@
 
 .sonar-faint { color: var(--sonar-faint); }
 
-/* Recompute runs table. */
-.sonar-table-wrap { overflow-x: auto; }
+/* Recompute runs table.
+   §5 table standard: right-aligned tabular numerics, neutral zeros, zebra + hover,
+   sticky header. ~90% neutral; the only status color is a non-zero band-moves count. */
+/* Contain the run list: it can grow long, so cap the height and scroll internally — this is
+   what makes the sticky header earn its keep, and keeps the section a tidy block instead of a
+   sprawling list that pushes Governance off-screen. */
+.sonar-table-wrap { overflow: auto; max-height: 23rem; }
 .sonar-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+
+/* Sticky header so column labels stay visible while the run list scrolls. The bottom
+   hairline replaces the per-cell first-row border below. */
 .sonar-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--sonar-surface);
     text-align: left;
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--sonar-faint);
     font-weight: 600;
-    padding: 0 0.75rem 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--sonar-border);
 }
-.sonar-table td { padding: 0.65rem 0.75rem 0.65rem 0; border-top: 1px solid var(--sonar-border); }
-.sonar-table tbody tr:first-child td { border-top: none; }
+.sonar-table td { padding: 0.6rem 0.85rem; }
+/* The Model column is the row's identity — let it lead: semibold, no wrap. The faint
+   trigger/scope cells (marked in markup) recede; the mono numbers keep full ink. */
+.sonar-table td:first-child { font-weight: 600; white-space: nowrap; }
+
+/* Zebra striping: odd rows sit on the plain surface, even rows on a faint sunken tint
+   (kept very subtle via color-mix so it reads as texture, not banding). */
+.sonar-table tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--sonar-surface-sunken) 45%, var(--sonar-surface));
+}
+/* Row hover: faint accent wash + a hairline accent top/bottom to lift the active row.
+   Overrides zebra so the hovered row reads as one band regardless of its stripe. */
+.sonar-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--sonar-accent) 7%, var(--sonar-surface));
+}
+
+/* Numeric columns: right-aligned. Pair with .sonar-mono on cells for tabular figures
+   (the shell gives .sonar-mono font-variant-numeric: tabular-nums). */
+.sonar-table th.sonar-num,
+.sonar-table td.sonar-num { text-align: right; }
+
+/* A zero count must read as neutral, never a status color — so a 0 in Band moves is
+   muted ink while only a non-zero count carries the at-risk emphasis. */
+.sonar-table td.sonar-num--zero { color: var(--sonar-muted); }
+
+/* Empty-state row: centered, on-scale padding (replaces an inline style). */
+.sonar-table__empty { text-align: center; padding: 0.75rem; }
 
 /* Simple two-column list rows (versions, audit). */
 .sonar-list-row {

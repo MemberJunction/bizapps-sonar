@@ -18,6 +18,10 @@ import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin
 // Shared UI — reusable across features.
 import { SonarMultiselectComponent } from './shared/multiselect/sonar-multiselect.component';
 import { SonarModelSidebarComponent } from './shared/model-sidebar/sonar-model-sidebar.component';
+import { SonarFilterBarComponent } from './shared/filter-bar/sonar-filter-bar.component';
+import { SonarSearchFieldComponent } from './shared/filter-bar/sonar-search-field.component';
+import { SonarRangeFilterComponent } from './shared/filter-bar/sonar-range-filter.component';
+import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-filter.component';
 
 // Model Builder's hosted builders — opened via view switching inside the feature.
 import { SonarModelSetupComponent } from './features/model-builder/builders/model-setup/sonar-model-setup.component';
@@ -46,6 +50,10 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarAdminOpsResourceComponent,
         SonarMultiselectComponent,
         SonarModelSidebarComponent,
+        SonarFilterBarComponent,
+        SonarSearchFieldComponent,
+        SonarRangeFilterComponent,
+        SonarToggleFilterComponent,
         SonarModelSetupComponent,
         SonarFactorBuilderComponent,
         SonarScoreBandBuilderComponent,

@@ -10,6 +10,7 @@ import { FactorService, RubricRow, EditFactorVM } from "../../core/services/fact
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { reachableFromAnchor } from "../../core/entity-graph";
 import { ToastService } from "../../core/services/toast.service";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
@@ -91,11 +92,18 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public readonly newSourceId = signal<string | null>(null);
     /** Saving flag for add/remove data-source operations. */
     public readonly sourceBusy = signal(false);
-    /** Entities the user can map in — every MJ entity not already wired to this model. */
+    /** Entities the user can map in: business entities (not `__mj*`) the engine can actually score
+     *  against this anchor — reachable by a single FK path (direct or auto-resolved multi-hop) — and
+     *  not already wired. One BFS builds the reachable set; we membership-test the rest. */
     public readonly availableEntities = computed<EntityOption[]>(() => {
         const wired = new Set(this.factorSources().map((s) => s.relatedEntityID));
-        return new Metadata().Entities
-            .filter((e) => !wired.has(e.ID))
+        const anchorId = this.selectedModel()?.AnchorEntityID ?? null;
+        const business = new Metadata().Entities.filter(
+            (e) => !e.SchemaName?.startsWith("__mj"),
+        );
+        const reachable = anchorId ? reachableFromAnchor(business, anchorId) : null;
+        return business
+            .filter((e) => !wired.has(e.ID) && (!reachable || reachable.has(e.ID)))
             .map((e) => ({ id: e.ID, name: e.Name }))
             .sort((a, b) => a.name.localeCompare(b.name));
     });
