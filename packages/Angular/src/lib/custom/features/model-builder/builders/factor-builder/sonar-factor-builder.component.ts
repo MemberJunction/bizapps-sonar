@@ -78,6 +78,7 @@ export class SonarFactorBuilderComponent {
 
     // --- composer state (signals) ---
     public readonly factorName = signal("");
+    public readonly isNameEdited = signal(false);
     public readonly aggregation = signal<Aggregation>("Count");
     public readonly sourceId = signal<string | null>(null);
     public readonly aggregateField = signal("");
@@ -94,7 +95,110 @@ export class SonarFactorBuilderComponent {
     /** True once an edit VM has been hydrated into the composer signals (one-shot guard). */
     private hydrated = false;
 
+    public onNameChange(val: string): void {
+        this.isNameEdited.set(val.trim().length > 0);
+        this.factorName.set(val);
+    }
+
+    public applyPreset(type: string): void {
+        const src = this.selectedSource();
+        if (!src) return;
+
+        this.isNameEdited.set(false); // Enable auto-naming
+
+        if (type === "recent") {
+            this.aggregation.set("Count");
+            this.aggregateField.set("");
+            const w30 = this.windows().find(
+                (w) =>
+                    w.name.toLowerCase().includes("30") ||
+                    w.name.toLowerCase().includes("month"),
+            );
+            if (w30) this.windowId.set(w30.id);
+            this.normalization.set("MinMax");
+            this.higherIsBetter.set(true);
+            this.weight.set(50);
+        } else if (type === "volume") {
+            this.aggregation.set("Sum");
+            const numericFields = this.aggregatableFields();
+            if (numericFields.length > 0) {
+                this.aggregateField.set(numericFields[0].name);
+            }
+            const wAll = this.windows().find((w) =>
+                w.name.toLowerCase().includes("all"),
+            );
+            if (wAll) this.windowId.set(wAll.id);
+            this.normalization.set("MinMax");
+            this.higherIsBetter.set(true);
+            this.weight.set(50);
+        } else if (type === "peak") {
+            this.aggregation.set("Max");
+            const numericFields = this.aggregatableFields();
+            if (numericFields.length > 0) {
+                this.aggregateField.set(numericFields[0].name);
+            }
+            const wAll = this.windows().find((w) =>
+                w.name.toLowerCase().includes("all"),
+            );
+            if (wAll) this.windowId.set(wAll.id);
+            this.normalization.set("Percentile");
+            this.higherIsBetter.set(true);
+            this.weight.set(50);
+        } else if (type === "decay") {
+            this.aggregation.set("Count");
+            this.aggregateField.set("");
+            const wAll = this.windows().find((w) =>
+                w.name.toLowerCase().includes("all"),
+            );
+            if (wAll) this.windowId.set(wAll.id);
+            this.normalization.set("MinMax");
+            this.higherIsBetter.set(false); // Warning sign!
+            this.weight.set(30);
+        }
+    }
+
     constructor() {
+        // Reactive Auto-Naming Effect
+        effect(() => {
+            if (this.isNameEdited()) return;
+            const agg = this.aggregation();
+            const src = this.selectedSource();
+            const fldName = this.aggregateField();
+            const winId = this.windowId();
+
+            if (!src) return;
+
+            let fldLabel = fldName;
+            if (fldName) {
+                const f = this.aggregatableFields().find((x) => x.name === fldName);
+                if (f) fldLabel = f.label;
+            }
+
+            let genName = "";
+            if (agg === "Count") {
+                genName = `Count of ${src.label}`;
+            } else if (agg === "Sum") {
+                genName = `Total of ${src.label} ${fldLabel || "Field"}`;
+            } else if (agg === "Avg") {
+                genName = `Average of ${src.label} ${fldLabel || "Field"}`;
+            } else if (agg === "Min") {
+                genName = `Lowest ${fldLabel || "Field"} on ${src.label}`;
+            } else if (agg === "Max") {
+                genName = `Highest ${fldLabel || "Field"} on ${src.label}`;
+            } else if (agg === "DistinctCount") {
+                genName = `Unique count of ${fldLabel || "Field"} in ${src.label}`;
+            }
+
+            if (winId) {
+                const w = this.windows().find((x) => x.id === winId);
+                if (w && w.name && w.name.toLowerCase() !== "all time") {
+                    genName += ` (${w.name})`;
+                }
+            }
+
+            this.factorName.set(genName);
+        });
+
         // Edit mode: pre-fill the composer from the loaded factor exactly once. Runs before the
         // "default to first option" effects so they see populated values and skip.
         effect(() => {
@@ -102,6 +206,7 @@ export class SonarFactorBuilderComponent {
             if (!vm || this.hydrated) return;
             this.hydrated = true;
             this.factorName.set(vm.name);
+            this.isNameEdited.set(true); // Pre-saved factor is considered edited
             this.aggregation.set(vm.aggregation);
             this.sourceId.set(vm.sourceRelatedEntityID);
             this.aggregateField.set(vm.aggregateFieldName ?? "");

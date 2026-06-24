@@ -45,6 +45,8 @@ export class SonarModelSidebarComponent implements OnInit {
     public readonly query = signal("");
     /** The app-wide selection (read straight off the shared service signal). */
     public readonly selectedId = this.current.modelId;
+    /** Whether the models selector sidebar is expanded. */
+    public readonly sidebarExpanded = this.current.sidebarExpanded;
 
     /** Models after the name filter is applied. */
     public readonly visibleModels = computed(() => {
@@ -107,5 +109,13 @@ export class SonarModelSidebarComponent implements OnInit {
         if (status === "Draft") return "sonar-chip--watch";
         if (status === "Paused") return "sonar-chip--atrisk";
         return "";
+    }
+
+    /** Band-tone key for the compact status dot (Active=healthy, Draft=watch, Paused=atrisk). */
+    public statusTone(status: string): string {
+        if (status === "Active") return "healthy";
+        if (status === "Draft") return "watch";
+        if (status === "Paused") return "atrisk";
+        return "watch";
     }
 }

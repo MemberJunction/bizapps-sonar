@@ -1,0 +1,67 @@
+<div class="sonar-modal">
+    <div class="sonar-modal__scrim" (click)="close.emit()"></div>
+    <div class="sonar-modal__panel" style="max-width: 500px;">
+        <div class="sonar-fb__bar" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <div class="sonar-fb__title">
+                <span class="sonar-card__label" style="text-transform: uppercase; font-size: var(--sonar-font-xs); color: var(--sonar-accent);">Playbook Outreach Engine</span>
+                <h2 class="sonar-factor__name" style="font-size: var(--sonar-font-lg); margin-top: 0.25rem; font-weight: 700;">Launch Cohort Playbook</h2>
+            </div>
+            <button class="sonar-modal__close-btn" (click)="close.emit()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--sonar-faint);">&times;</button>
+        </div>
+
+        <div class="sonar-stack" style="gap: 1.25rem;">
+            <div>
+                <label class="sonar-fb__hint" style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Select Playbook Sequence</label>
+                <select class="sonar-input" style="width: 100%;" [ngModel]="selectedPlaybook()" (ngModelChange)="selectedPlaybook.set($event)">
+                    @for (p of playbooks; track p.id) {
+                        <option [value]="p.name">{{ p.name }}</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+                    <label class="sonar-fb__hint" style="font-weight: 600; margin: 0;">Control Group Holdout</label>
+                    <span class="sonar-mono" style="font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-atrisk);">{{ holdoutPct() }}% holdout</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="range" min="5" max="20" step="5" style="flex: 1;" [ngModel]="holdoutPct()" (ngModelChange)="holdoutPct.set(+$event)" />
+                </div>
+                <p class="sonar-fb__hint" style="margin-top: 0.25rem;">A percentage of the segment is isolated from the campaign to measure reactivation lift objectively.</p>
+            </div>
+
+            <!-- Visual Split Path Diagram -->
+            <div class="sonar-holdout-diagram">
+                <div class="sonar-holdout-node sonar-holdout-node--root">
+                    <span class="sonar-holdout-node__title">Cohort Segment</span>
+                    <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-faint);">{{ totalMembers }} members</span>
+                </div>
+                
+                <div class="sonar-holdout-split">
+                    <div class="sonar-holdout-branch">
+                        <div class="sonar-holdout-line sonar-holdout-line--campaign"></div>
+                        <div class="sonar-holdout-node sonar-holdout-node--campaign">
+                            <span class="sonar-holdout-node__title">Campaign Outreach</span>
+                            <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-healthy);">{{ 100 - holdoutPct() }}% enrolled</span>
+                        </div>
+                    </div>
+                    
+                    <div class="sonar-holdout-branch">
+                        <div class="sonar-holdout-line sonar-holdout-line--holdout"></div>
+                        <div class="sonar-holdout-node sonar-holdout-node--holdout">
+                            <span class="sonar-holdout-node__title">Holdout Control</span>
+                            <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-atrisk);">{{ holdoutPct() }}% isolated</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sonar-fb__bar" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--sonar-border); padding-top: 1.25rem;">
+            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="isEnrolling()" (click)="launchPlaybook()">
+                {{ isEnrolling() ? "Enrolling…" : "Confirm & Launch Campaign" }}
+            </button>
+        </div>
+    </div>
+</div>

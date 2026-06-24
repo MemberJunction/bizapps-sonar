@@ -1,22 +1,28 @@
 <div class="sonar-page sonar-page--railed sonar-mgr">
     <div class="sonar-page__header">
         <div class="sonar-page__heading">
+            <button class="sonar-btn sonar-btn--ghost" (click)="current.toggleSidebar()" title="Choose scoring model" style="padding: 0.5rem; margin-right: 0.25rem;">
+                <i class="fa-solid fa-bars" style="font-size: 1.25rem;"></i>
+            </button>
             <span class="sonar-page__icon"><i class="fa-solid fa-chart-line"></i></span>
             <div>
-                <h1 class="sonar-page__title">{{ modelName() }}</h1>
+                <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
+                    {{ modelName() }}
+                    <i class="fa-solid fa-chevron-down" style="font-size: 0.45em; margin-left: 0.35rem; vertical-align: middle; color: var(--sonar-faint);"></i>
+                </h1>
                 <p class="sonar-page__subtitle">Engagement Manager · who to prioritize, and why</p>
             </div>
         </div>
         <div class="sonar-page__actions">
-            <button class="sonar-btn" disabled title="Phase 2+ — action layer">Export cohort</button>
-            <button class="sonar-btn sonar-btn--primary" disabled title="Phase 2+ — action layer">Launch intervention</button>
+            <button class="sonar-btn" [disabled]="!hasModel() || members().length === 0" title="Export cohort">Export cohort</button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!hasModel() || members().length === 0" (click)="openPlaybookModal()">Launch playbook</button>
         </div>
     </div>
 
     <div class="sonar-page__body sonar-with-rail">
         <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
 
-        <div class="sonar-with-rail__main">
+        <div class="sonar-with-rail__main sonar-mgr__body-layout">
             @if (loaded() && tiles().length === 0) {
                 <div class="sonar-empty">
                     <i class="fa-solid fa-chart-line"></i>
@@ -24,222 +30,296 @@
                     <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then members will appear here worst-first.</p>
                 </div>
             } @else {
-              <div class="sonar-stack">
-                <!-- Band summary tiles (compact, left-clustered filters). -->
-                <section class="sonar-stats sonar-mgr__bands">
-                    @for (t of tiles(); track t.label) {
-                        <button type="button" class="sonar-stat sonar-stat--clickable"
-                                [class.sonar-stat--active]="selectedBand()?.bandId === t.bandId"
-                                (click)="filterByBand(t)"
-                                [title]="selectedBand()?.bandId === t.bandId ? 'Clear filter' : 'Filter triage to ' + t.label">
-                            <div class="sonar-stat__label">{{ t.label }}</div>
-                            <div class="sonar-stat__value sonar-text--{{ t.key }}">{{ t.pct }}%</div>
-                            <div class="sonar-stat__delta">{{ t.count }} member{{ t.count === 1 ? '' : 's' }}</div>
-                        </button>
-                    }
-                </section>
-
-                <!-- Movers since last run -->
-                @if (hasMovers()) {
-                    <section class="sonar-card sonar-movers">
-                        <button type="button" class="sonar-movers__head" (click)="toggleMovers()" [attr.aria-expanded]="showMovers()">
-                            <span class="sonar-card__label">Movers since last run</span>
-                            <span class="sonar-chip">{{ movers().fallers.length }} down · {{ movers().risers.length }} up</span>
-                            <i class="fa-solid" [class.fa-chevron-down]="!showMovers()" [class.fa-chevron-up]="showMovers()"></i>
-                        </button>
-                        @if (showMovers()) {
-                            <div class="sonar-movers__cols">
-                                <div class="sonar-movers__col">
-                                    <div class="sonar-movers__col-label sonar-neg">Biggest drops</div>
-                                    @for (m of movers().fallers; track m.scoreId) {
-                                        <button class="sonar-mover" (click)="select(m)">
-                                            <span class="sonar-mover__name">{{ m.name }}</span>
-                                            <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                            <span class="sonar-trend sonar-trend--neg">↓ {{ deltaLabel(m.delta) }}</span>
-                                        </button>
-                                    } @empty { <span class="sonar-faint sonar-mover__empty">No drops</span> }
-                                </div>
-                                <div class="sonar-movers__col">
-                                    <div class="sonar-movers__col-label sonar-pos">Biggest gains</div>
-                                    @for (m of movers().risers; track m.scoreId) {
-                                        <button class="sonar-mover" (click)="select(m)">
-                                            <span class="sonar-mover__name">{{ m.name }}</span>
-                                            <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                            <span class="sonar-trend sonar-trend--pos">↑ {{ deltaLabel(m.delta) }}</span>
-                                        </button>
-                                    } @empty { <span class="sonar-faint sonar-mover__empty">No gains</span> }
-                                </div>
-                            </div>
-                        }
-                    </section>
-                }
-
-                <div class="sonar-split">
-                    <!-- Triage list -->
-                    <section class="sonar-card">
-                        <div class="sonar-card__head">
-                            <div class="sonar-card__label">
-                                Triage · lowest scores first
-                                @if (selectedBand(); as b) {
-                                    <button type="button" class="sonar-chip sonar-chip--{{ b.key }}" (click)="filterByBand(b)" title="Clear filter">{{ b.label }} ✕</button>
-                                }
-                            </div>
-                            <span class="sonar-chip">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
+                <!-- Sidebar Navigation Rail -->
+                <aside class="sonar-mgr-sidebar" role="navigation" aria-label="Engagement sections">
+                    <button type="button" class="sonar-mgr-sidebar__item" 
+                            [class.sonar-mgr-sidebar__item--active]="activeTab() === 'triage'"
+                            (click)="activeTab.set('triage')">
+                        <i class="fa-solid fa-list-check"></i>
+                        <div class="sonar-mgr-sidebar__item-text">
+                            <span class="sonar-mgr-sidebar__item-title">Triage Workspace</span>
+                            <span class="sonar-mgr-sidebar__item-subtitle">Prioritized member list</span>
                         </div>
-                        <sonar-filter-bar>
-                            <sonar-search-field [value]="nameQuery()" [suggestions]="suggestions()" placeholder="Search members…"
-                                (valueChange)="onSearchValue($event)" (search)="onFilterSearch($event)" (pick)="onFilterPick($event)">
-                                <!-- Rich member suggestion row (the field owns the menu chrome + keyboard). -->
-                                <ng-template #suggestion let-s>
-                                    <span class="sonar-combo__opt-main">
-                                        <span class="sonar-combo__opt-name">{{ s.name }}</span>
-                                        @if (s.secondary) { <span class="sonar-combo__opt-sub">{{ s.secondary }}</span> }
-                                    </span>
-                                    <span class="sonar-mono sonar-combo__opt-score">{{ s.normalizedScore }}</span>
-                                    <span class="sonar-chip sonar-chip--{{ s.bandKey }}">{{ s.bandLabel }}</span>
-                                </ng-template>
-                            </sonar-search-field>
-                            <sonar-range-filter label="score" [value]="{ min: minScore(), max: maxScore() }" [min]="0" [max]="100"
-                                (valueChange)="onScoreRange($event)"></sonar-range-filter>
-                            <sonar-toggle-filter [value]="sortDir()" [on]="sortAsc" [off]="sortDesc"
-                                (valueChange)="onSortChange($event)"></sonar-toggle-filter>
-                        </sonar-filter-bar>
-                        @if (error()) {
-                            <!-- Error state -->
-                            <div class="sonar-empty sonar-empty--error">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                                <h2>Couldn't load members</h2>
-                                <p>{{ error() }}</p>
-                                <button class="sonar-btn sonar-btn--primary" (click)="retry()">Retry</button>
-                            </div>
-                        } @else if (loadingMembers()) {
-                            <!-- Loading skeleton — mirrors the triage row layout (avatar · name/score · chip). -->
-                            <div class="sonar-stack" aria-busy="true" aria-label="Loading members">
-                                @for (i of skeletonRows; track i) {
-                                    <div class="sonar-dropper sonar-dropper--skeleton">
-                                        <span class="sonar-skeleton sonar-skeleton--circle" style="width:2.1rem; height:2.1rem; flex:0 0 auto"></span>
-                                        <span class="sonar-dropper__main">
-                                            <span class="sonar-skeleton sonar-skeleton--text" style="width:55%"></span>
-                                            <span class="sonar-skeleton sonar-skeleton--text" style="width:35%"></span>
-                                        </span>
-                                        <span class="sonar-skeleton" style="width:3.5rem; height:1.1rem; border-radius:999px"></span>
-                                    </div>
-                                }
-                            </div>
-                        } @else if (members().length === 0) {
-                            <!-- Empty: filters/band matched nothing (distinct from the no-scores-at-all state above). -->
-                            <div class="sonar-empty sonar-empty--inline">
-                                <i class="fa-solid fa-filter-circle-xmark"></i>
-                                <h2>No members match</h2>
-                                <p>No scored members fit the current search, score range, or band. Adjust or clear the filters.</p>
-                            </div>
-                        } @else {
-                            <div class="sonar-stack">
-                                @for (m of members(); track m.scoreId) {
-                                    <button class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId" (click)="select(m)">
-                                        <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
-                                        <span class="sonar-dropper__main">
-                                            <span class="sonar-dropper__name">{{ m.name }}</span>
-                                            @if (m.delta !== null && m.delta !== 0) {
-                                                <span class="sonar-dropper__reason"><span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> since last run</span>
-                                            }
-                                        </span>
-                                        <span class="sonar-dropper__score">
-                                            <span class="sonar-mono sonar-dropper__num">{{ m.normalizedScore }}</span><span class="sonar-dropper__denom">/100</span>
-                                        </span>
-                                        <span class="sonar-chip sonar-chip--{{ m.bandKey }} sonar-dropper__band">{{ m.bandLabel }}</span>
+                    </button>
+                    <button type="button" class="sonar-mgr-sidebar__item" 
+                            [class.sonar-mgr-sidebar__item--active]="activeTab() === 'movers'"
+                            [disabled]="!hasMovers()"
+                            (click)="activeTab.set('movers')">
+                        <i class="fa-solid fa-arrow-trend-down"></i>
+                        <div class="sonar-mgr-sidebar__item-text">
+                            <span class="sonar-mgr-sidebar__item-title">Score Movers</span>
+                            <span class="sonar-mgr-sidebar__item-subtitle">Largest scoring shifts</span>
+                        </div>
+                        @if (hasMovers()) {
+                            <span class="sonar-chip sonar-chip--small">{{ movers().fallers.length + movers().risers.length }}</span>
+                        }
+                    </button>
+                </aside>
+
+                <!-- Workspace content area -->
+                <div class="sonar-mgr-content">
+                    @if (activeTab() === 'triage') {
+                        <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
+                            <!-- Band distribution — one compact segmented stat row (doubles as the triage filter).
+                                 Flattened from full stat cards to win back vertical space above the table. -->
+                            <section class="sonar-mgr__bandstrip" role="group" aria-label="Score distribution — click a band to filter the triage list">
+                                @for (t of tiles(); track t.label) {
+                                    <button type="button" class="sonar-mgr__band"
+                                            [class.sonar-mgr__band--active]="selectedBand()?.bandId === t.bandId"
+                                            (click)="filterByBand(t)"
+                                            [title]="selectedBand()?.bandId === t.bandId ? 'Clear filter' : 'Filter triage to ' + t.label">
+                                        <span class="sonar-mgr__band-dot sonar-mgr__band-dot--{{ t.key }}"></span>
+                                        <span class="sonar-mgr__band-label">{{ t.label }}</span>
+                                        <span class="sonar-mgr__band-pct sonar-text--{{ t.key }}">{{ t.pct }}%</span>
+                                        <span class="sonar-mono sonar-mgr__band-count">{{ t.count }}</span>
                                     </button>
                                 }
-                            </div>
-                        }
-                        @if (total() > 0 && !loadingMembers() && !error()) {
-                            <div class="sonar-pager">
-                                <button type="button" class="sonar-btn sonar-btn--ghost" [disabled]="!hasPrev()" (click)="prevPage()">‹ Prev</button>
-                                <span class="sonar-mono sonar-pager__info">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
-                                <button type="button" class="sonar-btn sonar-btn--ghost" [disabled]="!hasNext()" (click)="nextPage()">Next ›</button>
-                            </div>
-                        }
-                    </section>
+                            </section>
 
-                    <!-- Member explainability drawer -->
-                    <section class="sonar-stack">
-                        @if (selected(); as sel) {
-                            <div class="sonar-card">
-                                <div class="sonar-card__head">
-                                    <div>
-                                        <div class="sonar-card__label">Member drill-down</div>
-                                        <div class="sonar-factor__name">{{ sel.name }}</div>
-                                        @if (sel.versionNumber !== null) {
-                                            <div class="sonar-drill__version">
-                                                <span class="sonar-chip" [class.sonar-chip--atrisk]="selectedStale()" [title]="selectedStale() ? 'This score was computed under an older model version' : 'Computed under the current model version'">scored by v{{ sel.versionNumber }}</span>
-                                                @if (selectedStale()) { <span class="sonar-neg sonar-drill__stale">⚠ older than live v{{ currentVersionNumber() }} — recompute to refresh</span> }
-                                            </div>
-                                        }
-                                    </div>
-                                    <div class="sonar-drill__score">
-                                        <div class="sonar-drill__num">{{ sel.normalizedScore }}</div>
-                                        <div class="sonar-chip sonar-chip--{{ sel.bandKey }}">{{ sel.bandLabel }}</div>
-                                        @if (spark(); as sp) {
-                                            <svg class="sonar-spark" viewBox="0 0 120 28" preserveAspectRatio="none" role="img" aria-label="Score history">
-                                                <path class="sonar-spark__area" [attr.d]="sp.area"></path>
-                                                <path class="sonar-spark__line sonar-spark__line--{{ sel.bandKey }}" [attr.d]="sp.line"></path>
-                                                <circle class="sonar-spark__dot sonar-spark__dot--{{ sel.bandKey }}" [attr.cx]="sp.lastX" [attr.cy]="sp.lastY" r="2.2"></circle>
-                                            </svg>
-                                            @if (sel.delta !== null && sel.delta !== 0) {
-                                                <div class="sonar-trend sonar-trend--{{ trendTone(sel.trendDirection) }}">{{ trendArrow(sel.trendDirection) }} {{ deltaLabel(sel.delta) }} since last run</div>
+                            <div class="sonar-split sonar-triage-split">
+                                <!-- Triage list -->
+                                <section class="sonar-card sonar-triage-card">
+                                    <div class="sonar-card__head">
+                                        <div class="sonar-card__label">
+                                            Triage · lowest scores first
+                                            @if (selectedBand(); as b) {
+                                                <button type="button" class="sonar-chip sonar-chip--{{ b.key }}" (click)="filterByBand(b)" title="Clear filter">{{ b.label }} ✕</button>
                                             }
-                                        } @else if (history().length === 1) {
-                                            <div class="sonar-faint sonar-spark__hint">First snapshot — trend appears next recompute</div>
-                                        }
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div class="sonar-stack sonar-drill__why">
-                                    <div class="sonar-card__label">Why this score</div>
-                                    @if (loadingDrawer()) {
-                                        <p class="sonar-faint" style="font-size:0.85rem">Loading breakdown…</p>
-                                    } @else if (contributions().length === 0) {
-                                        <p class="sonar-faint" style="font-size:0.85rem">No contribution breakdown recorded for this score.</p>
-                                    } @else {
-                                        @for (c of contributions(); track c.label) {
-                                            <div class="sonar-calc">
-                                                <div class="sonar-calc__head">
-                                                    <span class="sonar-calc__label">{{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }</span>
-                                                    <span class="sonar-mono" [class.sonar-pos]="(c.percentOfTotal * sel.normalizedScore) >= 0.5" [class.sonar-faint]="(c.percentOfTotal * sel.normalizedScore) < 0.5">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
-                                                </div>
-                                                <div class="sonar-calc__chain sonar-mono">
-                                                    raw <strong class="sonar-ink">{{ c.rawValue }}</strong>
-                                                    → ranks <strong class="sonar-ink">{{ c.normalizedValue }}</strong> / 1.0 vs. the group
-                                                    <span class="sonar-faint">· {{ (c.percentOfTotal * 100) | number:'1.0-0' }}% of the score</span>
-                                                </div>
-                                                <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" [style.width.%]="c.percentOfTotal * 100"></span></span>
-                                            </div>
+                                    <!-- Unified filter track: search · score pill · sort · pagination all on one baseline. -->
+                                    <sonar-filter-bar>
+                                        <sonar-search-field [value]="nameQuery()" [suggestions]="suggestions()" placeholder="Search members…"
+                                            (valueChange)="onSearchValue($event)" (search)="onFilterSearch($event)" (pick)="onFilterPick($event)">
+                                            <!-- Rich member suggestion row (the field owns the menu chrome + keyboard). -->
+                                            <ng-template #suggestion let-s>
+                                                <span class="sonar-combo__opt-main">
+                                                    <span class="sonar-combo__opt-name">{{ s.name }}</span>
+                                                    @if (s.secondary) { <span class="sonar-combo__opt-sub">{{ s.secondary }}</span> }
+                                                </span>
+                                                <span class="sonar-mono sonar-combo__opt-score">{{ s.normalizedScore }}</span>
+                                                <span class="sonar-chip sonar-chip--{{ s.bandKey }}">{{ s.bandLabel }}</span>
+                                            </ng-template>
+                                        </sonar-search-field>
+                                        <sonar-range-filter label="score" [value]="{ min: minScore(), max: maxScore() }" [min]="0" [max]="100"
+                                            (valueChange)="onScoreRange($event)"></sonar-range-filter>
+                                        <sonar-toggle-filter [value]="sortDir()" [on]="sortAsc" [off]="sortDesc"
+                                            (valueChange)="onSortChange($event)"></sonar-toggle-filter>
+                                        @if (total() > 0 && !loadingMembers() && !error()) {
+                                            <span class="sonar-mgr__track-pager">
+                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasPrev()" (click)="prevPage()" title="Previous page" aria-label="Previous page">‹</button>
+                                                <span class="sonar-mono sonar-mgr__count">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
+                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasNext()" (click)="nextPage()" title="Next page" aria-label="Next page">›</button>
+                                            </span>
                                         }
-                                        <p class="sonar-fb__hint">
-                                            Each signal's <strong class="sonar-ink">points</strong> are its share of the score, so they
-                                            add up to <strong class="sonar-ink">{{ sel.normalizedScore }} / 100</strong>. A signal earns
-                                            a bigger share when the member ranks high on it (toward 1.0) and it carries more weight.
-                                            @if (missingSignals().length > 0) {
-                                                <br><span class="sonar-neg">⚠ No data for {{ missingSignals().join(', ') }}</span> — the engine
-                                                counts {{ missingSignals().length === 1 ? 'it' : 'them' }} as 0, which drags the score down.
-                                            }
-                                        </p>
+                                    </sonar-filter-bar>
+                                    @if (!error() && !loadingMembers() && members().length > 0) {
+                                        <!-- Table header anchor: column labels over the data they head. -->
+                                        <div class="sonar-triage__head">
+                                            <span class="sonar-triage__head-member">Member</span>
+                                            <span class="sonar-triage__head-score">Score</span>
+                                        </div>
                                     }
-                                </div>
+                                    @if (error()) {
+                                        <!-- Error state -->
+                                        <div class="sonar-empty sonar-empty--error">
+                                            <i class="fa-solid fa-triangle-exclamation"></i>
+                                            <h2>Couldn't load members</h2>
+                                            <p>{{ error() }}</p>
+                                            <button class="sonar-btn sonar-btn--primary" (click)="retry()">Retry</button>
+                                        </div>
+                                    } @else if (loadingMembers()) {
+                                        <!-- Loading skeleton — mirrors the triage row layout (avatar · name/score · chip). -->
+                                        <div class="sonar-stack" aria-busy="true" aria-label="Loading members">
+                                            @for (i of skeletonRows; track i) {
+                                                <div class="sonar-dropper sonar-dropper--skeleton">
+                                                    <span class="sonar-skeleton sonar-skeleton--circle" style="width:2.1rem; height:2.1rem; flex:0 0 auto"></span>
+                                                    <span class="sonar-dropper__main">
+                                                        <span class="sonar-skeleton sonar-skeleton--text" style="width:55%"></span>
+                                                        <span class="sonar-skeleton sonar-skeleton--text" style="width:35%"></span>
+                                                    </span>
+                                                    <span class="sonar-skeleton" style="width:3.5rem; height:1.1rem; border-radius:999px"></span>
+                                                </div>
+                                            }
+                                        </div>
+                                    } @else if (members().length === 0) {
+                                        <!-- Empty: filters/band matched nothing (distinct from the no-scores-at-all state above). -->
+                                        <div class="sonar-empty sonar-empty--inline">
+                                            <i class="fa-solid fa-filter-circle-xmark"></i>
+                                            <h2>No members match</h2>
+                                            <p>No scored members fit the current search, score range, or band. Adjust or clear the filters.</p>
+                                        </div>
+                                    } @else {
+                                        <div class="sonar-stack sonar-triage__rows">
+                                            @for (m of members(); track m.scoreId) {
+                                                <div class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId">
+                                                    <!-- Whole-row click opens the drill-down; the quick button is a sibling so we don't nest buttons. -->
+                                                    <button type="button" class="sonar-dropper__open" (click)="select(m)">
+                                                        <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
+                                                        <span class="sonar-dropper__main">
+                                                            <span class="sonar-dropper__name">{{ m.name }}</span>
+                                                            @if (m.delta !== null && m.delta !== 0) {
+                                                                <span class="sonar-dropper__reason"><span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> since last run</span>
+                                                            }
+                                                        </span>
+                                                        <span class="sonar-chip sonar-chip--{{ m.bandKey }} sonar-dropper__band">{{ m.bandLabel }}</span>
+                                                        <span class="sonar-dropper__score">
+                                                            <span class="sonar-mono sonar-dropper__num">{{ m.normalizedScore }}</span><span class="sonar-dropper__denom">/100</span>
+                                                        </span>
+                                                    </button>
+                                                    <!-- Hover/focus execution shortcut — launch a playbook without traveling to the panel. -->
+                                                    <button type="button" class="sonar-dropper__quick" (click)="quickLaunch(m, $event)"
+                                                            [title]="'Launch playbook for ' + m.name" [attr.aria-label]="'Launch playbook for ' + m.name">
+                                                        <i class="fa-solid fa-bolt"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </section>
 
-                                <div class="sonar-drill__actions">
-                                    <button class="sonar-btn sonar-btn--primary" disabled title="Phase 2+ — action layer">Draft re-engagement</button>
-                                    <button class="sonar-btn" disabled title="Phase 2+ — action layer">Route to chapter rep</button>
+                                <!-- Member explainability drawer -->
+                                <section class="sonar-stack sonar-drill">
+                                    @if (selected(); as sel) {
+                                        <div class="sonar-card">
+                                            <div class="sonar-card__head">
+                                                <div>
+                                                    <div class="sonar-card__label">Member drill-down</div>
+                                                    <div class="sonar-factor__name">{{ sel.name }}</div>
+                                                    @if (sel.versionNumber !== null) {
+                                                        <div class="sonar-drill__version">
+                                                            <span class="sonar-chip" [class.sonar-chip--atrisk]="selectedStale()" [title]="selectedStale() ? 'This score was computed under an older model version' : 'Computed under the current model version'">scored by v{{ sel.versionNumber }}</span>
+                                                            @if (selectedStale()) { <span class="sonar-neg sonar-drill__stale">⚠ older than live v{{ currentVersionNumber() }} — recompute to refresh</span> }
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                <div class="sonar-drill__score">
+                                                    <div class="sonar-drill__num">{{ sel.normalizedScore }}</div>
+                                                    <div class="sonar-chip sonar-chip--{{ sel.bandKey }}">{{ sel.bandLabel }}</div>
+                                                    @if (spark(); as sp) {
+                                                        <svg class="sonar-spark" viewBox="0 0 120 28" preserveAspectRatio="none" role="img" aria-label="Score history">
+                                                            <path class="sonar-spark__area" [attr.d]="sp.area"></path>
+                                                            <path class="sonar-spark__line sonar-spark__line--{{ sel.bandKey }}" [attr.d]="sp.line"></path>
+                                                            <circle class="sonar-spark__dot sonar-spark__dot--{{ sel.bandKey }}" [attr.cx]="sp.lastX" [attr.cy]="sp.lastY" r="2.2"></circle>
+                                                        </svg>
+                                                        @if (sel.delta !== null && sel.delta !== 0) {
+                                                            <div class="sonar-trend sonar-trend--{{ trendTone(sel.trendDirection) }}">{{ trendArrow(sel.trendDirection) }} {{ deltaLabel(sel.delta) }} since last run</div>
+                                                        }
+                                                    } @else if (history().length === 1) {
+                                                        <div class="sonar-faint sonar-spark__hint">First snapshot — trend appears next recompute</div>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="sonar-stack sonar-drill__why">
+                                                <div class="sonar-card__label">Why this score</div>
+                                                @if (loadingDrawer()) {
+                                                    <p class="sonar-faint" style="font-size:0.85rem">Loading breakdown…</p>
+                                                } @else if (contributions().length === 0) {
+                                                    <p class="sonar-faint" style="font-size:0.85rem">No contribution breakdown recorded for this score.</p>
+                                                } @else {
+                                                    @for (c of contributions(); track c.label) {
+                                                        <div class="sonar-calc sonar-calc--waterfall" [class.sonar-calc--expanded]="expandedContributions()[c.label]" (click)="toggleContribution(c.label)" role="button" tabindex="0">
+                                                            <div class="sonar-calc__head">
+                                                                <span class="sonar-calc__label" style="display: flex; align-items: center; gap: 0.35rem;">
+                                                                    <i class="fa-solid" [ngClass]="expandedContributions()[c.label] ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px; color: var(--sonar-faint); cursor: pointer;"></i>
+                                                                    {{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }
+                                                                </span>
+                                                                <span class="sonar-mono" [class.sonar-pos]="(c.percentOfTotal * sel.normalizedScore) >= 0.5" [class.sonar-faint]="(c.percentOfTotal * sel.normalizedScore) < 0.5">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
+                                                            </div>
+                                                            <div class="sonar-calc__chain sonar-mono">
+                                                                raw <strong class="sonar-ink">{{ c.rawValue }}</strong>
+                                                                → ranks <strong class="sonar-ink">{{ c.normalizedValue }}</strong> / 1.0 vs. the group
+                                                                <span class="sonar-faint">· {{ (c.percentOfTotal * 100) | number:'1.0-0' }}% of the score</span>
+                                                            </div>
+                                                            <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" [style.width.%]="c.percentOfTotal * 100"></span></span>
+                                                            
+                                                            <!-- Expanded Sub-records Activity Audit Trail -->
+                                                            @if (expandedContributions()[c.label]) {
+                                                                <div class="sonar-calc__sub-records" (click)="$event.stopPropagation()">
+                                                                    <div class="sonar-calc__sub-title"><i class="fa-solid fa-list-check"></i> Audit Activity Logs:</div>
+                                                                    @for (sub of getSubRecords(c.label); track $index) {
+                                                                        <div class="sonar-calc__sub-row">
+                                                                            <span class="sonar-mono sonar-calc__sub-date">{{ sub.date }}</span>
+                                                                            <span class="sonar-calc__sub-desc">{{ sub.desc }}</span>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    <p class="sonar-fb__hint">
+                                                        Each signal's <strong class="sonar-ink">points</strong> are its share of the score, so they
+                                                        add up to <strong class="sonar-ink">{{ sel.normalizedScore }} / 100</strong>. A signal earns
+                                                        a bigger share when the member ranks high on it (toward 1.0) and it carries more weight.
+                                                        @if (missingSignals().length > 0) {
+                                                            <br><span class="sonar-neg">⚠ No data for {{ missingSignals().join(', ') }}</span> — the engine
+                                                            counts {{ missingSignals().length === 1 ? 'it' : 'them' }} as 0, which drags the score down.
+                                                        }
+                                                    </p>
+                                                }
+                                            </div>
+
+                                            <div class="sonar-drill__actions">
+                                                <button class="sonar-btn sonar-btn--primary" (click)="openPlaybookModal()">Launch playbook</button>
+                                                <button class="sonar-btn" disabled title="Phase 2+ — action layer">Route to rep</button>
+                                            </div>
+                                        </div>
+                                        <div class="sonar-card sonar-note">
+                                            <strong class="sonar-ink">Action layer:</strong> launching a playbook will hold back a control
+                                            group automatically, so reactivation lift is <em>measured</em>, not assumed.
+                                        </div>
+                                    }
+                                </section>
+                            </div>
+                        </div>
+                    }
+
+                    @if (activeTab() === 'movers') {
+                        <div class="sonar-stack" style="flex: 1; min-height: 0; overflow-y: auto;">
+                            <section class="sonar-card">
+                                <div class="sonar-card__head">
+                                    <div class="sonar-card__label">Movers since last run</div>
                                 </div>
-                            </div>
-                            <div class="sonar-card sonar-note">
-                                <strong class="sonar-ink">Action layer (Phase 2+):</strong> launching an intervention will hold back a control
-                                group automatically, so reactivation lift is <em>measured</em>, not assumed.
-                            </div>
-                        }
-                    </section>
+                                <p class="sonar-faint" style="font-size: var(--sonar-font-sm); margin-bottom: 1.5rem;">
+                                    These members experienced the largest scoring shifts following the most recent engine recompute.
+                                </p>
+                                <div class="sonar-movers__cols" style="padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                                    <div class="sonar-movers__col">
+                                        <div class="sonar-movers__col-label sonar-neg" style="font-size: var(--sonar-font-xs); margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-arrow-down"></i> Biggest drops</div>
+                                        <div class="sonar-stack">
+                                            @for (m of movers().fallers; track m.scoreId) {
+                                                <button class="sonar-mover" (click)="select(m); activeTab.set('triage')">
+                                                    <span class="sonar-mover__name">{{ m.name }}</span>
+                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
+                                                    <span class="sonar-trend sonar-trend--neg">↓ {{ deltaLabel(m.delta) }}</span>
+                                                </button>
+                                            } @empty { <span class="sonar-faint sonar-mover__empty">No drops</span> }
+                                        </div>
+                                    </div>
+                                    <div class="sonar-movers__col">
+                                        <div class="sonar-movers__col-label sonar-pos" style="font-size: var(--sonar-font-xs); margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-arrow-up"></i> Biggest gains</div>
+                                        <div class="sonar-stack">
+                                            @for (m of movers().risers; track m.scoreId) {
+                                                <button class="sonar-mover" (click)="select(m); activeTab.set('triage')">
+                                                    <span class="sonar-mover__name">{{ m.name }}</span>
+                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
+                                                    <span class="sonar-trend sonar-trend--pos">↑ {{ deltaLabel(m.delta) }}</span>
+                                                </button>
+                                            } @empty { <span class="sonar-faint sonar-mover__empty">No gains</span> }
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    }
                 </div>
-              </div>
+            }
+
+            <!-- Playbook Enroller Modal -->
+            @if (playbookModalOpen()) {
+                <sonar-playbook-enroller [totalMembers]="total()" (close)="closePlaybookModal()"></sonar-playbook-enroller>
             }
         </div>
     </div>

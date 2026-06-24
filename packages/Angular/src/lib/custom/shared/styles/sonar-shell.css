@@ -16,14 +16,14 @@
 
 :host {
     /* --- map MJ tokens into short Sonar-local names --- */
-    --sonar-bg: var(--mj-bg-page, #f8fafc);
-    --sonar-surface: var(--mj-bg-surface-card, #ffffff);
-    --sonar-surface-sunken: var(--mj-bg-surface-sunken, #f1f5f9);
-    --sonar-ink: var(--mj-text-primary, #1e293b);
-    --sonar-muted: var(--mj-text-secondary, #64748b);
-    --sonar-faint: var(--mj-text-muted, #94a3b8);
-    --sonar-border: var(--mj-border-default, #e2e8f0);
-    --sonar-border-strong: var(--mj-border-strong, #cbd5e1);
+    --sonar-bg: var(--mj-bg-page, #F9FAFB);
+    --sonar-surface: var(--mj-bg-surface-card, #FFFFFF);
+    --sonar-surface-sunken: var(--mj-bg-surface-sunken, #F3F4F6);
+    --sonar-ink: var(--mj-text-primary, #111827);
+    --sonar-muted: var(--mj-text-secondary, #4B5563);
+    --sonar-faint: var(--mj-text-muted, #6B7280);
+    --sonar-border: var(--mj-border-default, #E5E7EB);
+    --sonar-border-strong: var(--mj-border-strong, #D1D5DB);
     --sonar-brand: var(--mj-brand-primary, #6366f1);
     /* Interactive + brand accent — focus rings, hover borders, selected/active states, the hero
        fill, primary actions. A DELIBERATE off-MJ identity: violet. The neutral foundation stays
@@ -35,8 +35,8 @@
     /* Text/icons sitting ON the accent fill (primary buttons, hero). White reads cleanly on the
        violet in both modes. */
     --sonar-on-accent: #ffffff;
-    --sonar-radius: var(--mj-radius-lg, 12px);
-    --sonar-radius-sm: var(--mj-radius-md, 8px);
+    --sonar-radius: 6px;
+    --sonar-radius-sm: 4px;
     --sonar-gap: var(--mj-space-4, 1rem);
     --sonar-mono: var(--mj-font-family-mono, 'JetBrains Mono', Menlo, monospace);
     /* Fixed near-black for text sitting on saturated band fills (healthy/watch/atrisk/critical),
@@ -44,6 +44,19 @@
     --sonar-on-band: #04121f;
     /* Content column: surfaces center to this width so boxes align instead of sprawling. */
     --sonar-content-max: 1200px;
+    /* Shadows stripped — hairline borders carry separation. Keep token for components that need an escape hatch. */
+    --sonar-shadow-sm: none;
+
+    /* --- typographic scale variables --- */
+    /* 12px / 13px / 14px / 14px — dense, precise. Metadata always 12px; primary text caps at 14px. */
+    --sonar-font-xs: 0.75rem;
+    --sonar-font-sm: 0.8125rem;
+    --sonar-font-base: 0.875rem;
+    --sonar-font-md: 0.875rem;
+    --sonar-font-lg: 0.9375rem;
+    --sonar-font-xl: 1rem;
+    --sonar-font-2xl: 1.25rem;
+    --sonar-font-3xl: 1.875rem;
 
     /* --- Sonar accent layer --- */
     /* Signature gradient (indigo -> cyan -> teal); used for hero text, AI panels, logos. */
@@ -55,10 +68,10 @@
        status on a small chip/dot/number, calm enough to sit on a big chart area. A §2 deliberate
        deviation: documented tokens, both modes verified, distinct from the brand accent.
        The -bg tints derive from the base via color-mix, so they auto-follow the per-theme base. */
-    --sonar-healthy: #0e9f6e;
-    --sonar-watch: #3a7bd5;
-    --sonar-atrisk: #c9791b;
-    --sonar-critical: #d23f3a;
+    --sonar-healthy: #10b981;
+    --sonar-watch: #3b82f6;
+    --sonar-atrisk: #f97316;
+    --sonar-critical: #ef4444;
     --sonar-healthy-bg:  color-mix(in srgb, var(--sonar-healthy)  12%, var(--sonar-surface));
     --sonar-watch-bg:    color-mix(in srgb, var(--sonar-watch)    12%, var(--sonar-surface));
     --sonar-atrisk-bg:   color-mix(in srgb, var(--sonar-atrisk)   12%, var(--sonar-surface));
@@ -76,17 +89,20 @@
     line-height: 1.5;
 }
 
-/* Dark mode: lift the band bases to lighter, DESATURATED (pastel) tones. Per dark-mode best
-   practice, saturated hues on a dark surface vibrate and strain the eye; pastels carry the same
-   meaning calmly and hold contrast on the navy card. The -bg tints (defined on :host via
-   color-mix) auto-follow these because they reference the cascaded base value. */
+/* Dark mode: NEUTRALS stay anchored to MJ's dark tokens (the :host block above already maps
+   --sonar-bg/surface/ink/border → --mj-*, and MJ re-resolves those in dark mode automatically).
+   We do NOT hard-code the canvas here — that's the documented rule (CLAUDE.md §0): anchor neutrals
+   to MJ so light/dark + Explorer-shell consistency come for free. Only the SANCTIONED Sonar accent
+   layer overrides per-mode: the violet accent lifts brighter, and the band bases shift to lighter,
+   desaturated pastels (saturated hues vibrate on a dark surface). */
 :host-context([data-theme="dark"]) {
+    /* Brighter violet for the dark surface (the light base would muddy on navy). */
+    --sonar-accent: #8b5cf6;
+    /* Band overrides — pastel tones for dark-surface legibility. */
     --sonar-healthy: #3ddc97;
     --sonar-watch: #6aa6f5;
     --sonar-atrisk: #e6ab52;
     --sonar-critical: #ef7d74;
-    /* Brighter violet for the dark surface (the light base would muddy on navy). */
-    --sonar-accent: #8b5cf6;
 }
 
 /* Form controls + buttons default to the browser's UA font/size — force them to inherit
@@ -99,15 +115,16 @@ button, input, select, textarea {
 
 /* Every surface is a padded column: a header, then a body region. Children center to a
    fixed content width (--sonar-content-max) so the header and all boxes share one edge
-   and the page stays focused instead of sprawling across wide screens. */
+   and the page stays focused instead of sprawling across wide screens.
+   SINGLE SCREEN VIEW: outer container has overflow: hidden to lock viewport height. */
 .sonar-page {
-    padding: 1.75rem 2rem;
+    padding: 1.5rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    height: 100%;            /* fill the host's fixed height... */
-    overflow-y: auto;        /* ...and scroll internally instead of overflowing the host */
-    box-sizing: border-box;  /* keep padding inside the 100% so it doesn't force overflow */
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
     background: var(--sonar-bg);
 }
 
@@ -120,9 +137,10 @@ button, input, select, textarea {
     justify-content: space-between;
     gap: var(--sonar-gap);
     border-bottom: 1px solid var(--sonar-border);
-    padding-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    flex: 0 0 auto;
 }
-.sonar-page__heading { display: flex; align-items: center; gap: 0.875rem; }
+.sonar-page__heading { display: flex; align-items: center; gap: 0.75rem; }
 .sonar-page__icon {
     display: inline-flex;
     align-items: center;
@@ -130,16 +148,36 @@ button, input, select, textarea {
     width: 2.75rem;
     height: 2.75rem;
     border-radius: var(--sonar-radius);
-    /* Accent-tinted badge (gradient retired) — subtle brand presence, not neon. */
-    background: color-mix(in srgb, var(--sonar-accent) 14%, var(--sonar-surface));
+    background: color-mix(in srgb, var(--sonar-accent) 10%, var(--sonar-surface));
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 20%, var(--sonar-border));
     color: var(--sonar-accent);
-    font-size: 1.1rem;
+    font-size: var(--sonar-font-lg);
     flex-shrink: 0;
 }
-.sonar-page__title { margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--sonar-ink); }
-.sonar-page__subtitle { margin: 0.125rem 0 0; color: var(--sonar-muted); font-size: 0.9rem; }
+.sonar-page__title { margin: 0; font-size: var(--sonar-font-2xl); font-weight: 700; color: var(--sonar-ink); }
+.sonar-page__subtitle { margin: 0.25rem 0 0; color: var(--sonar-muted); font-size: var(--sonar-font-sm); }
 .sonar-page__actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
-.sonar-page__body { width: 100%; max-width: var(--sonar-content-max); margin-inline: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* The page body scrolls internally by default, keeping header fixed. */
+.sonar-page__body {
+    width: 100%;
+    max-width: var(--sonar-content-max);
+    margin-inline: auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+/* Railed page body layout overrides scroll to let sidebar + main view scroll independently. */
+.sonar-page__body.sonar-with-rail {
+    overflow: hidden;
+    flex-direction: row;
+    align-items: stretch;
+}
 
 /* ============================================================ Layout helpers */
 
@@ -147,7 +185,7 @@ button, input, select, textarea {
    chunks a surface into focused sections instead of one flat stack of cards. */
 .sonar-group { display: flex; flex-direction: column; gap: 1rem; }
 .sonar-group__title {
-    font-size: 0.78rem;
+    font-size: var(--sonar-font-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -167,35 +205,63 @@ button, input, select, textarea {
     .sonar-split, .sonar-cols-2 { grid-template-columns: 1fr; }
 }
 
-/* ============================================================ Cards */
+/* Railed layout helper styling - stretches column heights and scopes scrolls */
+.sonar-with-rail {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+.sonar-with-rail__main {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+@media (max-width: 860px) {
+    .sonar-with-rail { flex-direction: column; overflow-y: auto; }
+    .sonar-with-rail__main { height: auto; overflow: visible; }
+}
+
+/* ============================================================ Cards & Spacing spacing variables */
 
 .sonar-card {
     background: var(--sonar-surface);
     border: 1px solid var(--sonar-border);
     border-radius: var(--sonar-radius);
-    padding: 1.25rem;
-    box-shadow: var(--mj-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+    padding: 1.25rem 1.5rem;
+}
+.sonar-card:hover {
+    border-color: color-mix(in srgb, var(--sonar-accent) 15%, var(--sonar-border));
 }
 .sonar-card__label {
-    font-size: 0.7rem;
+    font-size: var(--sonar-font-xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--sonar-faint);
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem; /* Standardized card label margin-bottom */
 }
 /* Card header row — a label (left) + action(s) (right) on one baseline. Promoted to the shell so
    every card with a title+action aligns identically (was redefined ad-hoc per component; some
    surfaces had no definition and the action wrapped to its own line). */
-.sonar-card__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+.sonar-card__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
 .sonar-card__head .sonar-card__label { margin-bottom: 0; }
 /* A small footnote under a card's content (caveats, units, source notes). */
-.sonar-note { margin: 0.85rem 0 0; font-size: 0.78rem; color: var(--sonar-faint); line-height: 1.5; }
+.sonar-note { margin: 0.75rem 0 0; font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.5; }
 .sonar-note .sonar-mono { color: var(--sonar-muted); }
 
 /* AI / agent panel — a quiet bordered surface (gradient ring retired). The "agent" signal comes
    from its accent chip, not chrome. Wrap content in .sonar-ai__inner. */
-.sonar-ai { border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius); background: var(--sonar-surface); }
-.sonar-ai__inner { padding: 1.25rem; }
+.sonar-ai {
+    border: 1px solid color-mix(in srgb, var(--sonar-brand) 20%, var(--sonar-border));
+    background: color-mix(in srgb, var(--sonar-brand) 3%, var(--sonar-surface));
+    border-radius: var(--sonar-radius);
+}
+.sonar-ai__inner { padding: 1.5rem; }
 
 /* ============================================================ Empty state */
 
@@ -228,19 +294,19 @@ button, input, select, textarea {
     background: var(--sonar-surface);
     border: 1px solid var(--sonar-border);
     border-radius: var(--sonar-radius);
-    padding: 1.1rem 1.25rem;
+    padding: 1rem 1.5rem;
 }
-.sonar-stat__label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
-.sonar-stat__value { font-size: 1.9rem; font-weight: 700; margin-top: 0.25rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.sonar-stat__delta { font-size: 0.75rem; color: var(--sonar-muted); margin-top: 0.4rem; }
+.sonar-stat__label { font-size: var(--sonar-font-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
+.sonar-stat__value { font-size: 1.9rem; font-weight: 700; margin-top: 0.25rem; line-height: 1; font-variant-numeric: tabular-nums; font-family: var(--sonar-mono); }
+.sonar-stat__delta { font-size: 0.75rem; color: var(--sonar-muted); margin-top: 0.5rem; }
 
 /* ============================================================ Chips / bands */
 
 .sonar-chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.2rem 0.6rem;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 600;
@@ -275,21 +341,29 @@ button, input, select, textarea {
 .sonar-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 0.85rem;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
     border-radius: var(--sonar-radius-sm);
     font-size: 0.85rem;
     font-weight: 600;
-    border: 1px solid var(--sonar-border-strong);
+    border: 1px solid var(--sonar-border);
     background: var(--sonar-surface);
     color: var(--sonar-ink);
     cursor: pointer;
 }
-.sonar-btn:hover { background: var(--sonar-surface-sunken); }
-/* Primary action = SOLID accent (the gradient is reserved for the hero signature only). MJ has no
-   on-accent text token (all unset as of probe) — white on the mid-tone brand reads fine and the
-   brand is stable across light/dark. FLAG: add --mj-brand-primary-foreground if MJ defines one. */
-.sonar-btn--primary { border: none; background: var(--sonar-accent); color: var(--sonar-on-accent); }
+.sonar-btn:hover { background: var(--sonar-surface-sunken); border-color: var(--sonar-border-strong); }
+/* Primary action — the ONE filled accent surface per view (the focal CTA). Solid violet fill with
+   near-white ink; this is the single sanctioned big-accent spot, so every other accent use stays
+   thin (focus rings, indicators) to keep the ration tight. */
+.sonar-btn--primary {
+    border: 1px solid var(--sonar-accent);
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+}
+.sonar-btn--primary:hover {
+    background: color-mix(in srgb, var(--sonar-accent) 88%, #000);
+    border-color: color-mix(in srgb, var(--sonar-accent) 88%, #000);
+}
 /* Ghost: no chrome until interacted with — for low-emphasis actions (pager, inline controls). */
 .sonar-btn--ghost { border-color: transparent; background: transparent; }
 .sonar-btn--ghost:hover { background: var(--sonar-surface-sunken); }
@@ -297,17 +371,124 @@ button, input, select, textarea {
 
 /* Form-control base — ONE input look everywhere (height, border, radius, focus ring). Every
    field primitive (search, range, select) uses this so inputs are identical across surfaces. */
-.sonar-input {
-    font: inherit; height: 2rem; box-sizing: border-box;
-    padding: 0 0.55rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
-    background: var(--sonar-surface); color: var(--sonar-ink);
-    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+.sonar-input,
+.sonar-field {
+    font: inherit;
+    height: 2.25rem;
+    box-sizing: border-box;
+    padding: 0 0.75rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-.sonar-input:focus {
-    outline: none; border-color: var(--sonar-accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent) 18%, transparent);
+.sonar-input:hover,
+.sonar-field:hover {
+    border-color: color-mix(in srgb, var(--sonar-accent) 40%, var(--sonar-border));
 }
-.sonar-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.sonar-input:focus,
+.sonar-field:focus {
+    outline: none;
+    background: var(--sonar-surface);
+    border-color: var(--sonar-accent);
+    box-shadow: 0 0 0 1px var(--sonar-accent), 0 0 0 4px color-mix(in srgb, var(--sonar-accent) 15%, transparent);
+}
+.sonar-input:disabled,
+.sonar-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Custom slider / range inputs */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--sonar-surface-sunken);
+    outline: none;
+    border: 1px solid var(--sonar-border);
+    margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: transparent;
+    border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--sonar-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    margin-top: -5px;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    border-color: color-mix(in srgb, var(--sonar-accent) 85%, #fff);
+}
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: var(--sonar-surface-sunken);
+    border-radius: 999px;
+    border: 1px solid var(--sonar-border);
+}
+input[type="range"]::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--sonar-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+}
+
+/* ============================================================ Builder Dialogs shared layout */
+.sonar-fb__bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.sonar-fb__title {
+    flex: 1;
+    min-width: 0;
+}
+.sonar-fb__sub {
+    margin: 0.2rem 0 0;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-muted);
+}
+.sonar-fb__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.sonar-fb__hint {
+    font-size: 0.76rem;
+    color: var(--sonar-muted);
+    margin-top: 0.4rem;
+}
 
 /* ============================================================ Explainability waterfall */
 /* A "why this score" row: signed value, a proportional bar, a label. */
@@ -338,7 +519,7 @@ button, input, select, textarea {
 /* Primary navigation rail (model sidebar) + working area, shared across surfaces.
    flex-direction:row is explicit so it overrides .sonar-page__body's column when both
    classes sit on the same element (equal specificity → later source wins). */
-.sonar-with-rail { display: flex; flex-direction: row; gap: 1.25rem; align-items: flex-start; }
+.sonar-with-rail { display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; }
 .sonar-with-rail__main { flex: 1 1 0; min-width: 0; }
 @media (max-width: 860px) { .sonar-with-rail { flex-direction: column; } }
 
@@ -351,7 +532,7 @@ button, input, select, textarea {
 /* ============================================================ Band distribution donut */
 /* SVG donut: stroke-dasharray arcs on a circumference-100 ring (r=15.915). Shared by the
    Model Builder live preview and the Overview persisted distribution. */
-.sonar-donut-wrap { display: flex; align-items: center; gap: 1.25rem; }
+.sonar-donut-wrap { display: flex; align-items: center; gap: 1.5rem; }
 .sonar-donut { width: 116px; height: 116px; flex: none; }
 .sonar-donut__track { stroke: var(--sonar-border); }
 .sonar-donut__seg { stroke-linecap: butt; transition: stroke-dasharray 0.4s ease; }
@@ -361,8 +542,8 @@ button, input, select, textarea {
 .sonar-donut__seg--critical { stroke: var(--sonar-critical); }
 .sonar-donut__total { font-size: 8px; font-weight: 700; fill: var(--sonar-ink); text-anchor: middle; }
 .sonar-donut__total-label { font-size: 3px; fill: var(--sonar-faint); text-anchor: middle; text-transform: uppercase; letter-spacing: 0.08em; }
-.sonar-donut__legend { display: flex; flex-direction: column; gap: 0.45rem; flex: 1; }
-.sonar-donut__legend-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; }
+.sonar-donut__legend { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+.sonar-donut__legend-row { display: flex; align-items: center; gap: 0.5rem; font-size: var(--sonar-font-sm); }
 .sonar-donut__legend-label { flex: 1; color: var(--sonar-ink); }
 .sonar-donut__dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .sonar-donut__dot--healthy { background: var(--sonar-healthy); }
@@ -376,8 +557,8 @@ button, input, select, textarea {
    Shared so movers, stat cards, and drill-downs all show change identically. */
 .sonar-delta {
     display: inline-flex; align-items: center; gap: 0.25rem;
-    padding: 0.1rem 0.45rem; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums;
+    padding: 0.25rem 0.5rem; border-radius: 999px;
+    font-size: var(--sonar-font-xs); font-weight: 700; font-variant-numeric: tabular-nums;
     line-height: 1.4; white-space: nowrap;
 }
 .sonar-delta--up   { color: var(--sonar-healthy);  background: var(--sonar-healthy-bg); }
@@ -389,18 +570,18 @@ button, input, select, textarea {
    (gains / drops) of name + score + delta. Shared by the Manager drill-down and the Overview. */
 .sonar-movers { padding: 0; overflow: hidden; }
 .sonar-movers__head {
-    display: flex; align-items: center; gap: 0.6rem; width: 100%;
-    padding: 0.7rem 0.85rem; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;
+    display: flex; align-items: center; gap: 0.5rem; width: 100%;
+    padding: 0.75rem 1rem; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;
 }
 .sonar-movers__head .sonar-card__label { flex: 1; margin-bottom: 0; }
 .sonar-movers__head i { color: var(--sonar-muted); font-size: 0.75rem; }
-.sonar-movers__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0 0.85rem 0.85rem; }
+.sonar-movers__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0 1rem 1rem; }
 @media (max-width: 560px) { .sonar-movers__cols { grid-template-columns: 1fr; } }
-.sonar-movers__col { display: flex; flex-direction: column; gap: 0.3rem; }
+.sonar-movers__col { display: flex; flex-direction: column; gap: 0.25rem; }
 .sonar-movers__col-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 .sonar-mover {
     display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left; font: inherit; cursor: pointer;
-    padding: 0.4rem 0.5rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
+    padding: 0.5rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
 }
 .sonar-mover:hover { border-color: var(--sonar-accent); }
 .sonar-mover__name { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -442,6 +623,33 @@ button, input, select, textarea {
 .sonar-trendline__axis--y { text-anchor: start; }
 .sonar-trendline__axis--end { text-anchor: end; }
 
+/* ============================================================ Modal / dialog
+   Shared overlay primitive: a full-viewport dimmed scrim + a centered surface panel. Any surface
+   that needs a focused task (the playbook enroller, confirmations) uses this so dialogs look and
+   behave identically everywhere. Toggle by wrapping in @if(open()); the scrim click closes. */
+.sonar-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.sonar-modal__scrim { position: absolute; inset: 0; background: color-mix(in srgb, #04060c 55%, transparent); backdrop-filter: blur(4px); }
+.sonar-modal__panel {
+    position: relative; z-index: 1; width: 100%; max-width: 520px;
+    max-height: calc(100vh - 3rem); overflow-y: auto;
+    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius); box-shadow: var(--mj-shadow-lg, 0 24px 60px -12px rgba(4, 6, 12, 0.5));
+    padding: 1.75rem; animation: sonar-modal-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sonar-modal__panel--lg {
+    max-width: 1040px;
+    max-height: 88vh;
+    padding: 1.5rem;
+}
+.sonar-modal__close-btn { line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--sonar-radius-sm); }
+.sonar-modal__close-btn:hover { background: var(--sonar-surface-sunken); }
+@keyframes sonar-modal-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sonar-modal__panel { animation: none; } }
+
+:host-context([data-theme="light"]) .sonar-modal__panel {
+    box-shadow: 0 24px 64px -16px color-mix(in srgb, var(--sonar-ink, black) 18%, transparent);
+}
+
 /* ============================================================ Embedded MJ components */
 /* Wrap reused MJ components (mj-entity-data-grid, app-time-series-chart) so they sit on a
    clean surface inside our branded frame. These components render to the global DOM and
@@ -464,25 +672,25 @@ button, input, select, textarea {
 .sonar-dropper,
 .sonar-persona,
 .sonar-factor,
-.sonar-rel {
+.sonar-rel,
+.sonar-stat,
+.sonar-sidebar__item {
     transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
                 box-shadow 0.18s ease,
                 border-color 0.18s ease,
                 background 0.18s ease;
 }
 
-/* Buttons: subtle press + lift. */
-.sonar-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--mj-shadow-sm, 0 2px 6px rgba(15, 23, 42, 0.08)); }
+/* Buttons: clean press, no shadow lift. */
 .sonar-btn:not(:disabled):active { transform: translateY(0); }
-.sonar-btn--primary:not(:disabled):hover { box-shadow: var(--mj-shadow-md, 0 6px 18px -8px rgba(15, 23, 42, 0.28)); }
 
-/* Persona / model / dropper rows: gentle lift + brand-tinted border on hover. */
+/* Persona / model / dropper rows: brand-tinted border on hover, no box-shadow. */
 .sonar-persona:hover,
 .sonar-models__item:not(:disabled):hover,
-.sonar-dropper:hover {
-    transform: translateY(-2px);
+.sonar-dropper:hover,
+.sonar-stat:hover,
+.sonar-sidebar__item:hover {
     border-color: color-mix(in srgb, var(--sonar-brand) 35%, var(--sonar-border));
-    box-shadow: var(--mj-shadow-md, 0 8px 24px -12px rgba(15, 23, 42, 0.25));
 }
 .sonar-persona { cursor: default; }
 
@@ -516,8 +724,100 @@ textarea:focus-visible,
 .sonar-skeleton--circle { border-radius: 999px; }
 @keyframes sonar-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 
+/* ============================================================ Release Timeline utilities */
+.sonar-timeline {
+    position: relative;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+.sonar-timeline::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    left: 4px;
+    width: 2px;
+    background: var(--sonar-border);
+}
+.sonar-timeline__item {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+.sonar-timeline__item:last-child {
+    margin-bottom: 0;
+}
+.sonar-timeline__node {
+    position: absolute;
+    left: -1.5rem;
+    top: 0.25rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sonar-surface);
+    border: 2px solid var(--sonar-border-strong);
+    box-sizing: border-box;
+    z-index: 1;
+}
+.sonar-timeline__item--active .sonar-timeline__node {
+    border-color: var(--sonar-accent);
+    background: var(--sonar-accent);
+}
+.sonar-timeline__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.sonar-timeline__title {
+    font-size: var(--sonar-font-base);
+    font-weight: 600;
+    color: var(--sonar-ink);
+}
+.sonar-timeline__meta {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+}
+
+/* Standardized interactive timeline items (hover + selected highlights) */
+.sonar-timeline--interactive .sonar-timeline__item {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    border-radius: var(--sonar-radius-sm);
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sonar-timeline--interactive .sonar-timeline__item:hover {
+    background: var(--sonar-surface-sunken);
+}
+.sonar-timeline--interactive .sonar-timeline__item--selected {
+    background: color-mix(in srgb, var(--sonar-accent) 6%, var(--sonar-surface-sunken));
+    border-color: color-mix(in srgb, var(--sonar-accent) 20%, var(--sonar-border));
+    box-shadow: var(--mj-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+.sonar-timeline--interactive .sonar-timeline__item--selected .sonar-timeline__node {
+    border-color: var(--sonar-accent);
+    background: var(--sonar-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent) 25%, transparent);
+}
+.sonar-timeline--interactive .sonar-timeline__item .sonar-timeline__node {
+    left: -0.75rem;
+    top: 0.75rem;
+}
+
+/* General Typography & Utility Helper Classes */
+.sonar-faint { color: var(--sonar-faint) !important; }
+.sonar-ink { color: var(--sonar-ink) !important; }
+.sonar-muted { color: var(--sonar-muted) !important; }
+
 @media (prefers-reduced-motion: reduce) {
-    .sonar-btn, .sonar-card, .sonar-models__item, .sonar-dropper, .sonar-persona, .sonar-factor, .sonar-rel { transition: none; }
-    .sonar-btn:hover, .sonar-persona:hover, .sonar-models__item:hover, .sonar-dropper:hover { transform: none; }
+    .sonar-btn, .sonar-card, .sonar-models__item, .sonar-dropper, .sonar-persona, .sonar-factor, .sonar-rel, .sonar-stat, .sonar-sidebar__item { transition: none; }
+    .sonar-btn:hover, .sonar-persona:hover, .sonar-models__item:hover, .sonar-dropper:hover, .sonar-stat:hover, .sonar-sidebar__item:hover { transform: none; }
     .sonar-skeleton { animation: none; }
 }
+
+/* Force MemberJunction's dynamic tab wrapper to contain layout heights instead of showing an outer page scrollbar */
+::ng-deep .tab-body {
+    overflow: hidden !important;
+}
+

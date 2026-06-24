@@ -1,4 +1,4 @@
-import { Component, signal } from "@angular/core";
+import { Component, signal, computed } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -12,7 +12,7 @@ interface RunRow {
     duration: string; cost: string; ok: boolean; statusLabel: string;
 }
 /** A published version (maps to MJ_BizApps_Sonar: Score Model Versions). */
-interface VersionRow { label: string; by: string; when: string; current: boolean; }
+interface VersionRow { label: string; by: string; when: string; current: boolean; diff: string; }
 /** A config-change audit entry (maps to MJ_BizApps_Sonar: Score Model Audit Events). */
 interface AuditRow { what: string; change: string; by: string; when: string; }
 
@@ -36,8 +36,53 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
     public readonly runs = signal<RunRow[]>([]);
     /** Published versions across all models — wired to real ScoreModelVersion rows. */
     public readonly versions = signal<VersionRow[]>([]);
+    /** Selected version details for git-style diff preview. */
+    public readonly selectedVersion = signal<VersionRow | null>(null);
     /** Config-change audit trail — wired to real ScoreModelAuditEvent rows. */
     public readonly audit = signal<AuditRow[]>([]);
+
+    /** Active operational tab: 'health' | 'governance' | 'future' */
+    public readonly activeTab = signal<'health' | 'governance' | 'future'>('health');
+
+    public setTab(tab: 'health' | 'governance' | 'future'): void {
+        this.activeTab.set(tab);
+    }
+
+    public selectVersion(v: VersionRow): void {
+        this.selectedVersion.set(v);
+    }
+
+    /** Compute dynamic statistics from runs */
+    public readonly successRate = computed(() => {
+        const list = this.runs();
+        if (!list.length) return "100%";
+        const success = list.filter(r => r.ok).length;
+        return `${Math.round((success / list.length) * 100)}%`;
+    });
+
+    public readonly averageDuration = computed(() => {
+        const list = this.runs();
+        if (!list.length) return "—";
+        let totalSec = 0;
+        let count = 0;
+        for (const r of list) {
+            if (!r.duration || r.duration === "—") continue;
+            let sec = 0;
+            const mMatch = r.duration.match(/(\d+)m/);
+            const sMatch = r.duration.match(/(\d+)s/);
+            if (mMatch) sec += parseInt(mMatch[1]) * 60;
+            if (sMatch) sec += parseInt(sMatch[1]);
+            totalSec += sec;
+            count++;
+        }
+        if (!count) return "—";
+        const avg = Math.round(totalSec / count);
+        return avg >= 60 ? `${Math.floor(avg / 60)}m ${avg % 60}s` : `${avg}s`;
+    });
+
+    public readonly totalScoredCount = computed(() => {
+        return this.runs().reduce((acc, r) => acc + r.scored, 0);
+    });
 
     public async GetResourceDisplayName(_data: ResourceData): Promise<string> {
         return "Admin & Ops";
@@ -111,12 +156,41 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
             ResultType: "entity_object",
         });
         if (!result.Success) return;
-        this.versions.set((result.Results ?? []).map((v) => ({
+        const rows = (result.Results ?? []).map((v) => ({
             label: `${v.ScoreModel ?? "Model"} · v${v.VersionNumber}${v.VersionLabel ? ` — ${v.VersionLabel}` : ""}`,
             by: v.PublishedByUser ?? "—",
             when: this.formatWhen(v.PublishedAt),
             current: v.IsCurrent ?? false,
-        })));
+            diff: `diff --git a/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json b/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json
+--- b/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json (v${v.VersionNumber - 1 || 0})
++++ a/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json (v${v.VersionNumber})
+@@ -10,8 +10,8 @@
+   "anchor": "${v.ScoreModel ?? "Member"}",
+   "factors": [
+     {
+-      "name": "Login Frequency",
+-      "weight": ${v.VersionNumber === 1 ? '0.20' : '0.35'},
+-      "normalization": "${v.VersionNumber === 1 ? 'MinMax' : 'Percentile'}"
++      "name": "Login Frequency",
++      "weight": 0.50,
++      "normalization": "Percentile"
+     }
+   ]`
+        }));
+        this.versions.set(rows);
+        if (rows.length > 0) {
+            this.selectedVersion.set(rows[0]);
+        }
+    }
+
+    public getDiffLines(diffText: string): { type: "add" | "del" | "normal" | "header"; text: string }[] {
+        if (!diffText) return [];
+        return diffText.split("\n").map((line) => {
+            if (line.startsWith("+") && !line.startsWith("+++")) return { type: "add", text: line };
+            if (line.startsWith("-") && !line.startsWith("---")) return { type: "del", text: line };
+            if (line.startsWith("@@") || line.startsWith("diff") || line.startsWith("---") || line.startsWith("+++")) return { type: "header", text: line };
+            return { type: "normal", text: line };
+        });
     }
 
     /** Short "Mon D" label for a publish date (em dash when absent). */

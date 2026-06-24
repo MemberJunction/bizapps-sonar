@@ -15,12 +15,15 @@ export type WeightMode = "Additive" | "Penalty";
 /** A display row for the model's rubric (a Model Factor joined to its Factor). */
 export interface RubricRow {
     modelFactorId: string;
+    factorId: string;
     name: string;
     detail: string;
     /** Weight as a 0–100 percentage (stored as a 0–1 fraction; ×100 for display). */
     weight: number;
     /** Lowercased for the template's chip styling ("additive" | "penalty"). */
     mode: "additive" | "penalty";
+    /** The factor's source related-entity ID — powers data-source ↔ factor lineage highlighting. */
+    sourceRelatedEntityID: string | null;
 }
 
 /** Fields to create a Declarative factor. AggregateFieldName is omitted for Count. */
@@ -92,10 +95,12 @@ export class FactorService {
             const f = factorById.get(mf.FactorID);
             return {
                 modelFactorId: mf.ID,
+                factorId: mf.FactorID,
                 name: f?.Name ?? "(factor)",
                 detail: this.describeFactor(f),
                 weight: Math.round((mf.Weight ?? 0) * 100),
                 mode: (mf.WeightMode ?? "Additive").toLowerCase() === "penalty" ? "penalty" : "additive",
+                sourceRelatedEntityID: f?.SourceRelatedEntityID ?? null,
             } satisfies RubricRow;
         });
     }
@@ -206,6 +211,28 @@ export class FactorService {
         if (!mf?.IsSaved) return false;
         mf.Weight = weight;
         return mf.Save();
+    }
+
+    /** Wire (or unwire) a factor to a specific source entity. relatedEntityId=null clears the source. */
+    public async setFactorSource(factorId: string, relatedEntityId: string | null): Promise<boolean> {
+        const factor = await this.md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, CompositeKey.FromID(factorId));
+        if (!factor?.IsSaved) return false;
+        factor.SourceRelatedEntityID = relatedEntityId;
+        return factor.Save();
+    }
+
+    /** Persist a new rubric order: write each binding's DisplayOrder to its position in the list.
+     *  Driven by drag-and-drop; the caller reorders optimistically and calls this to sync. */
+    public async reorder(orderedModelFactorIds: string[]): Promise<boolean> {
+        let ok = true;
+        for (let i = 0; i < orderedModelFactorIds.length; i++) {
+            const mf = await this.md.GetEntityObject<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR, CompositeKey.FromID(orderedModelFactorIds[i]));
+            if (mf?.IsSaved) {
+                mf.DisplayOrder = i;
+                if (!(await mf.Save())) ok = false;
+            }
+        }
+        return ok;
     }
 
     /**

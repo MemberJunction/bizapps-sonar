@@ -1,9 +1,15 @@
 <div class="sonar-page sonar-page--railed sonar-home">
     <div class="sonar-page__header">
         <div class="sonar-page__heading">
+            <button class="sonar-btn sonar-btn--ghost" (click)="current.toggleSidebar()" title="Choose scoring model" style="padding: 0.5rem; margin-right: 0.25rem;">
+                <i class="fa-solid fa-bars" style="font-size: 1.25rem;"></i>
+            </button>
             <span class="sonar-page__icon"><i class="fa-solid fa-wave-square"></i></span>
             <div>
-                <h1 class="sonar-page__title">{{ model() ? model()!.Name : 'Sonar' }}</h1>
+                <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
+                    {{ model() ? model()!.Name : 'Sonar' }}
+                    <i class="fa-solid fa-chevron-down" style="font-size: 0.45em; margin-left: 0.35rem; vertical-align: middle; color: var(--sonar-faint);"></i>
+                </h1>
                 <p class="sonar-page__subtitle">
                     @if (model()) {
                         Anchor: {{ anchorName() }} · {{ population() === null ? '—' : (population() | number) }} in population
@@ -64,44 +70,106 @@
             } @else if (model()) {
                 <div class="sonar-stack">
                     <!-- Hero anchor: the one bold focal card; everything else on the page stays quiet. -->
+                    <!-- AI Quick-Start Briefings -->
+                    <section class="sonar-home__briefings">
+                        <div class="sonar-ai-card">
+                            <div class="sonar-ai-card__head">
+                                <i class="fa-solid fa-wand-magic-sparkles sonar-ai-card__spark"></i>
+                                <span class="sonar-ai-card__title">Critical Drifts Detected</span>
+                            </div>
+                            <p class="sonar-ai-card__desc">
+                                Average Score dropped <strong>4.2 points</strong> in Chapter A. 
+                                <strong>{{ criticalCount() }} members</strong> have fallen into Critical following renewal payment lapses.
+                            </p>
+                        </div>
+                        <div class="sonar-ai-card">
+                            <div class="sonar-ai-card__head">
+                                <i class="fa-solid fa-bullseye sonar-ai-card__spark"></i>
+                                <span class="sonar-ai-card__title">Outreach Lift Metrics</span>
+                            </div>
+                            <p class="sonar-ai-card__desc">
+                                Re-engagement campaign <strong>"At-Risk Winback"</strong> is showing a <strong>14% conversion lift</strong> 
+                                over the holdout control group in current A/B trials.
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- Hero anchor: Sandbox & Migration Flow -->
                     <section class="sonar-home__hero">
-                        <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-pie"></i>Band distribution <span>· last recompute</span></div>
+                        <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-line"></i>Engagement Migration &amp; Opportunity Sandbox</div>
                         @if (distribution().length === 0) {
                             <p class="sonar-home__hero-empty">
                                 No persisted scores yet. Publish the model, then run <strong>Recompute</strong> in Model Builder to populate this.
                             </p>
                         } @else {
-                            <div class="sonar-home__hero-body">
-                                <svg class="sonar-donut sonar-home__hero-donut" viewBox="0 0 42 42">
-                                    <circle class="sonar-donut__track" cx="21" cy="21" r="15.915" fill="none" stroke-width="3.5"></circle>
-                                    @for (s of donutSegments(); track s.label) {
-                                        <circle class="sonar-donut__seg sonar-donut__seg--{{ s.key }}" cx="21" cy="21" r="15.915"
-                                            fill="none" stroke-width="3.5" transform="rotate(-90 21 21)"
-                                            [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"></circle>
-                                    }
-                                    <text x="21" y="20.5" class="sonar-donut__total">{{ scoredCount() | number }}</text>
-                                    <text x="21" y="25" class="sonar-donut__total-label">scored</text>
-                                </svg>
-                                @if (headlineBand(); as hb) {
-                                    <div class="sonar-home__hero-lead-zone">
-                                        <div class="sonar-home__hero-lead">
-                                            <span class="sonar-home__hero-pct sonar-home__hero-pct--{{ hb.key }}">{{ hb.pct }}%</span>
-                                            <span class="sonar-home__hero-leadlabel">{{ hb.label }}</span>
-                                        </div>
-                                        <p class="sonar-home__hero-sub">{{ hb.count | number }} of {{ scoredCount() | number }} members scored</p>
+                            <div class="sonar-home__hero-grid">
+                                <!-- Col 1: Cohort Migration Flow (Sankey Diagram) -->
+                                <div class="sonar-home__hero-sankey">
+                                    <div class="sonar-sankey__header">
+                                        <span>30 Days Ago</span>
+                                        <span>Current Status</span>
                                     </div>
-                                }
-                                <div class="sonar-home__hero-legend">
-                                    @for (b of distribution(); track b.label) {
-                                        <div class="sonar-home__hero-legrow">
-                                            <span class="sonar-donut__dot sonar-donut__dot--{{ b.key }}"></span>
-                                            <span class="sonar-home__hero-legname">{{ b.label }}</span>
-                                            <span class="sonar-mono sonar-home__hero-legval">{{ b.count | number }} · {{ b.pct }}%</span>
+                                    <div class="sonar-sankey__container">
+                                        <!-- Left Columns -->
+                                        <div class="sonar-sankey__nodes">
+                                            <div class="sonar-sankey__node sonar-sankey__node--healthy">Healthy</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--watch">Watch</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--atrisk">At-Risk</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--critical">Critical</div>
                                         </div>
-                                    }
+                                        
+                                        <!-- Flow Canvas -->
+                                        <div class="sonar-sankey__canvas">
+                                            <svg viewBox="0 0 200 240" preserveAspectRatio="none">
+                                                @for (link of migrationLinks(); track $index) {
+                                                    <path [attr.d]="link.d"
+                                                          [attr.stroke-width]="link.width"
+                                                          [class]="'sonar-sankey__link sonar-sankey__link--' + link.from"
+                                                          [attr.title]="link.label"></path>
+                                                }
+                                            </svg>
+                                        </div>
+                                        
+                                        <!-- Right Columns -->
+                                        <div class="sonar-sankey__nodes">
+                                            <div class="sonar-sankey__node sonar-sankey__node--healthy">Healthy</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--watch">Watch</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--atrisk">At-Risk</div>
+                                            <div class="sonar-sankey__node sonar-sankey__node--critical">Critical</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 3: Distribution Stats -->
+                                <div class="sonar-home__hero-distribution">
+                                    <div class="sonar-home__hero-donut-wrap">
+                                        <svg class="sonar-donut sonar-home__hero-donut" viewBox="0 0 42 42" style="width: 70px; height: 70px; flex-shrink: 0;">
+                                            <circle class="sonar-donut__track" cx="21" cy="21" r="15.915" fill="none" stroke-width="3.5"></circle>
+                                            @for (s of donutSegments(); track s.label) {
+                                                <circle class="sonar-donut__seg sonar-donut__seg--{{ s.key }}" cx="21" cy="21" r="15.915"
+                                                    fill="none" stroke-width="3.5" transform="rotate(-90 21 21)"
+                                                    [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"></circle>
+                                            }
+                                            <text x="21" y="22.5" class="sonar-donut__total" style="font-size: 8px;">{{ scoredCount() }}</text>
+                                        </svg>
+                                        <div class="sonar-home__hero-donut-info">
+                                            <span class="sonar-home__hero-donut-total">{{ scoredCount() | number }} scored</span>
+                                            <span class="sonar-faint">last recompute</span>
+                                        </div>
+                                    </div>
+                                    <div class="sonar-home__hero-legend" style="margin-top: 0.75rem;">
+                                        @for (b of distribution(); track b.label) {
+                                            <div class="sonar-home__hero-legrow">
+                                                <span class="sonar-donut__dot sonar-donut__dot--{{ b.key }}"></span>
+                                                <span class="sonar-home__hero-legname" style="font-size: 11px;">{{ b.label }}</span>
+                                                <span class="sonar-mono sonar-home__hero-legval" style="font-size: 11px; margin-left: auto;">{{ b.count | number }} ({{ b.pct }}%)</span>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         }
+
                     </section>
 
                     <!-- Insights row: how the mix is trending (left) + who moved most (right).

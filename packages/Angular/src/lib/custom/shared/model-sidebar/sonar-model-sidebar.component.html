@@ -1,4 +1,4 @@
-<aside class="sonar-sidebar">
+<aside class="sonar-sidebar" [class.sonar-sidebar--collapsed]="!sidebarExpanded()">
     <div class="sonar-sidebar__head">
         <span class="sonar-sidebar__title">Models</span>
         <div class="sonar-sidebar__head-right">
@@ -18,12 +18,13 @@
         <ul class="sonar-sidebar__list">
             @for (m of visibleModels(); track m.id) {
                 <li>
-                    <button class="sonar-sidebar__item" [class.sonar-sidebar__item--active]="m.id === selectedId()" (click)="pick(m.id)">
-                        <span class="sonar-sidebar__row">
+                    <button class="sonar-sidebar__item" [class.sonar-sidebar__item--active]="m.id === selectedId()" (click)="pick(m.id)" [title]="m.name + ' · ' + m.status">
+                        <span class="sonar-sidebar__dot sonar-sidebar__dot--{{ statusTone(m.status) }}" [attr.aria-label]="m.status"></span>
+                        <span class="sonar-sidebar__body">
                             <span class="sonar-sidebar__name">{{ m.name }}</span>
-                            <span class="sonar-chip" [ngClass]="statusClass(m.status)">{{ m.status }}</span>
+                            <span class="sonar-sidebar__meta"><i class="fa-solid fa-bullseye"></i> {{ m.anchorName }}</span>
                         </span>
-                        <span class="sonar-sidebar__meta">{{ m.anchorName }} · {{ m.signals }} signal{{ m.signals === 1 ? '' : 's' }}</span>
+                        <span class="sonar-sidebar__weight" [title]="m.signals + ' signal' + (m.signals === 1 ? '' : 's')"><i class="fa-solid fa-wave-square"></i> {{ m.signals }}</span>
                     </button>
                 </li>
             }

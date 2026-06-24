@@ -44,9 +44,9 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     public readonly description = signal("Generic 0–100 health scale for member engagement models.");
 
     public readonly bands = signal<ScoreBand[]>([
-        { label: "Critical", min: 0, max: 40, severity: 3, color: "#F87171", isTerminal: true },
-        { label: "At-Risk", min: 40, max: 70, severity: 2, color: "#FBBF24", isTerminal: false },
-        { label: "Healthy", min: 70, max: 100, severity: 1, color: "#2DD4BF", isTerminal: false },
+        { label: "Critical", min: 0, max: 40, severity: 3, color: "#ef7d74", isTerminal: true },
+        { label: "At-Risk", min: 40, max: 70, severity: 2, color: "#e6ab52", isTerminal: false },
+        { label: "Healthy", min: 70, max: 100, severity: 1, color: "#3ddc97", isTerminal: false },
     ]);
 
     // --- persistence state ---

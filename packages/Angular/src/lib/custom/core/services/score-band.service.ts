@@ -75,6 +75,17 @@ export class ScoreBandService {
         return (await band.Save()) ? band : null;
     }
 
+    /** Update one band's label + score range — for in-context (popover) editing. Touches only
+     *  those fields, leaving color/severity/terminal intact. */
+    public async updateBand(bandId: string, label: string, minScore: number, maxScore: number): Promise<boolean> {
+        const band = await this.md.GetEntityObject<mjBizAppsSonarScoreBandEntity>(SCORE_BAND, CompositeKey.FromID(bandId));
+        if (!band?.IsSaved) return false;
+        band.Label = label;
+        band.MinScore = minScore;
+        band.MaxScore = maxScore;
+        return band.Save();
+    }
+
     /** Delete one band. */
     public async deleteBand(id: string): Promise<boolean> {
         const band = await this.md.GetEntityObject<mjBizAppsSonarScoreBandEntity>(SCORE_BAND, CompositeKey.FromID(id));

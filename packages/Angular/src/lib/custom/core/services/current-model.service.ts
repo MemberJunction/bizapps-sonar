@@ -13,6 +13,24 @@ export class CurrentModelService {
     /** The selected ScoreModel ID, or null when nothing is chosen yet. */
     public readonly modelId = signal<string | null>(this.read());
 
+    /** Whether the models selector sidebar is expanded. */
+    public readonly sidebarExpanded = signal<boolean>(true);
+
+    /** Toggle the models sidebar. */
+    public toggleSidebar(): void {
+        this.sidebarExpanded.set(!this.sidebarExpanded());
+    }
+
+    /** Collapse the models sidebar. */
+    public collapseSidebar(): void {
+        this.sidebarExpanded.set(false);
+    }
+
+    /** Expand the models sidebar. */
+    public expandSidebar(): void {
+        this.sidebarExpanded.set(true);
+    }
+
     /** Select a model (or clear). Persists across reloads. */
     public select(id: string | null): void {
         this.modelId.set(id);

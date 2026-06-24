@@ -2,13 +2,37 @@
     <!-- Header -->
     <div class="sonar-fb__bar">
         <div class="sonar-fb__title">
-            <input class="sonar-fb__name" [ngModel]="factorName()" (ngModelChange)="factorName.set($event)" placeholder="Name this signal" />
+            <div class="sonar-fb__name-wrapper">
+                <input class="sonar-fb__name" [class.sonar-fb__name--auto]="!isNameEdited()" [ngModel]="factorName()" (ngModelChange)="onNameChange($event)" placeholder="Name this signal" />
+                @if (!isNameEdited()) {
+                    <span class="sonar-fb__auto-tag" title="Name is auto-generating reactively based on settings. Edit name directly to override.">Auto-naming</span>
+                }
+            </div>
             <p class="sonar-fb__sub">{{ editing() ? "Editing this signal — changes apply on the next recompute." : "A signal measures one thing about each member." }}</p>
         </div>
         <div class="sonar-fb__actions">
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
                 {{ saving() ? (editing() ? "Saving…" : "Adding…") : (editing() ? "Save changes" : "Add to model") }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Presets Row -->
+    <div class="sonar-card sonar-presets-card">
+        <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
+        <div class="sonar-presets-row">
+            <button type="button" class="sonar-preset-btn" (click)="applyPreset('recent')">
+                <i class="fa-solid fa-clock"></i> Recent Activity
+            </button>
+            <button type="button" class="sonar-preset-btn" (click)="applyPreset('volume')">
+                <i class="fa-solid fa-calculator"></i> Lifetime Volume
+            </button>
+            <button type="button" class="sonar-preset-btn" (click)="applyPreset('peak')">
+                <i class="fa-solid fa-chart-line"></i> Peak Spike
+            </button>
+            <button type="button" class="sonar-preset-btn" (click)="applyPreset('decay')">
+                <i class="fa-solid fa-shield-halved"></i> Penalty Decay
             </button>
         </div>
     </div>
@@ -60,11 +84,48 @@
                     <p class="sonar-fb__hint">Counting just tallies the matching records — no value to pick.</p>
                 }
                 @if (sources().length === 0) {
-                    <p class="sonar-fb__hint">⚠ This model has no data sources yet — add one to the model before creating a signal.</p>
+                    <p class="sonar-fb__hint">⚠ This model has no data sources yet — map one to start adding signals.</p>
                 }
                 @if (fieldRequired() && aggregatableFields().length === 0) {
                     <p class="sonar-fb__hint">⚠ No numeric fields found on that source to {{ aggregationLabels[aggregation()] | lowercase }}.</p>
                 }
+            </section>
+
+            <!-- Normalization section -->
+            <section class="sonar-card">
+                <div class="sonar-card__label" style="margin-bottom: 0.25rem;">How to scale this signal</div>
+                <p class="sonar-fb__hint">Raw counts aren't comparable across signals (e.g. 50 opens vs 2 transactions). rescaled values are mapped to 0–1 points before weighting. Choose how:</p>
+                
+                <div class="sonar-norm-grid">
+                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'MinMax'" (click)="normalization.set('MinMax')">
+                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-expand-arrows-alt"></i></div>
+                        <div class="sonar-norm-card__body">
+                            <span class="sonar-norm-card__title">Scale (Min-Max)</span>
+                            <p class="sonar-norm-card__desc">Positions scores proportionally between lowest and highest in the group. Recommended.</p>
+                        </div>
+                    </div>
+                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Percentile'" (click)="normalization.set('Percentile')">
+                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-percent"></i></div>
+                        <div class="sonar-norm-card__body">
+                            <span class="sonar-norm-card__title">Rank (Percentile)</span>
+                            <p class="sonar-norm-card__desc">Ranks members relative to the population. Extremely robust to outliers.</p>
+                        </div>
+                    </div>
+                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'ZScore'" (click)="normalization.set('ZScore')">
+                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-chart-area"></i></div>
+                        <div class="sonar-norm-card__body">
+                            <span class="sonar-norm-card__title">Standardize (Z-Score)</span>
+                            <p class="sonar-norm-card__desc">Measures standard deviation from average. Great for normal distributions.</p>
+                        </div>
+                    </div>
+                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'None'" (click)="normalization.set('None')">
+                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-hashtag"></i></div>
+                        <div class="sonar-norm-card__body">
+                            <span class="sonar-norm-card__title">Raw Value</span>
+                            <p class="sonar-norm-card__desc">Skips normalization and uses the raw number directly in calculation.</p>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Filter: narrow which source records count toward this signal -->
@@ -72,8 +133,7 @@
                 <div class="sonar-card__label">Only count records that match… <span class="sonar-faint">(optional)</span></div>
                 <p class="sonar-fb__hint">
                     Narrow which <strong class="sonar-ink">{{ selectedSource()?.label || 'source' }}</strong> records feed this
-                    signal — e.g. only <em>Donations</em>, or only events where <em>Attended is true</em>. The fields below are
-                    that entity's real columns. Leave it empty to count every record.
+                    signal — e.g. only <em>Donations</em>, or only events where <em>Attended is true</em>.
                 </p>
                 <mj-filter-builder
                     [fields]="filterFields()"
@@ -81,26 +141,6 @@
                     [showSummary]="true"
                     (filterChange)="onFilterChange($event)">
                 </mj-filter-builder>
-            </section>
-
-            <!-- Scaling (normalization) — always visible -->
-            <section class="sonar-card">
-                <div class="sonar-card__label">How to scale this signal</div>
-                <p class="sonar-fb__hint">
-                    Raw counts aren't comparable across signals (50 email opens vs 2 events), so each member's value is
-                    rescaled to a 0–1 number — compared against the rest of the population — before weighting. Pick how:
-                </p>
-                <select class="sonar-field" [ngModel]="normalization()" (ngModelChange)="normalization.set($event)">
-                    @for (n of normalizationOptions; track n.value) {
-                        <option [value]="n.value">{{ n.label }}</option>
-                    }
-                </select>
-                <p class="sonar-fb__hint">
-                    <strong class="sonar-ink">Rank</strong> = position vs. other members (robust to outliers) ·
-                    <strong class="sonar-ink">Scale</strong> = relative to the group's min/max ·
-                    <strong class="sonar-ink">Standardize</strong> = distance from the average ·
-                    <strong class="sonar-ink">Raw</strong> = use the number as-is.
-                </p>
             </section>
         </div>
 

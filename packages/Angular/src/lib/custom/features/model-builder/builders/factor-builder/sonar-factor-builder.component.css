@@ -5,9 +5,13 @@
 
 /* Root matches the other builders: a column with a consistent 1.5rem rhythm. */
 .sonar-fb { display: flex; flex-direction: column; gap: 1.5rem; }
-.sonar-fb__bar { display: flex; align-items: center; gap: 1rem; }
-.sonar-fb__title { flex: 1; min-width: 0; }
-.sonar-fb__sub { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--sonar-muted); }
+
+.sonar-fb__name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .sonar-fb__name {
     font-size: 1.15rem;
     font-weight: 700;
@@ -17,41 +21,207 @@
     color: var(--sonar-ink);
     padding: 0.15rem 0.25rem;
     min-width: 14rem;
+    transition: border-bottom-color 0.15s ease;
 }
-.sonar-fb__name:focus { outline: none; border-bottom-color: var(--sonar-brand); }
-.sonar-fb__actions { display: flex; gap: 0.5rem; }
+.sonar-fb__name:focus { outline: none; border-bottom-color: var(--sonar-accent); }
 
-/* The mad-libs sentence: editable tokens inline in prose. */
-.sonar-sentence { font-size: 1.05rem; line-height: 2.4; color: var(--sonar-ink); }
+.sonar-fb__name--auto {
+    color: var(--sonar-accent);
+}
+
+.sonar-fb__auto-tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 25%, transparent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+/* ============================================================ Core Presets Card */
+.sonar-presets-card {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+}
+
+.sonar-presets-label {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+    color: var(--sonar-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.sonar-presets-label i {
+    color: var(--sonar-accent);
+}
+
+.sonar-presets-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sonar-preset-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--sonar-border);
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-ink);
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--sonar-radius-sm);
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sonar-preset-btn:hover {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 6%, var(--sonar-surface-sunken));
+    color: var(--sonar-accent);
+    transform: translateY(-0.5px);
+}
+.sonar-preset-btn:active {
+    transform: scale(0.98);
+}
+
+/* ============================================================ The mad-libs sentence */
+.sonar-sentence { font-size: 1.05rem; line-height: 2.5; color: var(--sonar-ink); }
 .sonar-token {
     appearance: none;
     -webkit-appearance: none;
     display: inline-block;
     padding: 0.2rem 1.4rem 0.2rem 0.6rem;
     border-radius: 0.5rem;
-    background: var(--sonar-watch-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2364748b' fill='none' stroke-width='1.5'/></svg>") no-repeat right 0.5rem center;
+    background: var(--sonar-watch-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%233b82f6' fill='none' stroke-width='1.5'/></svg>") no-repeat right 0.5rem center;
     border: 1px solid color-mix(in srgb, var(--sonar-watch) 30%, transparent);
     color: var(--sonar-watch);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
-.sonar-token--entity { background-color: var(--sonar-healthy-bg); border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent); color: var(--sonar-healthy); }
-.sonar-token:focus { outline: 2px solid var(--sonar-brand); outline-offset: 1px; }
+.sonar-token:hover {
+    background-color: color-mix(in srgb, var(--sonar-watch) 18%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-watch) 50%, transparent);
+}
+.sonar-token--entity {
+    background-color: var(--sonar-healthy-bg);
+    border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent);
+    color: var(--sonar-healthy);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2310b981' fill='none' stroke-width='1.5'/></svg>");
+}
+.sonar-token--entity:hover {
+    background-color: color-mix(in srgb, var(--sonar-healthy) 18%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-healthy) 50%, transparent);
+}
+.sonar-token:active {
+    transform: scale(0.98);
+}
+.sonar-token:focus {
+    outline: none;
+    border-color: var(--sonar-watch);
+    box-shadow: 0 0 0 1px var(--sonar-watch), 0 0 0 4px color-mix(in srgb, var(--sonar-watch) 18%, transparent);
+}
+.sonar-token--entity:focus {
+    border-color: var(--sonar-healthy);
+    box-shadow: 0 0 0 1px var(--sonar-healthy), 0 0 0 4px color-mix(in srgb, var(--sonar-healthy) 18%, transparent);
+}
 
 .sonar-fb__hint { font-size: 0.74rem; margin-top: 0.5rem; color: var(--sonar-muted); }
 .sonar-sentence__word { font-weight: 600; color: var(--sonar-muted); }
 
-/* generic field input */
-.sonar-field {
-    background: var(--sonar-surface-sunken);
+/* ============================================================ Normalization Cards Grid */
+.sonar-norm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.sonar-norm-card {
+    display: flex;
+    gap: 0.75rem;
     border: 1px solid var(--sonar-border);
     border-radius: var(--sonar-radius-sm);
-    padding: 0.4rem 0.6rem;
-    color: var(--sonar-ink);
-    font-size: 0.85rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    background: var(--sonar-surface);
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
 }
-.sonar-field:focus { outline: none; border-color: var(--sonar-brand); }
+
+.sonar-norm-card:hover {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 2%, var(--sonar-surface));
+    transform: translateY(-0.5px);
+}
+
+.sonar-norm-card--active {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--sonar-accent) 10%, transparent);
+}
+
+.sonar-norm-card__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sonar-muted);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sonar-norm-card--active .sonar-norm-card__icon {
+    background: var(--sonar-accent);
+    color: #ffffff;
+}
+
+.sonar-norm-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sonar-norm-card__title {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+    color: var(--sonar-ink);
+}
+
+.sonar-norm-card__desc {
+    font-size: 0.74rem;
+    color: var(--sonar-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Weight section alignment */
+.sonar-fb__weight {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+.sonar-fb__weight input[type="range"] {
+    flex: 1;
+}
 
 /* Preview pane. */
 .sonar-fb__preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }

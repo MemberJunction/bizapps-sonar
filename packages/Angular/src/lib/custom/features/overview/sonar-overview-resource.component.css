@@ -7,7 +7,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.85rem 1.1rem;
+    padding: 0.75rem 1rem;
 }
 .sonar-home__model-name { font-weight: 600; font-size: 0.95rem; color: var(--sonar-ink); }
 
@@ -19,26 +19,49 @@
    headline % use semantic band colors (real status, not decoration). Shadow and
    radius are identical to every other card — the dominance is fill + hierarchy,
    not heavier chrome. */
+/* Hero text tokens are THEME-AWARE. Light mode (base) keeps the hero a soft violet-tinted card
+   with DARK text — a saturated violet slab reads too heavy on the airy light page. Dark mode
+   (override) flips to white text on a rich "lit" violet. Every hero child (eyebrow, Sankey
+   nodes, donut, legend) reads these tokens, so the whole panel flips together. */
 :host {
+    --sonar-hero-ink: var(--sonar-ink);
+    --sonar-hero-faint: var(--sonar-muted);
+    --sonar-hero-line: var(--sonar-border);
+}
+:host-context([data-theme="dark"]) {
     --sonar-hero-ink: #f4f8fb;
     --sonar-hero-faint: color-mix(in srgb, #f4f8fb 58%, transparent);
-    --sonar-hero-line: color-mix(in srgb, #ffffff 15%, transparent);
+    --sonar-hero-line: color-mix(in srgb, #ffffff 18%, transparent);
 }
 .sonar-home__hero {
-    /* The brand signature: a VIOLET panel in BOTH modes (the reference dashboards carry a colored
-       hero across themes). Hero text is the fixed near-white --sonar-hero-ink, legible on the
-       violet in either theme. Light mode wants a VIBRANT violet (not a dark slab — a dark block
-       reads heavy on the airy light page), kept just deep enough for white text. The dark
-       override below uses a calmer mix that reads as a "lit" panel on the navy page. */
-    background: color-mix(in srgb, var(--sonar-accent) 88%, #4a3da8);
+    /* Light: a soft violet TINT on the surface (recognizably brand, not a heavy slab). */
+    background: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface));
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 16%, var(--sonar-border));
     color: var(--sonar-hero-ink);
     border-radius: var(--sonar-radius);
-    box-shadow: var(--mj-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+    box-shadow: var(--mj-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.06));
     padding: 2rem;
+    position: relative;
+    overflow: hidden;
 }
+/* Dark: the rich "lit" violet panel — this is where the bold brand splash lives. */
 :host-context([data-theme="dark"]) .sonar-home__hero {
-    background: color-mix(in srgb, var(--sonar-accent) 50%, #15122b);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--sonar-accent) 48%, #15122b) 0%, color-mix(in srgb, var(--sonar-accent) 30%, #15122b) 100%);
     border: 1px solid color-mix(in srgb, var(--sonar-accent) 30%, var(--sonar-border));
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+/* Decorative blur orb only in dark mode (it would look garish on the light tint). */
+:host-context([data-theme="dark"]) .sonar-home__hero::before {
+    content: '';
+    position: absolute;
+    top: -40%; right: -10%; width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--sonar-accent) 35%, transparent) 0%, transparent 70%);
+    pointer-events: none; filter: blur(15px); z-index: 0;
+}
+/* Ensure hero children stay above the decoration blur orb */
+.sonar-home__hero > * {
+    position: relative;
+    z-index: 1;
 }
 .sonar-home__hero-eyebrow {
     font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
@@ -46,28 +69,173 @@
 }
 .sonar-home__hero-eyebrow i { margin-right: 0.5rem; }
 
-/* Hero content flows in one row — donut · headline · legend — clustered to the left with calm
-   whitespace on the right at wide widths; wraps gracefully when space gets tight. */
-.sonar-home__hero-body { display: flex; align-items: center; flex-wrap: wrap; gap: 2rem; }
-.sonar-home__hero-donut { width: 150px; height: 150px; flex: none; }
-.sonar-home__hero-lead-zone { display: flex; flex-direction: column; gap: 0.5rem; }
+/* AI Quick-Start Briefings */
+.sonar-home__briefings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+.sonar-ai-card {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    padding: 1.25rem;
+    position: relative;
+    border-left: 4px solid var(--sonar-accent);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.sonar-ai-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--sonar-accent) 60%, var(--sonar-border));
+}
+.sonar-ai-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.sonar-ai-card__spark {
+    color: var(--sonar-accent);
+    font-size: var(--sonar-font-md);
+}
+.sonar-ai-card__title {
+    font-weight: 700;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.sonar-ai-card__desc {
+    margin: 0;
+    font-size: var(--sonar-font-base);
+    color: var(--sonar-muted);
+    line-height: 1.4;
+}
+.sonar-ai-card__desc strong {
+    color: var(--sonar-ink);
+    font-weight: 600;
+}
+
+/* Overhauled Hero Grid */
+.sonar-home__hero-grid {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+@media (max-width: 1200px) {
+    .sonar-home__hero-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+/* Col 1: Sankey Cohort Migration Flow */
+.sonar-home__hero-sankey {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-right: 1px solid var(--sonar-hero-line);
+    padding-right: 1.5rem;
+}
+@media (max-width: 1200px) {
+    .sonar-home__hero-sankey {
+        border-right: none;
+        padding-right: 0;
+    }
+}
+.sonar-sankey__header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-hero-faint);
+    margin-bottom: 0.25rem;
+}
+.sonar-sankey__container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 240px;
+}
+.sonar-sankey__nodes {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    width: 65px;
+    flex-shrink: 0;
+}
+.sonar-sankey__node {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 0.4rem 0.25rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--sonar-hero-ink) 8%, transparent);
+    border: 1px solid var(--sonar-hero-line);
+    color: var(--sonar-hero-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sonar-sankey__node--healthy { border-left: 3px solid var(--sonar-healthy); }
+.sonar-sankey__node--watch { border-left: 3px solid var(--sonar-watch); }
+.sonar-sankey__node--atrisk { border-left: 3px solid var(--sonar-atrisk); }
+.sonar-sankey__node--critical { border-left: 3px solid var(--sonar-critical); }
+
+.sonar-sankey__canvas {
+    flex: 1;
+    height: 100%;
+}
+.sonar-sankey__canvas svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+.sonar-sankey__link {
+    fill: none;
+    transition: opacity 0.2s ease;
+    stroke-linecap: round;
+    opacity: 0.22;
+}
+.sonar-sankey__link--healthy { stroke: var(--sonar-healthy); }
+.sonar-sankey__link--watch { stroke: var(--sonar-watch); }
+.sonar-sankey__link--atrisk { stroke: var(--sonar-atrisk); }
+.sonar-sankey__link--critical { stroke: var(--sonar-critical); }
+.sonar-sankey__link:hover {
+    opacity: 0.75;
+}
+
+/* Col 3: Distribution Stats */
+.sonar-home__hero-distribution {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.sonar-home__hero-donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.sonar-home__hero-donut-info {
+    display: flex;
+    flex-direction: column;
+}
+.sonar-home__hero-donut-total {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sonar-hero-ink);
+}
+.sonar-donut__seg {
+    transition: stroke-dashoffset 0.3s ease;
+}
 .sonar-home__hero .sonar-donut__track { stroke: var(--sonar-hero-line); }
 .sonar-home__hero .sonar-donut__total { fill: var(--sonar-hero-ink); }
 .sonar-home__hero .sonar-donut__total-label { fill: var(--sonar-hero-faint); }
 
-/* Aggressive value-over-label gap: the % is huge + bold, its label small + quiet. */
-.sonar-home__hero-lead { display: flex; align-items: baseline; gap: 0.75rem; }
-.sonar-home__hero-pct { font-size: 3.25rem; font-weight: 800; line-height: 0.9; font-variant-numeric: tabular-nums; }
-.sonar-home__hero-pct--healthy  { color: var(--sonar-healthy); }
-.sonar-home__hero-pct--watch    { color: var(--sonar-watch); }
-.sonar-home__hero-pct--atrisk   { color: var(--sonar-atrisk); }
-.sonar-home__hero-pct--critical { color: var(--sonar-critical); }
-.sonar-home__hero-leadlabel { font-size: 1.05rem; font-weight: 600; color: var(--sonar-hero-ink); }
-.sonar-home__hero-sub { margin: 0; font-size: 0.82rem; color: var(--sonar-hero-faint); }
-
-/* Pushed to the right edge so the hero reads as a summary bar (headline left · breakdown right),
-   filling the width instead of leaving a sparse gap. margin-left:auto does the pushing. */
-.sonar-home__hero-legend { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 14rem; margin-left: auto; padding-left: 2rem; border-left: 1px solid var(--sonar-hero-line); align-self: stretch; }
+.sonar-home__hero-legend { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; }
 .sonar-home__hero-legrow { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
 .sonar-home__hero-legname { flex: 1; color: var(--sonar-hero-ink); }
 .sonar-home__hero-legval { color: var(--sonar-hero-faint); font-variant-numeric: tabular-nums; }
@@ -101,7 +269,7 @@
 .sonar-home__trend { display: flex; flex-direction: column; }
 /* Header row: chart caption (left) + the current value as a quiet lead number (right). */
 .sonar-home__trend-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.sonar-home__trend-now { font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 0.35rem; }
+.sonar-home__trend-now { font-size: 1.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 0.25rem; }
 .sonar-home__trend-now span { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
 .sonar-trendline { margin-top: 0.5rem; }
 
@@ -109,14 +277,14 @@
 .sonar-home__movers .sonar-movers__cols { grid-template-columns: 1fr; gap: 1rem; }
 .sonar-home__movers .sonar-mover--static { cursor: default; }
 .sonar-home__movers .sonar-mover--static:hover { border-color: var(--sonar-border); }
-.sonar-home__movers-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding: 1.25rem 1rem 1.75rem; margin: 0; font-size: 0.85rem; color: var(--sonar-muted); }
+.sonar-home__movers-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding: 1.5rem 1rem 1.5rem; margin: 0; font-size: 0.85rem; color: var(--sonar-muted); }
 .sonar-home__movers-empty i { font-size: 1.4rem; color: var(--sonar-faint); }
 
 /* "Needs attention" nudge. */
 .sonar-home__attention {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
     font-size: 0.88rem;
     color: var(--sonar-muted);
     border-color: color-mix(in srgb, var(--sonar-atrisk) 30%, var(--sonar-border));

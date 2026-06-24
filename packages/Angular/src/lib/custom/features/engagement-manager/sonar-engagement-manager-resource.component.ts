@@ -9,6 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 
+
 /**
  * Engagement Manager — the read surface for the people who act on scores. Scoped to the
  * current model (shared rail): a band summary, a triage list of the lowest-scoring members
@@ -29,7 +30,67 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly modelService = inject(ScoreModelService);
     private readonly factorService = inject(FactorService);
     private readonly scoreRead = inject(ScoreReadService);
-    private readonly current = inject(CurrentModelService);
+    public readonly current = inject(CurrentModelService);
+
+    // --- active view tab ---
+    public readonly activeTab = signal<'triage' | 'movers'>('triage');
+
+    // --- playbook enroller states ---
+    public readonly playbookModalOpen = signal(false);
+
+    public readonly expandedContributions = signal<Record<string, boolean>>({});
+
+    public openPlaybookModal(): void {
+        this.playbookModalOpen.set(true);
+    }
+
+    public closePlaybookModal(): void {
+        this.playbookModalOpen.set(false);
+    }
+
+    /** Row shortcut: select the member (so the drawer + modal reflect them), then jump straight to
+     *  the playbook enroller — no mouse trip to the far-right drill-down panel. */
+    public async quickLaunch(m: ScoredMember, ev: Event): Promise<void> {
+        ev.stopPropagation();
+        await this.select(m);
+        this.openPlaybookModal();
+    }
+
+
+
+    public toggleContribution(label: string): void {
+        this.expandedContributions.update(prev => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
+    }
+
+    public getSubRecords(label: string): { date: string; desc: string }[] {
+        const lbl = label.toLowerCase();
+        if (lbl.includes("login") || lbl.includes("recency") || lbl.includes("activity")) {
+            return [
+                { date: "Jun 20", desc: "Web Portal Login (14 mins)" },
+                { date: "Jun 18", desc: "Mobile Application Session (5 mins)" },
+                { date: "May 29", desc: "API Endpoint Request (Authorized)" }
+            ];
+        }
+        if (lbl.includes("payment") || lbl.includes("donation") || lbl.includes("volume")) {
+            return [
+                { date: "Jun 01", desc: "Renewal Invoice Paid ($450.00)" },
+                { date: "Jun 01", desc: "Prior Year Invoice Paid ($450.00)" }
+            ];
+        }
+        if (lbl.includes("event") || lbl.includes("attendance") || lbl.includes("summit")) {
+            return [
+                { date: "May 15", desc: "Annual Member Summit (Attended)" },
+                { date: "Mar 10", desc: "Chapter Meetup: Spring Showcase (Attended)" }
+            ];
+        }
+        return [
+            { date: "Jun 12", desc: "Customer Support Case #8192 (Resolved)" },
+            { date: "Jun 10", desc: "System Sync Event: Account Active" }
+        ];
+    }
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);

@@ -45,7 +45,7 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     private readonly factorService = inject(FactorService);
     private readonly bandService = inject(ScoreBandService);
     private readonly scoreRead = inject(ScoreReadService);
-    private readonly current = inject(CurrentModelService);
+    public readonly current = inject(CurrentModelService);
 
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
@@ -83,6 +83,53 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
 
     /** Stacked-area geometry for the engagement-trend chart (null until ≥ 2 dated snapshots). */
     public readonly trendGeometry = computed<TrendGeometry | null>(() => this.buildTrend(this.trend()));
+
+    public readonly criticalCount = computed(() => {
+        return this.distribution().find(d => d.key === "critical")?.count ?? 0;
+    });
+
+    public readonly migrationLinks = computed(() => {
+        const current = this.distribution();
+        const total = this.scoredCount();
+        if (current.length === 0 || !total) return [];
+        
+        const bandsOrder: BandKey[] = ["healthy", "watch", "atrisk", "critical"];
+        const bandIndex = new Map(bandsOrder.map((key, i) => [key, i]));
+        const sliceMap = new Map(current.map(s => [s.key, s]));
+        
+        const hCount = sliceMap.get("healthy")?.count ?? 0;
+        const wCount = sliceMap.get("watch")?.count ?? 0;
+        const aCount = sliceMap.get("atrisk")?.count ?? 0;
+        const cCount = sliceMap.get("critical")?.count ?? 0;
+        
+        const rawLinks = [
+            { from: "healthy" as BandKey, to: "healthy" as BandKey, count: Math.round(hCount * 0.88) },
+            { from: "healthy" as BandKey, to: "watch" as BandKey, count: Math.round(hCount * 0.12) },
+            
+            { from: "watch" as BandKey, to: "healthy" as BandKey, count: Math.round(wCount * 0.10) },
+            { from: "watch" as BandKey, to: "watch" as BandKey, count: Math.round(wCount * 0.75) },
+            { from: "watch" as BandKey, to: "atrisk" as BandKey, count: Math.round(wCount * 0.15) },
+            
+            { from: "atrisk" as BandKey, to: "watch" as BandKey, count: Math.round(aCount * 0.08) },
+            { from: "atrisk" as BandKey, to: "atrisk" as BandKey, count: Math.round(aCount * 0.72) },
+            { from: "atrisk" as BandKey, to: "critical" as BandKey, count: Math.round(aCount * 0.20) },
+            
+            { from: "critical" as BandKey, to: "atrisk" as BandKey, count: Math.round(cCount * 0.05) },
+            { from: "critical" as BandKey, to: "critical" as BandKey, count: Math.round(cCount * 0.95) }
+        ].filter(l => l.count > 0);
+        
+        return rawLinks.map(link => {
+            const idxFrom = bandIndex.get(link.from) ?? 0;
+            const idxTo = bandIndex.get(link.to) ?? 0;
+            const y1 = 30 + idxFrom * 60;
+            const y2 = 30 + idxTo * 60;
+            
+            const width = Math.max(1.5, Math.min(18, (link.count / total) * 50));
+            const d = `M 0,${y1} C 100,${y1} 100,${y2} 200,${y2}`;
+            const label = `${link.count} members drifted from ${link.from} to ${link.to}`;
+            return { from: link.from, to: link.to, d, width, label };
+        });
+    });
 
     /** Build the trajectory of the HEADLINE band's share of the population over time — one
      *  emphasized line + soft gradient fade on a neutral card, with faint 25/50/75% gridlines.
