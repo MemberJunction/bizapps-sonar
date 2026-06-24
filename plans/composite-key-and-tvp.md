@@ -66,7 +66,12 @@ Seams 3–4 are the bulk of the work and share that migration — sequence them 
 - An **int-PK anchor** (e.g. a CDP table) scores end-to-end.
 - A **2-column-PK anchor** scores end-to-end.
 - `AnchorRecordKeyJSON` is populated on persisted `Score` rows.
-- A **round-trip test** through `ScoreWriter` → reload recovers the original key.
+- A **round-trip test** through `ScoreWriter` → reload recovers the original key — explicitly
+  covering the serialization gotchas: column **order** preserved; value **type** preserved (int `5`
+  reloads as `5`, not `"5"`); and values containing the **separator** character escaped, so the
+  canonical string stays parseable.
+- **No collision:** two *different* composite anchors must not serialize to the same
+  `AnchorRecordID` string (else distinct records would merge into one score / overwrite each other).
 
 ## References
 
