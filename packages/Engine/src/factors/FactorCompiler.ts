@@ -13,10 +13,11 @@ import {
     compileFilter,
 } from "./filter";
 
-/** The date pieces resolved from a factor's TimeWindow (both null when there is no window). */
+/** The date pieces resolved from a factor's TimeWindow (all null when there is no window). */
 interface WindowSpec {
     dateColumn: string | null;
     windowLengthDays: number | null;
+    windowLengthMonths: number | null;
 }
 
 /**
@@ -53,6 +54,7 @@ export class FactorCompiler {
             anchorKeyColumn,
             dateColumn: window.dateColumn,
             windowLengthDays: window.windowLengthDays,
+            windowLengthMonths: window.windowLengthMonths,
             // The aggregate expression validates AggregateFieldName against the related
             // entity's real columns, so it is built here (after the entity is resolved).
             aggregateSql: buildAggregateExpression(
@@ -154,8 +156,8 @@ export class FactorCompiler {
     }
 
     /**
-     * Resolve the factor's TimeWindow into a date column + day count. v1 supports Rolling
-     * windows and "All Time" (no time bound); "no window" (factor has none) is also fine.
+     * Resolve the factor's TimeWindow into a date column + length (days OR months). v1 supports
+     * Rolling windows and "All Time" (no time bound); "no window" (factor has none) is also fine.
      * Other window types (e.g. RenewalRelative) are deferred.
      */
     private async resolveWindow(
@@ -163,7 +165,7 @@ export class FactorCompiler {
         contextUser: UserInfo,
     ): Promise<WindowSpec> {
         if (!factor.TimeWindowID) {
-            return { dateColumn: null, windowLengthDays: null };
+            return { dateColumn: null, windowLengthDays: null, windowLengthMonths: null };
         }
         const md = new Metadata();
         const tw = await md.GetEntityObject<mjBizAppsSonarTimeWindowEntity>(
@@ -177,21 +179,25 @@ export class FactorCompiler {
         }
         // "All Time" means no time bound — aggregate over the entity's full history (no date filter).
         if (tw.WindowType === "AllTime") {
-            return { dateColumn: null, windowLengthDays: null };
+            return { dateColumn: null, windowLengthDays: null, windowLengthMonths: null };
         }
         if (tw.WindowType !== "Rolling") {
             throw new Error(
                 `FactorCompiler: only Rolling and All Time windows are supported yet (got '${tw.WindowType}').`,
             );
         }
-        if (!tw.AnchorDateField || tw.LengthDays == null) {
+        // A Rolling window needs a date column and a length in EITHER unit (days or months —
+        // the schema allows either for Rolling). NOTE: sourcing the related-entity date column
+        // from AnchorDateField is an interim bridge; the proper Factor.DateField is roadmapped.
+        if (!tw.AnchorDateField || (tw.LengthDays == null && tw.LengthMonths == null)) {
             throw new Error(
-                `FactorCompiler: Rolling window ${tw.ID} needs both AnchorDateField and LengthDays.`,
+                `FactorCompiler: Rolling window ${tw.ID} needs AnchorDateField and a length (LengthDays or LengthMonths).`,
             );
         }
         return {
             dateColumn: tw.AnchorDateField,
             windowLengthDays: tw.LengthDays,
+            windowLengthMonths: tw.LengthMonths,
         };
     }
 }

@@ -17,6 +17,9 @@ export interface CompiledFactorSpec {
     dateColumn: string | null;
     /** Rolling window length in days; null = no window (count everything). */
     windowLengthDays: number | null;
+    /** Rolling window length in months; takes precedence over days when set (uses DATEADD month
+     *  so variable month lengths are exact). undefined/null = not month-based. */
+    windowLengthMonths?: number | null;
     /** The SQL aggregate expression, e.g. "COUNT(*)". The compiler picks this per Aggregation. */
     aggregateSql: string;
     /** Optional parameterized WHERE fragment from the factor's FilterExpression (null = no filter). */
@@ -63,14 +66,20 @@ export function buildFactorSql(
 
 /** The two date predicates for a rolling window, or nothing when there is no window. */
 function windowClause(spec: CompiledFactorSpec): string[] {
-    if (!spec.dateColumn || spec.windowLengthDays == null) {
+    // No date column, or no length in either unit → no time bound.
+    if (
+        !spec.dateColumn ||
+        (spec.windowLengthDays == null && spec.windowLengthMonths == null)
+    ) {
         return [];
     }
     const col = `[${spec.dateColumn}]`;
-    return [
-        `${col} > DATEADD(day, -${spec.windowLengthDays}, @asOf)`,
-        `${col} <= @asOf`,
-    ];
+    // Months take precedence when set (DATEADD month handles variable month lengths).
+    const start =
+        spec.windowLengthMonths != null
+            ? `DATEADD(month, -${spec.windowLengthMonths}, @asOf)`
+            : `DATEADD(day, -${spec.windowLengthDays}, @asOf)`;
+    return [`${col} > ${start}`, `${col} <= @asOf`];
 }
 
 /**

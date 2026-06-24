@@ -30,6 +30,19 @@ describe("buildFactorSql", () => {
         expect(sql).toContain("GROUP BY [MemberID]");
     });
 
+    it("uses DATEADD(month) for a month-based rolling window (precedence over days)", () => {
+        const monthsSpec: CompiledFactorSpec = {
+            ...windowedSpec,
+            windowLengthDays: null,
+            windowLengthMonths: 12,
+        };
+        const sql = buildFactorSql(monthsSpec, ["m1"]);
+
+        expect(sql).toContain("[ActivityDate] > DATEADD(month, -12, @asOf)");
+        expect(sql).toContain("[ActivityDate] <= @asOf");
+        expect(sql).not.toContain("DATEADD(day");
+    });
+
     it("omits the date predicates when there is no window", () => {
         const noWindow: CompiledFactorSpec = {
             ...windowedSpec,
