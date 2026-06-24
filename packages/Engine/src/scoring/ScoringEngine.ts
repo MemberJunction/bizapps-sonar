@@ -151,11 +151,25 @@ export class ScoringEngine {
         return contributions;
     }
 
-    /** First band whose [minScore, maxScore] contains the score, or undefined if none. */
+    /**
+     * The band a score falls in, using **half-open ranges** `[minScore, maxScore)`: a value on a
+     * shared boundary belongs to the upper band, so adjacent bands can never both claim it — the
+     * assignment is deterministic regardless of band order. The sole exception is the top band,
+     * which includes its own maxScore so the maximum possible score still bands. Matches the plan's
+     * "half-open, contiguous, non-overlapping" model.
+     */
     private assignBand(
         bands: ScoreBandDef[],
         score: number,
     ): ScoreBandDef | undefined {
-        return bands.find((b) => score >= b.minScore && score <= b.maxScore);
+        if (bands.length === 0) {
+            return undefined;
+        }
+        const topMax = Math.max(...bands.map((b) => b.maxScore));
+        return bands.find(
+            (b) =>
+                score >= b.minScore &&
+                (score < b.maxScore || (score === b.maxScore && b.maxScore === topMax)),
+        );
     }
 }

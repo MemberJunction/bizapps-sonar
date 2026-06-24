@@ -88,7 +88,7 @@ export function buildFactorSql(
     spec: CompiledFactorSpec,
     anchorIds: string[],
 ): string {
-    const idList = anchorIds.map((id) => `'${id}'`).join(",");
+    const idList = anchorIds.map((id) => `'${String(id).replace(/'/g, "''")}'`).join(",");
     const joins = spec.joins ?? [];
     // Multi-hop: the anchor FK lives on the last joined (anchor-adjacent) table, so qualify the
     // key by that alias. Single-hop: it's a bare column on the leaf table. (Leaf columns used by

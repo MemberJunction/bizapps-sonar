@@ -62,8 +62,10 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     /**
      * Publishability gate. A model may only go Active if it is actually scoreable. These
      * are cross-record rules (they count rows in other tables), which a column CHECK can't
-     * express — so they live here. A failed result blocks the Save before
-     * publishWithSnapshot ever runs. Non-Active saves skip the extra queries entirely.
+     * express — so they live here. It runs on every save (the base flow calls it after the
+     * synchronous Validate), and `publishWithSnapshot` ALSO invokes it explicitly up front so
+     * an invalid publish fails before any snapshot/transaction work. Non-Active saves skip
+     * the extra queries entirely.
      */
     public override async ValidateAsync(): Promise<ValidationResult> {
         const result = await super.ValidateAsync();
@@ -173,6 +175,16 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     private async publishWithSnapshot(
         options?: EntitySaveOptions,
     ): Promise<boolean> {
+        // Publishability gate FIRST — before any snapshot or transaction work. Save() routes a
+        // publish straight here, so the base flow's own ValidateAsync wouldn't fire until the
+        // final super.Save() below, after the version rows are already queued. Running it here
+        // means an invalid publish does no wasted work and queues nothing. On failure, route back
+        // through the normal Save so the errors surface on LatestResult (and we never reach Submit).
+        const validation = await this.ValidateAsync();
+        if (!validation.Success) {
+            return await super.Save(options);
+        }
+
         // Gather everything we need to freeze BEFORE opening the transaction — these are
         // reads, and must not be part of the atomic write set.
         const snapshot = await this.buildConfigSnapshot();
@@ -208,7 +220,17 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         // update model's version to latest
         this.CurrentVersionID = version.ID;
         this.TransactionGroup = tg;
-        await super.Save(options);
+        const modelSaved = await super.Save(options);
+        if (!modelSaved) {
+            // The model's own save failed (e.g. validation at queue time) — do NOT submit the
+            // queued demote + version insert, or we'd persist a half-published state.
+            LogError(
+                `ScoreModelEntityServer: model save failed during publish for ${this.ID}: ${
+                    this.LatestResult?.CompleteMessage ?? "unknown"
+                }`,
+            );
+            return false;
+        }
 
         // complete atomic transaction for all changes
         const ok = await tg.Submit();

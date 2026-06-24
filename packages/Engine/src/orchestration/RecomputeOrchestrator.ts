@@ -303,6 +303,13 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
+        // Reject composite keys here, where the limitation originates, rather than letting them
+        // truncate to PrimaryKeys[0] and surface obscurely later.
+        if (anchorEntity.PrimaryKeys.length !== 1) {
+            throw new Error(
+                `RecomputeOrchestrator: anchor entity '${anchorEntity.Name}' has a ${anchorEntity.PrimaryKeys.length}-column primary key; only single-column primary keys are supported.`,
+            );
+        }
         const pk = anchorEntity.PrimaryKeys[0].Name;
         const extraFilter = this.compilePopulationFilter(model, anchorEntity);
         const rv = new RunView();
@@ -483,6 +490,7 @@ export class RecomputeOrchestrator {
             {
                 EntityName: "MJ_BizApps_Sonar: Score Bands",
                 ExtraFilter: `BandSetID='${model.BandSetID}'`,
+                OrderBy: "MinScore ASC",
                 ResultType: "entity_object",
             },
             contextUser,
