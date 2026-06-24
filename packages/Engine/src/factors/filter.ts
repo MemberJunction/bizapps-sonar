@@ -87,6 +87,40 @@ export function compileFilter(
     return { clause: buildGroup(filter, ctx), params: ctx.params };
 }
 
+/**
+ * Compile a filter to an INLINE WHERE string (escaped literals, no parameters). Use this only
+ * where parameter binding isn't available — e.g. RunView.ExtraFilter; prefer `compileFilter` +
+ * params for set-based SQL. Field names are still validated by `compileFilter`; values are
+ * escaped here (strings single-quoted with doubled quotes, booleans as 1/0). Returns null when
+ * there is no filter.
+ */
+export function compileFilterInline(
+    filter: CompositeFilterDescriptor | null,
+    validColumns: string[],
+): string | null {
+    const { clause, params } = compileFilter(filter, validColumns);
+    if (!clause) {
+        return null;
+    }
+    return clause.replace(/@f\d+/g, (placeholder) =>
+        sqlLiteral(params[placeholder.slice(1)]),
+    );
+}
+
+/** Render a filter value as an escaped SQL literal for inline use. */
+function sqlLiteral(value: FilterValue | undefined): string {
+    if (value === null || value === undefined) {
+        return "NULL";
+    }
+    if (typeof value === "number") {
+        return String(value);
+    }
+    if (typeof value === "boolean") {
+        return value ? "1" : "0";
+    }
+    return `'${String(value).replace(/'/g, "''")}'`;
+}
+
 function isComposite(
     node: FilterDescriptor | CompositeFilterDescriptor,
 ): node is CompositeFilterDescriptor {
