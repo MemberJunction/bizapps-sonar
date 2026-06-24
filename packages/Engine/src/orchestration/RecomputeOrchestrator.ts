@@ -12,6 +12,7 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
+import { createActionRunner } from "../factors/actionRunner";
 import {
     NormalizationEngine,
     NormalizationSpec,
@@ -70,7 +71,7 @@ export interface FactorPreviewResult {
  * PopulationFilter yet); WeightedSum models only. Unsupported config fails loud.
  */
 export class RecomputeOrchestrator {
-    private readonly compiler = new FactorCompiler();
+    private readonly compiler = new FactorCompiler(createActionRunner());
     private readonly normalizer = new NormalizationEngine();
     private readonly scorer = new ScoringEngine();
     private readonly writer = new ScoreWriter();
@@ -365,6 +366,13 @@ export class RecomputeOrchestrator {
             if (!factor) {
                 throw new Error(
                     `RecomputeOrchestrator: Factor ${mf.FactorID} referenced by the rubric was not found.`,
+                );
+            }
+            // Governance gate: an Action-backed factor runs arbitrary code, so it must be promoted
+            // to Approved before it can move real scores. (Drafts can still be tried in preview.)
+            if (factor.FactorType === "ActionBacked" && factor.PromotionState !== "Approved") {
+                throw new Error(
+                    `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
                 );
             }
             const evaluator = await this.compiler.compile(factor, contextUser);

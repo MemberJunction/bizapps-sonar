@@ -46,7 +46,7 @@
             "ID": "5044A100-0001-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.088Z",
+            "lastModified": "2026-06-23T16:41:06.991Z",
             "checksum": "9202aea40eb79cb66d9ffb30f6716a757b9f3cb995c472299337b5d883c828e8"
           }
         }
@@ -151,7 +151,7 @@
             "ID": "5044A100-0002-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.119Z",
+            "lastModified": "2026-06-23T16:41:07.021Z",
             "checksum": "e9965270ac58169586d3993a0117c9c9046c6623738ec905f48b38a24e5092a5"
           }
         }
@@ -238,7 +238,7 @@
             "ID": "5044A100-0003-4000-8000-0000000000A1"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.185Z",
+            "lastModified": "2026-06-23T16:41:07.075Z",
             "checksum": "5f01e01aa5d82f9d4d033c8b9b3cbf99b452a68da984c7090784bea995468e7a"
           }
         },
@@ -256,7 +256,7 @@
             "ID": "5044A100-0003-4000-8000-0000000000A3"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.219Z",
+            "lastModified": "2026-06-23T16:41:07.106Z",
             "checksum": "d5d84cca85ccb87b5b413c9cebbe2fce7ea0e77ced257ddce0032f91178ea73d"
           }
         },
@@ -274,7 +274,7 @@
             "ID": "5044A100-0003-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.248Z",
+            "lastModified": "2026-06-23T16:41:07.135Z",
             "checksum": "edcc32f8c49153c078af3f69042c64e4ce01036be3e69cd384b8e60c75b05a86"
           }
         }
@@ -291,7 +291,7 @@
             "ID": "5044A100-0003-4000-8000-0000000000C1"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.286Z",
+            "lastModified": "2026-06-23T16:41:07.170Z",
             "checksum": "174a26733e564431ec17ccfcfe38ad1550b0d75ba05beda290519d79935a1da8"
           }
         },
@@ -306,7 +306,7 @@
             "ID": "5044A100-0003-4000-8000-0000000000C2"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.307Z",
+            "lastModified": "2026-06-23T16:41:07.191Z",
             "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
           }
         },
@@ -321,15 +321,192 @@
             "ID": "5044A100-0003-4000-8000-0000000000C3"
           },
           "sync": {
-            "lastModified": "2026-06-17T20:01:41.325Z",
+            "lastModified": "2026-06-23T16:41:07.209Z",
             "checksum": "144f66bf6dab695f8167dae107f777fac5008138866ec47d2b5cff7cf0a89c7c"
           }
         }
       ]
     },
     "sync": {
-      "lastModified": "2026-06-17T20:01:41.054Z",
+      "lastModified": "2026-06-23T16:41:06.956Z",
       "checksum": "9bfc18ed1040cff005ff7b174dadda276f455bb8d743c776c3c249c9238393f6"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Member Activity Streak",
+      "Description": "Action-backed factor: returns a member's current consecutive-month activity streak (months in an unbroken run ending at AsOf that each had >=1 activity row). Deterministic, read-only; the first reference Action-backed factor (see plans/action-factors.md).",
+      "DriverClass": "SonarMemberActivityStreak",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-fire",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0004-4000-8000-000000000004"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The anchor record id (member id) to score, injected by the scoring engine."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.571Z",
+            "checksum": "7551e54fc25096479780857051cd344eaaadb5c82ac09e1368070c5a76e6d0d6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AsOf",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "As-of date (ISO), injected by the engine; defaults to now."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.604Z",
+            "checksum": "21f622f974fa3445581806cb8eed68298db9bed46c605bd7a54b70294a21b278"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ActivityEntity",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Activity entity name to read (default 'Event Registrations')."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.636Z",
+            "checksum": "d270bd800d30f144238c93899d8670e8d7fa8e728b1cbd5f4abd96b1a02f316e"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "MemberField",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Column on the activity entity that holds the member id (default 'MemberID')."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A4"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.666Z",
+            "checksum": "3960e06d191d6d256ee5e1f4014d704d89828b935e86f6dc951fe2380fcf7187"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "DateField",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Date column on the activity entity (default 'RegistrationDate')."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A5"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.710Z",
+            "checksum": "c3f762ab092a2749ebdbc5926fdfff09b56be4c02aa6fb74371dc9ea90762138"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Value",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Output: the current consecutive-month streak (integer)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000A6"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.737Z",
+            "checksum": "8bbfe39e5ff5c98c1ff8c319b27746ef8e52d1993835d8d1b40584416170769b"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Streak computed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.771Z",
+            "checksum": "bcdfd2e00be1648cc8d49f5a3f35557dfc1444d1c2e88c55ec7c31eeb4e94ca5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.789Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The streak computation failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0004-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-24T14:37:49.806Z",
+            "checksum": "edf96ae57b37c346b06086fa9237279b7ea979ff452c297927d9e87c41536aad"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-24T14:37:49.514Z",
+      "checksum": "75a45365a49fdb2f006a8af49d9b9b263b11227d154ac0980e4566a66c3879a0"
     }
   }
 ]

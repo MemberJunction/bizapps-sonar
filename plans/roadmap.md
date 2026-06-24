@@ -80,7 +80,7 @@ The big integration branch (`sonar_app_nav`) is being broken into small, reviewa
 ### §5.2 Factors & windows
 | Capability | Status | Notes |
 |---|---|---|
-| Declarative factors | 🟡 | `Count/Sum/Avg/Min/Max/DistinctCount` work. `Recency/RatePerPeriod/Exists/TrendSlope` ⬜. |
+| Declarative factors | 🟡 | `Count/Sum/Avg/Min/Max/DistinctCount/Exists/Recency` work. `RatePerPeriod` (needs window-length coupling) + `TrendSlope` (needs a per-period CTE) ⬜. |
 | `TimeWindow` | 🟡 | `Rolling` + `AllTime` compile. `Calendar/SinceEvent/RenewalRelative` ⬜. |
 | `ModelFactor` weight | ✅ | Weight + live tuning work. |
 | `ModelFactor.WeightMode` | 🟡 | Penalty **hidden in the UI** (additive-only) so it no longer implies behavior the engine lacks; engine is WeightedSum only. Penalty/Multiplier/Gate/Bonus deferred to the `ICombineStrategy` work; field retained. |
@@ -199,7 +199,7 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 **Next — the "trajectory" tier (unlocks several plan promises at once):**
 4. Write `ScoreHistory` + `ScoreBandTransition` in `ScoreWriter`; compute Delta/Trend/Confidence.
 5. EM trend sparkline + a "movers since last run" view (rides #4).
-6. ✅ Normalization Tier B (Logistic/Banded/Lookup) done; remaining: aggregations (Recency/Rate/Exists) — widen factor coverage.
+6. ✅ Normalization Tier B + ✅ Exists/Recency aggregations done; remaining: `RatePerPeriod` + `TrendSlope` (CTE) — widen factor coverage.
 
 **Later — the plan's v1 "product" (the defensible part):**
 7. Action layer: `ScoreSegment` → `Intervention` → holdout → `InterventionOutcome` + lift; Intervention Drafter.

@@ -218,12 +218,14 @@ const FIELD_AGGREGATE_FUNCTIONS: Record<string, string> = {
 };
 
 /**
- * Build the SQL aggregate expression for a factor's Aggregation. `Count` needs no column;
- * Sum/Avg/Min/Max/DistinctCount aggregate a column, which MUST be a real column on the
- * related entity. We validate AggregateFieldName against `validColumns` because it is
- * config-supplied (unlike GUIDs or metadata-derived names) — this both catches typos and
- * blocks SQL injection. Unsupported aggregations (Recency, RatePerPeriod, Exists,
- * TrendSlope) throw — deferred to a later slice.
+ * Build the SQL aggregate expression for a factor's Aggregation — the bit between SELECT and the
+ * GROUP BY in {@link buildFactorSql}. Field-taking aggregations (Sum/Avg/Min/Max/DistinctCount and
+ * the Recency date column) validate AggregateFieldName against `validColumns` — it is config-supplied
+ * (unlike GUIDs / metadata-derived names), so this both catches typos and blocks SQL injection.
+ *
+ * Supported: Count, Sum, Avg, Min, Max, DistinctCount, **Exists**, **Recency**. RatePerPeriod and
+ * TrendSlope are NOT here — they need extra query context (window length / a per-period CTE) and
+ * are handled (or deferred) by the compiler, not this single-expression builder.
  */
 export function buildAggregateExpression(
     aggregation: string | null,
@@ -233,24 +235,39 @@ export function buildAggregateExpression(
     if (!aggregation) {
         throw new Error("buildAggregateExpression: factor has no Aggregation set.");
     }
-    if (aggregation === "Count") {
-        return "COUNT(*)";
+    switch (aggregation) {
+        case "Count":
+            return "COUNT(*)";
+        // 1 when any matching row exists in scope; anchors with none aren't returned at all
+        // (= "no data" → the model's MissingDataPolicy, which defaults to 0). So this is the "did
+        // it ever happen" signal without a separate 0-row branch.
+        case "Exists":
+            return "CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END";
+        // Days since the most recent matching record at/before @asOf. Future-dated rows are ignored
+        // (so a historical recompute is correct even without a window); if none qualify, MAX is NULL
+        // → NULL rawValue → no data. Lower = more recent, so factors usually set HigherIsBetter=false.
+        case "Recency": {
+            const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
+            return `DATEDIFF(day, MAX(CASE WHEN [${col}] <= @asOf THEN [${col}] END), @asOf)`;
+        }
+        case "DistinctCount": {
+            const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
+            return `COUNT(DISTINCT [${col}])`;
+        }
+        case "Sum":
+        case "Avg":
+        case "Min":
+        case "Max": {
+            const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
+            return `${FIELD_AGGREGATE_FUNCTIONS[aggregation]}([${col}])`;
+        }
+        default:
+            throw new Error(
+                `buildAggregateExpression: unsupported aggregation '${aggregation}' ` +
+                    `(supported: Count, Sum, Avg, Min, Max, DistinctCount, Exists, Recency; ` +
+                    `RatePerPeriod and TrendSlope not yet).`,
+            );
     }
-    const column = requireValidColumn(
-        aggregation,
-        aggregateFieldName,
-        validColumns,
-    );
-    if (aggregation === "DistinctCount") {
-        return `COUNT(DISTINCT [${column}])`;
-    }
-    const fn = FIELD_AGGREGATE_FUNCTIONS[aggregation];
-    if (!fn) {
-        throw new Error(
-            `buildAggregateExpression: unsupported aggregation '${aggregation}' (supported: Count, Sum, Avg, Min, Max, DistinctCount).`,
-        );
-    }
-    return `${fn}([${column}])`;
 }
 
 /** Resolve AggregateFieldName to a real column on the related entity (case-insensitive), or throw. */

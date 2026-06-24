@@ -171,7 +171,7 @@ more is a good sign, normalized by Percentile, weight 0.30.* Every clause is a c
 ### Supported today
 | Dimension | Supported values |
 |---|---|
-| **Aggregation** | `Count`, `Sum`, `Avg`, `Min`, `Max`, `DistinctCount` (Sum/Avg/Min/Max need a numeric field) |
+| **Aggregation** | `Count`, `Sum`, `Avg`, `Min`, `Max`, `DistinctCount`, `Exists` (1/0 presence), `Recency` (days since most recent, needs a date field) — Sum/Avg/Min/Max need a numeric field |
 | **Source** | One related entity — **single or multi-hop** via `RelationshipPath` (e.g. Member → EmailSend → EmailClick) |
 | **Filter** | A condition tree over the related entity (`mj-filter-builder`); empty = include all |
 | **Time window** | `Rolling` (trailing N days) and `AllTime` |
@@ -212,7 +212,7 @@ is the highest-leverage way to actually earn the 80% claim.
 | Penalty / multiplier / gate weight modes, caps, floors, trend-weight | Engine is additive-only |
 | `MissingDataPolicy` | No-data members excluded, not scored Zero/NeutralMidpoint |
 | Trend / history / confidence | `ScoreHistory`, `ScoreBandTransition`, Delta, TrendDirection, Confidence unwritten |
-| Aggregations: Recency, RatePerPeriod, Exists, TrendSlope; recency decay | Not compiled |
+| Aggregations: RatePerPeriod (needs window-length), TrendSlope (needs a per-period CTE); recency decay | Not compiled (Count/Sum/Avg/Min/Max/DistinctCount/Exists/Recency are) |
 | Windows: Calendar / SinceEvent / **RenewalRelative** | Only Rolling + AllTime (renewal-window is a flagship plan.md example — notable gap) |
 | Action-backed / DerivedFromScore / Constant factors | Only Declarative; the `IFactorEvaluator` seam is ready for the rest |
 | Calibrated (cross-tenant benchmark) normalization | Not built |
