@@ -33,17 +33,21 @@ export interface AggregateRow {
 
 /**
  * Build the aggregation query for a compiled factor. Pure: (spec, anchorIds) → SQL string.
- * anchorIds are inlined as a quoted UUID list (safe — they are GUIDs); asOf is passed as
- * the @asOf parameter and the window start is derived in-SQL via DATEADD so we never
- * format dates by hand.
- * TODO: swap the inline IN list for a table-valued parameter once populations are large
- * (the inline list hits SQL Server's ~2100-parameter / statement-size limits).
+ * asOf is passed as the @asOf parameter and the window start is derived in-SQL via DATEADD so
+ * we never format dates by hand.
+ *
+ * Anchor IDs are inlined into the IN list (SQL Server has no native array parameter without a
+ * TVP). Single quotes are doubled so a string/varchar anchor PK can't break out of the literal;
+ * GUID/int PKs are unaffected. A single-column PK is asserted upstream (resolvePopulation).
+ * TODO: swap the inline IN list for a table-valued parameter — fixes the ~2100-param / statement-
+ * size limit at scale AND removes string-interpolation entirely (parameterizing the values, and
+ * making the Record<string,string> typing honest for non-UUID PKs). See roadmap.
  */
 export function buildFactorSql(
     spec: CompiledFactorSpec,
     anchorIds: string[],
 ): string {
-    const idList = anchorIds.map((id) => `'${id}'`).join(",");
+    const idList = anchorIds.map((id) => `'${String(id).replace(/'/g, "''")}'`).join(",");
     const key = `[${spec.anchorKeyColumn}]`;
     const where = [`${key} IN (${idList})`, ...windowClause(spec)];
     if (spec.filterClause) {

@@ -292,6 +292,14 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
+        // Single-column PK only: the population must be a set of single-column identifiers.
+        // Reject composite keys here, where the limitation originates, rather than letting them
+        // truncate to PrimaryKeys[0] and surface obscurely later.
+        if (anchorEntity.PrimaryKeys.length !== 1) {
+            throw new Error(
+                `RecomputeOrchestrator: anchor entity '${anchorEntity.Name}' has a ${anchorEntity.PrimaryKeys.length}-column primary key; only single-column primary keys are supported.`,
+            );
+        }
         const pk = anchorEntity.PrimaryKeys[0].Name;
         const rv = new RunView();
         const result = await rv.RunView<Record<string, string>>(
@@ -427,6 +435,9 @@ export class RecomputeOrchestrator {
             {
                 EntityName: "MJ_BizApps_Sonar: Score Bands",
                 ExtraFilter: `BandSetID='${model.BandSetID}'`,
+                // Tidy lowest-first ordering. Boundary determinism is NOT load-bearing here —
+                // it's enforced in ScoringEngine.assignBand (half-open ranges), independent of order.
+                OrderBy: "MinScore ASC",
                 ResultType: "entity_object",
             },
             contextUser,

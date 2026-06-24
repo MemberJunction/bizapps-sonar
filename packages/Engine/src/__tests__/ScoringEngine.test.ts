@@ -127,3 +127,30 @@ describe("ScoringEngine", () => {
         expect(scores.get("m1")?.normalizedScore).toBe(0);
     });
 });
+
+describe("ScoringEngine — band boundaries (half-open, order-independent)", () => {
+    // One factor, weight 1, scale 0–100 → normalizedScore = normalizedContribution × 100.
+    function bandFor(normalized: number, bands: ScoringSpec["bands"]): string | null {
+        const s: ScoringSpec = { scaleMin: 0, scaleMax: 100, bands };
+        const rubric: WeightedFactor[] = [
+            { factorId: "f", modelFactorId: "mf", weight: 1, results: new Map([["m", norm(normalized)]]) },
+        ];
+        return new ScoringEngine().score(s, rubric).get("m")?.bandLabel ?? null;
+    }
+
+    it("assigns a shared-boundary score to the UPPER band", () => {
+        expect(bandFor(0.40, spec.bands)).toBe("Neutral"); // 40 → [40,70), not [0,40)
+        expect(bandFor(0.70, spec.bands)).toBe("Healthy"); // 70 → [70,100]
+    });
+
+    it("includes the maximum score in the top band", () => {
+        expect(bandFor(1.0, spec.bands)).toBe("Healthy"); // 100 → top band, inclusive
+    });
+
+    it("gives the same band regardless of band order", () => {
+        const reversed = [...spec.bands].reverse();
+        expect(bandFor(0.40, reversed)).toBe("Neutral");
+        expect(bandFor(1.0, reversed)).toBe("Healthy");
+        expect(bandFor(0.20, reversed)).toBe("At Risk");
+    });
+});
