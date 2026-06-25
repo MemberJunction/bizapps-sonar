@@ -241,8 +241,7 @@ describe("buildFactorSql — multi-hop joins", () => {
             {
                 table: "[comm].[EmailSend]",
                 alias: "h1",
-                leftRef: "[comm].[EmailClick].[EmailSendID]",
-                rightColumn: "ID",
+                on: [{ leftRef: "[comm].[EmailClick].[EmailSendID]", rightColumn: "ID" }],
             },
         ],
         window: null,
@@ -270,14 +269,12 @@ describe("buildFactorSql — multi-hop joins", () => {
                 {
                     table: "[comm].[EmailSend]",
                     alias: "h1",
-                    leftRef: "[comm].[EmailClick].[EmailSendID]",
-                    rightColumn: "ID",
+                    on: [{ leftRef: "[comm].[EmailClick].[EmailSendID]", rightColumn: "ID" }],
                 },
                 {
                     table: "[comm].[Campaign]",
                     alias: "h2",
-                    leftRef: "h1.[CampaignID]",
-                    rightColumn: "ID",
+                    on: [{ leftRef: "h1.[CampaignID]", rightColumn: "ID" }],
                 },
             ],
             anchorKeyColumns: [{ fkColumn: "OwnerMemberID", sqlType: "uniqueidentifier" }],
@@ -288,5 +285,29 @@ describe("buildFactorSql — multi-hop joins", () => {
         expect(sql).toContain("JOIN [comm].[Campaign] h2 ON h1.[CampaignID] = h2.[ID]");
         expect(sql).toContain("ON h2.[OwnerMemberID] = k.v0");
         expect(sql).toContain("GROUP BY k.id");
+    });
+
+    it("ANDs every column-pair of a COMPOSITE intermediate FK in one hop's ON clause", () => {
+        // A junction/tenant entity with a 2-column PK: the hop joins on BOTH columns, so each child
+        // row maps to exactly one parent (no fan-out). The bundle is one arrow, two pairs.
+        const compositeHop: CompiledFactorSpec = {
+            ...emailClicks,
+            joins: [
+                {
+                    table: "[crm].[TenantMember]",
+                    alias: "h1",
+                    on: [
+                        { leftRef: "[comm].[EmailClick].[TenantID]", rightColumn: "TenantID" },
+                        { leftRef: "[comm].[EmailClick].[MemberID]", rightColumn: "MemberID" },
+                    ],
+                },
+            ],
+        };
+        const sql = buildFactorSql(compositeHop);
+
+        expect(sql).toContain(
+            "JOIN [crm].[TenantMember] h1 ON [comm].[EmailClick].[TenantID] = h1.[TenantID] AND " +
+                "[comm].[EmailClick].[MemberID] = h1.[MemberID]",
+        );
     });
 });

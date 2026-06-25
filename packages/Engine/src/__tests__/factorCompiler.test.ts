@@ -25,14 +25,20 @@ describe("parseRelationshipPath", () => {
         expect(parseRelationshipPath("[]")).toEqual([]);
     });
 
-    it("parses an array of fk hops (entity optional)", () => {
+    it("parses single-column fk hops (entity optional) into a one-element fks bundle", () => {
         expect(
             parseRelationshipPath('[{"fk":"EmailSendID","entity":"Email Sends"}]'),
-        ).toEqual([{ fk: "EmailSendID", entity: "Email Sends" }]);
+        ).toEqual([{ fks: ["EmailSendID"], entity: "Email Sends" }]);
 
         expect(parseRelationshipPath('[{"fk":"AID"},{"fk":"BID"}]')).toEqual([
-            { fk: "AID", entity: undefined },
-            { fk: "BID", entity: undefined },
+            { fks: ["AID"], entity: undefined },
+            { fks: ["BID"], entity: undefined },
+        ]);
+    });
+
+    it("parses a composite hop given as an fks array", () => {
+        expect(parseRelationshipPath('[{"fks":["TenantID","MemberID"]}]')).toEqual([
+            { fks: ["TenantID", "MemberID"], entity: undefined },
         ]);
     });
 
@@ -52,7 +58,7 @@ describe("findAutoPathHops", () => {
 
     it("resolves a 2-hop chain to the leaf-side hop only (anchor FK left to resolveAnchorKeyColumn)", () => {
         const hops = findAutoPathHops([member, emailSend, emailClick], "M", "C");
-        expect(hops).toEqual([{ fk: "EmailSendID" }]);
+        expect(hops).toEqual([{ fks: ["EmailSendID"] }]);
     });
 
     it("resolves a 3-hop chain in leaf→anchor order", () => {
@@ -61,7 +67,16 @@ describe("findAutoPathHops", () => {
         const b = ent("B", [["AID", "A"]]);
         const leaf = ent("L", [["BID", "B"]]);
         const hops = findAutoPathHops([member, a, b, leaf], "M", "L");
-        expect(hops).toEqual([{ fk: "BID" }, { fk: "AID" }]);
+        expect(hops).toEqual([{ fks: ["BID"] }, { fks: ["AID"] }]);
+    });
+
+    it("coalesces a COMPOSITE FK (two columns to the same parent) into one bundled hop — no false ambiguity", () => {
+        // M → J → Leaf, where Leaf reaches J by a 2-column FK (both columns point at J). Pre-fix this
+        // looked like two parallel arrows → false "ambiguous"; now it's one arrow carrying both columns.
+        const j = ent("J", [["MID", "M"]]);
+        const leaf = ent("L", [["TenantID", "J"], ["JID", "J"]]);
+        const hops = findAutoPathHops([member, j, leaf], "M", "L");
+        expect(hops).toEqual([{ fks: ["TenantID", "JID"] }]);
     });
 
     it("returns [] for a direct child (path length 1 → single-hop)", () => {

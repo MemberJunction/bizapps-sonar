@@ -1,4 +1,4 @@
-import { Metadata, UserInfo, EntityInfo } from "@memberjunction/core";
+import { Metadata, UserInfo, EntityInfo, EntityFieldInfo } from "@memberjunction/core";
 import {
     mjBizAppsSonarFactorEntity,
     mjBizAppsSonarModelRelatedEntityEntity,
@@ -19,14 +19,17 @@ import {
  * IFactorEvaluator out). This is the only place that decides which kind of evaluator to
  * build; everything downstream stays blind to the choice.
  *
- * v1 scope: Declarative factors; Count/Sum/Avg/Min/Max/DistinctCount aggregations; a
- * single-hop related entity; and a Rolling time window (or none). Anything outside that
- * throws a clear error rather than silently emitting wrong SQL — we widen deliberately.
+ * Scope: Declarative + Action-backed factors; Count/Sum/Avg/Min/Max/DistinctCount/Exists/Recency
+ * aggregations; single- AND multi-hop related entities (explicit RelationshipPath or auto-resolved
+ * by reverse-FK BFS), including **composite (multi-column) foreign keys** at every hop and a
+ * composite anchor key; Rolling/Calendar/SinceEvent/RenewalRelative windows (or none). Anything
+ * outside that throws a clear error rather than silently emitting wrong SQL — we widen deliberately.
  */
-/** One hop of a `ModelRelatedEntity.RelationshipPath`: the FK column to follow toward the anchor.
- *  `entity` (the join target's name) is optional/informational — the target is derived from FK metadata. */
+/** One hop of a `ModelRelatedEntity.RelationshipPath`: the FK column(s) to follow toward the anchor.
+ *  A single-column FK names one; a COMPOSITE FK names all its columns. `entity` (the join target's
+ *  name) is optional/informational — the target + its full column bundle are derived from FK metadata. */
 export interface RelationshipHop {
-    fk: string;
+    fks: string[];
     entity?: string;
 }
 
@@ -55,13 +58,21 @@ export function parseRelationshipPath(raw: string | null): RelationshipHop[] {
             throw new Error(`FactorCompiler: RelationshipPath hop ${i} must be an object.`);
         }
         const rec = hop as Record<string, unknown>;
-        if (typeof rec.fk !== "string" || rec.fk.length === 0) {
+        // Accept single-column `fk: "X"` (back-compat) OR composite `fks: ["A","B"]`. The compiler
+        // re-derives the full bundle from FK metadata, so only one column per hop is strictly needed
+        // to identify the target — but a composite FK may name all of them.
+        const fks = Array.isArray(rec.fks)
+            ? rec.fks.filter((v): v is string => typeof v === "string" && v.length > 0)
+            : typeof rec.fk === "string" && rec.fk.length > 0
+              ? [rec.fk]
+              : [];
+        if (fks.length === 0) {
             throw new Error(
-                `FactorCompiler: RelationshipPath hop ${i} needs a non-empty string 'fk'.`,
+                `FactorCompiler: RelationshipPath hop ${i} needs a non-empty string 'fk' (or 'fks' array).`,
             );
         }
         return {
-            fk: rec.fk,
+            fks,
             entity: typeof rec.entity === "string" ? rec.entity : undefined,
         };
     });
@@ -93,15 +104,23 @@ export function findAutoPathHops(
     leafEntityID: string,
     maxDepth: number = MAX_AUTO_PATH_DEPTH,
 ): RelationshipHop[] {
-    // Reverse-FK adjacency: parentID → [{ childID, fk }]. An FK on child C pointing to parent P
-    // is the outward edge P → C (traversing it is one-to-many; the return C → P is many-to-one).
-    const childrenOf = new Map<string, { childID: string; fk: string }[]>();
+    // Reverse-FK adjacency: parentID → [{ childID, fks }]. An FK on child C pointing to parent P is
+    // the outward edge P → C (traversing it is one-to-many; the return C → P is many-to-one). A
+    // COMPOSITE FK is several fields on C all pointing at P — we group them into ONE bundled edge so
+    // it's a single arrow (not parallel arrows that read as a false fork / ambiguity).
+    const childrenOf = new Map<string, { childID: string; fks: string[] }[]>();
     for (const e of entities) {
+        const fksByParent = new Map<string, string[]>();
         for (const f of e.Fields) {
             if (!f.RelatedEntityID) continue;
-            const list = childrenOf.get(f.RelatedEntityID) ?? [];
-            list.push({ childID: e.ID, fk: f.Name });
-            childrenOf.set(f.RelatedEntityID, list);
+            const list = fksByParent.get(f.RelatedEntityID) ?? [];
+            list.push(f.Name);
+            fksByParent.set(f.RelatedEntityID, list);
+        }
+        for (const [parentID, fks] of fksByParent) {
+            const list = childrenOf.get(parentID) ?? [];
+            list.push({ childID: e.ID, fks });
+            childrenOf.set(parentID, list);
         }
     }
 
@@ -109,7 +128,7 @@ export function findAutoPathHops(
     // and one predecessor edge (valid to follow because the path is unique when pathCount === 1).
     const dist = new Map<string, number>([[anchorEntityID, 0]]);
     const pathCount = new Map<string, number>([[anchorEntityID, 1]]);
-    const pred = new Map<string, { fromID: string; fk: string }>();
+    const pred = new Map<string, { fromID: string; fks: string[] }>();
     const queue: string[] = [anchorEntityID];
     while (queue.length) {
         const cur = queue.shift() as string;
@@ -119,7 +138,7 @@ export function findAutoPathHops(
             if (!dist.has(edge.childID)) {
                 dist.set(edge.childID, d + 1);
                 pathCount.set(edge.childID, pathCount.get(cur) as number);
-                pred.set(edge.childID, { fromID: cur, fk: edge.fk });
+                pred.set(edge.childID, { fromID: cur, fks: edge.fks });
                 queue.push(edge.childID);
             } else if (dist.get(edge.childID) === d + 1) {
                 // Another equally-short route into this node → accumulate (ambiguity signal).
@@ -146,17 +165,17 @@ export function findAutoPathHops(
     // Walk predecessors leaf → anchor, building the anchor→leaf FK list. The walker wants the
     // leaf-side hops only (it resolves the anchor-adjacent→anchor FK itself), so drop that first
     // FK and reverse into leaf→anchor order.
-    const anchorToLeafFks: string[] = [];
+    const anchorToLeafFks: string[][] = [];
     let node = leafEntityID;
     while (node !== anchorEntityID) {
-        const step = pred.get(node) as { fromID: string; fk: string };
-        anchorToLeafFks.unshift(step.fk);
+        const step = pred.get(node) as { fromID: string; fks: string[] };
+        anchorToLeafFks.unshift(step.fks);
         node = step.fromID;
     }
     return anchorToLeafFks
         .slice(1)
         .reverse()
-        .map((fk) => ({ fk }));
+        .map((fks) => ({ fks }));
 }
 
 export class FactorCompiler {
@@ -193,6 +212,15 @@ export class FactorCompiler {
         const anchorJoin = windowNeedsAnchorJoin(window)
             ? this.resolveAnchorTable(factor.AnchorEntityID)
             : { table: null, pkColumn: null };
+        // Per-anchor windows read a boundary date off the anchor row via a single-column anchor join;
+        // a composite anchor would need a multi-column anchor join too. Not wired yet — fail loud
+        // rather than emit a query that joins on only the first key column.
+        if (windowNeedsAnchorJoin(window) && anchorKeyColumns.length > 1) {
+            throw new Error(
+                `FactorCompiler: per-anchor windows (SinceEvent/RenewalRelative) are not supported for ` +
+                    `composite-key anchors yet (factor ${factor.ID}).`,
+            );
+        }
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
@@ -367,12 +395,14 @@ export class FactorCompiler {
         let leftQualifier = `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`;
 
         hops.forEach((hop, i) => {
+            // Identify the hop's target from the first named FK column; the FULL column bundle
+            // (single or composite) is derived from FK metadata by resolveFkPairs.
             const fkField = current.Fields.find(
-                (f) => f.Name.toLowerCase() === hop.fk.toLowerCase() && f.RelatedEntityID,
+                (f) => f.Name.toLowerCase() === hop.fks[0].toLowerCase() && f.RelatedEntityID,
             );
             if (!fkField?.RelatedEntityID) {
                 throw new Error(
-                    `FactorCompiler: RelationshipPath hop ${i} — '${hop.fk}' is not a foreign key on '${current.Name}'.`,
+                    `FactorCompiler: RelationshipPath hop ${i} — '${hop.fks[0]}' is not a foreign key on '${current.Name}'.`,
                 );
             }
             const next = md.EntityByID(fkField.RelatedEntityID);
@@ -381,18 +411,15 @@ export class FactorCompiler {
                     `FactorCompiler: RelationshipPath hop ${i} — target entity ${fkField.RelatedEntityID} not in metadata.`,
                 );
             }
-            const rightColumn = next.PrimaryKeys[0]?.Name;
-            if (!rightColumn) {
-                throw new Error(
-                    `FactorCompiler: RelationshipPath hop ${i} — target '${next.Name}' has no primary key.`,
-                );
-            }
             const alias = `h${i + 1}`;
+            const qualifier = leftQualifier;
             joins.push({
                 table: `[${next.SchemaName}].[${next.BaseTable}]`,
                 alias,
-                leftRef: `${leftQualifier}.[${fkField.Name}]`,
-                rightColumn,
+                on: this.resolveFkPairs(current, next).map((p) => ({
+                    leftRef: `${qualifier}.[${p.fkColumn}]`,
+                    rightColumn: p.pkColumn,
+                })),
             });
             current = next;
             leftQualifier = alias;
@@ -422,29 +449,46 @@ export class FactorCompiler {
         if (!anchor) {
             throw new Error(`FactorCompiler: anchor entity ${anchorEntityID} not found in metadata.`);
         }
-        const fksToAnchor = relatedEntity.Fields.filter(
-            (f) => f.RelatedEntityID === anchorEntityID,
-        );
-        if (anchor.PrimaryKeys.length === 1) {
-            if (fksToAnchor.length !== 1) {
+        // The anchor-adjacent → anchor FK bundle, surfaced as OPENJSON shred columns (with SQL types).
+        return this.resolveFkPairs(relatedEntity, anchor).map((p) => ({
+            fkColumn: p.fkColumn,
+            sqlType: this.sqlTypeForField(p.field),
+        }));
+    }
+
+    /**
+     * The FK→PK column-pairs from `fromEntity` to `toEntity`, ordered by `toEntity`'s primary key —
+     * the "bundle" on the child→parent arrow. Single-column FK → one pair; COMPOSITE → one per target
+     * PK column, each matched to the FK field whose `RelatedEntityFieldName` references it. Throws if
+     * the relationship is missing, or incomplete/ambiguous for a composite key (every PK column needs
+     * exactly one referencing FK column). Shared by every hop AND the leaf→anchor resolution so the
+     * matching rule is identical everywhere.
+     */
+    private resolveFkPairs(
+        fromEntity: EntityInfo,
+        toEntity: EntityInfo,
+    ): { fkColumn: string; pkColumn: string; field: EntityFieldInfo }[] {
+        const fks = fromEntity.Fields.filter((f) => f.RelatedEntityID === toEntity.ID);
+        if (toEntity.PrimaryKeys.length === 1) {
+            if (fks.length !== 1) {
                 throw new Error(
-                    `FactorCompiler: expected exactly one foreign key from '${relatedEntity.Name}' to the anchor entity, found ${fksToAnchor.length}.`,
+                    `FactorCompiler: expected exactly one foreign key from '${fromEntity.Name}' to '${toEntity.Name}', found ${fks.length}.`,
                 );
             }
-            return [{ fkColumn: fksToAnchor[0].Name, sqlType: this.sqlTypeForField(fksToAnchor[0]) }];
+            return [{ fkColumn: fks[0].Name, pkColumn: toEntity.PrimaryKeys[0].Name, field: fks[0] }];
         }
-        // Composite anchor: match each anchor PK column to the related FK field that references it,
-        // preserving anchor PK order so the JOIN tuple lines up with AnchorKey.values.
-        return anchor.PrimaryKeys.map((pk) => {
-            const fk = fksToAnchor.find(
+        return toEntity.PrimaryKeys.map((pk) => {
+            const matches = fks.filter(
                 (f) => (f.RelatedEntityFieldName ?? "").toLowerCase() === pk.Name.toLowerCase(),
             );
-            if (!fk) {
+            if (matches.length !== 1) {
                 throw new Error(
-                    `FactorCompiler: '${relatedEntity.Name}' has no foreign-key column referencing anchor primary-key column '${pk.Name}' — a composite anchor needs a full multi-column FK.`,
+                    `FactorCompiler: '${fromEntity.Name}' must have exactly one foreign-key column referencing ` +
+                        `'${toEntity.Name}' primary-key column '${pk.Name}' (found ${matches.length}) — a composite ` +
+                        `relationship needs a complete, unambiguous multi-column foreign key.`,
                 );
             }
-            return { fkColumn: fk.Name, sqlType: this.sqlTypeForField(fk) };
+            return { fkColumn: matches[0].Name, pkColumn: pk.Name, field: matches[0] };
         });
     }
 

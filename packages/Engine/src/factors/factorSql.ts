@@ -48,11 +48,12 @@ export interface CompiledJoin {
     table: string;
     /** Alias for the joined table within the query, e.g. "h1". */
     alias: string;
-    /** Already-qualified SQL ref of the FK column on the LEFT side
-     *  (the leaf's full table name on hop 1, the previous hop's alias after that). */
-    leftRef: string;
-    /** Column on the joined table the FK points to (its PK), e.g. "ID". */
-    rightColumn: string;
+    /** The join condition as one-or-more column-pairs ANDed together (the FK "bundle"): for each
+     *  pair, the already-qualified FK ref on the LEFT side (the leaf's full table name on hop 1,
+     *  the previous hop's alias after that) matched to the joined table's referenced column. A
+     *  single-column FK is one pair; a COMPOSITE FK is N — all must match, so each child row maps
+     *  to exactly one parent (no fan-out). */
+    on: { leftRef: string; rightColumn: string }[];
 }
 
 /**
@@ -115,7 +116,9 @@ export function buildFactorSql(spec: CompiledFactorSpec): string {
 
     const from = [`FROM ${spec.relatedTable}`];
     for (const j of joins) {
-        from.push(`JOIN ${j.table} ${j.alias} ON ${j.leftRef} = ${j.alias}.[${j.rightColumn}]`);
+        // AND every column-pair in the FK bundle — single-column = one pair, composite = N.
+        const cond = j.on.map((p) => `${p.leftRef} = ${j.alias}.[${p.rightColumn}]`).join(" AND ");
+        from.push(`JOIN ${j.table} ${j.alias} ON ${cond}`);
     }
     from.push(`JOIN OPENJSON(@anchorKeys) WITH (${withCols}) k ON ${keyJoinOn}`);
     // Per-anchor windows (SinceEvent/RenewalRelative) read a date off the anchor row, so the anchor
