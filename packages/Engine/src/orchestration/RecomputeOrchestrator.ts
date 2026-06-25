@@ -12,6 +12,7 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
+import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
 import { createActionRunner } from "../factors/actionRunner";
 import {
     NormalizationEngine,
@@ -84,7 +85,7 @@ export class RecomputeOrchestrator {
     ): Promise<Map<string, ScoreResult>> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
-        return this.computeForModel(model, asOf, contextUser);
+        return (await this.computeForModel(model, asOf, contextUser)).scores;
     }
 
     /**
@@ -102,12 +103,12 @@ export class RecomputeOrchestrator {
     ): Promise<FactorPreviewResult> {
         const empty: FactorPreviewResult = { membersWithData: 0, sampleAnchorId: null, sampleRawValue: null, sampleStrength: null };
         const model = await this.loadModel(modelId, contextUser);
-        const anchorIds = await this.resolvePopulation(model, contextUser);
-        if (anchorIds.length === 0) return empty;
+        const anchors = await this.resolvePopulation(model, contextUser);
+        if (anchors.length === 0) return empty;
 
         const factor = await this.buildDraftFactor(model, draft, contextUser);
         const evaluator = await this.compiler.compile(factor, contextUser);
-        const results = await evaluator.evaluateBatch(anchorIds, asOf, { contextUser });
+        const results = await evaluator.evaluateBatch(anchors, asOf, { contextUser });
         this.normalizer.normalize(this.resolveNormalizationSpec(factor), results);
         return this.summarizeFactorPreview(results);
     }
@@ -180,7 +181,7 @@ export class RecomputeOrchestrator {
 
         const run = await this.startRun(model, contextUser);
         try {
-            const scores = await this.computeForModel(model, asOf, contextUser);
+            const { scores, anchorKeys } = await this.computeForModel(model, asOf, contextUser);
             const recordsScored = await this.writer.write(
                 model,
                 model.CurrentVersionID,
@@ -188,6 +189,7 @@ export class RecomputeOrchestrator {
                 asOf,
                 contextUser,
                 run.ID,
+                anchorKeys,
             );
             await this.finishRun(run, "Succeeded", recordsScored);
             return { runId: run.ID, status: "Succeeded", recordsScored };
@@ -202,26 +204,28 @@ export class RecomputeOrchestrator {
         }
     }
 
-    /** The shared pipeline: population → evaluate + normalize each factor → combine. */
+    /** The shared pipeline: population → evaluate + normalize each factor → combine. Returns the
+     *  scores AND the resolved AnchorKeys (so the writer can persist AnchorRecordKeyJSON). */
     private async computeForModel(
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
         contextUser: UserInfo,
-    ): Promise<Map<string, ScoreResult>> {
-        const anchorIds = await this.resolvePopulation(model, contextUser);
-        if (anchorIds.length === 0) {
-            return new Map();
+    ): Promise<{ scores: Map<string, ScoreResult>; anchorKeys: AnchorKey[] }> {
+        const anchorKeys = await this.resolvePopulation(model, contextUser);
+        if (anchorKeys.length === 0) {
+            return { scores: new Map(), anchorKeys };
         }
         const ctx: FactorEvaluationContext = { contextUser };
         const factors = await this.buildWeightedFactors(
             model,
-            anchorIds,
+            anchorKeys,
             asOf,
             ctx,
             contextUser,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
-        return this.scorer.score(scoringSpec, factors, anchorIds);
+        const scores = this.scorer.score(scoringSpec, factors, anchorKeys.map((a) => a.id));
+        return { scores, anchorKeys };
     }
 
     /** Open a ScoreRecomputeRun in the Running state. */
@@ -291,11 +295,12 @@ export class RecomputeOrchestrator {
         }
     }
 
-    /** The set of anchor record IDs to score (v1: every record of the anchor entity). */
+    /** The population to score (v1: every record of the anchor entity), each as an AnchorKey built
+     *  from the anchor's full primary key — so single- AND composite-PK anchors are both supported. */
     private async resolvePopulation(
         model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
-    ): Promise<string[]> {
+    ): Promise<AnchorKey[]> {
         const md = new Metadata();
         const anchorEntity = md.EntityByID(model.AnchorEntityID);
         if (!anchorEntity) {
@@ -303,30 +308,30 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
-        // Reject composite keys here, where the limitation originates, rather than letting them
-        // truncate to PrimaryKeys[0] and surface obscurely later.
-        if (anchorEntity.PrimaryKeys.length !== 1) {
-            throw new Error(
-                `RecomputeOrchestrator: anchor entity '${anchorEntity.Name}' has a ${anchorEntity.PrimaryKeys.length}-column primary key; only single-column primary keys are supported.`,
-            );
-        }
-        const pk = anchorEntity.PrimaryKeys[0].Name;
+        const pkFields = anchorEntity.PrimaryKeys.map((pk) => pk.Name);
         const extraFilter = this.compilePopulationFilter(model, anchorEntity);
         const rv = new RunView();
-        const result = await rv.RunView<Record<string, string>>(
+        // Record<string, unknown> (not string): an anchor PK can be int/uuid/string, and CompositeKey
+        // preserves each value's type — so the row map must not pre-coerce everything to string.
+        const result = await rv.RunView<Record<string, unknown>>(
             {
                 EntityName: anchorEntity.Name,
                 ResultType: "simple",
-                Fields: [pk],
+                Fields: pkFields,
                 ExtraFilter: extraFilter ?? undefined,
                 // Score the WHOLE population — RunView otherwise caps at the entity's
                 // UserViewMaxRows (1000), which would silently leave most members unscored.
-                // (A future scale path batches/paginates; for now we resolve all anchor IDs.)
+                // (A future scale path batches/paginates; for now we resolve all anchor keys.)
                 IgnoreMaxRows: true,
             },
             contextUser,
         );
-        return result.Success ? (result.Results ?? []).map((r) => r[pk]) : [];
+        if (!result.Success) {
+            return [];
+        }
+        return (result.Results ?? []).map((row) =>
+            toAnchorKey(compositeKeyForRow(anchorEntity, row)),
+        );
     }
 
     /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
@@ -356,7 +361,7 @@ export class RecomputeOrchestrator {
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
     private async buildWeightedFactors(
         model: mjBizAppsSonarScoreModelEntity,
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
         contextUser: UserInfo,
@@ -383,7 +388,7 @@ export class RecomputeOrchestrator {
                 );
             }
             const evaluator = await this.compiler.compile(factor, contextUser);
-            const results = await evaluator.evaluateBatch(anchorIds, asOf, ctx);
+            const results = await evaluator.evaluateBatch(anchors, asOf, ctx);
             this.normalizer.normalize(
                 this.resolveNormalizationSpec(factor),
                 results,

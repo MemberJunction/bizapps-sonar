@@ -7,7 +7,7 @@ import {
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
 import { ActionFactorEvaluator, ActionFactorSpec, ActionRunner, DEFAULT_MAX_CONCURRENCY, parseActionParams } from "./ActionFactorEvaluator";
-import { CompiledFactorSpec, CompiledJoin, CompiledWindow, buildAggregateExpression, windowNeedsAnchorJoin } from "./factorSql";
+import { AnchorKeyColumn, CompiledFactorSpec, CompiledJoin, CompiledWindow, buildAggregateExpression, windowNeedsAnchorJoin } from "./factorSql";
 import {
     CompiledFilter,
     CompositeFilterDescriptor,
@@ -182,7 +182,7 @@ export class FactorCompiler {
         );
         // Resolve the path from the leaf (measure) entity to the anchor: single-hop (leaf has a
         // direct FK to the anchor) or multi-hop (follow RelationshipPath, emitting JOINs).
-        const { joins, anchorKeyColumn } = this.resolveJoinPath(
+        const { joins, anchorKeyColumns } = this.resolveJoinPath(
             leafEntity,
             relationshipPath,
             factor.AnchorEntityID,
@@ -197,7 +197,7 @@ export class FactorCompiler {
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
             relatedTable: `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`,
-            anchorKeyColumn,
+            anchorKeyColumns,
             joins,
             window,
             anchorTable: anchorJoin.table,
@@ -340,7 +340,7 @@ export class FactorCompiler {
         leafEntity: EntityInfo,
         relationshipPath: string | null,
         anchorEntityID: string,
-    ): { joins: CompiledJoin[]; anchorKeyColumn: string } {
+    ): { joins: CompiledJoin[]; anchorKeyColumns: AnchorKeyColumn[] } {
         let hops = parseRelationshipPath(relationshipPath);
         // No explicit path + no direct FK to the anchor → try to discover the path automatically.
         if (
@@ -356,7 +356,7 @@ export class FactorCompiler {
         if (hops.length === 0) {
             return {
                 joins: [],
-                anchorKeyColumn: this.resolveAnchorKeyColumn(leafEntity, anchorEntityID),
+                anchorKeyColumns: this.resolveAnchorKeyColumns(leafEntity, anchorEntityID),
             };
         }
         const md = new Metadata();
@@ -401,28 +401,65 @@ export class FactorCompiler {
         // After the chain, `current` is the anchor-adjacent entity — it holds the FK to the anchor.
         return {
             joins,
-            anchorKeyColumn: this.resolveAnchorKeyColumn(current, anchorEntityID),
+            anchorKeyColumns: this.resolveAnchorKeyColumns(current, anchorEntityID),
         };
     }
 
     /**
-     * The column on the related table that points back to the anchor, found via MJ's
-     * foreign-key metadata: the related entity's field whose RelatedEntityID is the anchor.
-     * Exactly one is expected — zero or several is ambiguous and unsupported in v1.
+     * The FK column(s) on the related table that point back to the anchor, resolved from MJ's
+     * foreign-key metadata. Returns one entry per anchor primary-key column, ordered to match the
+     * anchor PK (so it lines up with AnchorKey.values + the OPENJSON tuples):
+     *   - single-column anchor → the one field whose RelatedEntityID is the anchor;
+     *   - composite anchor → for each anchor PK column, the related field whose
+     *     RelatedEntityFieldName references it (a multi-column FK).
+     * Each column also carries its SQL type for the OPENJSON shred.
      */
-    private resolveAnchorKeyColumn(
+    private resolveAnchorKeyColumns(
         relatedEntity: EntityInfo,
         anchorEntityID: string,
-    ): string {
-        const foreignKeys = relatedEntity.Fields.filter(
+    ): AnchorKeyColumn[] {
+        const anchor = new Metadata().EntityByID(anchorEntityID);
+        if (!anchor) {
+            throw new Error(`FactorCompiler: anchor entity ${anchorEntityID} not found in metadata.`);
+        }
+        const fksToAnchor = relatedEntity.Fields.filter(
             (f) => f.RelatedEntityID === anchorEntityID,
         );
-        if (foreignKeys.length !== 1) {
-            throw new Error(
-                `FactorCompiler: expected exactly one foreign key from '${relatedEntity.Name}' to the anchor entity, found ${foreignKeys.length}.`,
-            );
+        if (anchor.PrimaryKeys.length === 1) {
+            if (fksToAnchor.length !== 1) {
+                throw new Error(
+                    `FactorCompiler: expected exactly one foreign key from '${relatedEntity.Name}' to the anchor entity, found ${fksToAnchor.length}.`,
+                );
+            }
+            return [{ fkColumn: fksToAnchor[0].Name, sqlType: this.sqlTypeForField(fksToAnchor[0]) }];
         }
-        return foreignKeys[0].Name;
+        // Composite anchor: match each anchor PK column to the related FK field that references it,
+        // preserving anchor PK order so the JOIN tuple lines up with AnchorKey.values.
+        return anchor.PrimaryKeys.map((pk) => {
+            const fk = fksToAnchor.find(
+                (f) => (f.RelatedEntityFieldName ?? "").toLowerCase() === pk.Name.toLowerCase(),
+            );
+            if (!fk) {
+                throw new Error(
+                    `FactorCompiler: '${relatedEntity.Name}' has no foreign-key column referencing anchor primary-key column '${pk.Name}' — a composite anchor needs a full multi-column FK.`,
+                );
+            }
+            return { fkColumn: fk.Name, sqlType: this.sqlTypeForField(fk) };
+        });
+    }
+
+    /**
+     * SQL type for an FK column's OPENJSON WITH declaration. Keys are uniqueidentifier / int-family /
+     * string in practice; fixed types pass through, variable-length string types use nvarchar(450)
+     * (ample for any key, and the JOIN comparison is unaffected). Anything else → nvarchar(450).
+     */
+    private sqlTypeForField(field: { Type: string }): string {
+        const t = (field.Type ?? "").toLowerCase();
+        const passthrough = new Set([
+            "uniqueidentifier", "int", "bigint", "smallint", "tinyint", "bit",
+            "date", "datetime", "datetime2",
+        ]);
+        return passthrough.has(t) ? t : "nvarchar(450)";
     }
 
     /**

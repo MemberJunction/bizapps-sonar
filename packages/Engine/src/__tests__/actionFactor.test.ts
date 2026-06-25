@@ -6,9 +6,14 @@ import {
     parseActionParams,
 } from "../factors/ActionFactorEvaluator";
 import type { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
+import type { AnchorKey } from "../factors/anchorKey";
 
 const ctx = {} as FactorEvaluationContext;
 const asOf = new Date("2026-06-23T00:00:00Z");
+
+/** Wrap bare ids as single-column AnchorKeys (id = value) for the evaluator's signature. */
+const keys = (...ids: string[]): AnchorKey[] =>
+    ids.map((id) => ({ id, json: JSON.stringify([{ FieldName: "ID", Value: id }]), values: [id] }));
 
 function spec(overrides: Partial<ActionFactorSpec> = {}): ActionFactorSpec {
     return {
@@ -61,7 +66,7 @@ describe("ActionFactorEvaluator", () => {
             explanation: `ran for ${anchorId}`,
         });
         const out = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(
-            ["m1", "m2"],
+            keys("m1", "m2"),
             asOf,
             ctx,
         );
@@ -75,7 +80,7 @@ describe("ActionFactorEvaluator", () => {
             explanation: "",
         });
         const out = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(
-            ["m1", "m2", "m3"],
+            keys("m1", "m2", "m3"),
             asOf,
             ctx,
         );
@@ -90,7 +95,7 @@ describe("ActionFactorEvaluator", () => {
             return { rawValue: 1, explanation: "" };
         };
         const out = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(
-            ["good", "bad"],
+            keys("good", "bad"),
             asOf,
             ctx,
         );
@@ -110,7 +115,7 @@ describe("ActionFactorEvaluator", () => {
         };
         const ids = Array.from({ length: 20 }, (_, i) => String(i + 1));
         const out = await new ActionFactorEvaluator(spec({ maxConcurrency: 4 }), runner).evaluateBatch(
-            ids,
+            keys(...ids),
             asOf,
             ctx,
         );

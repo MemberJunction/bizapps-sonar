@@ -8,6 +8,7 @@ import {
     mjBizAppsSonarScoreBandTransitionEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
+import type { AnchorKey } from "../factors/anchorKey";
 
 /**
  * Persists a run's computed scores. Each anchor's Score is upserted (one current row per
@@ -27,10 +28,14 @@ export class ScoreWriter {
         asOf: Date,
         contextUser: UserInfo,
         runId?: string,
+        anchorKeys?: AnchorKey[],
     ): Promise<number> {
         if (scores.size === 0) {
             return 0;
         }
+        // id → structured key JSON, so each persisted Score records its full (possibly composite)
+        // anchor key in AnchorRecordKeyJSON (type- + order-faithful round-trip).
+        const keyJsonById = new Map((anchorKeys ?? []).map((k) => [k.id, k.json]));
         const existing = await this.loadExistingScores(model, contextUser);
         await this.clearOldContributions(model, contextUser);
 
@@ -57,7 +62,8 @@ export class ScoreWriter {
             const prevBand = baseline?.band ?? null;
 
             const score = prior ?? (await this.newScore(contextUser));
-            this.applyScore(score, model, versionId, anchorRecordId, asOf, result, prevScore, prevBand);
+            const keyJson = keyJsonById.get(anchorRecordId) ?? null;
+            this.applyScore(score, model, versionId, anchorRecordId, keyJson, asOf, result, prevScore, prevBand);
             if (!(await score.Save())) {
                 LogError(
                     `ScoreWriter: failed to save Score for anchor ${anchorRecordId}: ${score.LatestResult?.CompleteMessage ?? "unknown"}`,
@@ -181,6 +187,7 @@ export class ScoreWriter {
         model: mjBizAppsSonarScoreModelEntity,
         versionId: string,
         anchorRecordId: string,
+        anchorRecordKeyJSON: string | null,
         asOf: Date,
         result: ScoreResult,
         prevScore: number | null,
@@ -190,6 +197,7 @@ export class ScoreWriter {
         score.ScoreModelVersionID = versionId;
         score.AnchorEntityID = model.AnchorEntityID;
         score.AnchorRecordID = anchorRecordId;
+        score.AnchorRecordKeyJSON = anchorRecordKeyJSON;
         score.RawScore = result.rawScore;
         score.NormalizedScore = result.normalizedScore;
         score.BandID = result.bandId;

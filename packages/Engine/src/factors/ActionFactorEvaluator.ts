@@ -3,6 +3,7 @@ import {
     FactorResult,
     IFactorEvaluator,
 } from "../contracts/IFactorEvaluator";
+import type { AnchorKey } from "./anchorKey";
 
 /**
  * Action-backed factors — the escape hatch (plan §5.2, §7.2). When a signal can't be expressed
@@ -119,12 +120,12 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
     ) {}
 
     public async evaluateBatch(
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
     ): Promise<Map<string, FactorResult>> {
         const out = new Map<string, FactorResult>();
-        if (anchorIds.length === 0) {
+        if (anchors.length === 0) {
             return out;
         }
         // Bounded fan-out: a fixed pool of workers pulls anchors off a shared cursor. (next++ is
@@ -132,8 +133,9 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
         const limit = Math.max(1, this.spec.maxConcurrency);
         let next = 0;
         const worker = async (): Promise<void> => {
-            while (next < anchorIds.length) {
-                const anchorId = anchorIds[next++];
+            while (next < anchors.length) {
+                // The Action's anchor param is the canonical id (single-column = the bare value).
+                const anchorId = anchors[next++].id;
                 const result = await this.evaluateOne(anchorId, asOf, ctx);
                 // Only anchors with a value get an entry; an absent anchor = "no data", handled by
                 // the model's MissingDataPolicy — same convention as the declarative evaluator.
@@ -148,7 +150,7 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
             }
         };
         await Promise.all(
-            Array.from({ length: Math.min(limit, anchorIds.length) }, worker),
+            Array.from({ length: Math.min(limit, anchors.length) }, worker),
         );
         return out;
     }

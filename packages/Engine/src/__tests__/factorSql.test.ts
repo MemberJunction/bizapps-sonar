@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
     buildAggregateExpression,
+    buildAnchorKeysJson,
     buildFactorSql,
     mapAggregateRows,
     CompiledFactorSpec,
@@ -10,34 +11,37 @@ import {
 const windowedSpec: CompiledFactorSpec = {
     factorId: "fac-100",
     relatedTable: "[CRM].[Activity]",
-    anchorKeyColumn: "MemberID",
+    anchorKeyColumns: [{ fkColumn: "MemberID", sqlType: "uniqueidentifier" }],
     window: { kind: "Rolling", dateColumn: "ActivityDate", lengthDays: 90, lengthMonths: null },
     aggregateSql: "COUNT(*)",
 };
 
 describe("buildFactorSql", () => {
-    it("builds a windowed count query with inlined anchor ids", () => {
-        const sql = buildFactorSql(windowedSpec, ["m1", "m2"]);
+    it("builds a windowed count query keyed off the OPENJSON population", () => {
+        const sql = buildFactorSql(windowedSpec);
 
-        expect(sql).toContain(
-            "SELECT [MemberID] AS anchorId, COUNT(*) AS rawValue",
-        );
+        expect(sql).toContain("SELECT k.id AS anchorId, COUNT(*) AS rawValue");
         expect(sql).toContain("FROM [CRM].[Activity]");
-        expect(sql).toContain("[MemberID] IN ('m1','m2')");
+        // Population rides as one @anchorKeys JSON param, shredded by OPENJSON + joined on the FK —
+        // no inline IN list (no ~2100-param ceiling, no value interpolation).
+        expect(sql).toContain(
+            "JOIN OPENJSON(@anchorKeys) WITH (id NVARCHAR(100) '$.id', v0 uniqueidentifier '$.v0') k ON [CRM].[Activity].[MemberID] = k.v0",
+        );
+        expect(sql).not.toContain("IN (");
         expect(sql).toContain("[ActivityDate] > DATEADD(day, -90, @asOf)");
         expect(sql).toContain("[ActivityDate] <= @asOf");
-        expect(sql).toContain("GROUP BY [MemberID]");
-        // No per-anchor window → no anchor join.
-        expect(sql).not.toContain("JOIN");
+        expect(sql).toContain("GROUP BY k.id");
     });
 
-    it("omits the date predicates when there is no window", () => {
+    it("omits the date predicates (and the WHERE) when there is no window", () => {
         const noWindow: CompiledFactorSpec = { ...windowedSpec, window: null };
-        const sql = buildFactorSql(noWindow, ["m1"]);
+        const sql = buildFactorSql(noWindow);
 
         expect(sql).not.toContain("DATEADD");
         expect(sql).not.toContain("ActivityDate");
-        expect(sql).toContain("[MemberID] IN ('m1')");
+        expect(sql).not.toContain("WHERE");
+        expect(sql).toContain("JOIN OPENJSON(@anchorKeys)");
+        expect(sql).toContain("GROUP BY k.id");
     });
 
     it("uses DATEADD month for a rolling window measured in months", () => {
@@ -45,7 +49,7 @@ describe("buildFactorSql", () => {
             ...windowedSpec,
             window: { kind: "Rolling", dateColumn: "ActivityDate", lengthDays: null, lengthMonths: 12 },
         };
-        const sql = buildFactorSql(monthly, ["m1"]);
+        const sql = buildFactorSql(monthly);
 
         expect(sql).toContain("[ActivityDate] > DATEADD(month, -12, @asOf)");
         expect(sql).toContain("[ActivityDate] <= @asOf");
@@ -58,10 +62,10 @@ describe("buildFactorSql", () => {
             ["year", "DATEFROMPARTS(YEAR(@asOf), 1, 1)"],
         ];
         for (const [period, start] of cases) {
-            const sql = buildFactorSql(
-                { ...windowedSpec, window: { kind: "Calendar", dateColumn: "ActivityDate", period } },
-                ["m1"],
-            );
+            const sql = buildFactorSql({
+                ...windowedSpec,
+                window: { kind: "Calendar", dateColumn: "ActivityDate", period },
+            });
             expect(sql).toContain(`[ActivityDate] >= ${start}`);
             expect(sql).toContain("[ActivityDate] <= @asOf");
         }
@@ -74,9 +78,9 @@ describe("buildFactorSql", () => {
             anchorTable: "[membership].[Member]",
             anchorPkColumn: "ID",
         };
-        const sql = buildFactorSql(sinceEvent, ["m1"]);
+        const sql = buildFactorSql(sinceEvent);
 
-        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [MemberID]");
+        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [CRM].[Activity].[MemberID]");
         expect(sql).toContain("[ActivityDate] >= DATEADD(day, 0, a.[JoinDate])");
         expect(sql).toContain("[ActivityDate] <= @asOf");
     });
@@ -88,12 +92,44 @@ describe("buildFactorSql", () => {
             anchorTable: "[membership].[Member]",
             anchorPkColumn: "ID",
         };
-        const sql = buildFactorSql(renewal, ["m1"]);
+        const sql = buildFactorSql(renewal);
 
-        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [MemberID]");
+        expect(sql).toContain("JOIN [membership].[Member] a ON a.[ID] = [CRM].[Activity].[MemberID]");
         expect(sql).toContain("[ActivityDate] >= DATEADD(day, -90, a.[RenewalDate])");
         expect(sql).toContain("[ActivityDate] <= a.[RenewalDate]");
         expect(sql).toContain("[ActivityDate] <= @asOf");
+    });
+
+    it("shreds a composite (multi-column) anchor key with one OPENJSON column + JOIN clause each", () => {
+        const composite: CompiledFactorSpec = {
+            ...windowedSpec,
+            window: null,
+            anchorKeyColumns: [
+                { fkColumn: "MemberID", sqlType: "int" },
+                { fkColumn: "OrgID", sqlType: "int" },
+            ],
+        };
+        const sql = buildFactorSql(composite);
+
+        expect(sql).toContain(
+            "JOIN OPENJSON(@anchorKeys) WITH (id NVARCHAR(100) '$.id', v0 int '$.v0', v1 int '$.v1') k " +
+                "ON [CRM].[Activity].[MemberID] = k.v0 AND [CRM].[Activity].[OrgID] = k.v1",
+        );
+        expect(sql).toContain("GROUP BY k.id");
+    });
+});
+
+describe("buildAnchorKeysJson", () => {
+    it("serializes each anchor to { id, v0..vn } in key order (single + composite)", () => {
+        const json = buildAnchorKeysJson([
+            { id: "m1", json: '[{"FieldName":"ID","Value":"m1"}]', values: ["m1"] },
+            { id: "5|10", json: '[{"FieldName":"MemberID","Value":5},{"FieldName":"OrgID","Value":10}]', values: [5, 10] },
+        ]);
+
+        expect(JSON.parse(json)).toEqual([
+            { id: "m1", v0: "m1" },
+            { id: "5|10", v0: 5, v1: 10 },
+        ]);
     });
 });
 
@@ -200,7 +236,7 @@ describe("buildFactorSql — multi-hop joins", () => {
     const emailClicks: CompiledFactorSpec = {
         factorId: "fac-mh",
         relatedTable: "[comm].[EmailClick]",
-        anchorKeyColumn: "MemberID",
+        anchorKeyColumns: [{ fkColumn: "MemberID", sqlType: "uniqueidentifier" }],
         joins: [
             {
                 table: "[comm].[EmailSend]",
@@ -213,16 +249,18 @@ describe("buildFactorSql — multi-hop joins", () => {
         aggregateSql: "COUNT(*)",
     };
 
-    it("emits the intervening JOIN and qualifies the anchor key by the last hop's alias", () => {
-        const sql = buildFactorSql(emailClicks, ["m1", "m2"]);
+    it("emits the intervening JOIN and keys the population off the last hop's alias", () => {
+        const sql = buildFactorSql(emailClicks);
 
-        expect(sql).toContain("SELECT h1.[MemberID] AS anchorId, COUNT(*) AS rawValue");
+        expect(sql).toContain("SELECT k.id AS anchorId, COUNT(*) AS rawValue");
         expect(sql).toContain("FROM [comm].[EmailClick]");
         expect(sql).toContain(
             "JOIN [comm].[EmailSend] h1 ON [comm].[EmailClick].[EmailSendID] = h1.[ID]",
         );
-        expect(sql).toContain("h1.[MemberID] IN ('m1','m2')");
-        expect(sql).toContain("GROUP BY h1.[MemberID]");
+        expect(sql).toContain(
+            "JOIN OPENJSON(@anchorKeys) WITH (id NVARCHAR(100) '$.id', v0 uniqueidentifier '$.v0') k ON h1.[MemberID] = k.v0",
+        );
+        expect(sql).toContain("GROUP BY k.id");
     });
 
     it("chains hops: each later hop joins off the previous alias, key on the last", () => {
@@ -242,20 +280,13 @@ describe("buildFactorSql — multi-hop joins", () => {
                     rightColumn: "ID",
                 },
             ],
-            anchorKeyColumn: "OwnerMemberID",
+            anchorKeyColumns: [{ fkColumn: "OwnerMemberID", sqlType: "uniqueidentifier" }],
         };
-        const sql = buildFactorSql(twoHop, ["m1"]);
+        const sql = buildFactorSql(twoHop);
 
         expect(sql).toContain("JOIN [comm].[EmailSend] h1 ON [comm].[EmailClick].[EmailSendID] = h1.[ID]");
         expect(sql).toContain("JOIN [comm].[Campaign] h2 ON h1.[CampaignID] = h2.[ID]");
-        expect(sql).toContain("GROUP BY h2.[OwnerMemberID]");
-    });
-
-    it("single-hop spec (no joins) is unchanged — bare anchor key, no JOIN", () => {
-        const sql = buildFactorSql({ ...emailClicks, joins: [] }, ["m1"]);
-
-        expect(sql).toContain("SELECT [MemberID] AS anchorId");
-        expect(sql).toContain("GROUP BY [MemberID]");
-        expect(sql).not.toContain("JOIN");
+        expect(sql).toContain("ON h2.[OwnerMemberID] = k.v0");
+        expect(sql).toContain("GROUP BY k.id");
     });
 });

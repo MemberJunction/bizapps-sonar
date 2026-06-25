@@ -1,5 +1,18 @@
 import type { FactorResult } from "../contracts/IFactorEvaluator";
 import type { FilterValue } from "./filter";
+import type { AnchorKey } from "./anchorKey";
+
+/**
+ * One column of the anchor's (possibly composite) key, as seen from the related side: the FK column
+ * on the anchor-adjacent table + its SQL type for the OPENJSON shred. Order matches AnchorKey.values
+ * and the anchor entity's primary-key order.
+ */
+export interface AnchorKeyColumn {
+    /** FK column on the related/last-join table that points at this anchor PK column. */
+    fkColumn: string;
+    /** SQL type for the OPENJSON WITH declaration (e.g. "uniqueidentifier", "int", "nvarchar(450)"). */
+    sqlType: string;
+}
 
 /**
  * A compiled time window — the date bound applied to the related table's activity-date column.
@@ -52,9 +65,10 @@ export interface CompiledFactorSpec {
     factorId: string;
     /** Fully-qualified related (leaf/measure) table, already bracket-quoted, e.g. "[CRM].[Activity]". */
     relatedTable: string;
-    /** The column holding the anchor FK (the GROUP BY / IN key). Single-hop: on `relatedTable`.
-     *  Multi-hop: on the last `joins` entry's table (qualified by that alias). */
-    anchorKeyColumn: string;
+    /** The anchor FK column(s) the population key JOINs on — one entry for a single-column anchor,
+     *  N for a composite key (ordered to match the anchor PK). On `relatedTable` for single-hop,
+     *  on the last `joins` entry's table for multi-hop. */
+    anchorKeyColumns: AnchorKeyColumn[];
     /** Intermediate JOINs from the leaf toward the anchor (multi-hop). Empty/absent = single-hop. */
     joins?: CompiledJoin[];
     /** The compiled time window, or null for "no time bound" (AllTime / no window). */
@@ -77,45 +91,71 @@ export interface AggregateRow {
 }
 
 /**
- * Build the aggregation query for a compiled factor. Pure: (spec, anchorIds) → SQL string.
- * anchorIds are inlined as a quoted UUID list (safe — they are GUIDs); asOf is passed as
- * the @asOf parameter and the window start is derived in-SQL via DATEADD so we never
- * format dates by hand.
- * TODO: swap the inline IN list for a table-valued parameter once populations are large
- * (the inline list hits SQL Server's ~2100-parameter / statement-size limits).
+ * Build the aggregation query for a compiled factor. Pure: (spec) → SQL string. The population's
+ * key tuples ride in as ONE `@anchorKeys` JSON parameter (see {@link buildAnchorKeysJson}); OPENJSON
+ * shreds it into an `(id, v0..vn)` rowset that the query JOINs on the anchor FK column(s). This works
+ * for single- AND multi-column (composite) anchors with no ~2100-parameter / statement-size ceiling
+ * and no string interpolation of values (so no injection surface). `asOf` is the `@asOf` parameter;
+ * window starts are derived in-SQL via DATEADD.
  */
-export function buildFactorSql(
-    spec: CompiledFactorSpec,
-    anchorIds: string[],
-): string {
-    const idList = anchorIds.map((id) => `'${String(id).replace(/'/g, "''")}'`).join(",");
+export function buildFactorSql(spec: CompiledFactorSpec): string {
     const joins = spec.joins ?? [];
-    // Multi-hop: the anchor FK lives on the last joined (anchor-adjacent) table, so qualify the
-    // key by that alias. Single-hop: it's a bare column on the leaf table. (Leaf columns used by
-    // the aggregate/filter/window stay bare — multi-hop v1 assumes leaf column names don't
-    // collide with the joined tables'; SQL Server fails loud on an ambiguous column if they do.)
-    const key = joins.length
-        ? `${joins[joins.length - 1].alias}.[${spec.anchorKeyColumn}]`
-        : `[${spec.anchorKeyColumn}]`;
-    const where = [`${key} IN (${idList})`, ...windowClause(spec.window)];
-    if (spec.filterClause) {
-        where.push(spec.filterClause);
-    }
+    // The anchor FK lives on the last joined table (multi-hop) or the related table (single-hop).
+    // Single-hop is qualified by the related table's full name (no alias) so the multi-hop leftRefs
+    // — which reference that full name on hop 1 — keep resolving.
+    const keyQualifier = joins.length ? joins[joins.length - 1].alias : spec.relatedTable;
+
+    const withCols = [
+        "id NVARCHAR(100) '$.id'",
+        ...spec.anchorKeyColumns.map((c, i) => `v${i} ${c.sqlType} '$.v${i}'`),
+    ].join(", ");
+    const keyJoinOn = spec.anchorKeyColumns
+        .map((c, i) => `${keyQualifier}.[${c.fkColumn}] = k.v${i}`)
+        .join(" AND ");
+
     const from = [`FROM ${spec.relatedTable}`];
     for (const j of joins) {
         from.push(`JOIN ${j.table} ${j.alias} ON ${j.leftRef} = ${j.alias}.[${j.rightColumn}]`);
     }
-    // Per-anchor windows (SinceEvent/RenewalRelative) read a date off the anchor row, so the
-    // anchor table is joined as `a`. The FK→PK join is 1:1, so it never fans out the aggregate.
+    from.push(`JOIN OPENJSON(@anchorKeys) WITH (${withCols}) k ON ${keyJoinOn}`);
+    // Per-anchor windows (SinceEvent/RenewalRelative) read a date off the anchor row, so the anchor
+    // table is joined as `a` (single-column anchors only — composite + per-anchor window is unsupported
+    // and rejected upstream). The FK→PK join is 1:1, so it never fans out the aggregate.
     if (windowNeedsAnchorJoin(spec.window)) {
-        from.push(`JOIN ${spec.anchorTable} a ON a.[${spec.anchorPkColumn}] = ${key}`);
+        from.push(
+            `JOIN ${spec.anchorTable} a ON a.[${spec.anchorPkColumn}] = ${keyQualifier}.[${spec.anchorKeyColumns[0].fkColumn}]`,
+        );
+    }
+
+    const where = [...windowClause(spec.window)];
+    if (spec.filterClause) {
+        where.push(spec.filterClause);
     }
     return [
-        `SELECT ${key} AS anchorId, ${spec.aggregateSql} AS rawValue`,
+        `SELECT k.id AS anchorId, ${spec.aggregateSql} AS rawValue`,
         from.join("\n"),
-        `WHERE ${where.join(" AND ")}`,
-        `GROUP BY ${key}`,
-    ].join("\n");
+        where.length ? `WHERE ${where.join(" AND ")}` : "",
+        `GROUP BY k.id`,
+    ]
+        .filter((line) => line !== "")
+        .join("\n");
+}
+
+/**
+ * Serialize the population into the `@anchorKeys` JSON array OPENJSON consumes: each element is
+ * `{ id, v0, v1, … }` — the canonical id (for GROUP BY + result-map key) plus the per-column key
+ * values in primary-key order (for the JOIN). One parameter, regardless of population size.
+ */
+export function buildAnchorKeysJson(anchors: AnchorKey[]): string {
+    return JSON.stringify(
+        anchors.map((a) => {
+            const row: Record<string, string | number> = { id: a.id };
+            a.values.forEach((v, i) => {
+                row[`v${i}`] = v;
+            });
+            return row;
+        }),
+    );
 }
 
 /** The date predicate(s) for a window (per kind), or nothing when there is no window. */

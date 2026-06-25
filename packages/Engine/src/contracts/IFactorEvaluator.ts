@@ -1,4 +1,5 @@
 import { UserInfo, IMetadataProvider } from "@memberjunction/core";
+import type { AnchorKey } from "../factors/anchorKey";
 
 /**
  * Shared per-run context for factor evaluation — how an evaluator reaches data on the
@@ -45,13 +46,13 @@ export interface IFactorEvaluator {
      * Evaluate the factor across the whole population in a single set-based pass — never
      * per-record in a loop (plan §6.1 step 2).
      *
-     * @param anchorIds The anchor record UUIDs in scope for this run.
-     * @param asOf      The as-of instant for time-windowed evaluation.
-     * @param ctx       Shared per-run context (data access, provider).
-     * @returns anchorId → FactorResult; an anchor with no entry produced no data.
+     * @param anchors The anchor records in scope (CompositeKey-derived; supports composite PKs).
+     * @param asOf    The as-of instant for time-windowed evaluation.
+     * @param ctx     Shared per-run context (data access, provider).
+     * @returns anchorKey.id → FactorResult; an anchor with no entry produced no data.
      */
     evaluateBatch(
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
     ): Promise<Map<string, FactorResult>>;
