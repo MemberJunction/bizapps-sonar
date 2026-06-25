@@ -124,10 +124,15 @@ button, input, select, textarea {
     gap: 1.5rem;
     height: 100%;
     overflow: hidden;
+    /* Scroll floor (hybrid responsive): reflow down to ~768, then scroll horizontally rather than
+       crushing further — a workstation tool shouldn't reflow to a phone. min-width is on the
+       header+body below. */
+    overflow-x: auto;
     box-sizing: border-box;
     background: var(--sonar-bg);
 }
 
+.sonar-page__header, .sonar-page__body { min-width: 768px; }
 .sonar-page__header {
     width: 100%;
     max-width: var(--sonar-content-max);

@@ -857,34 +857,17 @@
     border-color: var(--sonar-accent);
 }
 
-/* ── Responsive breakpoints ────────────────────────────────────────────────── */
+/* ── Responsive: scroll-over-stack ─────────────────────────────────────────────
+   The cockpit keeps its 3-column workstation layout (it doesn't reflow to a stacked single column,
+   which read as awkward). Below ~1200 the side columns narrow; below the min-width the whole surface
+   scrolls horizontally (.sonar-page owns overflow-x) rather than crushing the rubric. */
 @media (max-width: 1200px) {
-    .sonar-cockpit {
+    .sonar-page__body.sonar-cockpit {
         grid-template-columns: 220px minmax(0, 1fr) 300px;
     }
 }
-@media (max-width: 960px) {
-    .sonar-cockpit {
-        grid-template-columns: minmax(0, 1fr);
-    }
-    .sonar-cockpit__sandbox {
-        display: none;
-    }
-    .sonar-cockpit__sandbox--mobile-hidden {
-        display: none !important;
-    }
-    .sonar-mobile-tab-bar { display: flex; }
-}
-@media (min-width: 961px) {
-    .sonar-cockpit__sandbox--mobile-hidden {
-        display: flex !important;
-    }
-}
-@media (max-width: 700px) {
-    .sonar-cockpit {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
+/* Floor: below this the surface pans instead of squeezing the middle deck to nothing. */
+.sonar-page__body.sonar-cockpit { min-width: 900px; }
 
 /* Mobile tab bar (hidden by default at ≥961px) */
 .sonar-mobile-tab-bar {

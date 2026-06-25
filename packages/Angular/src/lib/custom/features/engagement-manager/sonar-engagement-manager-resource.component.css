@@ -438,3 +438,8 @@
     background: transparent;
     border-color: var(--sonar-border);
 }
+
+/* Responsive (scroll-over-stack): the Engagement Manager is a multi-pane workstation — model rail +
+   triage nav + member drill-down. Rather than crush those panes at tablet, hold a comfortable
+   min-width and let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
+.sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
