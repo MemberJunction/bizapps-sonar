@@ -175,8 +175,11 @@
                                         <span class="sonar-srcsearch__chip" draggable="true"
                                               (dragstart)="onSourceDragStart(e.id, $event)"
                                               (click)="onAddSourceSelect(e.id)"
-                                              [attr.title]="'Drag or click to map ' + e.name">
+                                              [attr.title]="e.ambiguous ? ('Reachable several ways — you\'ll pick the path for ' + e.name) : ('Drag or click to map ' + e.name)">
                                             <i class="fa-solid fa-table"></i> {{ e.name }}
+                                            @if (e.ambiguous) {
+                                                <i class="fa-solid fa-code-branch sonar-srcsearch__tie" aria-label="multiple paths"></i>
+                                            }
                                         </span>
                                     } @empty {
                                         <span class="sonar-deck__empty-sm">{{ availableEntities().length === 0 ? 'All entities mapped.' : 'No matches.' }}</span>
@@ -403,7 +406,7 @@
     @if (activeView() !== 'rubric') {
         <div class="sonar-modal">
             <div class="sonar-modal__scrim" (click)="closeFactorBuilder()"></div>
-            <div class="sonar-modal__panel sonar-modal__panel--lg">
+            <div class="sonar-modal__panel sonar-modal__panel--lg" [class.sonar-modal__panel--xl]="activeView() === 'factor'">
                 @if (activeView() === 'newModel') {
                     <sonar-model-setup (created)="onModelCreated($event)" (close)="activeView.set('rubric')"></sonar-model-setup>
                 }

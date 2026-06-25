@@ -329,3 +329,81 @@
     border-top: 1px dashed var(--sonar-border);
     max-width: 240px;
 }
+
+/* In-context tie chooser — inline under the measure sentence (accent-tinted, draws the eye). */
+.sonar-fb__tie {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 35%, var(--sonar-border));
+    background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+    border-radius: var(--sonar-radius-sm);
+}
+.sonar-fb__tie-head { margin: 0 0 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.45; }
+.sonar-fb__tie-head i { color: var(--sonar-accent); margin-right: 0.35rem; }
+.sonar-fb__tie-options { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-tie__option { width: 100%; justify-content: flex-start; text-align: left; font-weight: 500; }
+.sonar-tie__option:hover { border-color: var(--sonar-accent); }
+
+/* ============================================================ Stepped 3-pane layout */
+/* Header is full-width above; below it: steps · config · persistent summary+preview. Sidebar and
+   rail are sticky so the steps + preview stay put while the middle config scrolls. Collapses to a
+   single stacked column (sidebar → horizontal chips) under 1100px (the §6 1075 acceptance gate). */
+/* Fill the fixed-height panel: header pinned on top, the panes take the rest. */
+.sonar-fb--stepped { height: 100%; display: flex; flex-direction: column; }
+.sonar-fb--stepped .sonar-fb__bar { flex: 0 0 auto; margin-bottom: 0; }
+
+.sonar-fb__panes {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) 320px;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+}
+
+/* LEFT — mode toggle + jumpable steps */
+.sonar-fb__steps { display: flex; flex-direction: column; gap: 1rem; align-self: start; }
+.sonar-segmented--vert { flex-direction: column; }
+.sonar-segmented--vert .sonar-segmented__opt { width: 100%; justify-content: flex-start; }
+.sonar-fb__steplist { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-step {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid transparent; border-radius: var(--sonar-radius-sm);
+    background: transparent; color: var(--sonar-muted);
+    font: inherit; font-weight: 600; font-size: var(--sonar-font-sm);
+    cursor: pointer; text-align: left;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.sonar-step:hover { background: var(--sonar-surface-sunken); color: var(--sonar-ink); }
+.sonar-step--active {
+    background: color-mix(in srgb, var(--sonar-accent) 10%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-accent) 30%, var(--sonar-border));
+    color: var(--sonar-ink);
+}
+.sonar-step__icon { width: 1.1rem; text-align: center; color: var(--sonar-faint); }
+.sonar-step--active .sonar-step__icon { color: var(--sonar-accent); }
+.sonar-step__label { flex: 1; }
+.sonar-step__check { color: var(--sonar-healthy); font-size: 0.78rem; }
+
+/* MIDDLE — the active step's config (min-width:0 lets the filter builder shrink/wrap, not overflow). */
+.sonar-fb__config { min-width: 0; min-height: 0; overflow-y: auto; padding-right: 0.25rem; display: flex; flex-direction: column; gap: 1rem; }
+
+/* RIGHT — persistent summary + live preview */
+.sonar-fb__rail { display: flex; flex-direction: column; gap: 1rem; align-self: start; }
+.sonar-fb__summary-name { margin: 0 0 0.5rem; font-size: var(--sonar-font-lg); font-weight: 700; color: var(--sonar-ink); }
+.sonar-fb__summary-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-fb__sum-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: var(--sonar-font-sm); }
+.sonar-fb__sum-val { color: var(--sonar-ink); text-align: right; }
+.sonar-fb__sum-detail { margin: 0.15rem 0 0.35rem; font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.45; }
+
+@media (max-width: 1100px) {
+    .sonar-fb__panes { grid-template-columns: 1fr; overflow-y: auto; }
+    /* stacked: the whole column scrolls, so the middle pane shouldn't scroll on its own */
+    .sonar-fb__config { overflow: visible; }
+    .sonar-fb__steps, .sonar-fb__rail { position: static; }
+    .sonar-segmented--vert { flex-direction: row; }
+    .sonar-fb__steplist { flex-direction: row; flex-wrap: wrap; }
+    .sonar-step { flex: 0 0 auto; }
+}

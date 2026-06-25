@@ -672,6 +672,17 @@ input[type="range"]::-moz-range-thumb:hover {
     max-height: 88vh;
     padding: 1.5rem;
 }
+/* Wider still — for the workstation-style builders (e.g. the 3-pane factor builder) that need
+   room for steps + config + a persistent preview rail. Degrades within the viewport on narrow screens. */
+.sonar-modal__panel--xl {
+    max-width: 1320px;
+    /* Stable height: the dialog doesn't resize as you switch steps. Inner content (the middle config
+       pane) owns its own scroll, so the panel itself never scrolls or grows. */
+    height: min(82vh, 800px);
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 1.5rem;
+}
 .sonar-modal__close-btn { line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--sonar-radius-sm); }
 .sonar-modal__close-btn:hover { background: var(--sonar-surface-sunken); }
 @keyframes sonar-modal-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }

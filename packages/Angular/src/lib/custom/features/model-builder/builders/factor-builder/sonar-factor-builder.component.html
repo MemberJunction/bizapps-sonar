@@ -1,5 +1,5 @@
-<div class="sonar-fb">
-    <!-- Header -->
+<div class="sonar-fb sonar-fb--stepped">
+    <!-- Header (full width) -->
     <div class="sonar-fb__bar">
         <div class="sonar-fb__title">
             <div class="sonar-fb__name-wrapper">
@@ -18,319 +18,363 @@
         </div>
     </div>
 
-    <!-- Mode toggle: measure data (declarative) vs run an action (custom signal) -->
-    <div class="sonar-segmented" role="tablist" aria-label="How this signal is computed">
-        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'data'"
-                [class.sonar-segmented__opt--active]="mode() === 'data'" (click)="onModeChange('data')">
-            <i class="fa-solid fa-table-cells"></i> Measure from data
-        </button>
-        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'action'"
-                [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
-            <i class="fa-solid fa-flask"></i> Custom signal
-        </button>
-    </div>
+    <!-- 3-pane workspace: steps · config · persistent summary+preview -->
+    <div class="sonar-fb__panes">
 
-    <!-- Quick Presets Row (data mode only — presets are declarative shortcuts) -->
-    @if (mode() === 'data') {
-        <div class="sonar-card sonar-presets-card">
-            <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
-            <div class="sonar-presets-row">
-                <button type="button" class="sonar-preset-btn" (click)="applyPreset('recent')">
-                    <i class="fa-solid fa-clock"></i> Recent Activity
+        <!-- LEFT: mode toggle (pinned) + jumpable step rail -->
+        <nav class="sonar-fb__steps" aria-label="Signal builder steps">
+            <div class="sonar-segmented sonar-segmented--vert" role="tablist" aria-label="How this signal is computed">
+                <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'data'"
+                        [class.sonar-segmented__opt--active]="mode() === 'data'" (click)="onModeChange('data')">
+                    <i class="fa-solid fa-table-cells"></i> Measure from data
                 </button>
-                <button type="button" class="sonar-preset-btn" (click)="applyPreset('volume')">
-                    <i class="fa-solid fa-calculator"></i> Lifetime Volume
-                </button>
-                <button type="button" class="sonar-preset-btn" (click)="applyPreset('peak')">
-                    <i class="fa-solid fa-chart-line"></i> Peak Spike
-                </button>
-                <button type="button" class="sonar-preset-btn" (click)="applyPreset('decay')">
-                    <i class="fa-solid fa-shield-halved"></i> Penalty Decay
+                <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'action'"
+                        [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
+                    <i class="fa-solid fa-flask"></i> Custom signal
                 </button>
             </div>
-        </div>
-    }
 
-    <div class="sonar-split">
-        <!-- LEFT: the composer (data mode) or the action picker (action mode) -->
-        <div class="sonar-stack">
-            @if (mode() === 'data') {
-                <section class="sonar-card">
-                    <div class="sonar-card__label">What should this signal measure?</div>
-
-                    <div class="sonar-sentence">
-                        <select class="sonar-token" [ngModel]="aggregation()" (ngModelChange)="aggregation.set($event)">
-                            @for (a of aggregations; track a) {
-                                <option [value]="a">{{ aggregationLabels[a] }}</option>
-                            }
-                        </select>
-
-                        @if (fieldRequired()) {
-                            <select class="sonar-token" [ngModel]="aggregateField()" (ngModelChange)="aggregateField.set($event)">
-                                <option value="" disabled>pick a value…</option>
-                                @for (f of aggregatableFields(); track f.name) {
-                                    <option [value]="f.name">{{ f.label }}</option>
-                                }
-                            </select>
-                        } @else {
-                            <span class="sonar-sentence__word">records</span>
-                        }
-
-                        in
-                        <select class="sonar-token sonar-token--entity" [ngModel]="sourceId()" (ngModelChange)="onSourceChange($event)">
-                            @for (s of selectableSources(); track s.id) {
-                                <option [value]="s.id">{{ s.label }}</option>
-                            }
-                        </select>
-                        <br />over
-                        <select class="sonar-token" [ngModel]="windowId()" (ngModelChange)="windowId.set($event)">
-                            @for (w of windows(); track w.id) {
-                                <option [value]="w.id">{{ w.name }}</option>
-                            }
-                        </select>
-                        — where more is
-                        <select class="sonar-token" [ngModel]="higherIsBetter()" (ngModelChange)="higherIsBetter.set($event)">
-                            <option [ngValue]="true">a good sign</option>
-                            <option [ngValue]="false">a warning sign</option>
-                        </select>.
-                    </div>
-
-                    @if (!fieldRequired()) {
-                        <p class="sonar-fb__hint">Counting just tallies the matching records — no value to pick.</p>
-                    }
-                    @if (sources().length === 0) {
-                        <p class="sonar-fb__hint">⚠ This model has no data sources yet — map one to start adding signals.</p>
-                    }
-                    @if (fieldRequired() && aggregatableFields().length === 0) {
-                        <p class="sonar-fb__hint">⚠ No numeric fields found on that source to {{ aggregationLabels[aggregation()] | lowercase }}.</p>
-                    }
-                </section>
-
-                <!-- Filter: narrow which source records count toward this signal -->
-                <section class="sonar-card">
-                    <div class="sonar-card__label">Only count records that match… <span class="sonar-faint">(optional)</span></div>
-                    <p class="sonar-fb__hint">
-                        Narrow which <strong class="sonar-ink">{{ selectedSource()?.label || 'source' }}</strong> records feed this
-                        signal — e.g. only <em>Donations</em>, or only events where <em>Attended is true</em>.
-                    </p>
-                    <mj-filter-builder
-                        [fields]="filterFields()"
-                        [filter]="filter()"
-                        [showSummary]="true"
-                        (filterChange)="onFilterChange($event)">
-                    </mj-filter-builder>
-                </section>
-            } @else {
-                <!-- Action mode: pick a factor-action + configure its behavioral params -->
-                <section class="sonar-card">
-                    <div class="sonar-card__head">
-                        <div class="sonar-card__label">Which custom signal?</div>
-                        @if (selectedAction()) {
-                            <span class="sonar-chip" [class.sonar-chip--healthy]="promotionState() === 'Approved'">
-                                {{ promotionState() === 'Approved' ? 'Approved' : promotionState() }}
-                            </span>
-                        }
-                    </div>
-                    <p class="sonar-fb__hint">
-                        A custom signal runs an Action to produce each member's number — for logic plain
-                        aggregation can't express (streaks, decay, AI). Its data source is baked into the action,
-                        so there's no entity, field, or window to pick here.
-                    </p>
-
-                    @if (actions().length === 0) {
-                        <p class="sonar-fb__hint">⚠ No factor-actions are registered yet. An action qualifies when it declares an <span class="sonar-mono">AnchorRecordID</span> input and a <span class="sonar-mono">Value</span> output.</p>
-                    } @else {
-                        <select class="sonar-input sonar-fb__action-select" [ngModel]="actionId()" (ngModelChange)="onActionChange($event)">
-                            <option [ngValue]="null" disabled>Pick an action…</option>
-                            @for (a of actions(); track a.id) {
-                                <option [ngValue]="a.id">{{ a.name }}</option>
-                            }
-                        </select>
-
-                        @if (selectedAction(); as act) {
-                            @if (act.description) {
-                                <p class="sonar-fb__hint">{{ act.description }}</p>
-                            }
-
-                            <!-- What this signal does — the contract, so it's not a black box -->
-                            <div class="sonar-fb__contract">
-                                <div class="sonar-fb__contract-row">
-                                    <span class="sonar-fb__contract-label">Measures</span>
-                                    <span class="sonar-fb__contract-val">{{ act.contract.measures }}</span>
-                                </div>
-                                <div class="sonar-fb__contract-row">
-                                    <span class="sonar-fb__contract-label">Reads</span>
-                                    <span class="sonar-fb__contract-val sonar-fb__contract-chips">
-                                        @for (r of act.contract.reads; track r) {
-                                            <span class="sonar-chip">{{ r }}</span>
-                                        }
-                                    </span>
-                                </div>
-                                <div class="sonar-fb__contract-row">
-                                    <span class="sonar-fb__contract-label">Output</span>
-                                    <span class="sonar-fb__contract-val">{{ outputSummary(act.contract) }}</span>
-                                </div>
-                                <div class="sonar-fb__contract-row">
-                                    <span class="sonar-fb__contract-label">Profile</span>
-                                    <span class="sonar-fb__contract-val sonar-fb__contract-chips">
-                                        @for (tag of costTags(act.contract); track tag) {
-                                            <span class="sonar-chip">{{ tag }}</span>
-                                        }
-                                    </span>
-                                </div>
-                            </div>
-
-                            @if (act.params.length > 0) {
-                                <div class="sonar-fb__params">
-                                    @for (p of act.params; track p.name) {
-                                        <label class="sonar-fb__param">
-                                            <span class="sonar-fb__param-label">
-                                                {{ p.name }}@if (p.isRequired) {<span class="sonar-fb__req" title="Required">*</span>}
-                                            </span>
-                                            <input class="sonar-input" [ngModel]="actionParamValues()[p.name]"
-                                                   (ngModelChange)="setParam(p.name, $event)" [placeholder]="p.defaultValue ?? 'value…'" />
-                                            @if (p.description) {
-                                                <span class="sonar-fb__param-help">{{ p.description }}</span>
-                                            }
-                                        </label>
-                                    }
-                                </div>
-                            } @else {
-                                <p class="sonar-fb__hint">This action needs no extra configuration.</p>
-                            }
-
-                            <div class="sonar-fb__promo">
-                                <span class="sonar-fb__promo-label">Governance</span>
-                                <select class="sonar-input" [ngModel]="promotionState()" (ngModelChange)="promotionState.set($event)">
-                                    @for (o of promotionOptions; track o.value) {
-                                        <option [ngValue]="o.value">{{ o.label }}</option>
-                                    }
-                                </select>
-                                <p class="sonar-fb__hint">Only <strong class="sonar-ink">Approved</strong> signals are included when the model recomputes; others are preview-only.</p>
-                            </div>
-                        }
-                    }
-                </section>
-            }
-
-            <!-- Normalization (shared by both modes — scales the raw number to 0–1 points) -->
-            <section class="sonar-card">
-                <div class="sonar-card__label" style="margin-bottom: 0.25rem;">How to scale this signal</div>
-                <p class="sonar-fb__hint">Raw counts aren't comparable across signals (e.g. 50 opens vs 2 transactions). rescaled values are mapped to 0–1 points before weighting. Choose how:</p>
-
-                <div class="sonar-fb__norm-group-label">Relative to the group</div>
-                <div class="sonar-norm-grid">
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'MinMax'" (click)="normalization.set('MinMax')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-expand-arrows-alt"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Scale (Min-Max)</span>
-                            <p class="sonar-norm-card__desc">Positions scores proportionally between lowest and highest in the group. Recommended.</p>
-                        </div>
-                    </div>
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Percentile'" (click)="normalization.set('Percentile')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-percent"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Rank (Percentile)</span>
-                            <p class="sonar-norm-card__desc">Ranks members relative to the population. Extremely robust to outliers.</p>
-                        </div>
-                    </div>
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'ZScore'" (click)="normalization.set('ZScore')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-chart-area"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Standardize (Z-Score)</span>
-                            <p class="sonar-norm-card__desc">Measures standard deviation from average. Great for normal distributions.</p>
-                        </div>
-                    </div>
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'None'" (click)="normalization.set('None')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-hashtag"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Raw Value</span>
-                            <p class="sonar-norm-card__desc">Skips normalization and uses the raw number directly in calculation.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sonar-fb__norm-group-label">Fixed shape <span class="sonar-faint">— a configured curve, independent of the population</span></div>
-                <div class="sonar-norm-grid">
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Logistic'" (click)="normalization.set('Logistic')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-bezier-curve"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Curve (Logistic)</span>
-                            <p class="sonar-norm-card__desc">S-curve with diminishing returns past a midpoint. Good when the first few count most.</p>
-                        </div>
-                    </div>
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Banded'" (click)="normalization.set('Banded')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-stairs"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Steps (Banded)</span>
-                            <p class="sonar-norm-card__desc">Maps value ranges to fixed points. Good for explicit business tiers.</p>
-                        </div>
-                    </div>
-                    <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Lookup'" (click)="normalization.set('Lookup')">
-                        <div class="sonar-norm-card__icon"><i class="fa-solid fa-table-list"></i></div>
-                        <div class="sonar-norm-card__body">
-                            <span class="sonar-norm-card__title">Table (Lookup)</span>
-                            <p class="sonar-norm-card__desc">Maps discrete values to points via an explicit table. Good for coded inputs.</p>
-                        </div>
-                    </div>
-                </div>
-
-                @if (normalizationParameterized()) {
-                    <div class="sonar-fb__norm-params">
-                        @switch (normalization()) {
-                            @case ('Logistic') {
-                                <div class="sonar-fb__param-grid2">
-                                    <label class="sonar-fb__param">
-                                        <span class="sonar-fb__param-label">Midpoint</span>
-                                        <input class="sonar-input" inputmode="decimal" [ngModel]="logisticMidpoint()" (ngModelChange)="logisticMidpoint.set($event)" placeholder="e.g. 10" />
-                                        <span class="sonar-fb__param-help">Raw value that maps to the curve's 0.5 point.</span>
-                                    </label>
-                                    <label class="sonar-fb__param">
-                                        <span class="sonar-fb__param-label">Steepness</span>
-                                        <input class="sonar-input" inputmode="decimal" [ngModel]="logisticSteepness()" (ngModelChange)="logisticSteepness.set($event)" placeholder="e.g. 1" />
-                                        <span class="sonar-fb__param-help">Higher = a sharper transition around the midpoint.</span>
-                                    </label>
-                                </div>
-                            }
-                            @case ('Banded') {
-                                <div class="sonar-fb__param-table">
-                                    <div class="sonar-fb__param-thead"><span>Values up to (≤)</span><span>Score (0–1)</span><span></span></div>
-                                    @for (b of bands(); track $index) {
-                                        <div class="sonar-fb__param-trow">
-                                            <input class="sonar-input" inputmode="decimal" [ngModel]="b.left" (ngModelChange)="setBand($index, 'left', $event)" placeholder="∞ (open-ended)" />
-                                            <input class="sonar-input" inputmode="decimal" [ngModel]="b.output" (ngModelChange)="setBand($index, 'output', $event)" placeholder="0–1" />
-                                            <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-del" (click)="removeBand($index)" [disabled]="bands().length === 1" title="Remove row"><i class="fa-solid fa-xmark"></i></button>
-                                        </div>
-                                    }
-                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-add" (click)="addBand()"><i class="fa-solid fa-plus"></i> Add band</button>
-                                    <p class="sonar-fb__hint">Bands match by ascending upper bound. Leave the last row's "≤" blank for an open-ended top band.</p>
-                                </div>
-                            }
-                            @case ('Lookup') {
-                                <div class="sonar-fb__param-table">
-                                    <div class="sonar-fb__param-thead"><span>Raw value</span><span>Score (0–1)</span><span></span></div>
-                                    @for (e of lookupEntries(); track $index) {
-                                        <div class="sonar-fb__param-trow">
-                                            <input class="sonar-input" inputmode="decimal" [ngModel]="e.left" (ngModelChange)="setLookup($index, 'left', $event)" placeholder="value" />
-                                            <input class="sonar-input" inputmode="decimal" [ngModel]="e.output" (ngModelChange)="setLookup($index, 'output', $event)" placeholder="0–1" />
-                                            <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-del" (click)="removeLookup($index)" [disabled]="lookupEntries().length === 1" title="Remove row"><i class="fa-solid fa-xmark"></i></button>
-                                        </div>
-                                    }
-                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-add" (click)="addLookup()"><i class="fa-solid fa-plus"></i> Add mapping</button>
-                                    <label class="sonar-fb__param sonar-fb__param--fallback">
-                                        <span class="sonar-fb__param-label">Fallback (unmatched values)</span>
-                                        <input class="sonar-input" inputmode="decimal" [ngModel]="lookupFallback()" (ngModelChange)="lookupFallback.set($event)" placeholder="0" />
-                                    </label>
-                                </div>
-                            }
-                        }
-                    </div>
+            <div class="sonar-fb__steplist">
+                @for (s of steps(); track s.key) {
+                    <button type="button" class="sonar-step"
+                            [class.sonar-step--active]="currentStep() === s.key"
+                            [class.sonar-step--done]="s.done"
+                            (click)="currentStep.set(s.key)">
+                        <span class="sonar-step__icon"><i class="fa-solid {{ s.icon }}"></i></span>
+                        <span class="sonar-step__label">{{ s.label }}</span>
+                        @if (s.done) { <i class="fa-solid fa-circle-check sonar-step__check"></i> }
+                    </button>
                 }
-            </section>
+            </div>
+        </nav>
+
+        <!-- MIDDLE: the current step's configuration -->
+        <div class="sonar-fb__config">
+            @switch (currentStep()) {
+
+                @case ('signal') {
+                    @if (mode() === 'data') {
+                        <div class="sonar-card sonar-presets-card">
+                            <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
+                            <div class="sonar-presets-row">
+                                <button type="button" class="sonar-preset-btn" (click)="applyPreset('recent')"><i class="fa-solid fa-clock"></i> Recent Activity</button>
+                                <button type="button" class="sonar-preset-btn" (click)="applyPreset('volume')"><i class="fa-solid fa-calculator"></i> Lifetime Volume</button>
+                                <button type="button" class="sonar-preset-btn" (click)="applyPreset('peak')"><i class="fa-solid fa-chart-line"></i> Peak Spike</button>
+                                <button type="button" class="sonar-preset-btn" (click)="applyPreset('decay')"><i class="fa-solid fa-shield-halved"></i> Penalty Decay</button>
+                            </div>
+                        </div>
+
+                        <section class="sonar-card">
+                            <div class="sonar-card__label">What should this signal measure?</div>
+                            <div class="sonar-sentence">
+                                <select class="sonar-token" [ngModel]="aggregation()" (ngModelChange)="aggregation.set($event)">
+                                    @for (a of aggregations; track a) { <option [value]="a">{{ aggregationLabels[a] }}</option> }
+                                </select>
+                                @if (fieldRequired()) {
+                                    <select class="sonar-token" [ngModel]="aggregateField()" (ngModelChange)="aggregateField.set($event)">
+                                        <option value="" disabled>pick a value…</option>
+                                        @for (f of aggregatableFields(); track f.name) { <option [value]="f.name">{{ f.label }}</option> }
+                                    </select>
+                                } @else {
+                                    <span class="sonar-sentence__word">records</span>
+                                }
+                                in
+                                <select class="sonar-token sonar-token--entity" [ngModel]="sourceId()" (ngModelChange)="onSourceChange($event)">
+                                    @for (s of selectableSources(); track s.id) { <option [value]="s.id">{{ s.label }}</option> }
+                                </select>
+                                <br />over
+                                <select class="sonar-token" [ngModel]="windowId()" (ngModelChange)="windowId.set($event)">
+                                    @for (w of windows(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                                </select>
+                                — where more is
+                                <select class="sonar-token" [ngModel]="higherIsBetter()" (ngModelChange)="higherIsBetter.set($event)">
+                                    <option [ngValue]="true">a good sign</option>
+                                    <option [ngValue]="false">a warning sign</option>
+                                </select>.
+                            </div>
+
+                            @if (!fieldRequired()) {
+                                <p class="sonar-fb__hint">Counting just tallies the matching records — no value to pick.</p>
+                            }
+                            @if (sources().length === 0) {
+                                <p class="sonar-fb__hint">⚠ This model has no data sources yet — map one to start adding signals.</p>
+                            }
+                            @if (fieldRequired() && aggregatableFields().length === 0) {
+                                <p class="sonar-fb__hint">⚠ No numeric fields found on that source to {{ aggregationLabels[aggregation()] | lowercase }}.</p>
+                            }
+
+                            <!-- Tie chooser: in-context, right under the sentence (ambiguous source path). -->
+                            @if (sourceTie(); as routes) {
+                                <div class="sonar-fb__tie">
+                                    <p class="sonar-fb__tie-head">
+                                        <i class="fa-solid fa-code-branch"></i>
+                                        <strong class="sonar-ink">{{ selectedSource()?.label }}</strong> can be reached more than one way — pick the path this signal follows:
+                                    </p>
+                                    <div class="sonar-fb__tie-options">
+                                        @for (r of routes; track $index) {
+                                            <button type="button" class="sonar-btn sonar-tie__option" (click)="resolveSourcePath(r.relationshipPath)">
+                                                <i class="fa-solid fa-diagram-project"></i> {{ r.label }}
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </section>
+                    } @else {
+                        <!-- Action mode: pick a factor-action + configure its behavioral params -->
+                        <section class="sonar-card">
+                            <div class="sonar-card__head">
+                                <div class="sonar-card__label">Which custom signal?</div>
+                                @if (selectedAction()) {
+                                    <span class="sonar-chip" [class.sonar-chip--healthy]="promotionState() === 'Approved'">
+                                        {{ promotionState() === 'Approved' ? 'Approved' : promotionState() }}
+                                    </span>
+                                }
+                            </div>
+                            <p class="sonar-fb__hint">
+                                A custom signal runs an Action to produce each member's number — for logic plain
+                                aggregation can't express (streaks, decay, AI). Its data source is baked into the action,
+                                so there's no entity, field, or window to pick here.
+                            </p>
+
+                            @if (actions().length === 0) {
+                                <p class="sonar-fb__hint">⚠ No factor-actions are registered yet. An action qualifies when it declares an <span class="sonar-mono">AnchorRecordID</span> input and a <span class="sonar-mono">Value</span> output.</p>
+                            } @else {
+                                <select class="sonar-input sonar-fb__action-select" [ngModel]="actionId()" (ngModelChange)="onActionChange($event)">
+                                    <option [ngValue]="null" disabled>Pick an action…</option>
+                                    @for (a of actions(); track a.id) { <option [ngValue]="a.id">{{ a.name }}</option> }
+                                </select>
+
+                                @if (selectedAction(); as act) {
+                                    @if (act.description) { <p class="sonar-fb__hint">{{ act.description }}</p> }
+
+                                    <!-- What this signal does — the contract, so it's not a black box -->
+                                    <div class="sonar-fb__contract">
+                                        <div class="sonar-fb__contract-row">
+                                            <span class="sonar-fb__contract-label">Measures</span>
+                                            <span class="sonar-fb__contract-val">{{ act.contract.measures }}</span>
+                                        </div>
+                                        <div class="sonar-fb__contract-row">
+                                            <span class="sonar-fb__contract-label">Reads</span>
+                                            <span class="sonar-fb__contract-val sonar-fb__contract-chips">
+                                                @for (r of act.contract.reads; track r) { <span class="sonar-chip">{{ r }}</span> }
+                                            </span>
+                                        </div>
+                                        <div class="sonar-fb__contract-row">
+                                            <span class="sonar-fb__contract-label">Output</span>
+                                            <span class="sonar-fb__contract-val">{{ outputSummary(act.contract) }}</span>
+                                        </div>
+                                        <div class="sonar-fb__contract-row">
+                                            <span class="sonar-fb__contract-label">Profile</span>
+                                            <span class="sonar-fb__contract-val sonar-fb__contract-chips">
+                                                @for (tag of costTags(act.contract); track tag) { <span class="sonar-chip">{{ tag }}</span> }
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    @if (act.params.length > 0) {
+                                        <div class="sonar-fb__params">
+                                            @for (p of act.params; track p.name) {
+                                                <label class="sonar-fb__param">
+                                                    <span class="sonar-fb__param-label">
+                                                        {{ p.name }}@if (p.isRequired) {<span class="sonar-fb__req" title="Required">*</span>}
+                                                    </span>
+                                                    <input class="sonar-input" [ngModel]="actionParamValues()[p.name]"
+                                                           (ngModelChange)="setParam(p.name, $event)" [placeholder]="p.defaultValue ?? 'value…'" />
+                                                    @if (p.description) { <span class="sonar-fb__param-help">{{ p.description }}</span> }
+                                                </label>
+                                            }
+                                        </div>
+                                    } @else {
+                                        <p class="sonar-fb__hint">This action needs no extra configuration.</p>
+                                    }
+
+                                    <div class="sonar-fb__promo">
+                                        <span class="sonar-fb__promo-label">Governance</span>
+                                        <select class="sonar-input" [ngModel]="promotionState()" (ngModelChange)="promotionState.set($event)">
+                                            @for (o of promotionOptions; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }
+                                        </select>
+                                        <p class="sonar-fb__hint">Only <strong class="sonar-ink">Approved</strong> signals are included when the model recomputes; others are preview-only.</p>
+                                    </div>
+                                }
+                            }
+                        </section>
+                    }
+                }
+
+                @case ('filter') {
+                    <section class="sonar-card">
+                        <div class="sonar-card__label">Only count records that match… <span class="sonar-faint">(optional)</span></div>
+                        <p class="sonar-fb__hint">
+                            Narrow which <strong class="sonar-ink">{{ selectedSource()?.label || 'source' }}</strong> records feed this
+                            signal — e.g. only <em>Donations</em>, or only events where <em>Attended is true</em>.
+                        </p>
+                        <mj-filter-builder
+                            [fields]="filterFields()"
+                            [filter]="filter()"
+                            [showSummary]="true"
+                            (filterChange)="onFilterChange($event)">
+                        </mj-filter-builder>
+                    </section>
+                }
+
+                @case ('scale') {
+                    <section class="sonar-card">
+                        <div class="sonar-card__label" style="margin-bottom: 0.25rem;">How to scale this signal</div>
+                        <p class="sonar-fb__hint">Raw counts aren't comparable across signals (e.g. 50 opens vs 2 transactions). rescaled values are mapped to 0–1 points before weighting. Choose how:</p>
+
+                        <div class="sonar-fb__norm-group-label">Relative to the group</div>
+                        <div class="sonar-norm-grid">
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'MinMax'" (click)="normalization.set('MinMax')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-expand-arrows-alt"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Scale (Min-Max)</span>
+                                    <p class="sonar-norm-card__desc">Positions scores proportionally between lowest and highest in the group. Recommended.</p>
+                                </div>
+                            </div>
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Percentile'" (click)="normalization.set('Percentile')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-percent"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Rank (Percentile)</span>
+                                    <p class="sonar-norm-card__desc">Ranks members relative to the population. Extremely robust to outliers.</p>
+                                </div>
+                            </div>
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'ZScore'" (click)="normalization.set('ZScore')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-chart-area"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Standardize (Z-Score)</span>
+                                    <p class="sonar-norm-card__desc">Measures standard deviation from average. Great for normal distributions.</p>
+                                </div>
+                            </div>
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'None'" (click)="normalization.set('None')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-hashtag"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Raw Value</span>
+                                    <p class="sonar-norm-card__desc">Skips normalization and uses the raw number directly in calculation.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sonar-fb__norm-group-label">Fixed shape <span class="sonar-faint">— a configured curve, independent of the population</span></div>
+                        <div class="sonar-norm-grid">
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Logistic'" (click)="normalization.set('Logistic')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-bezier-curve"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Curve (Logistic)</span>
+                                    <p class="sonar-norm-card__desc">S-curve with diminishing returns past a midpoint. Good when the first few count most.</p>
+                                </div>
+                            </div>
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Banded'" (click)="normalization.set('Banded')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-stairs"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Steps (Banded)</span>
+                                    <p class="sonar-norm-card__desc">Maps value ranges to fixed points. Good for explicit business tiers.</p>
+                                </div>
+                            </div>
+                            <div class="sonar-norm-card" [class.sonar-norm-card--active]="normalization() === 'Lookup'" (click)="normalization.set('Lookup')">
+                                <div class="sonar-norm-card__icon"><i class="fa-solid fa-table-list"></i></div>
+                                <div class="sonar-norm-card__body">
+                                    <span class="sonar-norm-card__title">Table (Lookup)</span>
+                                    <p class="sonar-norm-card__desc">Maps discrete values to points via an explicit table. Good for coded inputs.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (normalizationParameterized()) {
+                            <div class="sonar-fb__norm-params">
+                                @switch (normalization()) {
+                                    @case ('Logistic') {
+                                        <div class="sonar-fb__param-grid2">
+                                            <label class="sonar-fb__param">
+                                                <span class="sonar-fb__param-label">Midpoint</span>
+                                                <input class="sonar-input" inputmode="decimal" [ngModel]="logisticMidpoint()" (ngModelChange)="logisticMidpoint.set($event)" placeholder="e.g. 10" />
+                                                <span class="sonar-fb__param-help">Raw value that maps to the curve's 0.5 point.</span>
+                                            </label>
+                                            <label class="sonar-fb__param">
+                                                <span class="sonar-fb__param-label">Steepness</span>
+                                                <input class="sonar-input" inputmode="decimal" [ngModel]="logisticSteepness()" (ngModelChange)="logisticSteepness.set($event)" placeholder="e.g. 1" />
+                                                <span class="sonar-fb__param-help">Higher = a sharper transition around the midpoint.</span>
+                                            </label>
+                                        </div>
+                                    }
+                                    @case ('Banded') {
+                                        <div class="sonar-fb__param-table">
+                                            <div class="sonar-fb__param-thead"><span>Values up to (≤)</span><span>Score (0–1)</span><span></span></div>
+                                            @for (b of bands(); track $index) {
+                                                <div class="sonar-fb__param-trow">
+                                                    <input class="sonar-input" inputmode="decimal" [ngModel]="b.left" (ngModelChange)="setBand($index, 'left', $event)" placeholder="∞ (open-ended)" />
+                                                    <input class="sonar-input" inputmode="decimal" [ngModel]="b.output" (ngModelChange)="setBand($index, 'output', $event)" placeholder="0–1" />
+                                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-del" (click)="removeBand($index)" [disabled]="bands().length === 1" title="Remove row"><i class="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                            }
+                                            <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-add" (click)="addBand()"><i class="fa-solid fa-plus"></i> Add band</button>
+                                            <p class="sonar-fb__hint">Bands match by ascending upper bound. Leave the last row's "≤" blank for an open-ended top band.</p>
+                                        </div>
+                                    }
+                                    @case ('Lookup') {
+                                        <div class="sonar-fb__param-table">
+                                            <div class="sonar-fb__param-thead"><span>Raw value</span><span>Score (0–1)</span><span></span></div>
+                                            @for (e of lookupEntries(); track $index) {
+                                                <div class="sonar-fb__param-trow">
+                                                    <input class="sonar-input" inputmode="decimal" [ngModel]="e.left" (ngModelChange)="setLookup($index, 'left', $event)" placeholder="value" />
+                                                    <input class="sonar-input" inputmode="decimal" [ngModel]="e.output" (ngModelChange)="setLookup($index, 'output', $event)" placeholder="0–1" />
+                                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-del" (click)="removeLookup($index)" [disabled]="lookupEntries().length === 1" title="Remove row"><i class="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                            }
+                                            <button type="button" class="sonar-btn sonar-btn--ghost sonar-fb__param-add" (click)="addLookup()"><i class="fa-solid fa-plus"></i> Add mapping</button>
+                                            <label class="sonar-fb__param sonar-fb__param--fallback">
+                                                <span class="sonar-fb__param-label">Fallback (unmatched values)</span>
+                                                <input class="sonar-input" inputmode="decimal" [ngModel]="lookupFallback()" (ngModelChange)="lookupFallback.set($event)" placeholder="0" />
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+
+                @case ('weight') {
+                    <section class="sonar-card">
+                        <div class="sonar-card__label">How much should this signal count?</div>
+                        <div class="sonar-fb__weight">
+                            <input type="range" min="0" max="100" [ngModel]="weight()" (ngModelChange)="weight.set(+$event)" />
+                            <span class="sonar-mono">{{ (weight() / 100) | number:'1.2-2' }}</span>
+                        </div>
+                        <p class="sonar-fb__hint">Weight sets how strongly this signal pulls the score, relative to the model's other signals.</p>
+
+                        <div class="sonar-fb__norm-group-label" style="margin-top: 1rem;">How it combines</div>
+                        <div class="sonar-segmented">
+                            @for (o of weightModeOptions; track o.value) {
+                                <button type="button" class="sonar-segmented__opt"
+                                        [class.sonar-segmented__opt--active]="weightMode() === o.value"
+                                        (click)="weightMode.set(o.value)">{{ o.label }}</button>
+                            }
+                        </div>
+                    </section>
+                }
+            }
         </div>
 
-        <!-- RIGHT: live preview (data mode) + weight -->
-        <div class="sonar-stack">
+        <!-- RIGHT: persistent summary + live preview -->
+        <aside class="sonar-fb__rail">
+            <section class="sonar-card sonar-fb__summary">
+                <div class="sonar-card__label">Your signal</div>
+                <p class="sonar-fb__summary-name">{{ factorName().trim() || 'Unnamed signal' }}</p>
+                <div class="sonar-fb__summary-rows">
+                    <div class="sonar-fb__sum-row"><span class="sonar-faint">Measures</span><span class="sonar-fb__sum-val">{{ summary().measure }}</span></div>
+                    @if (summary().detail) {
+                        <p class="sonar-fb__sum-detail">{{ summary().detail }}</p>
+                    }
+                    @if (summary().filter) {
+                        <div class="sonar-fb__sum-row"><span class="sonar-faint">Filter</span><span class="sonar-fb__sum-val">{{ summary().filter }}</span></div>
+                    }
+                    <div class="sonar-fb__sum-row"><span class="sonar-faint">Scale</span><span class="sonar-fb__sum-val">{{ summary().scale }}</span></div>
+                    <div class="sonar-fb__sum-row"><span class="sonar-faint">Weight</span><span class="sonar-fb__sum-val">{{ summary().weight }}</span></div>
+                    <div class="sonar-fb__sum-row"><span class="sonar-faint">Direction</span><span class="sonar-fb__sum-val">{{ summary().direction }}</span></div>
+                </div>
+            </section>
+
             <section class="sonar-ai">
                 <div class="sonar-ai__inner">
                     @if (mode() === 'action') {
@@ -367,15 +411,6 @@
                     }
                 </div>
             </section>
-
-            <section class="sonar-card">
-                <div class="sonar-card__label">How much should this signal count?</div>
-                <div class="sonar-fb__weight">
-                    <input type="range" min="0" max="100" [ngModel]="weight()" (ngModelChange)="weight.set(+$event)" />
-                    <span class="sonar-mono">{{ (weight() / 100) | number:'1.2-2' }}</span>
-                </div>
-                <p class="sonar-fb__hint">Weight sets how strongly this signal pulls the score, relative to the model's other signals.</p>
-            </section>
-        </div>
+        </aside>
     </div>
 </div>

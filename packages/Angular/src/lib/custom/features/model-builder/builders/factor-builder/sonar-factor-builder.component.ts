@@ -4,13 +4,32 @@ import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmp
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
-import { reachableFromAnchor } from "../../../../core/entity-graph";
+import { ScoreModelService } from "../../../../core/services/score-model.service";
+import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
 
 /** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save). */
 type BuilderMode = "data" | "action";
 
 /** One editable row of a Banded / Lookup table (kept as strings; parsed on serialize). */
 interface ParamRow { left: string; output: string; }
+/** One route offered in the in-context tie chooser: a readable chain + the RelationshipPath it saves. */
+interface TiePathOption { label: string; relationshipPath: string; }
+
+/** Authoring steps in the builder's left rail. Filter is data-mode only (actions have no filter). */
+type StepKey = "signal" | "filter" | "scale" | "weight";
+/** A step entry in the jumpable sidebar: which step, its label/icon, and whether it's configured. */
+interface BuilderStep { key: StepKey; label: string; icon: string; done: boolean; }
+
+/** Friendly labels for every normalization method (incl. the parameterized ones) — used in the summary. */
+const NORMALIZATION_LABELS: Record<NormalizationMethod, string> = {
+    MinMax: "Scale (Min-Max)",
+    Percentile: "Rank (Percentile)",
+    ZScore: "Standardize (Z-Score)",
+    None: "Raw value",
+    Logistic: "Curve (Logistic)",
+    Banded: "Steps (Banded)",
+    Lookup: "Table (Lookup)",
+};
 
 /** View-model for the live factor preview (a representative member's real numbers). */
 interface PreviewVM { sampleName: string; matching: number; strength: number; explanation: string; membersWithData: number; }
@@ -32,7 +51,7 @@ const AGGREGATION_LABELS: Record<Aggregation, string> = {
 const NUMERIC_TYPES = new Set(["int", "bigint", "smallint", "tinyint", "decimal", "numeric", "money", "smallmoney", "float", "real"]);
 
 /** A data source wired into the model (a Model Related Entity), passed in by the host. */
-export interface FactorSource { id: string; alias: string; label: string; relatedEntityID: string; }
+export interface FactorSource { id: string; alias: string; label: string; relatedEntityID: string; relationshipPath: string | null; }
 /** A time window option (a seeded Time Window), passed in by the host. */
 export interface FactorWindow { id: string; name: string; }
 
@@ -57,6 +76,10 @@ export class SonarFactorBuilderComponent {
     private readonly factorService = inject(FactorService);
     private readonly catalog = inject(ActionCatalogService);
     private readonly engine = inject(SonarEngineService);
+    private readonly models = inject(ScoreModelService);
+    /** DEV MOCK: localStorage.sonarMockTie='1' forces the selected source to look ambiguous so the
+     *  in-context path chooser can be exercised (no ambiguous source exists in the demo data). */
+    private readonly mockTie = typeof localStorage !== "undefined" && localStorage.getItem("sonarMockTie") === "1";
 
     // --- context from the host (the selected model) ---
     public readonly modelId = input<string | null>(null);
@@ -235,6 +258,7 @@ export class SonarFactorBuilderComponent {
      *  declarative preview doesn't linger behind the action form. */
     public onModeChange(mode: BuilderMode): void {
         this.mode.set(mode);
+        this.currentStep.set("signal"); // step set differs by mode (no Filter for actions)
         if (mode === "action") this.preview.set(null);
     }
 
@@ -438,8 +462,10 @@ export class SonarFactorBuilderComponent {
             this.normalization(); this.higherIsBetter(); this.filter();
             // re-preview when fixed-shape params change
             this.logisticMidpoint(); this.logisticSteepness(); this.bands(); this.lookupEntries(); this.lookupFallback();
+            const unresolvedTie = !!this.sourceTie(); // reading it also re-fires preview once resolved
             if (this.previewTimer) clearTimeout(this.previewTimer);
-            if (!dataMode || !model || !source) { this.preview.set(null); return; }
+            // An unresolved tie can't compile — hold the preview until the path is chosen.
+            if (!dataMode || !model || !source || unresolvedTie) { this.preview.set(null); return; }
             this.previewTimer = setTimeout(() => void this.runPreview(), 500);
         });
     }
@@ -447,26 +473,57 @@ export class SonarFactorBuilderComponent {
     /** The currently chosen data source (resolved from sourceId). */
     public readonly selectedSource = computed(() => this.sources().find((s) => s.id === this.sourceId()) ?? null);
 
-    /** Sources the engine can actually score against this anchor: those it can reach by a single
-     *  unambiguous FK path — a direct FK (single-hop) OR a multi-hop chain the engine auto-resolves
-     *  (canAutoResolvePath mirrors the engine's findAutoPathHops). The currently-selected source is
-     *  always kept so an in-progress/edited choice never vanishes. Excludes unrelated entities and
-     *  ambiguous-path ones, which would only fail later at recompute. */
-    public readonly selectableSources = computed<FactorSource[]>(() => {
+    // ── In-context tie resolution: the picked source is reachable several ways → choose the path ──
+    /** Source ids whose tie the user resolved this session (clears the chooser without a host reload). */
+    private readonly resolvedTies = signal<Set<string>>(new Set());
+
+    /** The candidate routes for the selected source when it's reachable several ways AND not yet
+     *  resolved (null = nothing to choose: unique path, unreachable, or already resolved). Drives the
+     *  inline chooser under the sentence — in-context per the source you just picked. */
+    public readonly sourceTie = computed<TiePathOption[] | null>(() => {
+        const src = this.selectedSource();
         const anchorId = this.anchorEntityID();
-        const current = this.sourceId();
-        if (!anchorId) return this.sources();
-        // Reachability runs over BUSINESS entities only: MJ's `__mj*` system/infra tables would add
-        // spurious alternate FK routes and make legit multi-hop sources look ambiguous (excluded).
-        // One BFS → a set, then membership-test each wired source.
-        const entities = new Metadata().Entities.filter(
-            (e) => !e.SchemaName?.startsWith("__mj"),
-        );
-        const reachable = reachableFromAnchor(entities, anchorId);
-        return this.sources().filter(
-            (s) => s.id === current || reachable.has(s.relatedEntityID),
-        );
+        if (!src || !anchorId || this.resolvedTies().has(src.id)) return null;
+        if (this.mockTie) {
+            return [
+                { label: "Members → Enrollments → Events", relationshipPath: JSON.stringify([{ fks: ["EnrollmentID"] }, { fks: ["EventID"] }]) },
+                { label: "Members → Registrations → Events", relationshipPath: JSON.stringify([{ fks: ["RegistrationID"] }, { fks: ["EventID"] }]) },
+            ];
+        }
+        const existing = (src.relationshipPath ?? "").trim();
+        if (existing && existing !== "[]") return null; // already has an explicit path
+        const md = new Metadata();
+        const business = md.Entities.filter((e) => !e.SchemaName?.startsWith("__mj"));
+        const nameOf = (id: string): string => md.Entities.find((e) => e.ID === id)?.Name ?? id;
+        const paths = candidatePaths(business, anchorId, src.relatedEntityID);
+        if (paths.length < 2) return null; // unique or unreachable → no tie to resolve
+        return paths.map((p) => ({ label: this.describePath(p, nameOf), relationshipPath: toRelationshipPath(p) }));
     });
+
+    /** Render a route as an anchor → … → leaf chain (e.g. "Members → Enrollments → Events"). */
+    private describePath(path: CandidatePath, nameOf: (id: string) => string): string {
+        if (path.hops.length === 0) return "";
+        const leafToAnchor = [path.hops[0].fromEntityId, ...path.hops.map((h) => h.toEntityId)];
+        return leafToAnchor.reverse().map(nameOf).join(" → ");
+    }
+
+    /** Save the chosen path on the source (so every signal on it follows that route), then clear
+     *  the chooser. The preview re-runs once the tie is resolved (it reads resolvedTies). */
+    public async resolveSourcePath(relationshipPath: string): Promise<void> {
+        const src = this.selectedSource();
+        if (!src) return;
+        if (!this.mockTie) {
+            await this.models.setSourcePath(src.id, relationshipPath);
+        }
+        this.resolvedTies.update((s) => new Set(s).add(src.id));
+    }
+
+    /** The model's wired data sources — all selectable here. Reachability (and tie disambiguation)
+     *  is enforced when a source is WIRED, in the Model Builder's add-source picker: an unreachable
+     *  entity can't be added, and an ambiguous one gets an explicit RelationshipPath at wire time.
+     *  So every wired source is already recompute-safe — re-filtering by raw FK reachability here
+     *  would wrongly hide a resolved-tie source (its path is explicit, not graph-derivable). */
+    public readonly selectableSources = computed<FactorSource[]>(() => this.sources());
 
     /** Aggregatable (numeric) fields on the chosen source entity, from MJ metadata. */
     public readonly aggregatableFields = computed<{ name: string; label: string }[]>(() => {
@@ -519,8 +576,77 @@ export class SonarFactorBuilderComponent {
         }
         return this.mode() === "action"
             ? this.actionConfigValid()
-            : !!this.selectedSource() && (!this.fieldRequired() || this.aggregateField().trim().length > 0);
+            // An unresolved tie (ambiguous source path) can't compile — block save until it's picked.
+            : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0);
     });
+
+    // ── Stepped builder: jumpable left-rail steps + a persistent right-rail summary ──────────────
+    /** Which step's config the middle pane shows. Jumpable — clicking any step in the rail sets it. */
+    public readonly currentStep = signal<StepKey>("signal");
+    public readonly weightModeOptions: { value: WeightMode; label: string }[] = [
+        { value: "Additive", label: "Adds to the score" },
+        { value: "Penalty", label: "Subtracts (penalty)" },
+    ];
+
+    /** Step 1 (Signal) is configured: data needs a resolved source (+ a field when measuring one);
+     *  action needs a chosen action with its required params filled. */
+    public readonly signalStepValid = computed(() =>
+        this.mode() === "action"
+            ? this.actionConfigValid()
+            : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0),
+    );
+
+    /** Value-bearing filter conditions (mirrors pruneFilter's keep rule) — for the summary + marker. */
+    public readonly filterConditionCount = computed(() => this.countConditions(this.filter()));
+
+    /** The step rail, adapted to the mode (no Filter step for actions). `done` drives the ✓ marker. */
+    public readonly steps = computed<BuilderStep[]>(() => {
+        const out: BuilderStep[] = [
+            { key: "signal", label: "Signal", icon: "fa-bullseye", done: this.signalStepValid() },
+        ];
+        if (this.mode() === "data") {
+            out.push({ key: "filter", label: "Filter", icon: "fa-filter", done: this.filterConditionCount() > 0 });
+        }
+        out.push({ key: "scale", label: "Scale", icon: "fa-sliders", done: this.normalizationConfigValid() });
+        out.push({ key: "weight", label: "Weight", icon: "fa-scale-balanced", done: true });
+        return out;
+    });
+
+    /** A persistent recap of the signal so far — shown on the right rail across every step. */
+    public readonly summary = computed(() => {
+        const direction = this.higherIsBetter() ? "Higher is better" : "Lower is better";
+        const scale = NORMALIZATION_LABELS[this.normalization()];
+        const weight = `${this.weight()}% · ${this.weightMode() === "Penalty" ? "penalty" : "additive"}`;
+        if (this.mode() === "action") {
+            const act = this.selectedAction();
+            return { measure: act?.name ?? "Pick a custom signal", detail: act?.contract.measures ?? "", filter: null as string | null, scale, weight, direction };
+        }
+        const src = this.selectedSource();
+        const agg = this.aggregationLabels[this.aggregation()];
+        const fld = this.fieldRequired()
+            ? this.aggregatableFields().find((f) => f.name === this.aggregateField())?.label ?? "a value"
+            : "records";
+        const win = this.windows().find((w) => w.id === this.windowId())?.name ?? "";
+        const n = this.filterConditionCount();
+        return {
+            measure: src ? `${agg} ${fld} in ${src.label}` : "Pick a source",
+            detail: win && win.toLowerCase() !== "all time" ? `over ${win}` : "",
+            filter: n > 0 ? `${n} condition${n === 1 ? "" : "s"}` : "all records",
+            scale,
+            weight,
+            direction,
+        };
+    });
+
+    /** Count value-bearing conditions in a filter tree (same keep rule as pruneFilter). */
+    private countConditions(filter: CompositeFilterDescriptor): number {
+        let n = 0;
+        for (const item of filter.filters ?? []) {
+            if (isCompositeFilter(item)) n += this.countConditions(item);
+            else if (item.field && item.value !== null && item.value !== undefined && item.value !== "") n += 1;
+        }
+        return n;
+    }
 
     /** Switching the source changes which columns exist, so reset the filter + chosen field to
      *  avoid conditions/fields that reference the previous entity. */

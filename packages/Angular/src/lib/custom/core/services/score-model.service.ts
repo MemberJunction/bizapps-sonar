@@ -32,7 +32,14 @@ const BINDING_FIELDS: readonly (keyof SnapModelFactor)[] = ["Weight", "WeightMod
 /** Fields needed to create a draft model. AnchorEntityID is NOT NULL in the schema. */
 export interface CreateModelInput { name: string; anchorEntityID: string; }
 /** Fields needed to wire a data source (related entity) into a model. */
-export interface AddDataSourceInput { modelId: string; relatedEntityID: string; alias: string; }
+export interface AddDataSourceInput {
+    modelId: string;
+    relatedEntityID: string;
+    alias: string;
+    /** Explicit anchor→source FK path (RelationshipPath JSON), set when the user disambiguates a
+     *  tie. Omit/"" → let the engine auto-resolve (direct FK or unique multi-hop). */
+    relationshipPath?: string;
+}
 
 /**
  * Data access for Score Models and their wired-in data sources (Model Related Entities).
@@ -273,12 +280,22 @@ export class ScoreModelService {
         ds.RelatedEntityID = input.relatedEntityID;
         ds.Alias = input.alias;
         ds.JoinType = "Left";
-        // Empty RelationshipPath = let the engine resolve the join itself: a direct FK (single-hop)
-        // or, for a source with no direct FK, an auto-resolved multi-hop path (findAutoPathHops).
-        // An explicit path would only be needed to disambiguate when several paths exist (not
-        // authored in the UI yet).
-        ds.RelationshipPath = "[]";
+        // RelationshipPath: an explicit anchor→source path when the user disambiguated a tie
+        // (several FK routes existed); otherwise "[]" = let the engine resolve it (a direct FK, or
+        // a unique auto-resolved multi-hop path via findAutoPathHops).
+        ds.RelationshipPath = input.relationshipPath && input.relationshipPath.length > 0
+            ? input.relationshipPath
+            : "[]";
         return (await ds.Save()) ? ds : null;
+    }
+
+    /** Set a wired source's explicit anchor→source FK path (RelationshipPath JSON) — used when the
+     *  user disambiguates a tie. ""/"[]" reverts to engine auto-resolution. */
+    public async setSourcePath(modelRelatedEntityId: string, relationshipPath: string): Promise<boolean> {
+        const ds = await this.md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, CompositeKey.FromID(modelRelatedEntityId));
+        if (!ds?.IsSaved) return false;
+        ds.RelationshipPath = relationshipPath && relationshipPath.length > 0 ? relationshipPath : "[]";
+        return ds.Save();
     }
 
     /** Remove a wired-in data source. */

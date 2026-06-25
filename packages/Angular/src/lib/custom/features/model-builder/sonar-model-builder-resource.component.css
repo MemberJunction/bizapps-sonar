@@ -911,3 +911,7 @@
     color: var(--sonar-accent);
     border-bottom-color: var(--sonar-accent);
 }
+
+/* Ambiguous-source marker in the add-source picker (reachable several ways → path chosen later in
+   the factor builder, in-context). */
+.sonar-srcsearch__tie { margin-left: 0.35rem; font-size: 0.7rem; color: var(--sonar-accent); }

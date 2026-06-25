@@ -10,7 +10,7 @@ import { FactorService, RubricRow, EditFactorVM } from "../../core/services/fact
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
-import { reachableFromAnchor } from "../../core/entity-graph";
+import { pathCountsFromAnchor } from "../../core/entity-graph";
 import { ToastService } from "../../core/services/toast.service";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
@@ -20,6 +20,7 @@ const NUMERIC_TYPES = new Set(["int", "bigint", "smallint", "tinyint", "decimal"
 
 /** Filter operators that need no value (so a condition using them is complete on its own). */
 const NULL_FILTER_OPERATORS = new Set(["isnull", "isnotnull", "isempty", "isnotempty"]);
+
 
 /** Band identity used for color coding across the surface. */
 type BandKey = "healthy" | "watch" | "atrisk" | "critical";
@@ -36,8 +37,9 @@ interface WireSegment {
 
 /** A related entity wired into the model (maps to Model Related Entities). `id` is the ModelRelatedEntity ID (for removal); `relatedEntityID` is the underlying entity (for factor lineage). */
 interface RelatedEntity { id: string; relatedEntityID: string; alias: string; label: string; source: string; }
-/** An entity option for the "map another entity" picker. */
-interface EntityOption { id: string; name: string; }
+/** An entity option for the "map another entity" picker. `ambiguous` = reachable by ≥2 FK routes,
+ *  so adding it prompts the user to choose a path (a tie). */
+interface EntityOption { id: string; name: string; ambiguous: boolean; }
 /** One bar in the live band distribution preview. */
 interface BandSlice { label: string; pct: number; band: BandKey; }
 /** One line in the sample member's "why this score" breakdown. */
@@ -120,12 +122,16 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const business = new Metadata().Entities.filter(
             (e) => !e.SchemaName?.startsWith("__mj"),
         );
-        const reachable = anchorId ? reachableFromAnchor(business, anchorId) : null;
-        return business
-            .filter((e) => !wired.has(e.ID) && (!reachable || reachable.has(e.ID)))
-            .map((e) => ({ id: e.ID, name: e.Name }))
+        // Include every entity the engine can reach by ≥1 FK route. count===1 → auto-resolves;
+        // count>1 → ambiguous (flagged), so adding it opens the tie chooser instead of failing.
+        const counts = anchorId ? pathCountsFromAnchor(business, anchorId) : null;
+        const opts = business
+            .filter((e) => !wired.has(e.ID) && (!counts || (counts.get(e.ID) ?? 0) >= 1))
+            .map((e) => ({ id: e.ID, name: e.Name, ambiguous: (counts?.get(e.ID) ?? 1) > 1 }))
             .sort((a, b) => a.name.localeCompare(b.name));
+        return opts;
     });
+
     /** Seeded Time Windows for the factor builder's "over …" picker. */
     public readonly timeWindows = signal<FactorWindow[]>([]);
 
@@ -836,7 +842,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
     }
 
-    /** Map another entity into the model as a data source, then refresh context. */
+    /** Map another entity into the model as a data source, then refresh context. Ambiguous sources
+     *  (reachable several FK ways) ARE addable here; the path is chosen in-context in the factor
+     *  builder when the source is first used for a signal (see sonar-factor-builder). */
     public async addSource(): Promise<void> {
         const model = this.selectedModel();
         const entityId = this.newSourceId();
@@ -918,7 +926,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const sources = await this.modelService.dataSources(model.ID);
         this.factorSources.set(sources.map((s) => {
             const ent = md.Entities.find((e) => e.ID === s.RelatedEntityID);
-            return { id: s.ID, alias: s.Alias, label: ent?.DisplayName || ent?.Name || s.Alias, relatedEntityID: s.RelatedEntityID };
+            return { id: s.ID, alias: s.Alias, label: ent?.DisplayName || ent?.Name || s.Alias, relatedEntityID: s.RelatedEntityID, relationshipPath: s.RelationshipPath };
         }));
         this.relatedEntities.set(sources.map((s) => {
             const ent = md.Entities.find((e) => e.ID === s.RelatedEntityID);
