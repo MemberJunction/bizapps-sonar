@@ -386,60 +386,6 @@
         {
           "fields": {
             "ActionID": "@parent:ID",
-            "Name": "ActivityEntity",
-            "Type": "Input",
-            "ValueType": "Scalar",
-            "IsArray": false,
-            "IsRequired": false,
-            "Description": "Activity entity name to read (default 'Event Registrations')."
-          },
-          "primaryKey": {
-            "ID": "5044A100-0004-4000-8000-0000000000A3"
-          },
-          "sync": {
-            "lastModified": "2026-06-24T14:37:49.636Z",
-            "checksum": "d270bd800d30f144238c93899d8670e8d7fa8e728b1cbd5f4abd96b1a02f316e"
-          }
-        },
-        {
-          "fields": {
-            "ActionID": "@parent:ID",
-            "Name": "MemberField",
-            "Type": "Input",
-            "ValueType": "Scalar",
-            "IsArray": false,
-            "IsRequired": false,
-            "Description": "Column on the activity entity that holds the member id (default 'MemberID')."
-          },
-          "primaryKey": {
-            "ID": "5044A100-0004-4000-8000-0000000000A4"
-          },
-          "sync": {
-            "lastModified": "2026-06-24T14:37:49.666Z",
-            "checksum": "3960e06d191d6d256ee5e1f4014d704d89828b935e86f6dc951fe2380fcf7187"
-          }
-        },
-        {
-          "fields": {
-            "ActionID": "@parent:ID",
-            "Name": "DateField",
-            "Type": "Input",
-            "ValueType": "Scalar",
-            "IsArray": false,
-            "IsRequired": false,
-            "Description": "Date column on the activity entity (default 'RegistrationDate')."
-          },
-          "primaryKey": {
-            "ID": "5044A100-0004-4000-8000-0000000000A5"
-          },
-          "sync": {
-            "lastModified": "2026-06-24T14:37:49.710Z",
-            "checksum": "c3f762ab092a2749ebdbc5926fdfff09b56be4c02aa6fb74371dc9ea90762138"
-          }
-        },
-        {
-          "fields": {
-            "ActionID": "@parent:ID",
             "Name": "Value",
             "Type": "Both",
             "ValueType": "Scalar",
@@ -507,6 +453,78 @@
     "sync": {
       "lastModified": "2026-06-24T14:37:49.514Z",
       "checksum": "75a45365a49fdb2f006a8af49d9b9b263b11227d154ac0980e4566a66c3879a0"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: List Factor Actions",
+      "Description": "Returns the catalog of factor-actions (MJ Actions following the Sonar factor contract) with each action's self-described contract — what it measures, the entities it reads, its output meaning, and cost profile — plus its configurable params. Backs the Model Builder 'custom signal' picker. Read-only.",
+      "DriverClass": "SonarListFactorActions",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-list-check",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0005-4000-8000-000000000005"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON array of factor-actions: { actionId, name, description, contract, params[] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T01:25:53.405Z",
+            "checksum": "2ffb1b176b19392a10d4d821ea59e7a79099381ddc0d33e31dfb67106a8a4fec"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Catalog returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T01:25:53.446Z",
+            "checksum": "72c1a8e46e70e7a78763dcc92ca669d43faf6c5fecfa798374f59a01bf68d9a3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to build the factor-action catalog."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T01:25:53.464Z",
+            "checksum": "9ad94d5306e46b2e9be7ac72f33d1aa90e10d3ffc44ada73fead454d4382f089"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T01:25:53.355Z",
+      "checksum": "a01535b2d9f00ed0df8953cf88d1da023a2824b89f2832c1c7b975fb3ac11147"
     }
   }
 ]

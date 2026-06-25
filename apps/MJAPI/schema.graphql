@@ -282,6 +282,1084 @@ type ApplySchemaOutput {
   Warnings: [String!]
 }
 
+type AssociationDemoAccreditingBody_ {
+  Abbreviation: String
+  AssociationDemoCertificationTypes_AccreditingBodyIDArray: [AssociationDemoCertificationType_!]!
+  CertificationCount: Int
+  ContactEmail: String
+  ContactPhone: String
+  Country: String
+  Description: String
+  EstablishedDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  IsRecognized: Boolean
+  Name: String!
+  Website: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoAdvocacyAction_ {
+  ActionDate: Timestamp!
+  ActionType: String!
+  Description: String
+  FollowUpDate: Timestamp
+  FollowUpRequired: Boolean
+  GovernmentContactID: String
+  ID: String!
+  LegislativeIssueID: String!
+  MemberID: String
+  Notes: String
+  Outcome: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoBoardMember_ {
+  BoardPositionID: String!
+  ElectionDate: Timestamp
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean!
+  MemberID: String!
+  StartDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoBoardPosition_ {
+  AssociationDemoBoardMembers_BoardPositionIDArray: [AssociationDemoBoardMember_!]!
+  Description: String
+  ID: String!
+  IsActive: Boolean!
+  IsOfficer: Boolean!
+  PositionOrder: Int!
+  PositionTitle: String!
+  TermLengthYears: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCampaignMember_ {
+  AddedDate: Timestamp!
+  Campaign: String!
+  CampaignID: String!
+  ConversionValue: Float
+  ID: String!
+  MemberID: String!
+  ResponseDate: Timestamp
+  Segment: String
+  SegmentID: String
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCampaign_ {
+  ActualCost: Float
+  AssociationDemoCampaignMembers_CampaignIDArray: [AssociationDemoCampaignMember_!]!
+  AssociationDemoEmailSends_CampaignIDArray: [AssociationDemoEmailSend_!]!
+  Budget: Float
+  CampaignType: String!
+  Description: String
+  EndDate: Timestamp
+  Goals: String
+  ID: String!
+  Name: String!
+  StartDate: Timestamp
+  Status: String!
+  TargetAudience: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCertificate_ {
+  CertificateNumber: String!
+  CertificatePDFURL: String
+  EnrollmentID: String!
+  ExpirationDate: Timestamp
+  ID: String!
+  IssuedDate: Timestamp!
+  VerificationCode: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCertificationRenewal_ {
+  CECreditsApplied: Int
+  CertificationID: String!
+  ExpirationDate: Timestamp!
+  FeePaid: Float
+  ID: String!
+  Notes: String
+  PaymentDate: Timestamp
+  ProcessedBy: String
+  ProcessedDate: Timestamp
+  RenewalDate: Timestamp!
+  Status: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCertificationRequirement_ {
+  CertificationType: String!
+  CertificationTypeID: String!
+  Description: String!
+  Details: String
+  DisplayOrder: Int
+  ID: String!
+  IsRequired: Boolean
+  RequirementType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCertificationType_ {
+  Abbreviation: String
+  AccreditingBody: String!
+  AccreditingBodyID: String!
+  AssociationDemoCertificationRequirements_CertificationTypeIDArray: [AssociationDemoCertificationRequirement_!]!
+  AssociationDemoCertifications__AssociationDemo_CertificationTypeIDArray: [AssociationDemoCertification_!]!
+  CECreditsRequired: Int
+  CertificationCount: Int
+  CostUSD: Float
+  Description: String
+  DurationMonths: Int
+  ExamRequired: Boolean
+  ID: String!
+  IsActive: Boolean
+  Level: String
+  Name: String!
+  PracticalRequired: Boolean
+  Prerequisites: String
+  RenewalRequiredMonths: Int
+  TargetAudience: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCertification_ {
+  AssociationDemoCertificationRenewals_CertificationIDArray: [AssociationDemoCertificationRenewal_!]!
+  AssociationDemoContinuingEducations_CertificationIDArray: [AssociationDemoContinuingEducation_!]!
+  CECreditsEarned: Int
+  CertificationNumber: String
+  CertificationType: String!
+  CertificationTypeID: String!
+  DateEarned: Timestamp!
+  DateExpires: Timestamp
+  ID: String!
+  IssuedBy: String
+  LastRenewalDate: Timestamp
+  MemberID: String!
+  NextRenewalDate: Timestamp
+  Notes: String
+  RenewalCount: Int
+  Score: Int
+  Status: String
+  VerificationURL: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoChapterMembership_ {
+  Chapter: String!
+  ChapterID: String!
+  ID: String!
+  JoinDate: Timestamp!
+  MemberID: String!
+  Role: String
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoChapterOfficer_ {
+  Chapter: String!
+  ChapterID: String!
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean!
+  MemberID: String!
+  Position: String!
+  StartDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoChapter_ {
+  AssociationDemoChapterMemberships_ChapterIDArray: [AssociationDemoChapterMembership_!]!
+  AssociationDemoChapterOfficers_ChapterIDArray: [AssociationDemoChapterOfficer_!]!
+  ChapterType: String!
+  City: String
+  Country: String
+  Description: String
+  Email: String
+  FoundedDate: Timestamp
+  ID: String!
+  IsActive: Boolean!
+  MeetingFrequency: String
+  MemberCount: Int
+  Name: String!
+  Region: String
+  State: String
+  Website: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCommitteeMembership_ {
+  AppointedBy: String
+  Committee: String!
+  CommitteeID: String!
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean!
+  MemberID: String!
+  Role: String!
+  StartDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCommittee_ {
+  AssociationDemoCommitteeMemberships_CommitteeIDArray: [AssociationDemoCommitteeMembership_!]!
+  ChairMemberID: String
+  CommitteeType: String!
+  DisbandedDate: Timestamp
+  FormedDate: Timestamp
+  ID: String!
+  IsActive: Boolean!
+  MaxMembers: Int
+  MeetingFrequency: String
+  Name: String!
+  Purpose: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCompetitionEntry_ {
+  AssociationDemoProductAwards_CompetitionEntryIDArray: [AssociationDemoProductAward_!]!
+  AwardLevel: String
+  Category: String!
+  CategoryID: String!
+  Competition: String!
+  CompetitionID: String!
+  EntryFee: Float
+  EntryNumber: String
+  FeedbackProvided: Boolean
+  ID: String!
+  JudgingNotes: String
+  PaymentStatus: String
+  Product: String!
+  ProductID: String!
+  Ranking: Int
+  Score: Float
+  Status: String
+  SubmittedDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCompetitionJudge_ {
+  AssignedCategories: String
+  CompensationAmount: Float
+  Competition: String!
+  CompetitionID: String!
+  ConfirmedDate: Timestamp
+  Credentials: String
+  Email: String
+  FirstName: String!
+  ID: String!
+  InvitedDate: Timestamp
+  LastName: String!
+  MemberID: String
+  Notes: String
+  Organization: String
+  Role: String
+  Specialty: String
+  Status: String
+  YearsExperience: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCompetition_ {
+  AssociationDemoCompetitionEntries_CompetitionIDArray: [AssociationDemoCompetitionEntry_!]!
+  AssociationDemoCompetitionJudges_CompetitionIDArray: [AssociationDemoCompetitionJudge_!]!
+  AssociationDemoProductAwards_CompetitionIDArray: [AssociationDemoProductAward_!]!
+  AwardsDate: Timestamp
+  ContactEmail: String
+  Description: String
+  EndDate: Timestamp!
+  EntryDeadline: Timestamp
+  EntryFee: Float
+  ID: String!
+  IsAnnual: Boolean
+  IsInternational: Boolean
+  JudgingDate: Timestamp
+  Location: String
+  Name: String!
+  StartDate: Timestamp!
+  Status: String
+  TotalCategories: Int
+  TotalEntries: Int
+  Website: String
+  Year: Int!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoContinuingEducation_ {
+  ActivityTitle: String!
+  ActivityType: String!
+  CertificationID: String
+  CompletionDate: Timestamp!
+  CreditsEarned: Float!
+  CreditsType: String
+  DocumentURL: String
+  HoursSpent: Float
+  ID: String!
+  MemberID: String!
+  Notes: String
+  Provider: String
+  Status: String
+  VerificationCode: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoCourse_ {
+  AssociationDemoCourses_PrerequisiteCourseIDArray: [AssociationDemoCourse_!]!
+  AssociationDemoEnrollments_CourseIDArray: [AssociationDemoEnrollment_!]!
+  CEUCredits: Float
+  Category: String
+  Code: String!
+  Description: String
+  DurationHours: Float
+  ID: String!
+  InstructorName: String
+  IsActive: Boolean!
+  LearningObjectives: String
+  Level: String!
+  MemberPrice: Float
+  PrerequisiteCourseID: String
+  Price: Float
+  PublishedDate: Timestamp
+  RootPrerequisiteCourseID: String
+  ThumbnailURL: String
+  Title: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEmailClick_ {
+  ClickDate: Timestamp!
+  EmailSendID: String!
+  ID: String!
+  IPAddress: String
+  LinkName: String
+  URL: String!
+  UserAgent: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEmailSend_ {
+  AssociationDemoEmailClicks_EmailSendIDArray: [AssociationDemoEmailClick_!]!
+  BounceReason: String
+  BounceType: String
+  BouncedDate: Timestamp
+  Campaign: String
+  CampaignID: String
+  ClickCount: Int
+  ClickedDate: Timestamp
+  DeliveredDate: Timestamp
+  ExternalMessageID: String
+  ID: String!
+  MemberID: String!
+  OpenCount: Int
+  OpenedDate: Timestamp
+  SentDate: Timestamp!
+  SpamReportedDate: Timestamp
+  Status: String!
+  Subject: String
+  Template: String
+  TemplateID: String
+  UnsubscribedDate: Timestamp
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEmailTemplate_ {
+  AssociationDemoEmailSends_TemplateIDArray: [AssociationDemoEmailSend_!]!
+  Category: String
+  FromEmail: String
+  FromName: String
+  HtmlBody: String
+  ID: String!
+  IsActive: Boolean!
+  Name: String!
+  PreviewText: String
+  ReplyToEmail: String
+  Subject: String
+  Tags: String
+  TextBody: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEnrollment_ {
+  AssociationDemoCertificates_EnrollmentIDArray: [AssociationDemoCertificate_!]!
+  CompletionDate: Timestamp
+  CourseID: String!
+  EnrollmentDate: Timestamp!
+  ExpirationDate: Timestamp
+  FinalScore: Float
+  ID: String!
+  InvoiceID: String
+  LastAccessedDate: Timestamp
+  MemberID: String!
+  Passed: Boolean
+  PassingScore: Float
+  ProgressPercentage: Int
+  StartDate: Timestamp
+  Status: String!
+  TimeSpentMinutes: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEventRegistration_ {
+  CEUAwarded: Boolean!
+  CEUAwardedDate: Timestamp
+  CancellationDate: Timestamp
+  CancellationReason: String
+  CheckInTime: Timestamp
+  Event: String!
+  EventID: String!
+  ID: String!
+  InvoiceID: String
+  MemberID: String!
+  RegistrationDate: Timestamp!
+  RegistrationType: String
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEventSession_ {
+  CEUCredits: Float
+  Capacity: Int
+  Description: String
+  EndTime: Timestamp!
+  Event: String!
+  EventID: String!
+  ID: String!
+  Name: String!
+  Room: String
+  SessionType: String
+  SpeakerName: String
+  StartTime: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoEvent_ {
+  AssociationDemoEventRegistrations__AssociationDemo_EventIDArray: [AssociationDemoEventRegistration_!]!
+  AssociationDemoEventSessions_EventIDArray: [AssociationDemoEventSession_!]!
+  CEUCredits: Float
+  Capacity: Int
+  ChapterID: String
+  Description: String
+  EndDate: Timestamp!
+  EventType: String!
+  ID: String!
+  IsVirtual: Boolean!
+  Location: String
+  MeetingURL: String
+  MemberPrice: Float
+  Name: String!
+  NonMemberPrice: Float
+  RegistrationCloseDate: Timestamp
+  RegistrationFee: Float
+  RegistrationOpenDate: Timestamp
+  StartDate: Timestamp!
+  Status: String!
+  Timezone: String
+  VirtualPlatform: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoForumCategory_ {
+  AssociationDemoForumCategories_ParentCategoryIDArray: [AssociationDemoForumCategory_!]!
+  AssociationDemoForumThreads_CategoryIDArray: [AssociationDemoForumThread_!]!
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  Icon: String
+  IsActive: Boolean
+  LastPostAuthorID: String
+  LastPostDate: Timestamp
+  Name: String!
+  ParentCategory: String
+  ParentCategoryID: String
+  PostCount: Int
+  RequiresMembership: Boolean
+  RootParentCategoryID: String
+  ThreadCount: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoForumModeration_ {
+  Action: String
+  ID: String!
+  ModeratedByID: String
+  ModeratedDate: Timestamp
+  ModerationStatus: String
+  ModeratorNotes: String
+  PostID: String!
+  ReportReason: String
+  ReportedByID: String!
+  ReportedDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoForumPost_ {
+  AssociationDemoForumModerations_PostIDArray: [AssociationDemoForumModeration_!]!
+  AssociationDemoForumPosts_ParentPostIDArray: [AssociationDemoForumPost_!]!
+  AssociationDemoPostAttachments_PostIDArray: [AssociationDemoPostAttachment_!]!
+  AssociationDemoPostReactions_PostIDArray: [AssociationDemoPostReaction_!]!
+  AssociationDemoPostTags_PostIDArray: [AssociationDemoPostTag_!]!
+  AuthorID: String!
+  Content: String!
+  EditedByID: String
+  EditedDate: Timestamp
+  HelpfulCount: Int
+  ID: String!
+  IsAcceptedAnswer: Boolean
+  IsFlagged: Boolean
+  LikeCount: Int
+  ParentPostID: String
+  PostedDate: Timestamp!
+  RootParentPostID: String
+  Status: String
+  ThreadID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoForumThread_ {
+  AssociationDemoForumPosts_ThreadIDArray: [AssociationDemoForumPost_!]!
+  AuthorID: String!
+  Category: String!
+  CategoryID: String!
+  CreatedDate: Timestamp!
+  ID: String!
+  IsFeatured: Boolean
+  IsLocked: Boolean
+  IsPinned: Boolean
+  LastActivityDate: Timestamp
+  LastReplyAuthorID: String
+  ReplyCount: Int
+  Status: String
+  Title: String!
+  ViewCount: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoGovernmentContact_ {
+  AssociationDemoAdvocacyActions_GovernmentContactIDArray: [AssociationDemoAdvocacyAction_!]!
+  Committee: String
+  ContactType: String!
+  District: String
+  Email: String
+  FirstName: String!
+  ID: String!
+  IsActive: Boolean
+  LastName: String!
+  LegislativeBody: String
+  LegislativeBodyID: String
+  Notes: String
+  OfficeAddress: String
+  Party: String
+  Phone: String
+  TermEnd: Timestamp
+  TermStart: Timestamp
+  Title: String
+  Website: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoInvoiceLineItem_ {
+  Amount: Float!
+  Description: String!
+  ID: String!
+  InvoiceID: String!
+  ItemType: String!
+  Quantity: Int
+  RelatedEntityID: String
+  RelatedEntityType: String
+  TaxAmount: Float
+  UnitPrice: Float!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoInvoice_ {
+  AmountPaid: Float
+  AssociationDemoInvoiceLineItems_InvoiceIDArray: [AssociationDemoInvoiceLineItem_!]!
+  AssociationDemoPayments__AssociationDemo_InvoiceIDArray: [AssociationDemoPayment_!]!
+  Balance: Float!
+  Discount: Float
+  DueDate: Timestamp!
+  ID: String!
+  InvoiceDate: Timestamp!
+  InvoiceNumber: String!
+  MemberID: String!
+  Notes: String
+  PaymentTerms: String
+  Status: String!
+  SubTotal: Float!
+  Tax: Float
+  Total: Float!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoLegislativeBody_ {
+  AssociationDemoGovernmentContacts_LegislativeBodyIDArray: [AssociationDemoGovernmentContact_!]!
+  AssociationDemoLegislativeIssues_LegislativeBodyIDArray: [AssociationDemoLegislativeIssue_!]!
+  BodyType: String!
+  Country: String
+  Description: String
+  ID: String!
+  IsActive: Boolean
+  Level: String!
+  Name: String!
+  SessionSchedule: String
+  State: String
+  Website: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoLegislativeIssue_ {
+  AssociationDemoAdvocacyActions_LegislativeIssueIDArray: [AssociationDemoAdvocacyAction_!]!
+  AssociationDemoPolicyPositions_LegislativeIssueIDArray: [AssociationDemoPolicyPosition_!]!
+  AssociationDemoRegulatoryComments_LegislativeIssueIDArray: [AssociationDemoRegulatoryComment_!]!
+  BillNumber: String
+  Category: String
+  EffectiveDate: Timestamp
+  ID: String!
+  ImpactDescription: String
+  ImpactLevel: String
+  IntroducedDate: Timestamp
+  IsActive: Boolean
+  IssueType: String!
+  LastActionDate: Timestamp
+  LegislativeBody: String!
+  LegislativeBodyID: String!
+  Sponsor: String
+  Status: String!
+  Summary: String
+  Title: String!
+  TrackingURL: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoMemberFollow_ {
+  CreatedDate: Timestamp!
+  FollowType: String!
+  FollowedEntityID: String!
+  FollowerID: String!
+  ID: String!
+  NotifyOnActivity: Boolean
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoMember_ {
+  AssociationDemoAdvocacyActions_MemberIDArray: [AssociationDemoAdvocacyAction_!]!
+  AssociationDemoBoardMembers_MemberIDArray: [AssociationDemoBoardMember_!]!
+  AssociationDemoCampaignMembers_MemberIDArray: [AssociationDemoCampaignMember_!]!
+  AssociationDemoCertifications__AssociationDemo_MemberIDArray: [AssociationDemoCertification_!]!
+  AssociationDemoChapterMemberships_MemberIDArray: [AssociationDemoChapterMembership_!]!
+  AssociationDemoChapterOfficers_MemberIDArray: [AssociationDemoChapterOfficer_!]!
+  AssociationDemoCommitteeMemberships_MemberIDArray: [AssociationDemoCommitteeMembership_!]!
+  AssociationDemoCommittees_ChairMemberIDArray: [AssociationDemoCommittee_!]!
+  AssociationDemoCompetitionJudges_MemberIDArray: [AssociationDemoCompetitionJudge_!]!
+  AssociationDemoContinuingEducations_MemberIDArray: [AssociationDemoContinuingEducation_!]!
+  AssociationDemoEmailSends_MemberIDArray: [AssociationDemoEmailSend_!]!
+  AssociationDemoEnrollments_MemberIDArray: [AssociationDemoEnrollment_!]!
+  AssociationDemoEventRegistrations__AssociationDemo_MemberIDArray: [AssociationDemoEventRegistration_!]!
+  AssociationDemoForumCategories_LastPostAuthorIDArray: [AssociationDemoForumCategory_!]!
+  AssociationDemoForumModerations_ModeratedByIDArray: [AssociationDemoForumModeration_!]!
+  AssociationDemoForumModerations_ReportedByIDArray: [AssociationDemoForumModeration_!]!
+  AssociationDemoForumPosts_AuthorIDArray: [AssociationDemoForumPost_!]!
+  AssociationDemoForumPosts_EditedByIDArray: [AssociationDemoForumPost_!]!
+  AssociationDemoForumThreads_AuthorIDArray: [AssociationDemoForumThread_!]!
+  AssociationDemoForumThreads_LastReplyAuthorIDArray: [AssociationDemoForumThread_!]!
+  AssociationDemoInvoices_MemberIDArray: [AssociationDemoInvoice_!]!
+  AssociationDemoMemberFollows_FollowerIDArray: [AssociationDemoMemberFollow_!]!
+  AssociationDemoMemberships_MemberIDArray: [AssociationDemoMembership_!]!
+  AssociationDemoPostAttachments_UploadedByIDArray: [AssociationDemoPostAttachment_!]!
+  AssociationDemoPostReactions_MemberIDArray: [AssociationDemoPostReaction_!]!
+  AssociationDemoProducts_MemberIDArray: [AssociationDemoProduct_!]!
+  AssociationDemoResourceDownloads_MemberIDArray: [AssociationDemoResourceDownload_!]!
+  AssociationDemoResourceRatings_MemberIDArray: [AssociationDemoResourceRating_!]!
+  AssociationDemoResourceVersions_CreatedByIDArray: [AssociationDemoResourceVersion_!]!
+  AssociationDemoResources_AuthorIDArray: [AssociationDemoResource_!]!
+  Bio: String
+  City: String
+  Country: String
+  Email: String!
+  EngagementScore: Int
+  FirstName: String!
+  ID: String!
+  Industry: String
+  JobFunction: String
+  JoinDate: Timestamp!
+  LastActivityDate: Timestamp
+  LastName: String!
+  LinkedInURL: String
+  Mobile: String
+  Organization: String
+  OrganizationID: String
+  Phone: String
+  PostalCode: String
+  PreferredLanguage: String
+  ProfilePhotoURL: String
+  State: String
+  Timezone: String
+  Title: String
+  YearsInProfession: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoMembershipType_ {
+  AllowAutoRenew: Boolean!
+  AnnualDues: Float!
+  AssociationDemoMemberships_MembershipTypeIDArray: [AssociationDemoMembership_!]!
+  Benefits: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  IsActive: Boolean!
+  Name: String!
+  RenewalPeriodMonths: Int!
+  RequiresApproval: Boolean!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoMembership_ {
+  AutoRenew: Boolean!
+  CancellationDate: Timestamp
+  CancellationReason: String
+  EndDate: Timestamp!
+  ID: String!
+  MemberID: String!
+  MembershipType: String!
+  MembershipTypeID: String!
+  RenewalDate: Timestamp
+  StartDate: Timestamp!
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoOrganization_ {
+  AnnualRevenue: Float
+  AssociationDemoMembers__AssociationDemo_OrganizationIDArray: [AssociationDemoMember_!]!
+  City: String
+  Country: String
+  Description: String
+  EmployeeCount: Int
+  Exchange: String
+  ID: String!
+  Industry: String
+  LogoURL: String
+  MarketCapitalization: Float
+  Name: String!
+  Phone: String
+  PostalCode: String
+  State: String
+  TickerSymbol: String
+  Website: String
+  YearFounded: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoPayment_ {
+  Amount: Float!
+  FailureReason: String
+  ID: String!
+  InvoiceID: String!
+  Notes: String
+  PaymentDate: Timestamp!
+  PaymentMethod: String!
+  ProcessedDate: Timestamp
+  Status: String!
+  TransactionID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoPolicyPosition_ {
+  AdoptedBy: String
+  AdoptedDate: Timestamp!
+  ContactPerson: String
+  DocumentURL: String
+  ExpirationDate: Timestamp
+  ID: String!
+  IsPublic: Boolean
+  LastReviewedDate: Timestamp
+  LegislativeIssueID: String!
+  Position: String!
+  PositionStatement: String!
+  Priority: String
+  Rationale: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoPostAttachment_ {
+  DownloadCount: Int
+  FileName: String!
+  FileSizeBytes: Int
+  FileType: String
+  FileURL: String!
+  ID: String!
+  PostID: String!
+  UploadedByID: String!
+  UploadedDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoPostReaction_ {
+  CreatedDate: Timestamp!
+  ID: String!
+  MemberID: String!
+  PostID: String!
+  ReactionType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoPostTag_ {
+  CreatedDate: Timestamp!
+  ID: String!
+  PostID: String!
+  TagName: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoProductAward_ {
+  AwardDate: Timestamp!
+  AwardLevel: String!
+  AwardName: String!
+  AwardingOrganization: String
+  Category: String
+  CertificateURL: String
+  Competition: String
+  CompetitionEntryID: String
+  CompetitionID: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  IsDisplayed: Boolean
+  Product: String!
+  ProductID: String!
+  Score: Float
+  Year: Int!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoProductCategory_ {
+  AssociationDemoCompetitionEntries_CategoryIDArray: [AssociationDemoCompetitionEntry_!]!
+  AssociationDemoProductCategories_ParentCategoryIDArray: [AssociationDemoProductCategory_!]!
+  AssociationDemoProducts_CategoryIDArray: [AssociationDemoProduct_!]!
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  ImageURL: String
+  IsActive: Boolean
+  Name: String!
+  ParentCategory: String
+  ParentCategoryID: String
+  RootParentCategoryID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoProduct_ {
+  AgeMonths: Int
+  AssociationDemoCompetitionEntries_ProductIDArray: [AssociationDemoCompetitionEntry_!]!
+  AssociationDemoProductAwards_ProductIDArray: [AssociationDemoProductAward_!]!
+  AwardCount: Int
+  Category: String!
+  CategoryID: String!
+  CheeseType: String
+  DateIntroduced: Timestamp
+  Description: String
+  ID: String!
+  ImageURL: String
+  IsAwardWinner: Boolean
+  IsOrganic: Boolean
+  IsRawMilk: Boolean
+  MemberID: String!
+  MilkSource: String
+  Name: String!
+  PairingNotes: String
+  ProductionMethod: String
+  RetailPrice: Float
+  Status: String
+  TastingNotes: String
+  Weight: Float
+  WeightUnit: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoRegulatoryComment_ {
+  AttachmentURL: String
+  CommentPeriodEnd: Timestamp
+  CommentPeriodStart: Timestamp
+  CommentText: String!
+  CommentType: String
+  ConfirmationNumber: String
+  DocketNumber: String
+  ID: String!
+  LegislativeIssueID: String!
+  Notes: String
+  Response: String
+  Status: String
+  SubmittedBy: String
+  SubmittedDate: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResourceCategory_ {
+  AssociationDemoResourceCategories_ParentCategoryIDArray: [AssociationDemoResourceCategory_!]!
+  AssociationDemoResources_CategoryIDArray: [AssociationDemoResource_!]!
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  Icon: String
+  IsActive: Boolean
+  Name: String!
+  ParentCategory: String
+  ParentCategoryID: String
+  RequiresMembership: Boolean
+  ResourceCount: Int
+  RootParentCategoryID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResourceDownload_ {
+  DownloadDate: Timestamp!
+  ID: String!
+  IPAddress: String
+  MemberID: String!
+  ResourceID: String!
+  UserAgent: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResourceRating_ {
+  CreatedDate: Timestamp!
+  ID: String!
+  IsHelpful: Boolean
+  MemberID: String!
+  Rating: Int!
+  ResourceID: String!
+  Review: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResourceTag_ {
+  CreatedDate: Timestamp!
+  ID: String!
+  ResourceID: String!
+  TagName: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResourceVersion_ {
+  CreatedByID: String!
+  CreatedDate: Timestamp!
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String!
+  IsCurrent: Boolean
+  ResourceID: String!
+  VersionNotes: String
+  VersionNumber: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoResource_ {
+  AssociationDemoResourceDownloads_ResourceIDArray: [AssociationDemoResourceDownload_!]!
+  AssociationDemoResourceRatings_ResourceIDArray: [AssociationDemoResourceRating_!]!
+  AssociationDemoResourceTags_ResourceIDArray: [AssociationDemoResourceTag_!]!
+  AssociationDemoResourceVersions_ResourceIDArray: [AssociationDemoResourceVersion_!]!
+  AuthorID: String
+  AverageRating: Float
+  Category: String!
+  CategoryID: String!
+  Description: String
+  DownloadCount: Int
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String!
+  IsFeatured: Boolean
+  LastUpdatedDate: Timestamp
+  MimeType: String
+  PublishedDate: Timestamp!
+  RatingCount: Int
+  RequiresMembership: Boolean
+  ResourceType: String!
+  Status: String
+  Title: String!
+  ViewCount: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type AssociationDemoSegment_ {
+  AssociationDemoCampaignMembers_SegmentIDArray: [AssociationDemoCampaignMember_!]!
+  Description: String
+  FilterCriteria: String
+  ID: String!
+  IsActive: Boolean!
+  LastCalculatedDate: Timestamp
+  MemberCount: Int
+  Name: String!
+  SegmentType: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
 type AutoTrimSettingsGQL {
   enabled: Boolean!
   maxAgeMs: Int
@@ -562,6 +1640,911 @@ type CreateAPIKeyResult {
   Error: String
   RawKey: String
   Success: Boolean!
+}
+
+input CreateAssociationDemoAccreditingBodyInput {
+  Abbreviation: String
+  CertificationCount: Int
+  ContactEmail: String
+  ContactPhone: String
+  Country: String
+  Description: String
+  EstablishedDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  IsRecognized: Boolean
+  Name: String
+  RestoreContext___: RestoreContextInput
+  Website: String
+}
+
+input CreateAssociationDemoAdvocacyActionInput {
+  ActionDate: Timestamp
+  ActionType: String
+  Description: String
+  FollowUpDate: Timestamp
+  FollowUpRequired: Boolean
+  GovernmentContactID: String
+  ID: String
+  LegislativeIssueID: String
+  MemberID: String
+  Notes: String
+  Outcome: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoBoardMemberInput {
+  BoardPositionID: String
+  ElectionDate: Timestamp
+  EndDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  MemberID: String
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+}
+
+input CreateAssociationDemoBoardPositionInput {
+  Description: String
+  ID: String
+  IsActive: Boolean
+  IsOfficer: Boolean
+  PositionOrder: Int
+  PositionTitle: String
+  RestoreContext___: RestoreContextInput
+  TermLengthYears: Int
+}
+
+input CreateAssociationDemoCampaignInput {
+  ActualCost: Float
+  Budget: Float
+  CampaignType: String
+  Description: String
+  EndDate: Timestamp
+  Goals: String
+  ID: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TargetAudience: String
+}
+
+input CreateAssociationDemoCampaignMemberInput {
+  AddedDate: Timestamp
+  CampaignID: String
+  ConversionValue: Float
+  ID: String
+  MemberID: String
+  ResponseDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  SegmentID: String
+  Status: String
+}
+
+input CreateAssociationDemoCertificateInput {
+  CertificateNumber: String
+  CertificatePDFURL: String
+  EnrollmentID: String
+  ExpirationDate: Timestamp
+  ID: String
+  IssuedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  VerificationCode: String
+}
+
+input CreateAssociationDemoCertificationInput {
+  CECreditsEarned: Int
+  CertificationNumber: String
+  CertificationTypeID: String
+  DateEarned: Timestamp
+  DateExpires: Timestamp
+  ID: String
+  IssuedBy: String
+  LastRenewalDate: Timestamp
+  MemberID: String
+  NextRenewalDate: Timestamp
+  Notes: String
+  RenewalCount: Int
+  RestoreContext___: RestoreContextInput
+  Score: Int
+  Status: String
+  VerificationURL: String
+}
+
+input CreateAssociationDemoCertificationRenewalInput {
+  CECreditsApplied: Int
+  CertificationID: String
+  ExpirationDate: Timestamp
+  FeePaid: Float
+  ID: String
+  Notes: String
+  PaymentDate: Timestamp
+  ProcessedBy: String
+  ProcessedDate: Timestamp
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input CreateAssociationDemoCertificationRequirementInput {
+  CertificationTypeID: String
+  Description: String
+  Details: String
+  DisplayOrder: Int
+  ID: String
+  IsRequired: Boolean
+  RequirementType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoCertificationTypeInput {
+  Abbreviation: String
+  AccreditingBodyID: String
+  CECreditsRequired: Int
+  CertificationCount: Int
+  CostUSD: Float
+  Description: String
+  DurationMonths: Int
+  ExamRequired: Boolean
+  ID: String
+  IsActive: Boolean
+  Level: String
+  Name: String
+  PracticalRequired: Boolean
+  Prerequisites: String
+  RenewalRequiredMonths: Int
+  RestoreContext___: RestoreContextInput
+  TargetAudience: String
+}
+
+input CreateAssociationDemoChapterInput {
+  ChapterType: String
+  City: String
+  Country: String
+  Description: String
+  Email: String
+  FoundedDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  MeetingFrequency: String
+  MemberCount: Int
+  Name: String
+  Region: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  Website: String
+}
+
+input CreateAssociationDemoChapterMembershipInput {
+  ChapterID: String
+  ID: String
+  JoinDate: Timestamp
+  MemberID: String
+  RestoreContext___: RestoreContextInput
+  Role: String
+  Status: String
+}
+
+input CreateAssociationDemoChapterOfficerInput {
+  ChapterID: String
+  EndDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  MemberID: String
+  Position: String
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+}
+
+input CreateAssociationDemoCommitteeInput {
+  ChairMemberID: String
+  CommitteeType: String
+  DisbandedDate: Timestamp
+  FormedDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  MaxMembers: Int
+  MeetingFrequency: String
+  Name: String
+  Purpose: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoCommitteeMembershipInput {
+  AppointedBy: String
+  CommitteeID: String
+  EndDate: Timestamp
+  ID: String
+  IsActive: Boolean
+  MemberID: String
+  RestoreContext___: RestoreContextInput
+  Role: String
+  StartDate: Timestamp
+}
+
+input CreateAssociationDemoCompetitionEntryInput {
+  AwardLevel: String
+  CategoryID: String
+  CompetitionID: String
+  EntryFee: Float
+  EntryNumber: String
+  FeedbackProvided: Boolean
+  ID: String
+  JudgingNotes: String
+  PaymentStatus: String
+  ProductID: String
+  Ranking: Int
+  RestoreContext___: RestoreContextInput
+  Score: Float
+  Status: String
+  SubmittedDate: Timestamp
+}
+
+input CreateAssociationDemoCompetitionInput {
+  AwardsDate: Timestamp
+  ContactEmail: String
+  Description: String
+  EndDate: Timestamp
+  EntryDeadline: Timestamp
+  EntryFee: Float
+  ID: String
+  IsAnnual: Boolean
+  IsInternational: Boolean
+  JudgingDate: Timestamp
+  Location: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TotalCategories: Int
+  TotalEntries: Int
+  Website: String
+  Year: Int
+}
+
+input CreateAssociationDemoCompetitionJudgeInput {
+  AssignedCategories: String
+  CompensationAmount: Float
+  CompetitionID: String
+  ConfirmedDate: Timestamp
+  Credentials: String
+  Email: String
+  FirstName: String
+  ID: String
+  InvitedDate: Timestamp
+  LastName: String
+  MemberID: String
+  Notes: String
+  Organization: String
+  RestoreContext___: RestoreContextInput
+  Role: String
+  Specialty: String
+  Status: String
+  YearsExperience: Int
+}
+
+input CreateAssociationDemoContinuingEducationInput {
+  ActivityTitle: String
+  ActivityType: String
+  CertificationID: String
+  CompletionDate: Timestamp
+  CreditsEarned: Float
+  CreditsType: String
+  DocumentURL: String
+  HoursSpent: Float
+  ID: String
+  MemberID: String
+  Notes: String
+  Provider: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  VerificationCode: String
+}
+
+input CreateAssociationDemoCourseInput {
+  CEUCredits: Float
+  Category: String
+  Code: String
+  Description: String
+  DurationHours: Float
+  ID: String
+  InstructorName: String
+  IsActive: Boolean
+  LearningObjectives: String
+  Level: String
+  MemberPrice: Float
+  PrerequisiteCourseID: String
+  Price: Float
+  PublishedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  ThumbnailURL: String
+  Title: String
+}
+
+input CreateAssociationDemoEmailClickInput {
+  ClickDate: Timestamp
+  EmailSendID: String
+  ID: String
+  IPAddress: String
+  LinkName: String
+  RestoreContext___: RestoreContextInput
+  URL: String
+  UserAgent: String
+}
+
+input CreateAssociationDemoEmailSendInput {
+  BounceReason: String
+  BounceType: String
+  BouncedDate: Timestamp
+  CampaignID: String
+  ClickCount: Int
+  ClickedDate: Timestamp
+  DeliveredDate: Timestamp
+  ExternalMessageID: String
+  ID: String
+  MemberID: String
+  OpenCount: Int
+  OpenedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  SentDate: Timestamp
+  SpamReportedDate: Timestamp
+  Status: String
+  Subject: String
+  TemplateID: String
+  UnsubscribedDate: Timestamp
+}
+
+input CreateAssociationDemoEmailTemplateInput {
+  Category: String
+  FromEmail: String
+  FromName: String
+  HtmlBody: String
+  ID: String
+  IsActive: Boolean
+  Name: String
+  PreviewText: String
+  ReplyToEmail: String
+  RestoreContext___: RestoreContextInput
+  Subject: String
+  Tags: String
+  TextBody: String
+}
+
+input CreateAssociationDemoEnrollmentInput {
+  CompletionDate: Timestamp
+  CourseID: String
+  EnrollmentDate: Timestamp
+  ExpirationDate: Timestamp
+  FinalScore: Float
+  ID: String
+  InvoiceID: String
+  LastAccessedDate: Timestamp
+  MemberID: String
+  Passed: Boolean
+  PassingScore: Float
+  ProgressPercentage: Int
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TimeSpentMinutes: Int
+}
+
+input CreateAssociationDemoEventInput {
+  CEUCredits: Float
+  Capacity: Int
+  ChapterID: String
+  Description: String
+  EndDate: Timestamp
+  EventType: String
+  ID: String
+  IsVirtual: Boolean
+  Location: String
+  MeetingURL: String
+  MemberPrice: Float
+  Name: String
+  NonMemberPrice: Float
+  RegistrationCloseDate: Timestamp
+  RegistrationFee: Float
+  RegistrationOpenDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  Timezone: String
+  VirtualPlatform: String
+}
+
+input CreateAssociationDemoEventRegistrationInput {
+  CEUAwarded: Boolean
+  CEUAwardedDate: Timestamp
+  CancellationDate: Timestamp
+  CancellationReason: String
+  CheckInTime: Timestamp
+  EventID: String
+  ID: String
+  InvoiceID: String
+  MemberID: String
+  RegistrationDate: Timestamp
+  RegistrationType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input CreateAssociationDemoEventSessionInput {
+  CEUCredits: Float
+  Capacity: Int
+  Description: String
+  EndTime: Timestamp
+  EventID: String
+  ID: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  Room: String
+  SessionType: String
+  SpeakerName: String
+  StartTime: Timestamp
+}
+
+input CreateAssociationDemoForumCategoryInput {
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String
+  Icon: String
+  IsActive: Boolean
+  LastPostAuthorID: String
+  LastPostDate: Timestamp
+  Name: String
+  ParentCategoryID: String
+  PostCount: Int
+  RequiresMembership: Boolean
+  RestoreContext___: RestoreContextInput
+  ThreadCount: Int
+}
+
+input CreateAssociationDemoForumModerationInput {
+  Action: String
+  ID: String
+  ModeratedByID: String
+  ModeratedDate: Timestamp
+  ModerationStatus: String
+  ModeratorNotes: String
+  PostID: String
+  ReportReason: String
+  ReportedByID: String
+  ReportedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoForumPostInput {
+  AuthorID: String
+  Content: String
+  EditedByID: String
+  EditedDate: Timestamp
+  HelpfulCount: Int
+  ID: String
+  IsAcceptedAnswer: Boolean
+  IsFlagged: Boolean
+  LikeCount: Int
+  ParentPostID: String
+  PostedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+  ThreadID: String
+}
+
+input CreateAssociationDemoForumThreadInput {
+  AuthorID: String
+  CategoryID: String
+  CreatedDate: Timestamp
+  ID: String
+  IsFeatured: Boolean
+  IsLocked: Boolean
+  IsPinned: Boolean
+  LastActivityDate: Timestamp
+  LastReplyAuthorID: String
+  ReplyCount: Int
+  RestoreContext___: RestoreContextInput
+  Status: String
+  Title: String
+  ViewCount: Int
+}
+
+input CreateAssociationDemoGovernmentContactInput {
+  Committee: String
+  ContactType: String
+  District: String
+  Email: String
+  FirstName: String
+  ID: String
+  IsActive: Boolean
+  LastName: String
+  LegislativeBodyID: String
+  Notes: String
+  OfficeAddress: String
+  Party: String
+  Phone: String
+  RestoreContext___: RestoreContextInput
+  TermEnd: Timestamp
+  TermStart: Timestamp
+  Title: String
+  Website: String
+}
+
+input CreateAssociationDemoInvoiceInput {
+  AmountPaid: Float
+  Balance: Float
+  Discount: Float
+  DueDate: Timestamp
+  ID: String
+  InvoiceDate: Timestamp
+  InvoiceNumber: String
+  MemberID: String
+  Notes: String
+  PaymentTerms: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SubTotal: Float
+  Tax: Float
+  Total: Float
+}
+
+input CreateAssociationDemoInvoiceLineItemInput {
+  Amount: Float
+  Description: String
+  ID: String
+  InvoiceID: String
+  ItemType: String
+  Quantity: Int
+  RelatedEntityID: String
+  RelatedEntityType: String
+  RestoreContext___: RestoreContextInput
+  TaxAmount: Float
+  UnitPrice: Float
+}
+
+input CreateAssociationDemoLegislativeBodyInput {
+  BodyType: String
+  Country: String
+  Description: String
+  ID: String
+  IsActive: Boolean
+  Level: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  SessionSchedule: String
+  State: String
+  Website: String
+}
+
+input CreateAssociationDemoLegislativeIssueInput {
+  BillNumber: String
+  Category: String
+  EffectiveDate: Timestamp
+  ID: String
+  ImpactDescription: String
+  ImpactLevel: String
+  IntroducedDate: Timestamp
+  IsActive: Boolean
+  IssueType: String
+  LastActionDate: Timestamp
+  LegislativeBodyID: String
+  RestoreContext___: RestoreContextInput
+  Sponsor: String
+  Status: String
+  Summary: String
+  Title: String
+  TrackingURL: String
+}
+
+input CreateAssociationDemoMemberFollowInput {
+  CreatedDate: Timestamp
+  FollowType: String
+  FollowedEntityID: String
+  FollowerID: String
+  ID: String
+  NotifyOnActivity: Boolean
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoMemberInput {
+  Bio: String
+  City: String
+  Country: String
+  Email: String
+  EngagementScore: Int
+  FirstName: String
+  ID: String
+  Industry: String
+  JobFunction: String
+  JoinDate: Timestamp
+  LastActivityDate: Timestamp
+  LastName: String
+  LinkedInURL: String
+  Mobile: String
+  OrganizationID: String
+  Phone: String
+  PostalCode: String
+  PreferredLanguage: String
+  ProfilePhotoURL: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  Timezone: String
+  Title: String
+  YearsInProfession: Int
+}
+
+input CreateAssociationDemoMembershipInput {
+  AutoRenew: Boolean
+  CancellationDate: Timestamp
+  CancellationReason: String
+  EndDate: Timestamp
+  ID: String
+  MemberID: String
+  MembershipTypeID: String
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+}
+
+input CreateAssociationDemoMembershipTypeInput {
+  AllowAutoRenew: Boolean
+  AnnualDues: Float
+  Benefits: String
+  Description: String
+  DisplayOrder: Int
+  ID: String
+  IsActive: Boolean
+  Name: String
+  RenewalPeriodMonths: Int
+  RequiresApproval: Boolean
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoOrganizationInput {
+  AnnualRevenue: Float
+  City: String
+  Country: String
+  Description: String
+  EmployeeCount: Int
+  Exchange: String
+  ID: String
+  Industry: String
+  LogoURL: String
+  MarketCapitalization: Float
+  Name: String
+  Phone: String
+  PostalCode: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  TickerSymbol: String
+  Website: String
+  YearFounded: Int
+}
+
+input CreateAssociationDemoPaymentInput {
+  Amount: Float
+  FailureReason: String
+  ID: String
+  InvoiceID: String
+  Notes: String
+  PaymentDate: Timestamp
+  PaymentMethod: String
+  ProcessedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+  TransactionID: String
+}
+
+input CreateAssociationDemoPolicyPositionInput {
+  AdoptedBy: String
+  AdoptedDate: Timestamp
+  ContactPerson: String
+  DocumentURL: String
+  ExpirationDate: Timestamp
+  ID: String
+  IsPublic: Boolean
+  LastReviewedDate: Timestamp
+  LegislativeIssueID: String
+  Position: String
+  PositionStatement: String
+  Priority: String
+  Rationale: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoPostAttachmentInput {
+  DownloadCount: Int
+  FileName: String
+  FileSizeBytes: Int
+  FileType: String
+  FileURL: String
+  ID: String
+  PostID: String
+  RestoreContext___: RestoreContextInput
+  UploadedByID: String
+  UploadedDate: Timestamp
+}
+
+input CreateAssociationDemoPostReactionInput {
+  CreatedDate: Timestamp
+  ID: String
+  MemberID: String
+  PostID: String
+  ReactionType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoPostTagInput {
+  CreatedDate: Timestamp
+  ID: String
+  PostID: String
+  RestoreContext___: RestoreContextInput
+  TagName: String
+}
+
+input CreateAssociationDemoProductAwardInput {
+  AwardDate: Timestamp
+  AwardLevel: String
+  AwardName: String
+  AwardingOrganization: String
+  Category: String
+  CertificateURL: String
+  CompetitionEntryID: String
+  CompetitionID: String
+  Description: String
+  DisplayOrder: Int
+  ID: String
+  IsDisplayed: Boolean
+  ProductID: String
+  RestoreContext___: RestoreContextInput
+  Score: Float
+  Year: Int
+}
+
+input CreateAssociationDemoProductCategoryInput {
+  Description: String
+  DisplayOrder: Int
+  ID: String
+  ImageURL: String
+  IsActive: Boolean
+  Name: String
+  ParentCategoryID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoProductInput {
+  AgeMonths: Int
+  AwardCount: Int
+  CategoryID: String
+  CheeseType: String
+  DateIntroduced: Timestamp
+  Description: String
+  ID: String
+  ImageURL: String
+  IsAwardWinner: Boolean
+  IsOrganic: Boolean
+  IsRawMilk: Boolean
+  MemberID: String
+  MilkSource: String
+  Name: String
+  PairingNotes: String
+  ProductionMethod: String
+  RestoreContext___: RestoreContextInput
+  RetailPrice: Float
+  Status: String
+  TastingNotes: String
+  Weight: Float
+  WeightUnit: String
+}
+
+input CreateAssociationDemoRegulatoryCommentInput {
+  AttachmentURL: String
+  CommentPeriodEnd: Timestamp
+  CommentPeriodStart: Timestamp
+  CommentText: String
+  CommentType: String
+  ConfirmationNumber: String
+  DocketNumber: String
+  ID: String
+  LegislativeIssueID: String
+  Notes: String
+  Response: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SubmittedBy: String
+  SubmittedDate: Timestamp
+}
+
+input CreateAssociationDemoResourceCategoryInput {
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String
+  Icon: String
+  IsActive: Boolean
+  Name: String
+  ParentCategoryID: String
+  RequiresMembership: Boolean
+  ResourceCount: Int
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateAssociationDemoResourceDownloadInput {
+  DownloadDate: Timestamp
+  ID: String
+  IPAddress: String
+  MemberID: String
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  UserAgent: String
+}
+
+input CreateAssociationDemoResourceInput {
+  AuthorID: String
+  AverageRating: Float
+  CategoryID: String
+  Description: String
+  DownloadCount: Int
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String
+  IsFeatured: Boolean
+  LastUpdatedDate: Timestamp
+  MimeType: String
+  PublishedDate: Timestamp
+  RatingCount: Int
+  RequiresMembership: Boolean
+  ResourceType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  Title: String
+  ViewCount: Int
+}
+
+input CreateAssociationDemoResourceRatingInput {
+  CreatedDate: Timestamp
+  ID: String
+  IsHelpful: Boolean
+  MemberID: String
+  Rating: Int
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  Review: String
+}
+
+input CreateAssociationDemoResourceTagInput {
+  CreatedDate: Timestamp
+  ID: String
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  TagName: String
+}
+
+input CreateAssociationDemoResourceVersionInput {
+  CreatedByID: String
+  CreatedDate: Timestamp
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String
+  IsCurrent: Boolean
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  VersionNotes: String
+  VersionNumber: String
+}
+
+input CreateAssociationDemoSegmentInput {
+  Description: String
+  FilterCriteria: String
+  ID: String
+  IsActive: Boolean
+  LastCalculatedDate: Timestamp
+  MemberCount: Int
+  Name: String
+  RestoreContext___: RestoreContextInput
+  SegmentType: String
 }
 
 input CreateConnectionInput {
@@ -5381,6 +7364,58 @@ input CreateVersionLabelInput {
   Scope: String
 }
 
+input CreatemembershipCertificationInput {
+  CompletedOn: Timestamp
+  CourseName: String
+  CreditHours: Float
+  ID: String
+  IsActive: Boolean
+  MemberID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreatemembershipEmailEngagementInput {
+  ActivityType: String
+  CampaignName: String
+  ID: String
+  MemberID: String
+  OccurredOn: Timestamp
+  RestoreContext___: RestoreContextInput
+}
+
+input CreatemembershipEventRegistrationInput {
+  Attended: Boolean
+  EventDate: Timestamp
+  EventName: String
+  ID: String
+  MemberID: String
+  RegistrationType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreatemembershipMemberInput {
+  ChapterRegion: String
+  Email: String
+  FirstName: String
+  ID: String
+  JoinDate: Timestamp
+  LastName: String
+  MembershipType: String
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input CreatemembershipPaymentInput {
+  Amount: Float
+  ID: String
+  MemberID: String
+  PaidOn: Timestamp
+  PaymentType: String
+  RestoreContext___: RestoreContextInput
+  TermYear: Int
+}
+
 input CreatemjBizAppsSonarFactorInput {
   ActionID: String
   ActionParamsJSON: String
@@ -5389,6 +7424,7 @@ input CreatemjBizAppsSonarFactorInput {
   AnchorEntityID: String
   CacheTTLSeconds: Int
   CreatedByAgent: String
+  DateField: String
   Description: String
   ExecutionMode: String
   FactorType: String
@@ -5414,6 +7450,39 @@ input CreatemjBizAppsSonarFactorInput {
   SourceRelatedEntityID: String
   SourceScoreModelID: String
   TimeWindowID: String
+}
+
+input CreatemjBizAppsSonarInterventionAssignmentInput {
+  ActionDeliveryStatus: String
+  AnchorRecordID: String
+  AnchorRecordKeyJSON: String
+  AssignedAt: Timestamp
+  Cohort: String
+  ID: String
+  InterventionID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreatemjBizAppsSonarInterventionInput {
+  ActionID: String
+  ControlGroupPercent: Float
+  Description: String
+  ID: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  ScoreSegmentID: String
+  Status: String
+  TriggerType: String
+}
+
+input CreatemjBizAppsSonarInterventionOutcomeInput {
+  AssignmentID: String
+  ID: String
+  MeasuredAt: Timestamp
+  OutcomeAt: Timestamp
+  OutcomeType: String
+  RestoreContext___: RestoreContextInput
+  ScoreDeltaAfter: Float
 }
 
 input CreatemjBizAppsSonarModelFactorInput {
@@ -5603,6 +7672,18 @@ input CreatemjBizAppsSonarScoreRecomputeRunInput {
   StartedAt: Timestamp
   Status: String
   TriggerType: String
+}
+
+input CreatemjBizAppsSonarScoreSegmentInput {
+  Description: String
+  FilterExpression: String
+  ID: String
+  IsDynamic: Boolean
+  LastEvaluatedAt: Timestamp
+  MemberCountCached: Int
+  Name: String
+  RestoreContext___: RestoreContextInput
+  ScoreModelID: String
 }
 
 input CreatemjBizAppsSonarTimeWindowInput {
@@ -21206,6 +23287,64 @@ type Mutation {
   CopyObjectBetweenAccounts(input: CopyObjectBetweenAccountsInput!): CopyObjectBetweenAccountsPayload!
   CopyStorageObject(input: CopyStorageObjectInput!): Boolean!
   CreateAPIKey(input: CreateAPIKeyInput!): CreateAPIKeyResult!
+  CreateAssociationDemoAccreditingBody(input: CreateAssociationDemoAccreditingBodyInput!): AssociationDemoAccreditingBody_!
+  CreateAssociationDemoAdvocacyAction(input: CreateAssociationDemoAdvocacyActionInput!): AssociationDemoAdvocacyAction_!
+  CreateAssociationDemoBoardMember(input: CreateAssociationDemoBoardMemberInput!): AssociationDemoBoardMember_!
+  CreateAssociationDemoBoardPosition(input: CreateAssociationDemoBoardPositionInput!): AssociationDemoBoardPosition_!
+  CreateAssociationDemoCampaign(input: CreateAssociationDemoCampaignInput!): AssociationDemoCampaign_!
+  CreateAssociationDemoCampaignMember(input: CreateAssociationDemoCampaignMemberInput!): AssociationDemoCampaignMember_!
+  CreateAssociationDemoCertificate(input: CreateAssociationDemoCertificateInput!): AssociationDemoCertificate_!
+  CreateAssociationDemoCertification(input: CreateAssociationDemoCertificationInput!): AssociationDemoCertification_!
+  CreateAssociationDemoCertificationRenewal(input: CreateAssociationDemoCertificationRenewalInput!): AssociationDemoCertificationRenewal_!
+  CreateAssociationDemoCertificationRequirement(input: CreateAssociationDemoCertificationRequirementInput!): AssociationDemoCertificationRequirement_!
+  CreateAssociationDemoCertificationType(input: CreateAssociationDemoCertificationTypeInput!): AssociationDemoCertificationType_!
+  CreateAssociationDemoChapter(input: CreateAssociationDemoChapterInput!): AssociationDemoChapter_!
+  CreateAssociationDemoChapterMembership(input: CreateAssociationDemoChapterMembershipInput!): AssociationDemoChapterMembership_!
+  CreateAssociationDemoChapterOfficer(input: CreateAssociationDemoChapterOfficerInput!): AssociationDemoChapterOfficer_!
+  CreateAssociationDemoCommittee(input: CreateAssociationDemoCommitteeInput!): AssociationDemoCommittee_!
+  CreateAssociationDemoCommitteeMembership(input: CreateAssociationDemoCommitteeMembershipInput!): AssociationDemoCommitteeMembership_!
+  CreateAssociationDemoCompetition(input: CreateAssociationDemoCompetitionInput!): AssociationDemoCompetition_!
+  CreateAssociationDemoCompetitionEntry(input: CreateAssociationDemoCompetitionEntryInput!): AssociationDemoCompetitionEntry_!
+  CreateAssociationDemoCompetitionJudge(input: CreateAssociationDemoCompetitionJudgeInput!): AssociationDemoCompetitionJudge_!
+  CreateAssociationDemoContinuingEducation(input: CreateAssociationDemoContinuingEducationInput!): AssociationDemoContinuingEducation_!
+  CreateAssociationDemoCourse(input: CreateAssociationDemoCourseInput!): AssociationDemoCourse_!
+  CreateAssociationDemoEmailClick(input: CreateAssociationDemoEmailClickInput!): AssociationDemoEmailClick_!
+  CreateAssociationDemoEmailSend(input: CreateAssociationDemoEmailSendInput!): AssociationDemoEmailSend_!
+  CreateAssociationDemoEmailTemplate(input: CreateAssociationDemoEmailTemplateInput!): AssociationDemoEmailTemplate_!
+  CreateAssociationDemoEnrollment(input: CreateAssociationDemoEnrollmentInput!): AssociationDemoEnrollment_!
+  CreateAssociationDemoEvent(input: CreateAssociationDemoEventInput!): AssociationDemoEvent_!
+  CreateAssociationDemoEventRegistration(input: CreateAssociationDemoEventRegistrationInput!): AssociationDemoEventRegistration_!
+  CreateAssociationDemoEventSession(input: CreateAssociationDemoEventSessionInput!): AssociationDemoEventSession_!
+  CreateAssociationDemoForumCategory(input: CreateAssociationDemoForumCategoryInput!): AssociationDemoForumCategory_!
+  CreateAssociationDemoForumModeration(input: CreateAssociationDemoForumModerationInput!): AssociationDemoForumModeration_!
+  CreateAssociationDemoForumPost(input: CreateAssociationDemoForumPostInput!): AssociationDemoForumPost_!
+  CreateAssociationDemoForumThread(input: CreateAssociationDemoForumThreadInput!): AssociationDemoForumThread_!
+  CreateAssociationDemoGovernmentContact(input: CreateAssociationDemoGovernmentContactInput!): AssociationDemoGovernmentContact_!
+  CreateAssociationDemoInvoice(input: CreateAssociationDemoInvoiceInput!): AssociationDemoInvoice_!
+  CreateAssociationDemoInvoiceLineItem(input: CreateAssociationDemoInvoiceLineItemInput!): AssociationDemoInvoiceLineItem_!
+  CreateAssociationDemoLegislativeBody(input: CreateAssociationDemoLegislativeBodyInput!): AssociationDemoLegislativeBody_!
+  CreateAssociationDemoLegislativeIssue(input: CreateAssociationDemoLegislativeIssueInput!): AssociationDemoLegislativeIssue_!
+  CreateAssociationDemoMember(input: CreateAssociationDemoMemberInput!): AssociationDemoMember_!
+  CreateAssociationDemoMemberFollow(input: CreateAssociationDemoMemberFollowInput!): AssociationDemoMemberFollow_!
+  CreateAssociationDemoMembership(input: CreateAssociationDemoMembershipInput!): AssociationDemoMembership_!
+  CreateAssociationDemoMembershipType(input: CreateAssociationDemoMembershipTypeInput!): AssociationDemoMembershipType_!
+  CreateAssociationDemoOrganization(input: CreateAssociationDemoOrganizationInput!): AssociationDemoOrganization_!
+  CreateAssociationDemoPayment(input: CreateAssociationDemoPaymentInput!): AssociationDemoPayment_!
+  CreateAssociationDemoPolicyPosition(input: CreateAssociationDemoPolicyPositionInput!): AssociationDemoPolicyPosition_!
+  CreateAssociationDemoPostAttachment(input: CreateAssociationDemoPostAttachmentInput!): AssociationDemoPostAttachment_!
+  CreateAssociationDemoPostReaction(input: CreateAssociationDemoPostReactionInput!): AssociationDemoPostReaction_!
+  CreateAssociationDemoPostTag(input: CreateAssociationDemoPostTagInput!): AssociationDemoPostTag_!
+  CreateAssociationDemoProduct(input: CreateAssociationDemoProductInput!): AssociationDemoProduct_!
+  CreateAssociationDemoProductAward(input: CreateAssociationDemoProductAwardInput!): AssociationDemoProductAward_!
+  CreateAssociationDemoProductCategory(input: CreateAssociationDemoProductCategoryInput!): AssociationDemoProductCategory_!
+  CreateAssociationDemoRegulatoryComment(input: CreateAssociationDemoRegulatoryCommentInput!): AssociationDemoRegulatoryComment_!
+  CreateAssociationDemoResource(input: CreateAssociationDemoResourceInput!): AssociationDemoResource_!
+  CreateAssociationDemoResourceCategory(input: CreateAssociationDemoResourceCategoryInput!): AssociationDemoResourceCategory_!
+  CreateAssociationDemoResourceDownload(input: CreateAssociationDemoResourceDownloadInput!): AssociationDemoResourceDownload_!
+  CreateAssociationDemoResourceRating(input: CreateAssociationDemoResourceRatingInput!): AssociationDemoResourceRating_!
+  CreateAssociationDemoResourceTag(input: CreateAssociationDemoResourceTagInput!): AssociationDemoResourceTag_!
+  CreateAssociationDemoResourceVersion(input: CreateAssociationDemoResourceVersionInput!): AssociationDemoResourceVersion_!
+  CreateAssociationDemoSegment(input: CreateAssociationDemoSegmentInput!): AssociationDemoSegment_!
   CreateDirectory(input: CreateDirectoryInput!): Boolean!
   CreateFile(input: CreateMJFileInput!): CreateFilePayload!
   CreateMJAIAction(input: CreateMJAIActionInput!): MJAIAction_!
@@ -21551,7 +23690,15 @@ type Mutation {
   CreateQuerySystemUser(input: CreateQuerySystemUserInput!): QueryMutationResultType!
   CreateReportFromConversationDetailID(ConversationDetailID: String!): CreateReportResultType!
   CreateVersionLabel(input: CreateVersionLabelInput!, sessionId: String): CreateLabelResultOutput!
+  CreatemembershipCertification(input: CreatemembershipCertificationInput!): membershipCertification_!
+  CreatemembershipEmailEngagement(input: CreatemembershipEmailEngagementInput!): membershipEmailEngagement_!
+  CreatemembershipEventRegistration(input: CreatemembershipEventRegistrationInput!): membershipEventRegistration_!
+  CreatemembershipMember(input: CreatemembershipMemberInput!): membershipMember_!
+  CreatemembershipPayment(input: CreatemembershipPaymentInput!): membershipPayment_!
   CreatemjBizAppsSonarFactor(input: CreatemjBizAppsSonarFactorInput!): mjBizAppsSonarFactor_!
+  CreatemjBizAppsSonarIntervention(input: CreatemjBizAppsSonarInterventionInput!): mjBizAppsSonarIntervention_!
+  CreatemjBizAppsSonarInterventionAssignment(input: CreatemjBizAppsSonarInterventionAssignmentInput!): mjBizAppsSonarInterventionAssignment_!
+  CreatemjBizAppsSonarInterventionOutcome(input: CreatemjBizAppsSonarInterventionOutcomeInput!): mjBizAppsSonarInterventionOutcome_!
   CreatemjBizAppsSonarModelFactor(input: CreatemjBizAppsSonarModelFactorInput!): mjBizAppsSonarModelFactor_!
   CreatemjBizAppsSonarModelRelatedEntity(input: CreatemjBizAppsSonarModelRelatedEntityInput!): mjBizAppsSonarModelRelatedEntity_!
   CreatemjBizAppsSonarScore(input: CreatemjBizAppsSonarScoreInput!): mjBizAppsSonarScore_!
@@ -21564,7 +23711,66 @@ type Mutation {
   CreatemjBizAppsSonarScoreModelAuditEvent(input: CreatemjBizAppsSonarScoreModelAuditEventInput!): mjBizAppsSonarScoreModelAuditEvent_!
   CreatemjBizAppsSonarScoreModelVersion(input: CreatemjBizAppsSonarScoreModelVersionInput!): mjBizAppsSonarScoreModelVersion_!
   CreatemjBizAppsSonarScoreRecomputeRun(input: CreatemjBizAppsSonarScoreRecomputeRunInput!): mjBizAppsSonarScoreRecomputeRun_!
+  CreatemjBizAppsSonarScoreSegment(input: CreatemjBizAppsSonarScoreSegmentInput!): mjBizAppsSonarScoreSegment_!
   CreatemjBizAppsSonarTimeWindow(input: CreatemjBizAppsSonarTimeWindowInput!): mjBizAppsSonarTimeWindow_!
+  DeleteAssociationDemoAccreditingBody(ID: String!, options___: DeleteOptionsInput!): AssociationDemoAccreditingBody_!
+  DeleteAssociationDemoAdvocacyAction(ID: String!, options___: DeleteOptionsInput!): AssociationDemoAdvocacyAction_!
+  DeleteAssociationDemoBoardMember(ID: String!, options___: DeleteOptionsInput!): AssociationDemoBoardMember_!
+  DeleteAssociationDemoBoardPosition(ID: String!, options___: DeleteOptionsInput!): AssociationDemoBoardPosition_!
+  DeleteAssociationDemoCampaign(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCampaign_!
+  DeleteAssociationDemoCampaignMember(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCampaignMember_!
+  DeleteAssociationDemoCertificate(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCertificate_!
+  DeleteAssociationDemoCertification(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCertification_!
+  DeleteAssociationDemoCertificationRenewal(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCertificationRenewal_!
+  DeleteAssociationDemoCertificationRequirement(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCertificationRequirement_!
+  DeleteAssociationDemoCertificationType(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCertificationType_!
+  DeleteAssociationDemoChapter(ID: String!, options___: DeleteOptionsInput!): AssociationDemoChapter_!
+  DeleteAssociationDemoChapterMembership(ID: String!, options___: DeleteOptionsInput!): AssociationDemoChapterMembership_!
+  DeleteAssociationDemoChapterOfficer(ID: String!, options___: DeleteOptionsInput!): AssociationDemoChapterOfficer_!
+  DeleteAssociationDemoCommittee(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCommittee_!
+  DeleteAssociationDemoCommitteeMembership(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCommitteeMembership_!
+  DeleteAssociationDemoCompetition(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCompetition_!
+  DeleteAssociationDemoCompetitionEntry(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCompetitionEntry_!
+  DeleteAssociationDemoCompetitionJudge(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCompetitionJudge_!
+  DeleteAssociationDemoContinuingEducation(ID: String!, options___: DeleteOptionsInput!): AssociationDemoContinuingEducation_!
+  DeleteAssociationDemoCourse(ID: String!, options___: DeleteOptionsInput!): AssociationDemoCourse_!
+  DeleteAssociationDemoEmailClick(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEmailClick_!
+  DeleteAssociationDemoEmailSend(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEmailSend_!
+  DeleteAssociationDemoEmailTemplate(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEmailTemplate_!
+  DeleteAssociationDemoEnrollment(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEnrollment_!
+  DeleteAssociationDemoEvent(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEvent_!
+  DeleteAssociationDemoEventRegistration(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEventRegistration_!
+  DeleteAssociationDemoEventSession(ID: String!, options___: DeleteOptionsInput!): AssociationDemoEventSession_!
+  DeleteAssociationDemoForumCategory(ID: String!, options___: DeleteOptionsInput!): AssociationDemoForumCategory_!
+  DeleteAssociationDemoForumModeration(ID: String!, options___: DeleteOptionsInput!): AssociationDemoForumModeration_!
+  DeleteAssociationDemoForumPost(ID: String!, options___: DeleteOptionsInput!): AssociationDemoForumPost_!
+  DeleteAssociationDemoForumThread(ID: String!, options___: DeleteOptionsInput!): AssociationDemoForumThread_!
+  DeleteAssociationDemoGovernmentContact(ID: String!, options___: DeleteOptionsInput!): AssociationDemoGovernmentContact_!
+  DeleteAssociationDemoInvoice(ID: String!, options___: DeleteOptionsInput!): AssociationDemoInvoice_!
+  DeleteAssociationDemoInvoiceLineItem(ID: String!, options___: DeleteOptionsInput!): AssociationDemoInvoiceLineItem_!
+  DeleteAssociationDemoLegislativeBody(ID: String!, options___: DeleteOptionsInput!): AssociationDemoLegislativeBody_!
+  DeleteAssociationDemoLegislativeIssue(ID: String!, options___: DeleteOptionsInput!): AssociationDemoLegislativeIssue_!
+  DeleteAssociationDemoMember(ID: String!, options___: DeleteOptionsInput!): AssociationDemoMember_!
+  DeleteAssociationDemoMemberFollow(ID: String!, options___: DeleteOptionsInput!): AssociationDemoMemberFollow_!
+  DeleteAssociationDemoMembership(ID: String!, options___: DeleteOptionsInput!): AssociationDemoMembership_!
+  DeleteAssociationDemoMembershipType(ID: String!, options___: DeleteOptionsInput!): AssociationDemoMembershipType_!
+  DeleteAssociationDemoOrganization(ID: String!, options___: DeleteOptionsInput!): AssociationDemoOrganization_!
+  DeleteAssociationDemoPayment(ID: String!, options___: DeleteOptionsInput!): AssociationDemoPayment_!
+  DeleteAssociationDemoPolicyPosition(ID: String!, options___: DeleteOptionsInput!): AssociationDemoPolicyPosition_!
+  DeleteAssociationDemoPostAttachment(ID: String!, options___: DeleteOptionsInput!): AssociationDemoPostAttachment_!
+  DeleteAssociationDemoPostReaction(ID: String!, options___: DeleteOptionsInput!): AssociationDemoPostReaction_!
+  DeleteAssociationDemoPostTag(ID: String!, options___: DeleteOptionsInput!): AssociationDemoPostTag_!
+  DeleteAssociationDemoProduct(ID: String!, options___: DeleteOptionsInput!): AssociationDemoProduct_!
+  DeleteAssociationDemoProductAward(ID: String!, options___: DeleteOptionsInput!): AssociationDemoProductAward_!
+  DeleteAssociationDemoProductCategory(ID: String!, options___: DeleteOptionsInput!): AssociationDemoProductCategory_!
+  DeleteAssociationDemoRegulatoryComment(ID: String!, options___: DeleteOptionsInput!): AssociationDemoRegulatoryComment_!
+  DeleteAssociationDemoResource(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResource_!
+  DeleteAssociationDemoResourceCategory(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResourceCategory_!
+  DeleteAssociationDemoResourceDownload(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResourceDownload_!
+  DeleteAssociationDemoResourceRating(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResourceRating_!
+  DeleteAssociationDemoResourceTag(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResourceTag_!
+  DeleteAssociationDemoResourceVersion(ID: String!, options___: DeleteOptionsInput!): AssociationDemoResourceVersion_!
+  DeleteAssociationDemoSegment(ID: String!, options___: DeleteOptionsInput!): AssociationDemoSegment_!
   DeleteFile(ID: String!, options___: DeleteOptionsInput!): MJFile_!
   DeleteFileCategory(ID: String!, options___: DeleteOptionsInput!): MJFileCategory_!
   DeleteMJAIAction(ID: String!, options___: DeleteOptionsInput!): MJAIAction_!
@@ -21908,7 +24114,15 @@ type Mutation {
   DeleteMJWorkspaceItem(ID: String!, options___: DeleteOptionsInput!): MJWorkspaceItem_!
   DeleteQuerySystemResolver(ID: String!, options: DeleteOptionsInput): DeleteQueryResultType!
   DeleteStorageObject(input: DeleteStorageObjectInput!): Boolean!
+  DeletemembershipCertification(ID: String!, options___: DeleteOptionsInput!): membershipCertification_!
+  DeletemembershipEmailEngagement(ID: String!, options___: DeleteOptionsInput!): membershipEmailEngagement_!
+  DeletemembershipEventRegistration(ID: String!, options___: DeleteOptionsInput!): membershipEventRegistration_!
+  DeletemembershipMember(ID: String!, options___: DeleteOptionsInput!): membershipMember_!
+  DeletemembershipPayment(ID: String!, options___: DeleteOptionsInput!): membershipPayment_!
   DeletemjBizAppsSonarFactor(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarFactor_!
+  DeletemjBizAppsSonarIntervention(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarIntervention_!
+  DeletemjBizAppsSonarInterventionAssignment(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarInterventionAssignment_!
+  DeletemjBizAppsSonarInterventionOutcome(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarInterventionOutcome_!
   DeletemjBizAppsSonarModelFactor(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarModelFactor_!
   DeletemjBizAppsSonarModelRelatedEntity(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarModelRelatedEntity_!
   DeletemjBizAppsSonarScore(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScore_!
@@ -21921,6 +24135,7 @@ type Mutation {
   DeletemjBizAppsSonarScoreModelAuditEvent(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreModelAuditEvent_!
   DeletemjBizAppsSonarScoreModelVersion(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreModelVersion_!
   DeletemjBizAppsSonarScoreRecomputeRun(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreRecomputeRun_!
+  DeletemjBizAppsSonarScoreSegment(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreSegment_!
   DeletemjBizAppsSonarTimeWindow(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarTimeWindow_!
   EmbedText(modelSize: String!, textToEmbed: [String!]!): EmbedTextResult!
   ExecuteMCPTool(input: ExecuteMCPToolInput!): ExecuteMCPToolResult!
@@ -22073,6 +24288,64 @@ type Mutation {
   SyncRolesAndUsers(data: RolesAndUsersInputType!): SyncRolesAndUsersResultType!
   SyncUsers(users: [UserInputType!]!): SyncRolesAndUsersResultType!
   UnshareList(permissionId: String!): ShareResultType!
+  UpdateAssociationDemoAccreditingBody(input: UpdateAssociationDemoAccreditingBodyInput!): AssociationDemoAccreditingBody_!
+  UpdateAssociationDemoAdvocacyAction(input: UpdateAssociationDemoAdvocacyActionInput!): AssociationDemoAdvocacyAction_!
+  UpdateAssociationDemoBoardMember(input: UpdateAssociationDemoBoardMemberInput!): AssociationDemoBoardMember_!
+  UpdateAssociationDemoBoardPosition(input: UpdateAssociationDemoBoardPositionInput!): AssociationDemoBoardPosition_!
+  UpdateAssociationDemoCampaign(input: UpdateAssociationDemoCampaignInput!): AssociationDemoCampaign_!
+  UpdateAssociationDemoCampaignMember(input: UpdateAssociationDemoCampaignMemberInput!): AssociationDemoCampaignMember_!
+  UpdateAssociationDemoCertificate(input: UpdateAssociationDemoCertificateInput!): AssociationDemoCertificate_!
+  UpdateAssociationDemoCertification(input: UpdateAssociationDemoCertificationInput!): AssociationDemoCertification_!
+  UpdateAssociationDemoCertificationRenewal(input: UpdateAssociationDemoCertificationRenewalInput!): AssociationDemoCertificationRenewal_!
+  UpdateAssociationDemoCertificationRequirement(input: UpdateAssociationDemoCertificationRequirementInput!): AssociationDemoCertificationRequirement_!
+  UpdateAssociationDemoCertificationType(input: UpdateAssociationDemoCertificationTypeInput!): AssociationDemoCertificationType_!
+  UpdateAssociationDemoChapter(input: UpdateAssociationDemoChapterInput!): AssociationDemoChapter_!
+  UpdateAssociationDemoChapterMembership(input: UpdateAssociationDemoChapterMembershipInput!): AssociationDemoChapterMembership_!
+  UpdateAssociationDemoChapterOfficer(input: UpdateAssociationDemoChapterOfficerInput!): AssociationDemoChapterOfficer_!
+  UpdateAssociationDemoCommittee(input: UpdateAssociationDemoCommitteeInput!): AssociationDemoCommittee_!
+  UpdateAssociationDemoCommitteeMembership(input: UpdateAssociationDemoCommitteeMembershipInput!): AssociationDemoCommitteeMembership_!
+  UpdateAssociationDemoCompetition(input: UpdateAssociationDemoCompetitionInput!): AssociationDemoCompetition_!
+  UpdateAssociationDemoCompetitionEntry(input: UpdateAssociationDemoCompetitionEntryInput!): AssociationDemoCompetitionEntry_!
+  UpdateAssociationDemoCompetitionJudge(input: UpdateAssociationDemoCompetitionJudgeInput!): AssociationDemoCompetitionJudge_!
+  UpdateAssociationDemoContinuingEducation(input: UpdateAssociationDemoContinuingEducationInput!): AssociationDemoContinuingEducation_!
+  UpdateAssociationDemoCourse(input: UpdateAssociationDemoCourseInput!): AssociationDemoCourse_!
+  UpdateAssociationDemoEmailClick(input: UpdateAssociationDemoEmailClickInput!): AssociationDemoEmailClick_!
+  UpdateAssociationDemoEmailSend(input: UpdateAssociationDemoEmailSendInput!): AssociationDemoEmailSend_!
+  UpdateAssociationDemoEmailTemplate(input: UpdateAssociationDemoEmailTemplateInput!): AssociationDemoEmailTemplate_!
+  UpdateAssociationDemoEnrollment(input: UpdateAssociationDemoEnrollmentInput!): AssociationDemoEnrollment_!
+  UpdateAssociationDemoEvent(input: UpdateAssociationDemoEventInput!): AssociationDemoEvent_!
+  UpdateAssociationDemoEventRegistration(input: UpdateAssociationDemoEventRegistrationInput!): AssociationDemoEventRegistration_!
+  UpdateAssociationDemoEventSession(input: UpdateAssociationDemoEventSessionInput!): AssociationDemoEventSession_!
+  UpdateAssociationDemoForumCategory(input: UpdateAssociationDemoForumCategoryInput!): AssociationDemoForumCategory_!
+  UpdateAssociationDemoForumModeration(input: UpdateAssociationDemoForumModerationInput!): AssociationDemoForumModeration_!
+  UpdateAssociationDemoForumPost(input: UpdateAssociationDemoForumPostInput!): AssociationDemoForumPost_!
+  UpdateAssociationDemoForumThread(input: UpdateAssociationDemoForumThreadInput!): AssociationDemoForumThread_!
+  UpdateAssociationDemoGovernmentContact(input: UpdateAssociationDemoGovernmentContactInput!): AssociationDemoGovernmentContact_!
+  UpdateAssociationDemoInvoice(input: UpdateAssociationDemoInvoiceInput!): AssociationDemoInvoice_!
+  UpdateAssociationDemoInvoiceLineItem(input: UpdateAssociationDemoInvoiceLineItemInput!): AssociationDemoInvoiceLineItem_!
+  UpdateAssociationDemoLegislativeBody(input: UpdateAssociationDemoLegislativeBodyInput!): AssociationDemoLegislativeBody_!
+  UpdateAssociationDemoLegislativeIssue(input: UpdateAssociationDemoLegislativeIssueInput!): AssociationDemoLegislativeIssue_!
+  UpdateAssociationDemoMember(input: UpdateAssociationDemoMemberInput!): AssociationDemoMember_!
+  UpdateAssociationDemoMemberFollow(input: UpdateAssociationDemoMemberFollowInput!): AssociationDemoMemberFollow_!
+  UpdateAssociationDemoMembership(input: UpdateAssociationDemoMembershipInput!): AssociationDemoMembership_!
+  UpdateAssociationDemoMembershipType(input: UpdateAssociationDemoMembershipTypeInput!): AssociationDemoMembershipType_!
+  UpdateAssociationDemoOrganization(input: UpdateAssociationDemoOrganizationInput!): AssociationDemoOrganization_!
+  UpdateAssociationDemoPayment(input: UpdateAssociationDemoPaymentInput!): AssociationDemoPayment_!
+  UpdateAssociationDemoPolicyPosition(input: UpdateAssociationDemoPolicyPositionInput!): AssociationDemoPolicyPosition_!
+  UpdateAssociationDemoPostAttachment(input: UpdateAssociationDemoPostAttachmentInput!): AssociationDemoPostAttachment_!
+  UpdateAssociationDemoPostReaction(input: UpdateAssociationDemoPostReactionInput!): AssociationDemoPostReaction_!
+  UpdateAssociationDemoPostTag(input: UpdateAssociationDemoPostTagInput!): AssociationDemoPostTag_!
+  UpdateAssociationDemoProduct(input: UpdateAssociationDemoProductInput!): AssociationDemoProduct_!
+  UpdateAssociationDemoProductAward(input: UpdateAssociationDemoProductAwardInput!): AssociationDemoProductAward_!
+  UpdateAssociationDemoProductCategory(input: UpdateAssociationDemoProductCategoryInput!): AssociationDemoProductCategory_!
+  UpdateAssociationDemoRegulatoryComment(input: UpdateAssociationDemoRegulatoryCommentInput!): AssociationDemoRegulatoryComment_!
+  UpdateAssociationDemoResource(input: UpdateAssociationDemoResourceInput!): AssociationDemoResource_!
+  UpdateAssociationDemoResourceCategory(input: UpdateAssociationDemoResourceCategoryInput!): AssociationDemoResourceCategory_!
+  UpdateAssociationDemoResourceDownload(input: UpdateAssociationDemoResourceDownloadInput!): AssociationDemoResourceDownload_!
+  UpdateAssociationDemoResourceRating(input: UpdateAssociationDemoResourceRatingInput!): AssociationDemoResourceRating_!
+  UpdateAssociationDemoResourceTag(input: UpdateAssociationDemoResourceTagInput!): AssociationDemoResourceTag_!
+  UpdateAssociationDemoResourceVersion(input: UpdateAssociationDemoResourceVersionInput!): AssociationDemoResourceVersion_!
+  UpdateAssociationDemoSegment(input: UpdateAssociationDemoSegmentInput!): AssociationDemoSegment_!
   UpdateClientToolDefinitions(sessionID: String!, tools: String!): Boolean!
   UpdateFile(input: UpdateMJFileInput!): MJFile_!
   UpdateMJAIAction(input: UpdateMJAIActionInput!): MJAIAction_!
@@ -22415,7 +24688,15 @@ type Mutation {
   UpdateMJWorkspace(input: UpdateMJWorkspaceInput!): MJWorkspace_!
   UpdateMJWorkspaceItem(input: UpdateMJWorkspaceItemInput!): MJWorkspaceItem_!
   UpdateQuerySystemUser(input: UpdateQuerySystemUserInput!): QueryMutationResultType!
+  UpdatemembershipCertification(input: UpdatemembershipCertificationInput!): membershipCertification_!
+  UpdatemembershipEmailEngagement(input: UpdatemembershipEmailEngagementInput!): membershipEmailEngagement_!
+  UpdatemembershipEventRegistration(input: UpdatemembershipEventRegistrationInput!): membershipEventRegistration_!
+  UpdatemembershipMember(input: UpdatemembershipMemberInput!): membershipMember_!
+  UpdatemembershipPayment(input: UpdatemembershipPaymentInput!): membershipPayment_!
   UpdatemjBizAppsSonarFactor(input: UpdatemjBizAppsSonarFactorInput!): mjBizAppsSonarFactor_!
+  UpdatemjBizAppsSonarIntervention(input: UpdatemjBizAppsSonarInterventionInput!): mjBizAppsSonarIntervention_!
+  UpdatemjBizAppsSonarInterventionAssignment(input: UpdatemjBizAppsSonarInterventionAssignmentInput!): mjBizAppsSonarInterventionAssignment_!
+  UpdatemjBizAppsSonarInterventionOutcome(input: UpdatemjBizAppsSonarInterventionOutcomeInput!): mjBizAppsSonarInterventionOutcome_!
   UpdatemjBizAppsSonarModelFactor(input: UpdatemjBizAppsSonarModelFactorInput!): mjBizAppsSonarModelFactor_!
   UpdatemjBizAppsSonarModelRelatedEntity(input: UpdatemjBizAppsSonarModelRelatedEntityInput!): mjBizAppsSonarModelRelatedEntity_!
   UpdatemjBizAppsSonarScore(input: UpdatemjBizAppsSonarScoreInput!): mjBizAppsSonarScore_!
@@ -22428,6 +24709,7 @@ type Mutation {
   UpdatemjBizAppsSonarScoreModelAuditEvent(input: UpdatemjBizAppsSonarScoreModelAuditEventInput!): mjBizAppsSonarScoreModelAuditEvent_!
   UpdatemjBizAppsSonarScoreModelVersion(input: UpdatemjBizAppsSonarScoreModelVersionInput!): mjBizAppsSonarScoreModelVersion_!
   UpdatemjBizAppsSonarScoreRecomputeRun(input: UpdatemjBizAppsSonarScoreRecomputeRunInput!): mjBizAppsSonarScoreRecomputeRun_!
+  UpdatemjBizAppsSonarScoreSegment(input: UpdatemjBizAppsSonarScoreSegmentInput!): mjBizAppsSonarScoreSegment_!
   UpdatemjBizAppsSonarTimeWindow(input: UpdatemjBizAppsSonarTimeWindowInput!): mjBizAppsSonarTimeWindow_!
   VectorizeEntity(batchSize: Float, entityDocumentID: String!, entityID: String!): VectorizeEntityResult!
   startSqlLogging(input: StartSqlLoggingInput!): SqlLoggingSession!
@@ -22553,6 +24835,64 @@ type Query {
   Returns a pre-authenticated download URL for an artifact version whose ContentMode is "File".
   """
   ArtifactFileDownloadUrl(artifactVersionId: String!): String!
+  AssociationDemoAccreditingBody(ID: String!): AssociationDemoAccreditingBody_
+  AssociationDemoAdvocacyAction(ID: String!): AssociationDemoAdvocacyAction_
+  AssociationDemoBoardMember(ID: String!): AssociationDemoBoardMember_
+  AssociationDemoBoardPosition(ID: String!): AssociationDemoBoardPosition_
+  AssociationDemoCampaign(ID: String!): AssociationDemoCampaign_
+  AssociationDemoCampaignMember(ID: String!): AssociationDemoCampaignMember_
+  AssociationDemoCertificate(ID: String!): AssociationDemoCertificate_
+  AssociationDemoCertification(ID: String!): AssociationDemoCertification_
+  AssociationDemoCertificationRenewal(ID: String!): AssociationDemoCertificationRenewal_
+  AssociationDemoCertificationRequirement(ID: String!): AssociationDemoCertificationRequirement_
+  AssociationDemoCertificationType(ID: String!): AssociationDemoCertificationType_
+  AssociationDemoChapter(ID: String!): AssociationDemoChapter_
+  AssociationDemoChapterMembership(ID: String!): AssociationDemoChapterMembership_
+  AssociationDemoChapterOfficer(ID: String!): AssociationDemoChapterOfficer_
+  AssociationDemoCommittee(ID: String!): AssociationDemoCommittee_
+  AssociationDemoCommitteeMembership(ID: String!): AssociationDemoCommitteeMembership_
+  AssociationDemoCompetition(ID: String!): AssociationDemoCompetition_
+  AssociationDemoCompetitionEntry(ID: String!): AssociationDemoCompetitionEntry_
+  AssociationDemoCompetitionJudge(ID: String!): AssociationDemoCompetitionJudge_
+  AssociationDemoContinuingEducation(ID: String!): AssociationDemoContinuingEducation_
+  AssociationDemoCourse(ID: String!): AssociationDemoCourse_
+  AssociationDemoEmailClick(ID: String!): AssociationDemoEmailClick_
+  AssociationDemoEmailSend(ID: String!): AssociationDemoEmailSend_
+  AssociationDemoEmailTemplate(ID: String!): AssociationDemoEmailTemplate_
+  AssociationDemoEnrollment(ID: String!): AssociationDemoEnrollment_
+  AssociationDemoEvent(ID: String!): AssociationDemoEvent_
+  AssociationDemoEventRegistration(ID: String!): AssociationDemoEventRegistration_
+  AssociationDemoEventSession(ID: String!): AssociationDemoEventSession_
+  AssociationDemoForumCategory(ID: String!): AssociationDemoForumCategory_
+  AssociationDemoForumModeration(ID: String!): AssociationDemoForumModeration_
+  AssociationDemoForumPost(ID: String!): AssociationDemoForumPost_
+  AssociationDemoForumThread(ID: String!): AssociationDemoForumThread_
+  AssociationDemoGovernmentContact(ID: String!): AssociationDemoGovernmentContact_
+  AssociationDemoInvoice(ID: String!): AssociationDemoInvoice_
+  AssociationDemoInvoiceLineItem(ID: String!): AssociationDemoInvoiceLineItem_
+  AssociationDemoLegislativeBody(ID: String!): AssociationDemoLegislativeBody_
+  AssociationDemoLegislativeIssue(ID: String!): AssociationDemoLegislativeIssue_
+  AssociationDemoMember(ID: String!): AssociationDemoMember_
+  AssociationDemoMemberFollow(ID: String!): AssociationDemoMemberFollow_
+  AssociationDemoMembership(ID: String!): AssociationDemoMembership_
+  AssociationDemoMembershipType(ID: String!): AssociationDemoMembershipType_
+  AssociationDemoOrganization(ID: String!): AssociationDemoOrganization_
+  AssociationDemoPayment(ID: String!): AssociationDemoPayment_
+  AssociationDemoPolicyPosition(ID: String!): AssociationDemoPolicyPosition_
+  AssociationDemoPostAttachment(ID: String!): AssociationDemoPostAttachment_
+  AssociationDemoPostReaction(ID: String!): AssociationDemoPostReaction_
+  AssociationDemoPostTag(ID: String!): AssociationDemoPostTag_
+  AssociationDemoProduct(ID: String!): AssociationDemoProduct_
+  AssociationDemoProductAward(ID: String!): AssociationDemoProductAward_
+  AssociationDemoProductCategory(ID: String!): AssociationDemoProductCategory_
+  AssociationDemoRegulatoryComment(ID: String!): AssociationDemoRegulatoryComment_
+  AssociationDemoResource(ID: String!): AssociationDemoResource_
+  AssociationDemoResourceCategory(ID: String!): AssociationDemoResourceCategory_
+  AssociationDemoResourceDownload(ID: String!): AssociationDemoResourceDownload_
+  AssociationDemoResourceRating(ID: String!): AssociationDemoResourceRating_
+  AssociationDemoResourceTag(ID: String!): AssociationDemoResourceTag_
+  AssociationDemoResourceVersion(ID: String!): AssociationDemoResourceVersion_
+  AssociationDemoSegment(ID: String!): AssociationDemoSegment_
   AvailableSearchProviders: [AvailableSearchProviderGQL!]!
   CacheStats: CacheStatsGQL!
   CacheStatsDetail: CacheStatsDetailGQL!
@@ -22978,6 +25318,180 @@ type Query {
   ResolveStateProvince(countryInput: String!, stateInput: String!): GeoResolveResult!
   RunAIAgentSystemUser(agentId: String!, autoPopulateLastRunPayload: Boolean, configurationId: String, conversationDetailId: String, createArtifacts: Boolean, createNotification: Boolean, data: String, lastRunId: String, messages: String!, payload: String, sessionId: String!, sourceArtifactId: String, sourceArtifactVersionId: String, templateData: String): AIAgentRunResult!
   RunAIPromptSystemUser(configurationId: String, data: String, frequencyPenalty: Float, includeLogProbs: Boolean, messages: String, minP: Float, overrideModelId: String, overrideVendorId: String, presencePenalty: Float, promptId: String!, rerunFromPromptRunID: String, responseFormat: String, seed: Int, skipValidation: Boolean, stopSequences: [String!], systemPromptOverride: String, temperature: Float, templateData: String, topK: Int, topLogProbs: Int, topP: Float): AIPromptRunResult!
+  RunAssociationDemoAccreditingBodyDynamicView(input: RunDynamicViewInput!): RunAssociationDemoAccreditingBodyViewResult!
+  RunAssociationDemoAccreditingBodyViewByID(input: RunViewByIDInput!): RunAssociationDemoAccreditingBodyViewResult!
+  RunAssociationDemoAccreditingBodyViewByName(input: RunViewByNameInput!): RunAssociationDemoAccreditingBodyViewResult!
+  RunAssociationDemoAdvocacyActionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoAdvocacyActionViewResult!
+  RunAssociationDemoAdvocacyActionViewByID(input: RunViewByIDInput!): RunAssociationDemoAdvocacyActionViewResult!
+  RunAssociationDemoAdvocacyActionViewByName(input: RunViewByNameInput!): RunAssociationDemoAdvocacyActionViewResult!
+  RunAssociationDemoBoardMemberDynamicView(input: RunDynamicViewInput!): RunAssociationDemoBoardMemberViewResult!
+  RunAssociationDemoBoardMemberViewByID(input: RunViewByIDInput!): RunAssociationDemoBoardMemberViewResult!
+  RunAssociationDemoBoardMemberViewByName(input: RunViewByNameInput!): RunAssociationDemoBoardMemberViewResult!
+  RunAssociationDemoBoardPositionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoBoardPositionViewResult!
+  RunAssociationDemoBoardPositionViewByID(input: RunViewByIDInput!): RunAssociationDemoBoardPositionViewResult!
+  RunAssociationDemoBoardPositionViewByName(input: RunViewByNameInput!): RunAssociationDemoBoardPositionViewResult!
+  RunAssociationDemoCampaignDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCampaignViewResult!
+  RunAssociationDemoCampaignMemberDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCampaignMemberViewResult!
+  RunAssociationDemoCampaignMemberViewByID(input: RunViewByIDInput!): RunAssociationDemoCampaignMemberViewResult!
+  RunAssociationDemoCampaignMemberViewByName(input: RunViewByNameInput!): RunAssociationDemoCampaignMemberViewResult!
+  RunAssociationDemoCampaignViewByID(input: RunViewByIDInput!): RunAssociationDemoCampaignViewResult!
+  RunAssociationDemoCampaignViewByName(input: RunViewByNameInput!): RunAssociationDemoCampaignViewResult!
+  RunAssociationDemoCertificateDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCertificateViewResult!
+  RunAssociationDemoCertificateViewByID(input: RunViewByIDInput!): RunAssociationDemoCertificateViewResult!
+  RunAssociationDemoCertificateViewByName(input: RunViewByNameInput!): RunAssociationDemoCertificateViewResult!
+  RunAssociationDemoCertificationDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCertificationViewResult!
+  RunAssociationDemoCertificationRenewalDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCertificationRenewalViewResult!
+  RunAssociationDemoCertificationRenewalViewByID(input: RunViewByIDInput!): RunAssociationDemoCertificationRenewalViewResult!
+  RunAssociationDemoCertificationRenewalViewByName(input: RunViewByNameInput!): RunAssociationDemoCertificationRenewalViewResult!
+  RunAssociationDemoCertificationRequirementDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCertificationRequirementViewResult!
+  RunAssociationDemoCertificationRequirementViewByID(input: RunViewByIDInput!): RunAssociationDemoCertificationRequirementViewResult!
+  RunAssociationDemoCertificationRequirementViewByName(input: RunViewByNameInput!): RunAssociationDemoCertificationRequirementViewResult!
+  RunAssociationDemoCertificationTypeDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCertificationTypeViewResult!
+  RunAssociationDemoCertificationTypeViewByID(input: RunViewByIDInput!): RunAssociationDemoCertificationTypeViewResult!
+  RunAssociationDemoCertificationTypeViewByName(input: RunViewByNameInput!): RunAssociationDemoCertificationTypeViewResult!
+  RunAssociationDemoCertificationViewByID(input: RunViewByIDInput!): RunAssociationDemoCertificationViewResult!
+  RunAssociationDemoCertificationViewByName(input: RunViewByNameInput!): RunAssociationDemoCertificationViewResult!
+  RunAssociationDemoChapterDynamicView(input: RunDynamicViewInput!): RunAssociationDemoChapterViewResult!
+  RunAssociationDemoChapterMembershipDynamicView(input: RunDynamicViewInput!): RunAssociationDemoChapterMembershipViewResult!
+  RunAssociationDemoChapterMembershipViewByID(input: RunViewByIDInput!): RunAssociationDemoChapterMembershipViewResult!
+  RunAssociationDemoChapterMembershipViewByName(input: RunViewByNameInput!): RunAssociationDemoChapterMembershipViewResult!
+  RunAssociationDemoChapterOfficerDynamicView(input: RunDynamicViewInput!): RunAssociationDemoChapterOfficerViewResult!
+  RunAssociationDemoChapterOfficerViewByID(input: RunViewByIDInput!): RunAssociationDemoChapterOfficerViewResult!
+  RunAssociationDemoChapterOfficerViewByName(input: RunViewByNameInput!): RunAssociationDemoChapterOfficerViewResult!
+  RunAssociationDemoChapterViewByID(input: RunViewByIDInput!): RunAssociationDemoChapterViewResult!
+  RunAssociationDemoChapterViewByName(input: RunViewByNameInput!): RunAssociationDemoChapterViewResult!
+  RunAssociationDemoCommitteeDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCommitteeViewResult!
+  RunAssociationDemoCommitteeMembershipDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCommitteeMembershipViewResult!
+  RunAssociationDemoCommitteeMembershipViewByID(input: RunViewByIDInput!): RunAssociationDemoCommitteeMembershipViewResult!
+  RunAssociationDemoCommitteeMembershipViewByName(input: RunViewByNameInput!): RunAssociationDemoCommitteeMembershipViewResult!
+  RunAssociationDemoCommitteeViewByID(input: RunViewByIDInput!): RunAssociationDemoCommitteeViewResult!
+  RunAssociationDemoCommitteeViewByName(input: RunViewByNameInput!): RunAssociationDemoCommitteeViewResult!
+  RunAssociationDemoCompetitionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCompetitionViewResult!
+  RunAssociationDemoCompetitionEntryDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCompetitionEntryViewResult!
+  RunAssociationDemoCompetitionEntryViewByID(input: RunViewByIDInput!): RunAssociationDemoCompetitionEntryViewResult!
+  RunAssociationDemoCompetitionEntryViewByName(input: RunViewByNameInput!): RunAssociationDemoCompetitionEntryViewResult!
+  RunAssociationDemoCompetitionJudgeDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCompetitionJudgeViewResult!
+  RunAssociationDemoCompetitionJudgeViewByID(input: RunViewByIDInput!): RunAssociationDemoCompetitionJudgeViewResult!
+  RunAssociationDemoCompetitionJudgeViewByName(input: RunViewByNameInput!): RunAssociationDemoCompetitionJudgeViewResult!
+  RunAssociationDemoCompetitionViewByID(input: RunViewByIDInput!): RunAssociationDemoCompetitionViewResult!
+  RunAssociationDemoCompetitionViewByName(input: RunViewByNameInput!): RunAssociationDemoCompetitionViewResult!
+  RunAssociationDemoContinuingEducationDynamicView(input: RunDynamicViewInput!): RunAssociationDemoContinuingEducationViewResult!
+  RunAssociationDemoContinuingEducationViewByID(input: RunViewByIDInput!): RunAssociationDemoContinuingEducationViewResult!
+  RunAssociationDemoContinuingEducationViewByName(input: RunViewByNameInput!): RunAssociationDemoContinuingEducationViewResult!
+  RunAssociationDemoCourseDynamicView(input: RunDynamicViewInput!): RunAssociationDemoCourseViewResult!
+  RunAssociationDemoCourseViewByID(input: RunViewByIDInput!): RunAssociationDemoCourseViewResult!
+  RunAssociationDemoCourseViewByName(input: RunViewByNameInput!): RunAssociationDemoCourseViewResult!
+  RunAssociationDemoEmailClickDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEmailClickViewResult!
+  RunAssociationDemoEmailClickViewByID(input: RunViewByIDInput!): RunAssociationDemoEmailClickViewResult!
+  RunAssociationDemoEmailClickViewByName(input: RunViewByNameInput!): RunAssociationDemoEmailClickViewResult!
+  RunAssociationDemoEmailSendDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEmailSendViewResult!
+  RunAssociationDemoEmailSendViewByID(input: RunViewByIDInput!): RunAssociationDemoEmailSendViewResult!
+  RunAssociationDemoEmailSendViewByName(input: RunViewByNameInput!): RunAssociationDemoEmailSendViewResult!
+  RunAssociationDemoEmailTemplateDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEmailTemplateViewResult!
+  RunAssociationDemoEmailTemplateViewByID(input: RunViewByIDInput!): RunAssociationDemoEmailTemplateViewResult!
+  RunAssociationDemoEmailTemplateViewByName(input: RunViewByNameInput!): RunAssociationDemoEmailTemplateViewResult!
+  RunAssociationDemoEnrollmentDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEnrollmentViewResult!
+  RunAssociationDemoEnrollmentViewByID(input: RunViewByIDInput!): RunAssociationDemoEnrollmentViewResult!
+  RunAssociationDemoEnrollmentViewByName(input: RunViewByNameInput!): RunAssociationDemoEnrollmentViewResult!
+  RunAssociationDemoEventDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEventViewResult!
+  RunAssociationDemoEventRegistrationDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEventRegistrationViewResult!
+  RunAssociationDemoEventRegistrationViewByID(input: RunViewByIDInput!): RunAssociationDemoEventRegistrationViewResult!
+  RunAssociationDemoEventRegistrationViewByName(input: RunViewByNameInput!): RunAssociationDemoEventRegistrationViewResult!
+  RunAssociationDemoEventSessionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoEventSessionViewResult!
+  RunAssociationDemoEventSessionViewByID(input: RunViewByIDInput!): RunAssociationDemoEventSessionViewResult!
+  RunAssociationDemoEventSessionViewByName(input: RunViewByNameInput!): RunAssociationDemoEventSessionViewResult!
+  RunAssociationDemoEventViewByID(input: RunViewByIDInput!): RunAssociationDemoEventViewResult!
+  RunAssociationDemoEventViewByName(input: RunViewByNameInput!): RunAssociationDemoEventViewResult!
+  RunAssociationDemoForumCategoryDynamicView(input: RunDynamicViewInput!): RunAssociationDemoForumCategoryViewResult!
+  RunAssociationDemoForumCategoryViewByID(input: RunViewByIDInput!): RunAssociationDemoForumCategoryViewResult!
+  RunAssociationDemoForumCategoryViewByName(input: RunViewByNameInput!): RunAssociationDemoForumCategoryViewResult!
+  RunAssociationDemoForumModerationDynamicView(input: RunDynamicViewInput!): RunAssociationDemoForumModerationViewResult!
+  RunAssociationDemoForumModerationViewByID(input: RunViewByIDInput!): RunAssociationDemoForumModerationViewResult!
+  RunAssociationDemoForumModerationViewByName(input: RunViewByNameInput!): RunAssociationDemoForumModerationViewResult!
+  RunAssociationDemoForumPostDynamicView(input: RunDynamicViewInput!): RunAssociationDemoForumPostViewResult!
+  RunAssociationDemoForumPostViewByID(input: RunViewByIDInput!): RunAssociationDemoForumPostViewResult!
+  RunAssociationDemoForumPostViewByName(input: RunViewByNameInput!): RunAssociationDemoForumPostViewResult!
+  RunAssociationDemoForumThreadDynamicView(input: RunDynamicViewInput!): RunAssociationDemoForumThreadViewResult!
+  RunAssociationDemoForumThreadViewByID(input: RunViewByIDInput!): RunAssociationDemoForumThreadViewResult!
+  RunAssociationDemoForumThreadViewByName(input: RunViewByNameInput!): RunAssociationDemoForumThreadViewResult!
+  RunAssociationDemoGovernmentContactDynamicView(input: RunDynamicViewInput!): RunAssociationDemoGovernmentContactViewResult!
+  RunAssociationDemoGovernmentContactViewByID(input: RunViewByIDInput!): RunAssociationDemoGovernmentContactViewResult!
+  RunAssociationDemoGovernmentContactViewByName(input: RunViewByNameInput!): RunAssociationDemoGovernmentContactViewResult!
+  RunAssociationDemoInvoiceDynamicView(input: RunDynamicViewInput!): RunAssociationDemoInvoiceViewResult!
+  RunAssociationDemoInvoiceLineItemDynamicView(input: RunDynamicViewInput!): RunAssociationDemoInvoiceLineItemViewResult!
+  RunAssociationDemoInvoiceLineItemViewByID(input: RunViewByIDInput!): RunAssociationDemoInvoiceLineItemViewResult!
+  RunAssociationDemoInvoiceLineItemViewByName(input: RunViewByNameInput!): RunAssociationDemoInvoiceLineItemViewResult!
+  RunAssociationDemoInvoiceViewByID(input: RunViewByIDInput!): RunAssociationDemoInvoiceViewResult!
+  RunAssociationDemoInvoiceViewByName(input: RunViewByNameInput!): RunAssociationDemoInvoiceViewResult!
+  RunAssociationDemoLegislativeBodyDynamicView(input: RunDynamicViewInput!): RunAssociationDemoLegislativeBodyViewResult!
+  RunAssociationDemoLegislativeBodyViewByID(input: RunViewByIDInput!): RunAssociationDemoLegislativeBodyViewResult!
+  RunAssociationDemoLegislativeBodyViewByName(input: RunViewByNameInput!): RunAssociationDemoLegislativeBodyViewResult!
+  RunAssociationDemoLegislativeIssueDynamicView(input: RunDynamicViewInput!): RunAssociationDemoLegislativeIssueViewResult!
+  RunAssociationDemoLegislativeIssueViewByID(input: RunViewByIDInput!): RunAssociationDemoLegislativeIssueViewResult!
+  RunAssociationDemoLegislativeIssueViewByName(input: RunViewByNameInput!): RunAssociationDemoLegislativeIssueViewResult!
+  RunAssociationDemoMemberDynamicView(input: RunDynamicViewInput!): RunAssociationDemoMemberViewResult!
+  RunAssociationDemoMemberFollowDynamicView(input: RunDynamicViewInput!): RunAssociationDemoMemberFollowViewResult!
+  RunAssociationDemoMemberFollowViewByID(input: RunViewByIDInput!): RunAssociationDemoMemberFollowViewResult!
+  RunAssociationDemoMemberFollowViewByName(input: RunViewByNameInput!): RunAssociationDemoMemberFollowViewResult!
+  RunAssociationDemoMemberViewByID(input: RunViewByIDInput!): RunAssociationDemoMemberViewResult!
+  RunAssociationDemoMemberViewByName(input: RunViewByNameInput!): RunAssociationDemoMemberViewResult!
+  RunAssociationDemoMembershipDynamicView(input: RunDynamicViewInput!): RunAssociationDemoMembershipViewResult!
+  RunAssociationDemoMembershipTypeDynamicView(input: RunDynamicViewInput!): RunAssociationDemoMembershipTypeViewResult!
+  RunAssociationDemoMembershipTypeViewByID(input: RunViewByIDInput!): RunAssociationDemoMembershipTypeViewResult!
+  RunAssociationDemoMembershipTypeViewByName(input: RunViewByNameInput!): RunAssociationDemoMembershipTypeViewResult!
+  RunAssociationDemoMembershipViewByID(input: RunViewByIDInput!): RunAssociationDemoMembershipViewResult!
+  RunAssociationDemoMembershipViewByName(input: RunViewByNameInput!): RunAssociationDemoMembershipViewResult!
+  RunAssociationDemoOrganizationDynamicView(input: RunDynamicViewInput!): RunAssociationDemoOrganizationViewResult!
+  RunAssociationDemoOrganizationViewByID(input: RunViewByIDInput!): RunAssociationDemoOrganizationViewResult!
+  RunAssociationDemoOrganizationViewByName(input: RunViewByNameInput!): RunAssociationDemoOrganizationViewResult!
+  RunAssociationDemoPaymentDynamicView(input: RunDynamicViewInput!): RunAssociationDemoPaymentViewResult!
+  RunAssociationDemoPaymentViewByID(input: RunViewByIDInput!): RunAssociationDemoPaymentViewResult!
+  RunAssociationDemoPaymentViewByName(input: RunViewByNameInput!): RunAssociationDemoPaymentViewResult!
+  RunAssociationDemoPolicyPositionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoPolicyPositionViewResult!
+  RunAssociationDemoPolicyPositionViewByID(input: RunViewByIDInput!): RunAssociationDemoPolicyPositionViewResult!
+  RunAssociationDemoPolicyPositionViewByName(input: RunViewByNameInput!): RunAssociationDemoPolicyPositionViewResult!
+  RunAssociationDemoPostAttachmentDynamicView(input: RunDynamicViewInput!): RunAssociationDemoPostAttachmentViewResult!
+  RunAssociationDemoPostAttachmentViewByID(input: RunViewByIDInput!): RunAssociationDemoPostAttachmentViewResult!
+  RunAssociationDemoPostAttachmentViewByName(input: RunViewByNameInput!): RunAssociationDemoPostAttachmentViewResult!
+  RunAssociationDemoPostReactionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoPostReactionViewResult!
+  RunAssociationDemoPostReactionViewByID(input: RunViewByIDInput!): RunAssociationDemoPostReactionViewResult!
+  RunAssociationDemoPostReactionViewByName(input: RunViewByNameInput!): RunAssociationDemoPostReactionViewResult!
+  RunAssociationDemoPostTagDynamicView(input: RunDynamicViewInput!): RunAssociationDemoPostTagViewResult!
+  RunAssociationDemoPostTagViewByID(input: RunViewByIDInput!): RunAssociationDemoPostTagViewResult!
+  RunAssociationDemoPostTagViewByName(input: RunViewByNameInput!): RunAssociationDemoPostTagViewResult!
+  RunAssociationDemoProductAwardDynamicView(input: RunDynamicViewInput!): RunAssociationDemoProductAwardViewResult!
+  RunAssociationDemoProductAwardViewByID(input: RunViewByIDInput!): RunAssociationDemoProductAwardViewResult!
+  RunAssociationDemoProductAwardViewByName(input: RunViewByNameInput!): RunAssociationDemoProductAwardViewResult!
+  RunAssociationDemoProductCategoryDynamicView(input: RunDynamicViewInput!): RunAssociationDemoProductCategoryViewResult!
+  RunAssociationDemoProductCategoryViewByID(input: RunViewByIDInput!): RunAssociationDemoProductCategoryViewResult!
+  RunAssociationDemoProductCategoryViewByName(input: RunViewByNameInput!): RunAssociationDemoProductCategoryViewResult!
+  RunAssociationDemoProductDynamicView(input: RunDynamicViewInput!): RunAssociationDemoProductViewResult!
+  RunAssociationDemoProductViewByID(input: RunViewByIDInput!): RunAssociationDemoProductViewResult!
+  RunAssociationDemoProductViewByName(input: RunViewByNameInput!): RunAssociationDemoProductViewResult!
+  RunAssociationDemoRegulatoryCommentDynamicView(input: RunDynamicViewInput!): RunAssociationDemoRegulatoryCommentViewResult!
+  RunAssociationDemoRegulatoryCommentViewByID(input: RunViewByIDInput!): RunAssociationDemoRegulatoryCommentViewResult!
+  RunAssociationDemoRegulatoryCommentViewByName(input: RunViewByNameInput!): RunAssociationDemoRegulatoryCommentViewResult!
+  RunAssociationDemoResourceCategoryDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceCategoryViewResult!
+  RunAssociationDemoResourceCategoryViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceCategoryViewResult!
+  RunAssociationDemoResourceCategoryViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceCategoryViewResult!
+  RunAssociationDemoResourceDownloadDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceDownloadViewResult!
+  RunAssociationDemoResourceDownloadViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceDownloadViewResult!
+  RunAssociationDemoResourceDownloadViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceDownloadViewResult!
+  RunAssociationDemoResourceDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceViewResult!
+  RunAssociationDemoResourceRatingDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceRatingViewResult!
+  RunAssociationDemoResourceRatingViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceRatingViewResult!
+  RunAssociationDemoResourceRatingViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceRatingViewResult!
+  RunAssociationDemoResourceTagDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceTagViewResult!
+  RunAssociationDemoResourceTagViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceTagViewResult!
+  RunAssociationDemoResourceTagViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceTagViewResult!
+  RunAssociationDemoResourceVersionDynamicView(input: RunDynamicViewInput!): RunAssociationDemoResourceVersionViewResult!
+  RunAssociationDemoResourceVersionViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceVersionViewResult!
+  RunAssociationDemoResourceVersionViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceVersionViewResult!
+  RunAssociationDemoResourceViewByID(input: RunViewByIDInput!): RunAssociationDemoResourceViewResult!
+  RunAssociationDemoResourceViewByName(input: RunViewByNameInput!): RunAssociationDemoResourceViewResult!
+  RunAssociationDemoSegmentDynamicView(input: RunDynamicViewInput!): RunAssociationDemoSegmentViewResult!
+  RunAssociationDemoSegmentViewByID(input: RunViewByIDInput!): RunAssociationDemoSegmentViewResult!
+  RunAssociationDemoSegmentViewByName(input: RunViewByNameInput!): RunAssociationDemoSegmentViewResult!
   RunDynamicView(input: RunDynamicViewInput!): RunViewResult!
   RunDynamicViewSystemUser(input: RunDynamicViewInput!): RunViewResult!
   RunEntityCommunicationByViewID(entityID: String!, includeProcessedMessages: Boolean!, message: CommunicationMessageInput!, previewOnly: Boolean!, providerMessageTypeName: String!, providerName: String!, runViewByIDInput: RunViewByIDInput!): RunEntityCommunicationResultType!
@@ -24009,9 +26523,33 @@ type Query {
   RunViews(input: [RunViewGenericInput!]!): [RunViewGenericResult!]!
   RunViewsSystemUser(input: [RunViewGenericInput!]!): [RunViewGenericResult!]!
   RunViewsWithCacheCheck(input: [RunViewWithCacheCheckInput!]!): RunViewsWithCacheCheckOutput!
+  RunmembershipCertificationDynamicView(input: RunDynamicViewInput!): RunmembershipCertificationViewResult!
+  RunmembershipCertificationViewByID(input: RunViewByIDInput!): RunmembershipCertificationViewResult!
+  RunmembershipCertificationViewByName(input: RunViewByNameInput!): RunmembershipCertificationViewResult!
+  RunmembershipEmailEngagementDynamicView(input: RunDynamicViewInput!): RunmembershipEmailEngagementViewResult!
+  RunmembershipEmailEngagementViewByID(input: RunViewByIDInput!): RunmembershipEmailEngagementViewResult!
+  RunmembershipEmailEngagementViewByName(input: RunViewByNameInput!): RunmembershipEmailEngagementViewResult!
+  RunmembershipEventRegistrationDynamicView(input: RunDynamicViewInput!): RunmembershipEventRegistrationViewResult!
+  RunmembershipEventRegistrationViewByID(input: RunViewByIDInput!): RunmembershipEventRegistrationViewResult!
+  RunmembershipEventRegistrationViewByName(input: RunViewByNameInput!): RunmembershipEventRegistrationViewResult!
+  RunmembershipMemberDynamicView(input: RunDynamicViewInput!): RunmembershipMemberViewResult!
+  RunmembershipMemberViewByID(input: RunViewByIDInput!): RunmembershipMemberViewResult!
+  RunmembershipMemberViewByName(input: RunViewByNameInput!): RunmembershipMemberViewResult!
+  RunmembershipPaymentDynamicView(input: RunDynamicViewInput!): RunmembershipPaymentViewResult!
+  RunmembershipPaymentViewByID(input: RunViewByIDInput!): RunmembershipPaymentViewResult!
+  RunmembershipPaymentViewByName(input: RunViewByNameInput!): RunmembershipPaymentViewResult!
   RunmjBizAppsSonarFactorDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarFactorViewResult!
   RunmjBizAppsSonarFactorViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarFactorViewResult!
   RunmjBizAppsSonarFactorViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarFactorViewResult!
+  RunmjBizAppsSonarInterventionAssignmentDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarInterventionAssignmentViewResult!
+  RunmjBizAppsSonarInterventionAssignmentViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarInterventionAssignmentViewResult!
+  RunmjBizAppsSonarInterventionAssignmentViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarInterventionAssignmentViewResult!
+  RunmjBizAppsSonarInterventionDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarInterventionViewResult!
+  RunmjBizAppsSonarInterventionOutcomeDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarInterventionOutcomeViewResult!
+  RunmjBizAppsSonarInterventionOutcomeViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarInterventionOutcomeViewResult!
+  RunmjBizAppsSonarInterventionOutcomeViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarInterventionOutcomeViewResult!
+  RunmjBizAppsSonarInterventionViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarInterventionViewResult!
+  RunmjBizAppsSonarInterventionViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarInterventionViewResult!
   RunmjBizAppsSonarModelFactorDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarModelFactorViewResult!
   RunmjBizAppsSonarModelFactorViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarModelFactorViewResult!
   RunmjBizAppsSonarModelFactorViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarModelFactorViewResult!
@@ -24046,6 +26584,9 @@ type Query {
   RunmjBizAppsSonarScoreRecomputeRunDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
   RunmjBizAppsSonarScoreRecomputeRunViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
   RunmjBizAppsSonarScoreRecomputeRunViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreRecomputeRunViewResult!
+  RunmjBizAppsSonarScoreSegmentDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarScoreSegmentViewResult!
+  RunmjBizAppsSonarScoreSegmentViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreSegmentViewResult!
+  RunmjBizAppsSonarScoreSegmentViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreSegmentViewResult!
   RunmjBizAppsSonarScoreViewByID(input: RunViewByIDInput!): RunmjBizAppsSonarScoreViewResult!
   RunmjBizAppsSonarScoreViewByName(input: RunViewByNameInput!): RunmjBizAppsSonarScoreViewResult!
   RunmjBizAppsSonarTimeWindowDynamicView(input: RunDynamicViewInput!): RunmjBizAppsSonarTimeWindowViewResult!
@@ -24079,7 +26620,15 @@ type Query {
   activeSqlLoggingSessions: [SqlLoggingSession!]!
   colors: [Color!]!
   debugCurrentUserEmail: String!
+  membershipCertification(ID: String!): membershipCertification_
+  membershipEmailEngagement(ID: String!): membershipEmailEngagement_
+  membershipEventRegistration(ID: String!): membershipEventRegistration_
+  membershipMember(ID: String!): membershipMember_
+  membershipPayment(ID: String!): membershipPayment_
   mjBizAppsSonarFactor(ID: String!): mjBizAppsSonarFactor_
+  mjBizAppsSonarIntervention(ID: String!): mjBizAppsSonarIntervention_
+  mjBizAppsSonarInterventionAssignment(ID: String!): mjBizAppsSonarInterventionAssignment_
+  mjBizAppsSonarInterventionOutcome(ID: String!): mjBizAppsSonarInterventionOutcome_
   mjBizAppsSonarModelFactor(ID: String!): mjBizAppsSonarModelFactor_
   mjBizAppsSonarModelRelatedEntity(ID: String!): mjBizAppsSonarModelRelatedEntity_
   mjBizAppsSonarScore(ID: String!): mjBizAppsSonarScore_
@@ -24092,6 +26641,7 @@ type Query {
   mjBizAppsSonarScoreModelAuditEvent(ID: String!): mjBizAppsSonarScoreModelAuditEvent_
   mjBizAppsSonarScoreModelVersion(ID: String!): mjBizAppsSonarScoreModelVersion_
   mjBizAppsSonarScoreRecomputeRun(ID: String!): mjBizAppsSonarScoreRecomputeRun_
+  mjBizAppsSonarScoreSegment(ID: String!): mjBizAppsSonarScoreSegment_
   mjBizAppsSonarTimeWindow(ID: String!): mjBizAppsSonarTimeWindow_
   readSqlLogFile(maxLines: Int, sessionId: String!): String!
   sqlLoggingConfig: SqlLoggingConfig!
@@ -24348,6 +26898,586 @@ input RunActionInput {
   ActionID: String!
   Params: [ActionParamInput!]
   SkipActionLog: Boolean
+}
+
+type RunAssociationDemoAccreditingBodyViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoAccreditingBody_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoAdvocacyActionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoAdvocacyAction_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoBoardMemberViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoBoardMember_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoBoardPositionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoBoardPosition_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCampaignMemberViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCampaignMember_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCampaignViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCampaign_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCertificateViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCertificate_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCertificationRenewalViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCertificationRenewal_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCertificationRequirementViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCertificationRequirement_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCertificationTypeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCertificationType_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCertificationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCertification_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoChapterMembershipViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoChapterMembership_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoChapterOfficerViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoChapterOfficer_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoChapterViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoChapter_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCommitteeMembershipViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCommitteeMembership_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCommitteeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCommittee_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCompetitionEntryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCompetitionEntry_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCompetitionJudgeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCompetitionJudge_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCompetitionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCompetition_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoContinuingEducationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoContinuingEducation_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoCourseViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoCourse_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEmailClickViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEmailClick_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEmailSendViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEmailSend_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEmailTemplateViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEmailTemplate_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEnrollmentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEnrollment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEventRegistrationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEventRegistration_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEventSessionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEventSession_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoEventViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoEvent_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoForumCategoryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoForumCategory_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoForumModerationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoForumModeration_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoForumPostViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoForumPost_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoForumThreadViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoForumThread_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoGovernmentContactViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoGovernmentContact_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoInvoiceLineItemViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoInvoiceLineItem_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoInvoiceViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoInvoice_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoLegislativeBodyViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoLegislativeBody_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoLegislativeIssueViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoLegislativeIssue_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoMemberFollowViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoMemberFollow_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoMemberViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoMember_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoMembershipTypeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoMembershipType_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoMembershipViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoMembership_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoOrganizationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoOrganization_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoPaymentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoPayment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoPolicyPositionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoPolicyPosition_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoPostAttachmentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoPostAttachment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoPostReactionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoPostReaction_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoPostTagViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoPostTag_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoProductAwardViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoProductAward_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoProductCategoryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoProductCategory_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoProductViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoProduct_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoRegulatoryCommentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoRegulatoryComment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceCategoryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResourceCategory_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceDownloadViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResourceDownload_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceRatingViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResourceRating_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceTagViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResourceTag_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceVersionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResourceVersion_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoResourceViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoResource_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunAssociationDemoSegmentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [AssociationDemoSegment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
 }
 
 input RunClusterAnalysisInput {
@@ -28343,10 +31473,90 @@ type RunViewsWithCacheCheckOutput {
   success: Boolean!
 }
 
+type RunmembershipCertificationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [membershipCertification_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmembershipEmailEngagementViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [membershipEmailEngagement_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmembershipEventRegistrationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [membershipEventRegistration_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmembershipMemberViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [membershipMember_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmembershipPaymentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [membershipPayment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
 type RunmjBizAppsSonarFactorViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [mjBizAppsSonarFactor_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmjBizAppsSonarInterventionAssignmentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [mjBizAppsSonarInterventionAssignment_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmjBizAppsSonarInterventionOutcomeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [mjBizAppsSonarInterventionOutcome_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmjBizAppsSonarInterventionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [mjBizAppsSonarIntervention_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -28457,6 +31667,16 @@ type RunmjBizAppsSonarScoreRecomputeRunViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [mjBizAppsSonarScoreRecomputeRun_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunmjBizAppsSonarScoreSegmentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [mjBizAppsSonarScoreSegment_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -29164,6 +32384,969 @@ input TransactionVariableInputType {
 enum TransactionVariableType {
   Define
   Use
+}
+
+input UpdateAssociationDemoAccreditingBodyInput {
+  Abbreviation: String
+  CertificationCount: Int
+  ContactEmail: String
+  ContactPhone: String
+  Country: String
+  Description: String
+  EstablishedDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  IsRecognized: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Website: String
+}
+
+input UpdateAssociationDemoAdvocacyActionInput {
+  ActionDate: Timestamp
+  ActionType: String
+  Description: String
+  FollowUpDate: Timestamp
+  FollowUpRequired: Boolean
+  GovernmentContactID: String
+  ID: String!
+  LegislativeIssueID: String
+  MemberID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  Outcome: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoBoardMemberInput {
+  BoardPositionID: String
+  ElectionDate: Timestamp
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+}
+
+input UpdateAssociationDemoBoardPositionInput {
+  Description: String
+  ID: String!
+  IsActive: Boolean
+  IsOfficer: Boolean
+  OldValues___: [KeyValuePairInput!]
+  PositionOrder: Int
+  PositionTitle: String
+  RestoreContext___: RestoreContextInput
+  TermLengthYears: Int
+}
+
+input UpdateAssociationDemoCampaignInput {
+  ActualCost: Float
+  Budget: Float
+  CampaignType: String
+  Description: String
+  EndDate: Timestamp
+  Goals: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TargetAudience: String
+}
+
+input UpdateAssociationDemoCampaignMemberInput {
+  AddedDate: Timestamp
+  CampaignID: String
+  ConversionValue: Float
+  ID: String!
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  ResponseDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  SegmentID: String
+  Status: String
+}
+
+input UpdateAssociationDemoCertificateInput {
+  CertificateNumber: String
+  CertificatePDFURL: String
+  EnrollmentID: String
+  ExpirationDate: Timestamp
+  ID: String!
+  IssuedDate: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  VerificationCode: String
+}
+
+input UpdateAssociationDemoCertificationInput {
+  CECreditsEarned: Int
+  CertificationNumber: String
+  CertificationTypeID: String
+  DateEarned: Timestamp
+  DateExpires: Timestamp
+  ID: String!
+  IssuedBy: String
+  LastRenewalDate: Timestamp
+  MemberID: String
+  NextRenewalDate: Timestamp
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  RenewalCount: Int
+  RestoreContext___: RestoreContextInput
+  Score: Int
+  Status: String
+  VerificationURL: String
+}
+
+input UpdateAssociationDemoCertificationRenewalInput {
+  CECreditsApplied: Int
+  CertificationID: String
+  ExpirationDate: Timestamp
+  FeePaid: Float
+  ID: String!
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  PaymentDate: Timestamp
+  ProcessedBy: String
+  ProcessedDate: Timestamp
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input UpdateAssociationDemoCertificationRequirementInput {
+  CertificationTypeID: String
+  Description: String
+  Details: String
+  DisplayOrder: Int
+  ID: String!
+  IsRequired: Boolean
+  OldValues___: [KeyValuePairInput!]
+  RequirementType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoCertificationTypeInput {
+  Abbreviation: String
+  AccreditingBodyID: String
+  CECreditsRequired: Int
+  CertificationCount: Int
+  CostUSD: Float
+  Description: String
+  DurationMonths: Int
+  ExamRequired: Boolean
+  ID: String!
+  IsActive: Boolean
+  Level: String
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  PracticalRequired: Boolean
+  Prerequisites: String
+  RenewalRequiredMonths: Int
+  RestoreContext___: RestoreContextInput
+  TargetAudience: String
+}
+
+input UpdateAssociationDemoChapterInput {
+  ChapterType: String
+  City: String
+  Country: String
+  Description: String
+  Email: String
+  FoundedDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  MeetingFrequency: String
+  MemberCount: Int
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  Region: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  Website: String
+}
+
+input UpdateAssociationDemoChapterMembershipInput {
+  ChapterID: String
+  ID: String!
+  JoinDate: Timestamp
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Role: String
+  Status: String
+}
+
+input UpdateAssociationDemoChapterOfficerInput {
+  ChapterID: String
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  Position: String
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+}
+
+input UpdateAssociationDemoCommitteeInput {
+  ChairMemberID: String
+  CommitteeType: String
+  DisbandedDate: Timestamp
+  FormedDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  MaxMembers: Int
+  MeetingFrequency: String
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  Purpose: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoCommitteeMembershipInput {
+  AppointedBy: String
+  CommitteeID: String
+  EndDate: Timestamp
+  ID: String!
+  IsActive: Boolean
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Role: String
+  StartDate: Timestamp
+}
+
+input UpdateAssociationDemoCompetitionEntryInput {
+  AwardLevel: String
+  CategoryID: String
+  CompetitionID: String
+  EntryFee: Float
+  EntryNumber: String
+  FeedbackProvided: Boolean
+  ID: String!
+  JudgingNotes: String
+  OldValues___: [KeyValuePairInput!]
+  PaymentStatus: String
+  ProductID: String
+  Ranking: Int
+  RestoreContext___: RestoreContextInput
+  Score: Float
+  Status: String
+  SubmittedDate: Timestamp
+}
+
+input UpdateAssociationDemoCompetitionInput {
+  AwardsDate: Timestamp
+  ContactEmail: String
+  Description: String
+  EndDate: Timestamp
+  EntryDeadline: Timestamp
+  EntryFee: Float
+  ID: String!
+  IsAnnual: Boolean
+  IsInternational: Boolean
+  JudgingDate: Timestamp
+  Location: String
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TotalCategories: Int
+  TotalEntries: Int
+  Website: String
+  Year: Int
+}
+
+input UpdateAssociationDemoCompetitionJudgeInput {
+  AssignedCategories: String
+  CompensationAmount: Float
+  CompetitionID: String
+  ConfirmedDate: Timestamp
+  Credentials: String
+  Email: String
+  FirstName: String
+  ID: String!
+  InvitedDate: Timestamp
+  LastName: String
+  MemberID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  Organization: String
+  RestoreContext___: RestoreContextInput
+  Role: String
+  Specialty: String
+  Status: String
+  YearsExperience: Int
+}
+
+input UpdateAssociationDemoContinuingEducationInput {
+  ActivityTitle: String
+  ActivityType: String
+  CertificationID: String
+  CompletionDate: Timestamp
+  CreditsEarned: Float
+  CreditsType: String
+  DocumentURL: String
+  HoursSpent: Float
+  ID: String!
+  MemberID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  Provider: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  VerificationCode: String
+}
+
+input UpdateAssociationDemoCourseInput {
+  CEUCredits: Float
+  Category: String
+  Code: String
+  Description: String
+  DurationHours: Float
+  ID: String!
+  InstructorName: String
+  IsActive: Boolean
+  LearningObjectives: String
+  Level: String
+  MemberPrice: Float
+  OldValues___: [KeyValuePairInput!]
+  PrerequisiteCourseID: String
+  Price: Float
+  PublishedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  ThumbnailURL: String
+  Title: String
+}
+
+input UpdateAssociationDemoEmailClickInput {
+  ClickDate: Timestamp
+  EmailSendID: String
+  ID: String!
+  IPAddress: String
+  LinkName: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  URL: String
+  UserAgent: String
+}
+
+input UpdateAssociationDemoEmailSendInput {
+  BounceReason: String
+  BounceType: String
+  BouncedDate: Timestamp
+  CampaignID: String
+  ClickCount: Int
+  ClickedDate: Timestamp
+  DeliveredDate: Timestamp
+  ExternalMessageID: String
+  ID: String!
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  OpenCount: Int
+  OpenedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  SentDate: Timestamp
+  SpamReportedDate: Timestamp
+  Status: String
+  Subject: String
+  TemplateID: String
+  UnsubscribedDate: Timestamp
+}
+
+input UpdateAssociationDemoEmailTemplateInput {
+  Category: String
+  FromEmail: String
+  FromName: String
+  HtmlBody: String
+  ID: String!
+  IsActive: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  PreviewText: String
+  ReplyToEmail: String
+  RestoreContext___: RestoreContextInput
+  Subject: String
+  Tags: String
+  TextBody: String
+}
+
+input UpdateAssociationDemoEnrollmentInput {
+  CompletionDate: Timestamp
+  CourseID: String
+  EnrollmentDate: Timestamp
+  ExpirationDate: Timestamp
+  FinalScore: Float
+  ID: String!
+  InvoiceID: String
+  LastAccessedDate: Timestamp
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  Passed: Boolean
+  PassingScore: Float
+  ProgressPercentage: Int
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  TimeSpentMinutes: Int
+}
+
+input UpdateAssociationDemoEventInput {
+  CEUCredits: Float
+  Capacity: Int
+  ChapterID: String
+  Description: String
+  EndDate: Timestamp
+  EventType: String
+  ID: String!
+  IsVirtual: Boolean
+  Location: String
+  MeetingURL: String
+  MemberPrice: Float
+  Name: String
+  NonMemberPrice: Float
+  OldValues___: [KeyValuePairInput!]
+  RegistrationCloseDate: Timestamp
+  RegistrationFee: Float
+  RegistrationOpenDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+  Timezone: String
+  VirtualPlatform: String
+}
+
+input UpdateAssociationDemoEventRegistrationInput {
+  CEUAwarded: Boolean
+  CEUAwardedDate: Timestamp
+  CancellationDate: Timestamp
+  CancellationReason: String
+  CheckInTime: Timestamp
+  EventID: String
+  ID: String!
+  InvoiceID: String
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RegistrationDate: Timestamp
+  RegistrationType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input UpdateAssociationDemoEventSessionInput {
+  CEUCredits: Float
+  Capacity: Int
+  Description: String
+  EndTime: Timestamp
+  EventID: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Room: String
+  SessionType: String
+  SpeakerName: String
+  StartTime: Timestamp
+}
+
+input UpdateAssociationDemoForumCategoryInput {
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  Icon: String
+  IsActive: Boolean
+  LastPostAuthorID: String
+  LastPostDate: Timestamp
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ParentCategoryID: String
+  PostCount: Int
+  RequiresMembership: Boolean
+  RestoreContext___: RestoreContextInput
+  ThreadCount: Int
+}
+
+input UpdateAssociationDemoForumModerationInput {
+  Action: String
+  ID: String!
+  ModeratedByID: String
+  ModeratedDate: Timestamp
+  ModerationStatus: String
+  ModeratorNotes: String
+  OldValues___: [KeyValuePairInput!]
+  PostID: String
+  ReportReason: String
+  ReportedByID: String
+  ReportedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoForumPostInput {
+  AuthorID: String
+  Content: String
+  EditedByID: String
+  EditedDate: Timestamp
+  HelpfulCount: Int
+  ID: String!
+  IsAcceptedAnswer: Boolean
+  IsFlagged: Boolean
+  LikeCount: Int
+  OldValues___: [KeyValuePairInput!]
+  ParentPostID: String
+  PostedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+  ThreadID: String
+}
+
+input UpdateAssociationDemoForumThreadInput {
+  AuthorID: String
+  CategoryID: String
+  CreatedDate: Timestamp
+  ID: String!
+  IsFeatured: Boolean
+  IsLocked: Boolean
+  IsPinned: Boolean
+  LastActivityDate: Timestamp
+  LastReplyAuthorID: String
+  OldValues___: [KeyValuePairInput!]
+  ReplyCount: Int
+  RestoreContext___: RestoreContextInput
+  Status: String
+  Title: String
+  ViewCount: Int
+}
+
+input UpdateAssociationDemoGovernmentContactInput {
+  Committee: String
+  ContactType: String
+  District: String
+  Email: String
+  FirstName: String
+  ID: String!
+  IsActive: Boolean
+  LastName: String
+  LegislativeBodyID: String
+  Notes: String
+  OfficeAddress: String
+  OldValues___: [KeyValuePairInput!]
+  Party: String
+  Phone: String
+  RestoreContext___: RestoreContextInput
+  TermEnd: Timestamp
+  TermStart: Timestamp
+  Title: String
+  Website: String
+}
+
+input UpdateAssociationDemoInvoiceInput {
+  AmountPaid: Float
+  Balance: Float
+  Discount: Float
+  DueDate: Timestamp
+  ID: String!
+  InvoiceDate: Timestamp
+  InvoiceNumber: String
+  MemberID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  PaymentTerms: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SubTotal: Float
+  Tax: Float
+  Total: Float
+}
+
+input UpdateAssociationDemoInvoiceLineItemInput {
+  Amount: Float
+  Description: String
+  ID: String!
+  InvoiceID: String
+  ItemType: String
+  OldValues___: [KeyValuePairInput!]
+  Quantity: Int
+  RelatedEntityID: String
+  RelatedEntityType: String
+  RestoreContext___: RestoreContextInput
+  TaxAmount: Float
+  UnitPrice: Float
+}
+
+input UpdateAssociationDemoLegislativeBodyInput {
+  BodyType: String
+  Country: String
+  Description: String
+  ID: String!
+  IsActive: Boolean
+  Level: String
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  SessionSchedule: String
+  State: String
+  Website: String
+}
+
+input UpdateAssociationDemoLegislativeIssueInput {
+  BillNumber: String
+  Category: String
+  EffectiveDate: Timestamp
+  ID: String!
+  ImpactDescription: String
+  ImpactLevel: String
+  IntroducedDate: Timestamp
+  IsActive: Boolean
+  IssueType: String
+  LastActionDate: Timestamp
+  LegislativeBodyID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Sponsor: String
+  Status: String
+  Summary: String
+  Title: String
+  TrackingURL: String
+}
+
+input UpdateAssociationDemoMemberFollowInput {
+  CreatedDate: Timestamp
+  FollowType: String
+  FollowedEntityID: String
+  FollowerID: String
+  ID: String!
+  NotifyOnActivity: Boolean
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoMemberInput {
+  Bio: String
+  City: String
+  Country: String
+  Email: String
+  EngagementScore: Int
+  FirstName: String
+  ID: String!
+  Industry: String
+  JobFunction: String
+  JoinDate: Timestamp
+  LastActivityDate: Timestamp
+  LastName: String
+  LinkedInURL: String
+  Mobile: String
+  OldValues___: [KeyValuePairInput!]
+  OrganizationID: String
+  Phone: String
+  PostalCode: String
+  PreferredLanguage: String
+  ProfilePhotoURL: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  Timezone: String
+  Title: String
+  YearsInProfession: Int
+}
+
+input UpdateAssociationDemoMembershipInput {
+  AutoRenew: Boolean
+  CancellationDate: Timestamp
+  CancellationReason: String
+  EndDate: Timestamp
+  ID: String!
+  MemberID: String
+  MembershipTypeID: String
+  OldValues___: [KeyValuePairInput!]
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  StartDate: Timestamp
+  Status: String
+}
+
+input UpdateAssociationDemoMembershipTypeInput {
+  AllowAutoRenew: Boolean
+  AnnualDues: Float
+  Benefits: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  IsActive: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RenewalPeriodMonths: Int
+  RequiresApproval: Boolean
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoOrganizationInput {
+  AnnualRevenue: Float
+  City: String
+  Country: String
+  Description: String
+  EmployeeCount: Int
+  Exchange: String
+  ID: String!
+  Industry: String
+  LogoURL: String
+  MarketCapitalization: Float
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  Phone: String
+  PostalCode: String
+  RestoreContext___: RestoreContextInput
+  State: String
+  TickerSymbol: String
+  Website: String
+  YearFounded: Int
+}
+
+input UpdateAssociationDemoPaymentInput {
+  Amount: Float
+  FailureReason: String
+  ID: String!
+  InvoiceID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  PaymentDate: Timestamp
+  PaymentMethod: String
+  ProcessedDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+  TransactionID: String
+}
+
+input UpdateAssociationDemoPolicyPositionInput {
+  AdoptedBy: String
+  AdoptedDate: Timestamp
+  ContactPerson: String
+  DocumentURL: String
+  ExpirationDate: Timestamp
+  ID: String!
+  IsPublic: Boolean
+  LastReviewedDate: Timestamp
+  LegislativeIssueID: String
+  OldValues___: [KeyValuePairInput!]
+  Position: String
+  PositionStatement: String
+  Priority: String
+  Rationale: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoPostAttachmentInput {
+  DownloadCount: Int
+  FileName: String
+  FileSizeBytes: Int
+  FileType: String
+  FileURL: String
+  ID: String!
+  OldValues___: [KeyValuePairInput!]
+  PostID: String
+  RestoreContext___: RestoreContextInput
+  UploadedByID: String
+  UploadedDate: Timestamp
+}
+
+input UpdateAssociationDemoPostReactionInput {
+  CreatedDate: Timestamp
+  ID: String!
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  PostID: String
+  ReactionType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoPostTagInput {
+  CreatedDate: Timestamp
+  ID: String!
+  OldValues___: [KeyValuePairInput!]
+  PostID: String
+  RestoreContext___: RestoreContextInput
+  TagName: String
+}
+
+input UpdateAssociationDemoProductAwardInput {
+  AwardDate: Timestamp
+  AwardLevel: String
+  AwardName: String
+  AwardingOrganization: String
+  Category: String
+  CertificateURL: String
+  CompetitionEntryID: String
+  CompetitionID: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  IsDisplayed: Boolean
+  OldValues___: [KeyValuePairInput!]
+  ProductID: String
+  RestoreContext___: RestoreContextInput
+  Score: Float
+  Year: Int
+}
+
+input UpdateAssociationDemoProductCategoryInput {
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  ImageURL: String
+  IsActive: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ParentCategoryID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoProductInput {
+  AgeMonths: Int
+  AwardCount: Int
+  CategoryID: String
+  CheeseType: String
+  DateIntroduced: Timestamp
+  Description: String
+  ID: String!
+  ImageURL: String
+  IsAwardWinner: Boolean
+  IsOrganic: Boolean
+  IsRawMilk: Boolean
+  MemberID: String
+  MilkSource: String
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  PairingNotes: String
+  ProductionMethod: String
+  RestoreContext___: RestoreContextInput
+  RetailPrice: Float
+  Status: String
+  TastingNotes: String
+  Weight: Float
+  WeightUnit: String
+}
+
+input UpdateAssociationDemoRegulatoryCommentInput {
+  AttachmentURL: String
+  CommentPeriodEnd: Timestamp
+  CommentPeriodStart: Timestamp
+  CommentText: String
+  CommentType: String
+  ConfirmationNumber: String
+  DocketNumber: String
+  ID: String!
+  LegislativeIssueID: String
+  Notes: String
+  OldValues___: [KeyValuePairInput!]
+  Response: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SubmittedBy: String
+  SubmittedDate: Timestamp
+}
+
+input UpdateAssociationDemoResourceCategoryInput {
+  Color: String
+  Description: String
+  DisplayOrder: Int
+  ID: String!
+  Icon: String
+  IsActive: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ParentCategoryID: String
+  RequiresMembership: Boolean
+  ResourceCount: Int
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateAssociationDemoResourceDownloadInput {
+  DownloadDate: Timestamp
+  ID: String!
+  IPAddress: String
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  UserAgent: String
+}
+
+input UpdateAssociationDemoResourceInput {
+  AuthorID: String
+  AverageRating: Float
+  CategoryID: String
+  Description: String
+  DownloadCount: Int
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String!
+  IsFeatured: Boolean
+  LastUpdatedDate: Timestamp
+  MimeType: String
+  OldValues___: [KeyValuePairInput!]
+  PublishedDate: Timestamp
+  RatingCount: Int
+  RequiresMembership: Boolean
+  ResourceType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  Title: String
+  ViewCount: Int
+}
+
+input UpdateAssociationDemoResourceRatingInput {
+  CreatedDate: Timestamp
+  ID: String!
+  IsHelpful: Boolean
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  Rating: Int
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  Review: String
+}
+
+input UpdateAssociationDemoResourceTagInput {
+  CreatedDate: Timestamp
+  ID: String!
+  OldValues___: [KeyValuePairInput!]
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  TagName: String
+}
+
+input UpdateAssociationDemoResourceVersionInput {
+  CreatedByID: String
+  CreatedDate: Timestamp
+  FileSizeBytes: Int
+  FileURL: String
+  ID: String!
+  IsCurrent: Boolean
+  OldValues___: [KeyValuePairInput!]
+  ResourceID: String
+  RestoreContext___: RestoreContextInput
+  VersionNotes: String
+  VersionNumber: String
+}
+
+input UpdateAssociationDemoSegmentInput {
+  Description: String
+  FilterCriteria: String
+  ID: String!
+  IsActive: Boolean
+  LastCalculatedDate: Timestamp
+  MemberCount: Int
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  SegmentType: String
 }
 
 input UpdateMJAIActionInput {
@@ -34213,6 +38396,63 @@ input UpdateQuerySystemUserInput {
   UsesTemplate: Boolean
 }
 
+input UpdatemembershipCertificationInput {
+  CompletedOn: Timestamp
+  CourseName: String
+  CreditHours: Float
+  ID: String!
+  IsActive: Boolean
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdatemembershipEmailEngagementInput {
+  ActivityType: String
+  CampaignName: String
+  ID: String!
+  MemberID: String
+  OccurredOn: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdatemembershipEventRegistrationInput {
+  Attended: Boolean
+  EventDate: Timestamp
+  EventName: String
+  ID: String!
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  RegistrationType: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdatemembershipMemberInput {
+  ChapterRegion: String
+  Email: String
+  FirstName: String
+  ID: String!
+  JoinDate: Timestamp
+  LastName: String
+  MembershipType: String
+  OldValues___: [KeyValuePairInput!]
+  RenewalDate: Timestamp
+  RestoreContext___: RestoreContextInput
+  Status: String
+}
+
+input UpdatemembershipPaymentInput {
+  Amount: Float
+  ID: String!
+  MemberID: String
+  OldValues___: [KeyValuePairInput!]
+  PaidOn: Timestamp
+  PaymentType: String
+  RestoreContext___: RestoreContextInput
+  TermYear: Int
+}
+
 input UpdatemjBizAppsSonarFactorInput {
   ActionID: String
   ActionParamsJSON: String
@@ -34221,6 +38461,7 @@ input UpdatemjBizAppsSonarFactorInput {
   AnchorEntityID: String
   CacheTTLSeconds: Int
   CreatedByAgent: String
+  DateField: String
   Description: String
   ExecutionMode: String
   FactorType: String
@@ -34247,6 +38488,42 @@ input UpdatemjBizAppsSonarFactorInput {
   SourceRelatedEntityID: String
   SourceScoreModelID: String
   TimeWindowID: String
+}
+
+input UpdatemjBizAppsSonarInterventionAssignmentInput {
+  ActionDeliveryStatus: String
+  AnchorRecordID: String
+  AnchorRecordKeyJSON: String
+  AssignedAt: Timestamp
+  Cohort: String
+  ID: String!
+  InterventionID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdatemjBizAppsSonarInterventionInput {
+  ActionID: String
+  ControlGroupPercent: Float
+  Description: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  ScoreSegmentID: String
+  Status: String
+  TriggerType: String
+}
+
+input UpdatemjBizAppsSonarInterventionOutcomeInput {
+  AssignmentID: String
+  ID: String!
+  MeasuredAt: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  OutcomeAt: Timestamp
+  OutcomeType: String
+  RestoreContext___: RestoreContextInput
+  ScoreDeltaAfter: Float
 }
 
 input UpdatemjBizAppsSonarModelFactorInput {
@@ -34450,6 +38727,19 @@ input UpdatemjBizAppsSonarScoreRecomputeRunInput {
   TriggerType: String
 }
 
+input UpdatemjBizAppsSonarScoreSegmentInput {
+  Description: String
+  FilterExpression: String
+  ID: String!
+  IsDynamic: Boolean
+  LastEvaluatedAt: Timestamp
+  MemberCountCached: Int
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  ScoreModelID: String
+}
+
 input UpdatemjBizAppsSonarTimeWindowInput {
   AnchorDateField: String
   Description: String
@@ -34515,6 +38805,67 @@ type WriteRecordOutput {
   Success: Boolean!
 }
 
+type membershipCertification_ {
+  CompletedOn: Timestamp!
+  CourseName: String!
+  CreditHours: Float!
+  ID: String!
+  IsActive: Boolean!
+  MemberID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type membershipEmailEngagement_ {
+  ActivityType: String!
+  CampaignName: String!
+  ID: String!
+  MemberID: String!
+  OccurredOn: Timestamp!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type membershipEventRegistration_ {
+  Attended: Boolean!
+  EventDate: Timestamp!
+  EventName: String!
+  ID: String!
+  MemberID: String!
+  RegistrationType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type membershipMember_ {
+  ChapterRegion: String
+  Email: String!
+  FirstName: String!
+  ID: String!
+  JoinDate: Timestamp!
+  LastName: String!
+  MembershipType: String!
+  RenewalDate: Timestamp
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+  membershipCertifications_MemberIDArray: [membershipCertification_!]!
+  membershipEmailEngagements_MemberIDArray: [membershipEmailEngagement_!]!
+  membershipEventRegistrations_MemberIDArray: [membershipEventRegistration_!]!
+  membershipPayments_MemberIDArray: [membershipPayment_!]!
+}
+
+type membershipPayment_ {
+  Amount: Float!
+  ID: String!
+  MemberID: String!
+  PaidOn: Timestamp!
+  PaymentType: String!
+  TermYear: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
 """
 A reusable signal definition that satisfies one uniform contract. Declarative factors compile to set-based SQL; ActionBacked factors wrap an MJ Action; DerivedFromScore factors consume another model's score.
 """
@@ -34548,6 +38899,11 @@ type mjBizAppsSonarFactor_ {
   Name of the AI agent that created the factor, if any (e.g. ModelBuilderAgent, ActionBuilder).
   """
   CreatedByAgent: String
+
+  """
+  The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).
+  """
+  DateField: String
 
   """Optional description of the signal the factor measures."""
   Description: String
@@ -34634,6 +38990,101 @@ type mjBizAppsSonarFactor_ {
   _mj__UpdatedAt: Timestamp!
   mjBizAppsSonarMJ_BizApps_Sonar_ModelFactors_FactorIDArray: [mjBizAppsSonarModelFactor_!]!
   mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_FactorIDArray: [mjBizAppsSonarScoreFactorContribution_!]!
+}
+
+"""
+One member's enrollment in an intervention, split into treatment vs. control (the holdout) for lift measurement.
+"""
+type mjBizAppsSonarInterventionAssignment_ {
+  """
+  Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.
+  """
+  ActionDeliveryStatus: String
+
+  """
+  Canonical id of the assigned anchor record (matches Score.AnchorRecordID).
+  """
+  AnchorRecordID: String!
+
+  """
+  Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.
+  """
+  AnchorRecordKeyJSON: String
+
+  """When the member was assigned to this intervention."""
+  AssignedAt: Timestamp!
+
+  """
+  Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).
+  """
+  Cohort: String!
+  ID: String!
+  Intervention: String!
+  InterventionID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+  mjBizAppsSonarMJ_BizApps_Sonar_InterventionOutcomes_AssignmentIDArray: [mjBizAppsSonarInterventionOutcome_!]!
+}
+
+"""
+The measured result for one intervention assignment (business outcome + score change) — the basis for treatment-vs-control lift.
+"""
+type mjBizAppsSonarInterventionOutcome_ {
+  AssignmentID: String!
+  ID: String!
+
+  """When the outcome was measured/recorded."""
+  MeasuredAt: Timestamp
+
+  """When the business outcome occurred."""
+  OutcomeAt: Timestamp
+
+  """
+  The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.
+  """
+  OutcomeType: String!
+
+  """
+  Change in the member's normalized score from assignment to measurement (engagement movement after the play).
+  """
+  ScoreDeltaAfter: Float
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+What to do for a segment: fire an MJ Action against its members, with an automatic holdout for lift measurement.
+"""
+type mjBizAppsSonarIntervention_ {
+  Action: String!
+  ActionID: String!
+
+  """
+  Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.
+  """
+  ControlGroupPercent: Float
+
+  """Optional description of the play and its intent."""
+  Description: String
+  ID: String!
+
+  """Display name of the intervention."""
+  Name: String!
+  ScoreSegment: String!
+  ScoreSegmentID: String!
+
+  """
+  Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.
+  """
+  Status: String!
+
+  """
+  When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.
+  """
+  TriggerType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+  mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments_InterventionIDArray: [mjBizAppsSonarInterventionAssignment_!]!
 }
 
 """
@@ -35059,6 +39510,7 @@ type mjBizAppsSonarScoreModel_ {
   mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelAuditEvents_ScoreModelIDArray: [mjBizAppsSonarScoreModelAuditEvent_!]!
   mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelVersions_ScoreModelIDArray: [mjBizAppsSonarScoreModelVersion_!]!
   mjBizAppsSonarMJ_BizApps_Sonar_ScoreRecomputeRuns_ScoreModelIDArray: [mjBizAppsSonarScoreRecomputeRun_!]!
+  mjBizAppsSonarMJ_BizApps_Sonar_ScoreSegments_ScoreModelIDArray: [mjBizAppsSonarScoreSegment_!]!
   mjBizAppsSonarMJ_BizApps_Sonar_Scores_ScoreModelIDArray: [mjBizAppsSonarScore_!]!
 }
 
@@ -35107,6 +39559,41 @@ type mjBizAppsSonarScoreRecomputeRun_ {
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
   mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_RecomputeRunIDArray: [mjBizAppsSonarScoreBandTransition_!]!
+}
+
+"""
+A saved cohort over a model's scored records (e.g. "At-Risk in the renewal window") that interventions key off.
+"""
+type mjBizAppsSonarScoreSegment_ {
+  """Optional description of who the segment captures and why."""
+  Description: String
+
+  """
+  JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.
+  """
+  FilterExpression: String
+  ID: String!
+
+  """
+  When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.
+  """
+  IsDynamic: Boolean!
+
+  """When the segment membership/count was last evaluated."""
+  LastEvaluatedAt: Timestamp
+
+  """
+  Cached count of members in the segment as of LastEvaluatedAt (display/perf only).
+  """
+  MemberCountCached: Int
+
+  """Display name of the segment."""
+  Name: String!
+  ScoreModel: String!
+  ScoreModelID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+  mjBizAppsSonarMJ_BizApps_Sonar_Interventions_ScoreSegmentIDArray: [mjBizAppsSonarIntervention_!]!
 }
 
 """
