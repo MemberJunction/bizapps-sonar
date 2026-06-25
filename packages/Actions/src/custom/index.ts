@@ -12,3 +12,4 @@ export * from "./SonarRecomputeModelAction";
 export * from "./SonarValidateFactorAction";
 export * from "./SonarMemberActivityStreakAction";
 export * from "./SonarListFactorActionsAction";
+export * from "./SonarRunInterventionAction";
