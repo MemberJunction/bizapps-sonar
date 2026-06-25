@@ -369,6 +369,37 @@ button, input, select, textarea {
 .sonar-btn--ghost:hover { background: var(--sonar-surface-sunken); }
 .sonar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Segmented control — a compact 2+-way mode switch (e.g. the factor builder's data/action fork).
+   Options sit on a sunken track; the --active one lifts to the surface color. One sanctioned spot
+   for a "tabs without a panel border" pattern, shared so every mode switch looks identical. */
+.sonar-segmented {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+}
+.sonar-segmented__opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--sonar-muted);
+    border-radius: var(--sonar-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sonar-segmented__opt:hover { color: var(--sonar-ink); }
+.sonar-segmented__opt--active {
+    background: var(--sonar-surface);
+    border-color: var(--sonar-border);
+    color: var(--sonar-ink);
+}
+
 /* Form-control base — ONE input look everywhere (height, border, radius, focus ring). Every
    field primitive (search, range, select) uses this so inputs are identical across surfaces. */
 .sonar-input,

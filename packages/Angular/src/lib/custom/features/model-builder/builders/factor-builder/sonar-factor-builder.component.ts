@@ -1,9 +1,16 @@
-import { Component, computed, effect, inject, input, output, signal } from "@angular/core";
+import { Component, computed, effect, inject, input, output, signal, WritableSignal } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
-import { FactorService, Aggregation, EditFactorVM, NormalizationMethod, WeightMode } from "../../../../core/services/factor.service";
+import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
+import { ActionCatalogService, FactorAction, FactorActionContract } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 import { reachableFromAnchor } from "../../../../core/entity-graph";
+
+/** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save). */
+type BuilderMode = "data" | "action";
+
+/** One editable row of a Banded / Lookup table (kept as strings; parsed on serialize). */
+interface ParamRow { left: string; output: string; }
 
 /** View-model for the live factor preview (a representative member's real numbers). */
 interface PreviewVM { sampleName: string; matching: number; strength: number; explanation: string; membersWithData: number; }
@@ -48,6 +55,7 @@ export interface FactorWindow { id: string; name: string; }
 })
 export class SonarFactorBuilderComponent {
     private readonly factorService = inject(FactorService);
+    private readonly catalog = inject(ActionCatalogService);
     private readonly engine = inject(SonarEngineService);
 
     // --- context from the host (the selected model) ---
@@ -87,6 +95,129 @@ export class SonarFactorBuilderComponent {
     public readonly higherIsBetter = signal(true);
     public readonly saving = signal(false);
 
+    // --- fixed-shape normalization params (only used when a parameterized method is selected) ---
+    /** Logistic: raw value mapping to the 0.5 midpoint + curve steepness (kept as strings). */
+    public readonly logisticMidpoint = signal("");
+    public readonly logisticSteepness = signal("1");
+    /** Banded rows: `left` = upper bound (blank = open-ended top band), `output` = 0–1 point. */
+    public readonly bands = signal<ParamRow[]>([{ left: "", output: "" }]);
+    /** Lookup rows: `left` = discrete raw value, `output` = 0–1 point; plus a fallback for misses. */
+    public readonly lookupEntries = signal<ParamRow[]>([{ left: "", output: "" }]);
+    public readonly lookupFallback = signal("0");
+    /** True when the selected method needs a param form (drives the conditional panel). */
+    public readonly normalizationParameterized = computed(() =>
+        PARAMETERIZED_NORMALIZATION.has(this.normalization()),
+    );
+
+    // --- Banded / Lookup row editing (immutable updates so dependent computeds re-run) ---
+    private addRow(sig: WritableSignal<ParamRow[]>): void {
+        sig.update((rows) => [...rows, { left: "", output: "" }]);
+    }
+    private removeRow(sig: WritableSignal<ParamRow[]>, i: number): void {
+        sig.update((rows) => (rows.length > 1 ? rows.filter((_, idx) => idx !== i) : rows));
+    }
+    private setRow(sig: WritableSignal<ParamRow[]>, i: number, field: keyof ParamRow, v: string): void {
+        sig.update((rows) => rows.map((r, idx) => (idx === i ? { ...r, [field]: v } : r)));
+    }
+    public addBand(): void { this.addRow(this.bands); }
+    public removeBand(i: number): void { this.removeRow(this.bands, i); }
+    public setBand(i: number, field: keyof ParamRow, v: string): void { this.setRow(this.bands, i, field, v); }
+    public addLookup(): void { this.addRow(this.lookupEntries); }
+    public removeLookup(i: number): void { this.removeRow(this.lookupEntries, i); }
+    public setLookup(i: number, field: keyof ParamRow, v: string): void { this.setRow(this.lookupEntries, i, field, v); }
+
+    /** All params for the selected fixed-shape method are present + numeric (parameterless → always ok). */
+    public readonly normalizationConfigValid = computed<boolean>(() => {
+        const method = this.normalization();
+        if (method === "Logistic") {
+            return this.isNum(this.logisticMidpoint()) && this.isNum(this.logisticSteepness());
+        }
+        if (method === "Banded") {
+            return this.bands().some((b) => this.isNum(b.output));
+        }
+        if (method === "Lookup") {
+            return this.lookupEntries().some((e) => this.isNum(e.left) && this.isNum(e.output));
+        }
+        return true; // None / MinMax / Percentile / ZScore take no params
+    });
+
+    /** True when a trimmed string parses to a finite number (blank → false). */
+    private isNum(v: string): boolean {
+        return v.trim() !== "" && Number.isFinite(Number(v));
+    }
+
+    /**
+     * Serialize the param form into the engine's NormalizationParamsJSON contract for the selected
+     * method, or undefined for parameterless methods. Drops incomplete rows; the shapes match
+     * normalizationStrategies.parseNormalizationParams ({midpoint,steepness} / {bands} / {entries,fallback}).
+     */
+    private buildNormalizationParamsJSON(): string | undefined {
+        const method = this.normalization();
+        if (method === "Logistic") {
+            return JSON.stringify({
+                midpoint: Number(this.logisticMidpoint()),
+                steepness: Number(this.logisticSteepness()),
+            });
+        }
+        if (method === "Banded") {
+            const bands = this.bands()
+                .filter((b) => this.isNum(b.output))
+                .map((b) => ({ max: b.left.trim() === "" ? null : Number(b.left), output: Number(b.output) }));
+            return bands.length > 0 ? JSON.stringify({ bands }) : undefined;
+        }
+        if (method === "Lookup") {
+            const entries = this.lookupEntries()
+                .filter((e) => this.isNum(e.left) && this.isNum(e.output))
+                .map((e) => ({ value: Number(e.left), output: Number(e.output) }));
+            const fallback = this.isNum(this.lookupFallback()) ? Number(this.lookupFallback()) : 0;
+            return entries.length > 0 ? JSON.stringify({ entries, fallback }) : undefined;
+        }
+        return undefined;
+    }
+
+    /** Pre-fill the param signals from a saved factor's NormalizationParamsJSON (edit mode). */
+    private hydrateNormalizationParams(method: NormalizationMethod, json: string | null): void {
+        if (!json) return;
+        let parsed: unknown;
+        try { parsed = JSON.parse(json); } catch { return; }
+        if (!parsed || typeof parsed !== "object") return;
+        const p = parsed as Record<string, unknown>;
+        if (method === "Logistic") {
+            this.logisticMidpoint.set(String(p["midpoint"] ?? ""));
+            this.logisticSteepness.set(String(p["steepness"] ?? "1"));
+        } else if (method === "Banded" && Array.isArray(p["bands"])) {
+            this.bands.set((p["bands"] as Array<Record<string, unknown>>).map((b) => ({
+                left: b["max"] == null ? "" : String(b["max"]),
+                output: String(b["output"] ?? ""),
+            })));
+        } else if (method === "Lookup" && Array.isArray(p["entries"])) {
+            this.lookupEntries.set((p["entries"] as Array<Record<string, unknown>>).map((e) => ({
+                left: String(e["value"] ?? ""),
+                output: String(e["output"] ?? ""),
+            })));
+            this.lookupFallback.set(String(p["fallback"] ?? "0"));
+        }
+    }
+
+    // --- mode: "data" (declarative) vs "action" (custom signal) ---
+    /** Which authoring fork is active. Maps to Factor.FactorType on save. */
+    public readonly mode = signal<BuilderMode>("data");
+
+    // --- action-backed state (signals) ---
+    /** Factor-actions available to bind (loaded once from the catalog). */
+    public readonly actions = signal<FactorAction[]>([]);
+    public readonly actionId = signal<string | null>(null);
+    /** Entered values for the selected action's config params, keyed by param name. */
+    public readonly actionParamValues = signal<Record<string, string>>({});
+    /** Governance state of this action factor (engine includes only 'Approved' in real scores). */
+    public readonly promotionState = signal<PromotionState>("Draft");
+    public readonly promotionOptions: { value: PromotionState; label: string }[] = [
+        { value: "Draft", label: "Draft — preview only, excluded from scoring" },
+        { value: "InReview", label: "In review — excluded from scoring" },
+        { value: "Approved", label: "Approved — included in scoring" },
+        { value: "Deprecated", label: "Deprecated — excluded from scoring" },
+    ];
+
     // --- weight / mode (how the signal counts in the rubric) ---
     /** Weight as a 0–100 percentage; stored as a 0–1 fraction. */
     public readonly weight = signal(20);
@@ -98,6 +229,65 @@ export class SonarFactorBuilderComponent {
     public onNameChange(val: string): void {
         this.isNameEdited.set(val.trim().length > 0);
         this.factorName.set(val);
+    }
+
+    /** Switch authoring fork. Clears the live preview (it's data-mode only) so a stale
+     *  declarative preview doesn't linger behind the action form. */
+    public onModeChange(mode: BuilderMode): void {
+        this.mode.set(mode);
+        if (mode === "action") this.preview.set(null);
+    }
+
+    /** The chosen factor-action (resolved from actionId). */
+    public readonly selectedAction = computed(() => this.actions().find((a) => a.id === this.actionId()) ?? null);
+
+    /** Pick an action: reset the param form to that action's declared defaults, and (unless the
+     *  name was hand-edited) seed the factor name from the action's name. */
+    public onActionChange(id: string | null): void {
+        this.actionId.set(id);
+        const action = this.actions().find((a) => a.id === id) ?? null;
+        const seeded: Record<string, string> = {};
+        for (const p of action?.params ?? []) {
+            if (p.defaultValue != null) seeded[p.name] = p.defaultValue;
+        }
+        this.actionParamValues.set(seeded);
+        if (!this.isNameEdited() && action) this.factorName.set(action.name);
+        if (action) this.higherIsBetter.set(action.contract.output.higherIsBetter);
+    }
+
+    /** Set one action param value (immutably, so the canSave computed re-runs). */
+    public setParam(name: string, value: string): void {
+        this.actionParamValues.update((prev) => ({ ...prev, [name]: value }));
+    }
+
+    /** All required params of the selected action have a non-blank value. */
+    public readonly actionConfigValid = computed<boolean>(() => {
+        const action = this.selectedAction();
+        if (!action) return false;
+        const values = this.actionParamValues();
+        return action.params
+            .filter((p) => p.isRequired)
+            .every((p) => (values[p.name] ?? "").trim().length > 0);
+    });
+
+    /** One-line output summary for the "What this signal does" panel (unit · range · direction · sample). */
+    public outputSummary(c: FactorActionContract): string {
+        const parts: string[] = [];
+        if (c.output.unit) parts.push(c.output.unit);
+        if (c.output.min != null || c.output.max != null) {
+            parts.push(`${c.output.min ?? "−∞"}–${c.output.max ?? "∞"}`);
+        }
+        parts.push(c.output.higherIsBetter ? "higher is better" : "lower is better");
+        if (c.output.sample != null) parts.push(`e.g. ${c.output.sample}`);
+        return parts.join(" · ");
+    }
+
+    /** Execution-profile chips for the "What this signal does" panel. */
+    public costTags(c: FactorActionContract): string[] {
+        const tags = [c.cost.deterministic ? "Deterministic" : "Non-deterministic"];
+        if (c.cost.externalCalls) tags.push("Calls external service");
+        if (c.cost.expensive) tags.push("Expensive");
+        return tags;
     }
 
     public applyPreset(type: string): void {
@@ -158,8 +348,12 @@ export class SonarFactorBuilderComponent {
     }
 
     constructor() {
-        // Reactive Auto-Naming Effect
+        // Load the factor-action catalog once (for the "custom signal" mode picker).
+        void this.catalog.listFactorActions().then((list) => this.actions.set(list));
+
+        // Reactive Auto-Naming Effect (data mode only — action mode names from the action).
         effect(() => {
+            if (this.mode() !== "data") return;
             if (this.isNameEdited()) return;
             const agg = this.aggregation();
             const src = this.selectedSource();
@@ -207,11 +401,16 @@ export class SonarFactorBuilderComponent {
             this.hydrated = true;
             this.factorName.set(vm.name);
             this.isNameEdited.set(true); // Pre-saved factor is considered edited
+            this.mode.set(vm.factorType === "ActionBacked" ? "action" : "data");
             this.aggregation.set(vm.aggregation);
             this.sourceId.set(vm.sourceRelatedEntityID);
             this.aggregateField.set(vm.aggregateFieldName ?? "");
             this.windowId.set(vm.timeWindowID);
+            this.actionId.set(vm.actionID);
+            this.actionParamValues.set({ ...vm.actionParams });
+            this.promotionState.set(vm.promotionState);
             this.normalization.set(vm.normalizationMethod);
+            this.hydrateNormalizationParams(vm.normalizationMethod, vm.normalizationParamsJSON);
             this.higherIsBetter.set(vm.higherIsBetter);
             this.weight.set(vm.weightPct);
             this.weightMode.set(vm.weightMode);
@@ -234,10 +433,13 @@ export class SonarFactorBuilderComponent {
         effect(() => {
             const model = this.modelId();
             const source = this.selectedSource();
+            const dataMode = this.mode() === "data";
             this.aggregation(); this.aggregateField(); this.windowId();
             this.normalization(); this.higherIsBetter(); this.filter();
+            // re-preview when fixed-shape params change
+            this.logisticMidpoint(); this.logisticSteepness(); this.bands(); this.lookupEntries(); this.lookupFallback();
             if (this.previewTimer) clearTimeout(this.previewTimer);
-            if (!model || !source) { this.preview.set(null); return; }
+            if (!dataMode || !model || !source) { this.preview.set(null); return; }
             this.previewTimer = setTimeout(() => void this.runPreview(), 500);
         });
     }
@@ -308,15 +510,17 @@ export class SonarFactorBuilderComponent {
     /** "Count" tallies matching records — no field needed; the others measure a field. */
     public readonly fieldRequired = computed(() => this.aggregation() !== "Count");
 
-    /** Save is allowed once we have a model, a name, a source, and (if needed) a field. */
-    public readonly canSave = computed(() =>
-        !this.saving() &&
-        !!this.modelId() &&
-        !!this.anchorEntityID() &&
-        this.factorName().trim().length > 0 &&
-        !!this.selectedSource() &&
-        (!this.fieldRequired() || this.aggregateField().trim().length > 0),
-    );
+    /** Save is allowed once the model/name basics hold and the active mode is fully configured:
+     *  data mode needs a source (+ a field for non-Count); action mode needs an action with all
+     *  required params filled. */
+    public readonly canSave = computed(() => {
+        if (this.saving() || !this.modelId() || !this.anchorEntityID() || this.factorName().trim().length === 0 || !this.normalizationConfigValid()) {
+            return false;
+        }
+        return this.mode() === "action"
+            ? this.actionConfigValid()
+            : !!this.selectedSource() && (!this.fieldRequired() || this.aggregateField().trim().length > 0);
+    });
 
     /** Switching the source changes which columns exist, so reset the filter + chosen field to
      *  avoid conditions/fields that reference the previous entity. */
@@ -352,6 +556,7 @@ export class SonarFactorBuilderComponent {
                 filterExpression: this.filterExpression(),
                 timeWindowID: this.windowId() ?? undefined,
                 normalizationMethod: this.normalization(),
+                normalizationParamsJSON: this.buildNormalizationParamsJSON(),
                 higherIsBetter: this.higherIsBetter(),
             });
             if (res.errors.length > 0) {
@@ -402,25 +607,49 @@ export class SonarFactorBuilderComponent {
         return { logic: filter.logic, filters: kept };
     }
 
-    /** Create the Factor and bind it into the model's rubric, then notify the host. */
-    public async save(): Promise<void> {
-        const modelId = this.modelId();
-        const anchorEntityID = this.anchorEntityID();
-        const source = this.selectedSource();
-        if (!this.canSave() || !modelId || !anchorEntityID || !source) return;
-
-        const input = {
+    /** Build the right CreateFactorInput for the active mode (data vs action). */
+    private buildInput(modelId: string, anchorEntityID: string): CreateFactorInput {
+        const base = {
             name: this.factorName().trim(),
             anchorEntityID,
             scoreModelID: modelId,
-            sourceRelatedEntityID: source.id,
+            normalizationMethod: this.normalization(),
+            normalizationParamsJSON: this.buildNormalizationParamsJSON(),
+            higherIsBetter: this.higherIsBetter(),
+        };
+        if (this.mode() === "action") {
+            return { ...base, factorType: "ActionBacked", actionID: this.actionId() ?? undefined, actionParamsJSON: this.buildActionParamsJSON(), promotionState: this.promotionState() };
+        }
+        const source = this.selectedSource();
+        return {
+            ...base,
+            factorType: "Declarative",
+            sourceRelatedEntityID: source?.id,
             aggregation: this.aggregation(),
             aggregateFieldName: this.fieldRequired() ? this.aggregateField().trim() : undefined,
             filterExpression: this.filterExpression(),
             timeWindowID: this.windowId() ?? undefined,
-            normalizationMethod: this.normalization(),
-            higherIsBetter: this.higherIsBetter(),
         };
+    }
+
+    /** Serialize the entered action params into the engine's `{ params: {...} }` contract, dropping
+     *  blanks. Returns undefined when there are no values (engine then uses pure defaults). */
+    private buildActionParamsJSON(): string | undefined {
+        const params: Record<string, string> = {};
+        for (const p of this.selectedAction()?.params ?? []) {
+            const v = (this.actionParamValues()[p.name] ?? "").trim();
+            if (v.length > 0) params[p.name] = v;
+        }
+        return Object.keys(params).length > 0 ? JSON.stringify({ params }) : undefined;
+    }
+
+    /** Create the Factor and bind it into the model's rubric, then notify the host. */
+    public async save(): Promise<void> {
+        const modelId = this.modelId();
+        const anchorEntityID = this.anchorEntityID();
+        if (!this.canSave() || !modelId || !anchorEntityID) return;
+
+        const input = this.buildInput(modelId, anchorEntityID);
         this.saving.set(true);
         try {
             const vm = this.edit();

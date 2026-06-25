@@ -8,9 +8,26 @@ const CONTRIBUTION = "MJ_BizApps_Sonar: Score Factor Contributions";
 
 /** Engine-supported v1 values (confirmed against sonar_engine: factorSql / NormalizationEngine). */
 export type Aggregation = "Count" | "Sum" | "Avg" | "Min" | "Max" | "DistinctCount";
-export type NormalizationMethod = "None" | "MinMax" | "Percentile" | "ZScore";
+export type NormalizationMethod =
+    | "None"
+    | "MinMax"
+    | "Percentile"
+    | "ZScore"
+    | "Logistic"
+    | "Banded"
+    | "Lookup";
+/** Methods that read NormalizationParamsJSON for their (fixed-shape) config. */
+export const PARAMETERIZED_NORMALIZATION: ReadonlySet<NormalizationMethod> = new Set([
+    "Logistic",
+    "Banded",
+    "Lookup",
+]);
 /** How a factor's weight combines in the rubric. */
 export type WeightMode = "Additive" | "Penalty";
+/** A factor either measures data (compiled to SQL) or runs an Action for its value. */
+export type FactorKind = "Declarative" | "ActionBacked";
+/** Governance gate the engine checks: only 'Approved' action factors are included in real scores. */
+export type PromotionState = "Draft" | "InReview" | "Approved" | "Deprecated";
 
 /** A display row for the model's rubric (a Model Factor joined to its Factor). */
 export interface RubricRow {
@@ -26,18 +43,33 @@ export interface RubricRow {
     sourceRelatedEntityID: string | null;
 }
 
-/** Fields to create a Declarative factor. AggregateFieldName is omitted for Count. */
+/**
+ * Fields to create/update a factor. `factorType` discriminates the two shapes:
+ * - 'Declarative' uses the data fields (source/aggregation/field/filter/window).
+ * - 'ActionBacked' uses the action fields (actionID/params/promotion).
+ * The tail (name/normalization/higherIsBetter) applies to both. AggregateFieldName is omitted for Count.
+ */
 export interface CreateFactorInput {
     name: string;
     anchorEntityID: string;
     scoreModelID: string;
-    sourceRelatedEntityID: string;
-    aggregation: Aggregation;
+    factorType: FactorKind;
+    // --- declarative (data) fields ---
+    sourceRelatedEntityID?: string;
+    aggregation?: Aggregation;
     aggregateFieldName?: string;
     /** CompositeFilterDescriptor serialized to JSON, or null for "include everything". */
     filterExpression?: string;
     timeWindowID?: string;
+    // --- action-backed fields ---
+    actionID?: string;
+    /** Serialized `{ params: {...} }` for the action (engine I/O contract), or null. */
+    actionParamsJSON?: string;
+    promotionState?: PromotionState;
+    // --- shared tail ---
     normalizationMethod: NormalizationMethod;
+    /** Serialized params for a fixed-shape method (Logistic/Banded/Lookup), else null/undefined. */
+    normalizationParamsJSON?: string;
     higherIsBetter: boolean;
 }
 
@@ -46,13 +78,22 @@ export interface EditFactorVM {
     modelFactorId: string;
     factorId: string;
     name: string;
+    factorType: FactorKind;
     sourceRelatedEntityID: string | null;
     aggregation: Aggregation;
     aggregateFieldName: string | null;
     /** Serialized CompositeFilterDescriptor, or null. */
     filterExpression: string | null;
     timeWindowID: string | null;
+    // --- action-backed state ---
+    actionID: string | null;
+    /** The action's `params` object parsed from ActionParamsJSON, coerced to strings for the form. */
+    actionParams: Record<string, string>;
+    promotionState: PromotionState;
+    // --- shared tail ---
     normalizationMethod: NormalizationMethod;
+    /** Serialized params for a fixed-shape method (Logistic/Banded/Lookup), or null. */
+    normalizationParamsJSON: string | null;
     higherIsBetter: boolean;
     /** Weight as a 0–100 percentage (stored as 0–1). */
     weightPct: number;
@@ -61,7 +102,8 @@ export interface EditFactorVM {
 
 /**
  * Data access for Factors (the signals) and their bindings into a model's rubric
- * (Model Factors). Declarative factors only in v1 — FactorType is pinned to 'Declarative'.
+ * (Model Factors). Supports both factor kinds — declarative (data → SQL) and action-backed
+ * (an MJ Action supplies the value); see CreateFactorInput.factorType.
  */
 @Injectable({ providedIn: "root" })
 export class FactorService {
@@ -108,29 +150,60 @@ export class FactorService {
     /** Plain one-line description of a factor's measure (for the rubric row). */
     private describeFactor(f?: mjBizAppsSonarFactorEntity): string {
         if (!f) return "";
+        if (f.FactorType === "ActionBacked") {
+            return `Custom signal (action) · ${f.PromotionState ?? "Draft"}`;
+        }
         const measure = f.Aggregation === "Count" || !f.AggregateFieldName
             ? f.Aggregation ?? "Count"
             : `${f.Aggregation}(${f.AggregateFieldName})`;
         return `${measure} · ${f.NormalizationMethod ?? "None"}`;
     }
 
-    /** Create a Declarative factor row (not yet bound to a model's rubric). */
+    /** Create a factor row (not yet bound to a model's rubric) — declarative or action-backed. */
     public async create(input: CreateFactorInput): Promise<mjBizAppsSonarFactorEntity | null> {
         const factor = await this.md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR);
         factor.NewRecord();
         factor.Name = input.name;
         factor.Slug = this.slugify(input.name);
-        factor.FactorType = "Declarative";
+        factor.FactorType = input.factorType;
         factor.AnchorEntityID = input.anchorEntityID;
         factor.ScoreModelID = input.scoreModelID;
-        factor.SourceRelatedEntityID = input.sourceRelatedEntityID;
-        factor.Aggregation = input.aggregation;
-        if (input.aggregateFieldName) factor.AggregateFieldName = input.aggregateFieldName;
-        if (input.filterExpression) factor.FilterExpression = input.filterExpression;
-        if (input.timeWindowID) factor.TimeWindowID = input.timeWindowID;
+        this.applyTypeFields(factor, input);
         factor.NormalizationMethod = input.normalizationMethod;
+        factor.NormalizationParamsJSON = input.normalizationParamsJSON ?? null;
         factor.HigherIsBetter = input.higherIsBetter;
         return (await factor.Save()) ? factor : null;
+    }
+
+    /**
+     * Write the kind-specific fields and NULL the other kind's, so a factor never carries stale
+     * config from the mode it isn't in (e.g. an ActionBacked factor must not keep an old Aggregation).
+     * Shared on both create and update.
+     */
+    private applyTypeFields(factor: mjBizAppsSonarFactorEntity, input: CreateFactorInput): void {
+        if (input.factorType === "ActionBacked") {
+            factor.ActionID = input.actionID ?? null;
+            factor.ActionParamsJSON = input.actionParamsJSON ?? null;
+            factor.PromotionState = input.promotionState ?? "Draft";
+            factor.ExecutionMode = "PerRecord";
+            // clear declarative fields
+            factor.SourceRelatedEntityID = null;
+            factor.Aggregation = null;
+            factor.AggregateFieldName = null;
+            factor.FilterExpression = null;
+            factor.TimeWindowID = null;
+        } else {
+            factor.SourceRelatedEntityID = input.sourceRelatedEntityID ?? null;
+            factor.Aggregation = input.aggregation ?? null;
+            factor.AggregateFieldName = input.aggregateFieldName ?? null;
+            factor.FilterExpression = input.filterExpression ?? null;
+            factor.TimeWindowID = input.timeWindowID ?? null;
+            // clear action fields
+            factor.ActionID = null;
+            factor.ActionParamsJSON = null;
+            factor.PromotionState = null;
+            factor.ExecutionMode = null;
+        }
     }
 
     /** Bind an existing factor into a model's rubric with a weight + mode. */
@@ -166,16 +239,39 @@ export class FactorService {
             modelFactorId: mf.ID,
             factorId: factor.ID,
             name: factor.Name ?? "",
+            factorType: factor.FactorType === "ActionBacked" ? "ActionBacked" : "Declarative",
             sourceRelatedEntityID: factor.SourceRelatedEntityID ?? null,
             aggregation: (factor.Aggregation ?? "Count") as Aggregation,
             aggregateFieldName: factor.AggregateFieldName ?? null,
             filterExpression: factor.FilterExpression ?? null,
             timeWindowID: factor.TimeWindowID ?? null,
+            actionID: factor.ActionID ?? null,
+            actionParams: this.parseActionParams(factor.ActionParamsJSON),
+            promotionState: (factor.PromotionState ?? "Draft") as PromotionState,
             normalizationMethod: (factor.NormalizationMethod ?? "MinMax") as NormalizationMethod,
+            normalizationParamsJSON: factor.NormalizationParamsJSON ?? null,
             higherIsBetter: factor.HigherIsBetter ?? true,
             weightPct: Math.round((mf.Weight ?? 0) * 100),
             weightMode: (mf.WeightMode ?? "Additive") === "Penalty" ? "Penalty" : "Additive",
         };
+    }
+
+    /** Pull the `params` object out of a stored ActionParamsJSON, coercing each value to a string
+     *  for the form inputs. Tolerates null/blank/malformed JSON (→ empty), never throws. */
+    private parseActionParams(json: string | null): Record<string, string> {
+        if (!json) return {};
+        try {
+            const parsed: unknown = JSON.parse(json);
+            const params = (parsed as { params?: unknown })?.params;
+            if (!params || typeof params !== "object") return {};
+            const out: Record<string, string> = {};
+            for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
+                if (value !== null && value !== undefined) out[key] = String(value);
+            }
+            return out;
+        } catch {
+            return {};
+        }
     }
 
     /**
@@ -189,12 +285,10 @@ export class FactorService {
         if (!factor?.IsSaved) return false;
         factor.Name = input.name;
         factor.Slug = this.slugify(input.name);
-        factor.SourceRelatedEntityID = input.sourceRelatedEntityID;
-        factor.Aggregation = input.aggregation;
-        factor.AggregateFieldName = input.aggregateFieldName ?? null;
-        factor.FilterExpression = input.filterExpression ?? null;
-        factor.TimeWindowID = input.timeWindowID ?? null;
+        factor.FactorType = input.factorType;
+        this.applyTypeFields(factor, input);
         factor.NormalizationMethod = input.normalizationMethod;
+        factor.NormalizationParamsJSON = input.normalizationParamsJSON ?? null;
         factor.HigherIsBetter = input.higherIsBetter;
         if (!(await factor.Save())) return false;
 

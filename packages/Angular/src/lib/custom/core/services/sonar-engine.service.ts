@@ -37,6 +37,8 @@ export interface FactorDraft {
     filterExpression?: string;
     timeWindowID?: string;
     normalizationMethod: string;
+    /** Params for a fixed-shape method (Logistic/Banded/Lookup); the engine's previewFactor reads it. */
+    normalizationParamsJSON?: string;
     higherIsBetter: boolean;
 }
 
