@@ -490,43 +490,76 @@ export class FactorCompiler {
         if (tw.WindowType === "AllTime") {
             return null;
         }
-        // TEMPORARY BRIDGE: the related activity-date column belongs on Factor.DateField (pending
-        // migration); until then it is read from AnchorDateField. A window with no date column set
-        // degrades to "no time bound" rather than silently mis-filtering.
-        const dateColumn = this.bridgeDateColumn(tw, validColumns);
-        if (!dateColumn) {
-            return null;
-        }
         switch (tw.WindowType) {
-            case "Rolling":
+            case "Rolling": {
                 if (tw.LengthDays == null && tw.LengthMonths == null) {
                     throw new Error(`FactorCompiler: Rolling window ${tw.ID} needs LengthDays or LengthMonths.`);
                 }
+                const dateColumn = this.resolveRelatedDateColumn(factor, tw, validColumns);
+                if (!dateColumn) return null; // no related date column → no time bound (don't mis-filter)
                 return { kind: "Rolling", dateColumn, lengthDays: tw.LengthDays, lengthMonths: tw.LengthMonths };
-            case "Calendar":
+            }
+            case "Calendar": {
+                const dateColumn = this.resolveRelatedDateColumn(factor, tw, validColumns);
+                if (!dateColumn) return null;
                 return { kind: "Calendar", dateColumn, period: this.calendarPeriod(tw) };
+            }
             case "SinceEvent":
-            case "RenewalRelative":
-                throw new Error(
-                    `FactorCompiler: '${tw.WindowType}' windows are implemented in SQL but not yet configurable — ` +
-                        `they need a distinct anchor boundary date, which requires Factor.DateField (roadmapped).`,
-                );
+            case "RenewalRelative": {
+                // Per-anchor windows need BOTH dates: the related activity date (Factor.DateField) and
+                // the anchor boundary date (TimeWindow.AnchorDateField, its true §5.2 meaning).
+                const dateColumn = this.requireFactorDateField(factor, validColumns);
+                const anchorDateColumn = this.requireAnchorDateColumn(tw, factor.AnchorEntityID);
+                return { kind: tw.WindowType, dateColumn, anchorDateColumn, offsetDays: tw.OffsetDays ?? 0 };
+            }
             default:
                 throw new Error(`FactorCompiler: unsupported window type '${tw.WindowType}'.`);
         }
     }
 
-    /** Bridge source for the related activity-date column (TimeWindow.AnchorDateField), validated
-     *  against the related entity's real columns (typo / injection guard). Null when unset. */
-    private bridgeDateColumn(tw: mjBizAppsSonarTimeWindowEntity, validColumns: string[]): string | null {
-        if (!tw.AnchorDateField) {
-            return null;
-        }
-        const match = validColumns.find((c) => c.toLowerCase() === tw.AnchorDateField!.toLowerCase());
-        if (!match) {
+    /** The related activity-date column for Rolling/Calendar windows: Factor.DateField, falling back
+     *  to TimeWindow.AnchorDateField for pre-DateField config (back-compat). Validated against the
+     *  related entity's columns (typo / injection guard). Null when neither is set → no time bound. */
+    private resolveRelatedDateColumn(
+        factor: mjBizAppsSonarFactorEntity,
+        tw: mjBizAppsSonarTimeWindowEntity,
+        validColumns: string[],
+    ): string | null {
+        const field = factor.DateField ?? tw.AnchorDateField;
+        return field ? this.requireColumn(field, validColumns, "related entity") : null;
+    }
+
+    /** Factor.DateField, required (per-anchor windows can't fall back to AnchorDateField — that names
+     *  the anchor boundary here). Validated against the related entity's columns. */
+    private requireFactorDateField(factor: mjBizAppsSonarFactorEntity, validColumns: string[]): string {
+        if (!factor.DateField) {
             throw new Error(
-                `FactorCompiler: window date field '${tw.AnchorDateField}' is not a column on the related entity.`,
+                `FactorCompiler: factor ${factor.ID} uses a per-anchor window but has no DateField (the related activity-date column).`,
             );
+        }
+        return this.requireColumn(factor.DateField, validColumns, "related entity");
+    }
+
+    /** TimeWindow.AnchorDateField (the anchor boundary date for SinceEvent/RenewalRelative), required,
+     *  validated against the ANCHOR entity's columns. */
+    private requireAnchorDateColumn(tw: mjBizAppsSonarTimeWindowEntity, anchorEntityID: string): string {
+        if (!tw.AnchorDateField) {
+            throw new Error(
+                `FactorCompiler: '${tw.WindowType}' window ${tw.ID} needs AnchorDateField (the anchor boundary date column).`,
+            );
+        }
+        const anchor = new Metadata().EntityByID(anchorEntityID);
+        if (!anchor) {
+            throw new Error(`FactorCompiler: anchor entity ${anchorEntityID} not found in metadata.`);
+        }
+        return this.requireColumn(tw.AnchorDateField, anchor.Fields.map((f) => f.Name), "anchor entity");
+    }
+
+    /** Resolve a config-supplied column name against a real column set (case-insensitive), or throw. */
+    private requireColumn(field: string, validColumns: string[], where: string): string {
+        const match = validColumns.find((c) => c.toLowerCase() === field.toLowerCase());
+        if (!match) {
+            throw new Error(`FactorCompiler: date field '${field}' is not a column on the ${where}.`);
         }
         return match;
     }
