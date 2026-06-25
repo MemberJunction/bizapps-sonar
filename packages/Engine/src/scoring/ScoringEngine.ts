@@ -45,6 +45,10 @@ export interface FactorContribution {
     /** True when the anchor had no data and this contribution was filled in by a missing-data
      *  policy (Zero/NeutralMidpoint) rather than measured. */
     missingDataApplied: boolean;
+    /** The factor's human "why" for this anchor (e.g. an LLM factor's reason, or a declarative
+     *  factor's window/aggregation summary). Null when the anchor had no data. Powers the
+     *  explainability waterfall. */
+    explanation: string | null;
 }
 
 /** The combined score for one anchor. */
@@ -125,16 +129,19 @@ export class ScoringEngine {
             let normalized: number;
             let rawValue: number | null;
             let missingApplied: boolean;
+            let explanation: string | null;
             if (hasData) {
                 normalized = result!.normalizedContribution!;
                 rawValue = result!.rawValue;
                 missingApplied = false;
+                explanation = result!.explanation || null;
             } else if (f.missingDataPolicy === "Exclude") {
                 continue; // out of both numerator and denominator
             } else {
                 normalized = f.missingDataPolicy === "NeutralMidpoint" ? 0.5 : 0;
                 rawValue = null;
                 missingApplied = true;
+                explanation = null; // nothing measured for this anchor
             }
 
             contributions.push({
@@ -146,6 +153,7 @@ export class ScoringEngine {
                 weightedValue: f.weight * normalized,
                 hadData: hasData,
                 missingDataApplied: missingApplied,
+                explanation,
             });
         }
         return contributions;

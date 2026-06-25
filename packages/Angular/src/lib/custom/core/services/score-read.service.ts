@@ -64,6 +64,9 @@ export interface ScoreContribution {
     /** Share of the score this factor accounts for (0–1). */
     percentOfTotal: number;
     hadData: boolean;
+    /** The factor's human "why" for this member (e.g. an LLM factor's reason), from the
+     *  contribution's DetailJSON. Null when the factor recorded no reason. */
+    explanation: string | null;
 }
 
 /** Filter / sort / paging options for the triage list (all server-side). */
@@ -337,8 +340,21 @@ export class ScoreReadService {
                 weightedValue: round(r.WeightedContribution ?? 0),
                 percentOfTotal: r.PercentOfTotal ?? 0,
                 hadData: r.HadData ?? false,
+                explanation: this.parseExplanation(r.DetailJSON),
             }))
             .sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue));
+    }
+
+    /** Pull the human "why" out of a contribution's DetailJSON ({"explanation":"…"}); null if absent/malformed. */
+    private parseExplanation(detailJSON: string | null): string | null {
+        if (!detailJSON) return null;
+        try {
+            const parsed: unknown = JSON.parse(detailJSON);
+            const why = (parsed as { explanation?: unknown })?.explanation;
+            return typeof why === "string" && why.length > 0 ? why : null;
+        } catch {
+            return null;
+        }
     }
 
     /** ALL Score rows for a model (uncapped) — the band distribution is a whole-population

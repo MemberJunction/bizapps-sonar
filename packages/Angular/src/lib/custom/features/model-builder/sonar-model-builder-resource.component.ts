@@ -45,7 +45,7 @@ interface EntityOption { id: string; name: string; ambiguous: boolean; isAnchor:
 /** One bar in the live band distribution preview. */
 interface BandSlice { label: string; pct: number; band: BandKey; }
 /** One line in the sample member's "why this score" breakdown. */
-interface Contribution { label: string; value: number; }
+interface Contribution { label: string; value: number; explanation: string | null; }
 /** The previewed sample member (from the engine, not sample data). */
 interface SampleMember { name: string; score: number; band: BandKey; bandLabel: string; }
 /** An editable band row (the model's band set, loaded for in-context range editing). */
@@ -606,13 +606,15 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (!sample || this.sampleNorms.size === 0) return;
         let num = 0, den = 0;
         const contribs: Contribution[] = [];
+        // Keep each factor's "why" while weights move (optimistic re-score has no fresh server reason).
+        const whyByLabel = new Map(this.contributions().map((c) => [c.label, c.explanation]));
         for (const r of this.rubric()) {
             const norm = this.sampleNorms.get(r.modelFactorId);
             if (norm == null) continue;
             const w = r.weight / 100;
             num += w * norm;
             den += w;
-            contribs.push({ label: r.name, value: Math.round(w * norm * 100) / 100 });
+            contribs.push({ label: r.name, value: Math.round(w * norm * 100) / 100, explanation: whyByLabel.get(r.name) ?? null });
         }
         const score = den > 0 ? Math.round((num / den) * 100) : 0;
         const band = this.bands().find((b) => score >= b.min && score <= b.max) ?? null;
@@ -1018,7 +1020,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 const name = await this.resolveAnchorName(sample.anchorId);
                 this.sampleMember.set({ name, score: sample.score, band: this.bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
                 const nameByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.name]));
-                this.contributions.set((sample.contributions ?? []).map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value })));
+                this.contributions.set((sample.contributions ?? []).map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value, explanation: c.explanation })));
                 // Cache each factor's normalized value (server value = weightᵢ·normᵢ) for optimistic re-scoring.
                 this.sampleNorms = new Map();
                 const wByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.weight / 100]));

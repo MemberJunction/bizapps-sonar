@@ -535,6 +535,12 @@ input[type="range"]::-moz-range-thumb:hover {
 .sonar-wf__bar--pos { background: var(--sonar-healthy); }
 .sonar-wf__bar--neg { background: var(--sonar-critical); }
 .sonar-wf__label { width: 8rem; color: var(--sonar-muted); font-size: 0.78rem; }
+/* One waterfall entry = the bar row plus an optional "why" line beneath it. */
+.sonar-wf-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-wf__why {
+    margin: 0 0 0 4rem; /* align under the bar track, past the value column (3.25rem + 0.75rem gap) */
+    font-size: 0.72rem; line-height: 1.35; color: var(--sonar-muted); font-style: italic;
+}
 
 /* ============================================================ Band distribution bars */
 .sonar-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 9rem; }

@@ -220,10 +220,9 @@
                                                     <p class="sonar-faint" style="font-size:0.85rem">No contribution breakdown recorded for this score.</p>
                                                 } @else {
                                                     @for (c of contributions(); track c.label) {
-                                                        <div class="sonar-calc sonar-calc--waterfall" [class.sonar-calc--expanded]="expandedContributions()[c.label]" (click)="toggleContribution(c.label)" role="button" tabindex="0">
+                                                        <div class="sonar-calc sonar-calc--waterfall">
                                                             <div class="sonar-calc__head">
-                                                                <span class="sonar-calc__label" style="display: flex; align-items: center; gap: 0.35rem;">
-                                                                    <i class="fa-solid" [ngClass]="expandedContributions()[c.label] ? 'fa-chevron-down' : 'fa-chevron-right'" style="font-size: 10px; color: var(--sonar-faint); cursor: pointer;"></i>
+                                                                <span class="sonar-calc__label">
                                                                     {{ c.label }}@if (!c.hadData) { <span class="sonar-faint">· no data</span> }
                                                                 </span>
                                                                 <span class="sonar-mono" [class.sonar-pos]="(c.percentOfTotal * sel.normalizedScore) >= 0.5" [class.sonar-faint]="(c.percentOfTotal * sel.normalizedScore) < 0.5">{{ (c.percentOfTotal * sel.normalizedScore) | number:'1.0-0' }} pts</span>
@@ -234,18 +233,8 @@
                                                                 <span class="sonar-faint">· {{ (c.percentOfTotal * 100) | number:'1.0-0' }}% of the score</span>
                                                             </div>
                                                             <span class="sonar-wf__track"><span class="sonar-wf__bar sonar-wf__bar--pos" [style.width.%]="c.percentOfTotal * 100"></span></span>
-                                                            
-                                                            <!-- Expanded Sub-records Activity Audit Trail -->
-                                                            @if (expandedContributions()[c.label]) {
-                                                                <div class="sonar-calc__sub-records" (click)="$event.stopPropagation()">
-                                                                    <div class="sonar-calc__sub-title"><i class="fa-solid fa-list-check"></i> Audit Activity Logs:</div>
-                                                                    @for (sub of getSubRecords(c.label); track $index) {
-                                                                        <div class="sonar-calc__sub-row">
-                                                                            <span class="sonar-mono sonar-calc__sub-date">{{ sub.date }}</span>
-                                                                            <span class="sonar-calc__sub-desc">{{ sub.desc }}</span>
-                                                                        </div>
-                                                                    }
-                                                                </div>
+                                                            @if (c.explanation) {
+                                                                <p class="sonar-calc__why" [title]="c.explanation"><i class="fa-solid fa-quote-left"></i> {{ c.explanation }}</p>
                                                             }
                                                         </div>
                                                     }

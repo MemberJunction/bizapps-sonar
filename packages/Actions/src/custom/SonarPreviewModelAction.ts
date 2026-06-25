@@ -6,7 +6,7 @@ import { RecomputeOrchestrator, ScoreResult } from "@mj-biz-apps/sonar-engine";
 /** One bar of the band distribution returned to the UI. */
 interface BandSlice { label: string; count: number; pct: number; }
 /** One factor's contribution to the sample member's score. */
-interface SampleContribution { modelFactorId: string; factorId: string; value: number; }
+interface SampleContribution { modelFactorId: string; factorId: string; value: number; explanation: string | null; }
 /** The shape serialized into the `Result` output param (parsed by SonarEngineService). */
 interface PreviewPayload {
     totalScored: number;
@@ -83,7 +83,7 @@ export class SonarPreviewModelAction extends BaseAction {
         const contributions = [...result.contributions]
             .sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue))
             .slice(0, 5)
-            .map((c) => ({ modelFactorId: c.modelFactorId, factorId: c.factorId, value: Math.round(c.weightedValue * 100) / 100 }));
+            .map((c) => ({ modelFactorId: c.modelFactorId, factorId: c.factorId, value: Math.round(c.weightedValue * 100) / 100, explanation: c.explanation }));
         return { anchorId, score: Math.round(result.normalizedScore), band: result.bandLabel, contributions };
     }
 }

@@ -38,8 +38,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     // --- playbook enroller states ---
     public readonly playbookModalOpen = signal(false);
 
-    public readonly expandedContributions = signal<Record<string, boolean>>({});
-
     public openPlaybookModal(): void {
         this.playbookModalOpen.set(true);
     }
@@ -57,40 +55,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     }
 
 
-
-    public toggleContribution(label: string): void {
-        this.expandedContributions.update(prev => ({
-            ...prev,
-            [label]: !prev[label]
-        }));
-    }
-
-    public getSubRecords(label: string): { date: string; desc: string }[] {
-        const lbl = label.toLowerCase();
-        if (lbl.includes("login") || lbl.includes("recency") || lbl.includes("activity")) {
-            return [
-                { date: "Jun 20", desc: "Web Portal Login (14 mins)" },
-                { date: "Jun 18", desc: "Mobile Application Session (5 mins)" },
-                { date: "May 29", desc: "API Endpoint Request (Authorized)" }
-            ];
-        }
-        if (lbl.includes("payment") || lbl.includes("donation") || lbl.includes("volume")) {
-            return [
-                { date: "Jun 01", desc: "Renewal Invoice Paid ($450.00)" },
-                { date: "Jun 01", desc: "Prior Year Invoice Paid ($450.00)" }
-            ];
-        }
-        if (lbl.includes("event") || lbl.includes("attendance") || lbl.includes("summit")) {
-            return [
-                { date: "May 15", desc: "Annual Member Summit (Attended)" },
-                { date: "Mar 10", desc: "Chapter Meetup: Spring Showcase (Attended)" }
-            ];
-        }
-        return [
-            { date: "Jun 12", desc: "Customer Support Case #8192 (Resolved)" },
-            { date: "Jun 10", desc: "System Sync Event: Account Active" }
-        ];
-    }
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);

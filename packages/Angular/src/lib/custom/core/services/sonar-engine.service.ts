@@ -13,7 +13,7 @@ const ACTION_RUN_INTERVENTION = "Sonar: Run Intervention";
 /** One bar of a model's band distribution. */
 export interface PreviewBand { label: string; count: number; pct: number; }
 /** One factor's contribution to the sample member's score. */
-export interface PreviewContribution { modelFactorId: string; factorId: string; value: number; }
+export interface PreviewContribution { modelFactorId: string; factorId: string; value: number; explanation: string | null; }
 /** The sample-member breakdown returned by the preview. */
 export interface PreviewSample { anchorId: string; score: number; band: string | null; contributions: PreviewContribution[]; }
 /** Result of previewing a whole model ("Sonar: Preview Model"). */

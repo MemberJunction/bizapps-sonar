@@ -125,6 +125,12 @@
 .sonar-calc__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .sonar-calc__label { font-size: 0.85rem; font-weight: 600; color: var(--sonar-ink); }
 .sonar-calc__chain { font-size: 0.72rem; color: var(--sonar-muted); }
+/* The factor's human "why" (e.g. an LLM factor's reason), surfaced from the contribution's DetailJSON. */
+.sonar-calc__why {
+    margin: 0.4rem 0 0; font-size: 0.74rem; line-height: 1.4; color: var(--sonar-muted);
+    font-style: italic; display: flex; gap: 0.4rem;
+}
+.sonar-calc__why i { color: var(--sonar-faint); font-size: 0.66rem; margin-top: 0.15rem; flex-shrink: 0; }
 
 /* Pagination folded into the filter track (far right) — compact prev/next + a count readout, so
    the search, score pill, sort, and paging all share one baseline. */
@@ -154,53 +160,6 @@
    EM keeps only its local placement tweaks for the drill-down sparkline. */
 .sonar-spark { margin: 0.5rem 0 0.15rem auto; }
 .sonar-spark__hint { margin-left: auto; }
-
-/* Interactive Waterfall Contribution Card */
-.sonar-calc--waterfall {
-    cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.sonar-calc--waterfall:hover {
-    border-color: var(--sonar-border-strong);
-    transform: translateY(-1px);
-}
-.sonar-calc--expanded {
-    border-color: var(--sonar-accent);
-    box-shadow: 0 0 0 1px var(--sonar-accent);
-}
-
-/* Waterfall sub-records activity logs */
-.sonar-calc__sub-records {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px dashed var(--sonar-border);
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-.sonar-calc__sub-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--sonar-accent);
-    margin-bottom: 0.2rem;
-}
-.sonar-calc__sub-row {
-    display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-    font-size: 0.76rem;
-    line-height: 1.3;
-}
-.sonar-calc__sub-date {
-    color: var(--sonar-faint);
-    font-weight: 600;
-    min-width: 2.75rem;
-}
-.sonar-calc__sub-desc {
-    color: var(--sonar-muted);
-}
 
 /* Playbook holdout split tree diagram */
 .sonar-holdout-diagram {

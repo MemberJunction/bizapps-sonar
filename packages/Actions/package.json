@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@mj-biz-apps/sonar-engine": "0.1.0",
+    "@mj-biz-apps/sonar-entities": "0.1.0",
     "zod": "~3.24.4"
   },
   "peerDependencies": {
