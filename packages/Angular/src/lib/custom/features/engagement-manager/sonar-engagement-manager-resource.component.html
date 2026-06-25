@@ -319,7 +319,14 @@
 
             <!-- Playbook Enroller Modal -->
             @if (playbookModalOpen()) {
-                <sonar-playbook-enroller [totalMembers]="total()" (close)="closePlaybookModal()"></sonar-playbook-enroller>
+                <sonar-playbook-enroller
+                    [totalMembers]="total()"
+                    [modelId]="current.modelId()"
+                    [bandId]="selectedBand()?.bandId ?? null"
+                    [minScore]="minScore()"
+                    [maxScore]="maxScore()"
+                    [cohortLabel]="selectedBand()?.label ?? 'all members'"
+                    (close)="closePlaybookModal()"></sonar-playbook-enroller>
             }
         </div>
     </div>

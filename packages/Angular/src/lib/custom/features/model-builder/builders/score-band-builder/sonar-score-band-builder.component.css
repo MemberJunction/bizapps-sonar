@@ -19,6 +19,18 @@
 .sonar-fb__hint { font-size: 0.74rem; }
 .sonar-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
 
+/* band-set picker row: pick a set to edit/use, or start a new one */
+.sonar-sb__setbar {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--sonar-border);
+}
+.sonar-sb__setpick { width: auto; min-width: 14rem; max-width: 22rem; cursor: pointer; }
+.sonar-sb__setbar .sonar-fb__hint { margin-left: auto; }
+@media (max-width: 720px) {
+    .sonar-sb__setbar .sonar-fb__hint { margin-left: 0; }
+    .sonar-sb__setpick { flex: 1; max-width: none; }
+}
+
 /* generic field input */
 .sonar-field {
     background: var(--sonar-surface-sunken);

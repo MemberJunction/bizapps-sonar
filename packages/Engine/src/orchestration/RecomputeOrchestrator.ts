@@ -85,7 +85,9 @@ export class RecomputeOrchestrator {
     ): Promise<Map<string, ScoreResult>> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
-        return (await this.computeForModel(model, asOf, contextUser)).scores;
+        // Preview is read-only, so a not-yet-Approved Action-backed factor is allowed to run here —
+        // that's the whole point of "Simulate" for a draft factor. The Approved gate still applies on persist.
+        return (await this.computeForModel(model, asOf, contextUser, true)).scores;
     }
 
     /**
@@ -181,7 +183,8 @@ export class RecomputeOrchestrator {
 
         const run = await this.startRun(model, contextUser);
         try {
-            const { scores, anchorKeys } = await this.computeForModel(model, asOf, contextUser);
+            // Persisting run: an Action-backed factor must be Approved (false = enforce the gate).
+            const { scores, anchorKeys } = await this.computeForModel(model, asOf, contextUser, false);
             const recordsScored = await this.writer.write(
                 model,
                 model.CurrentVersionID,
@@ -210,6 +213,7 @@ export class RecomputeOrchestrator {
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
         contextUser: UserInfo,
+        allowUnapprovedActions: boolean,
     ): Promise<{ scores: Map<string, ScoreResult>; anchorKeys: AnchorKey[] }> {
         const anchorKeys = await this.resolvePopulation(model, contextUser);
         if (anchorKeys.length === 0) {
@@ -222,6 +226,7 @@ export class RecomputeOrchestrator {
             asOf,
             ctx,
             contextUser,
+            allowUnapprovedActions,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
         const scores = this.scorer.score(scoringSpec, factors, anchorKeys.map((a) => a.id));
@@ -365,6 +370,7 @@ export class RecomputeOrchestrator {
         asOf: Date,
         ctx: FactorEvaluationContext,
         contextUser: UserInfo,
+        allowUnapprovedActions: boolean,
     ): Promise<WeightedFactor[]> {
         const modelFactors = await this.loadRubric(model, contextUser);
         if (modelFactors.length === 0) {
@@ -380,9 +386,14 @@ export class RecomputeOrchestrator {
                     `RecomputeOrchestrator: Factor ${mf.FactorID} referenced by the rubric was not found.`,
                 );
             }
-            // Governance gate: an Action-backed factor runs arbitrary code, so it must be promoted
-            // to Approved before it can move real scores. (Drafts can still be tried in preview.)
-            if (factor.FactorType === "ActionBacked" && factor.PromotionState !== "Approved") {
+            // Governance gate: an Action-backed factor runs arbitrary code, so it must be promoted to
+            // Approved before it can move REAL (persisted) scores. A read-only preview/Simulate passes
+            // allowUnapprovedActions=true so a draft factor can be tried before promotion.
+            if (
+                factor.FactorType === "ActionBacked" &&
+                factor.PromotionState !== "Approved" &&
+                !allowUnapprovedActions
+            ) {
                 throw new Error(
                     `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
                 );

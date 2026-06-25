@@ -150,10 +150,12 @@
     background: var(--sonar-accent);
 }
 
-/* Sources panel tab content container */
+/* Sources panel tab content container. Scrolls on BOTH axes: tall source lists scroll vertically,
+   and wide rows (long entity names + inline controls) scroll horizontally instead of being clipped
+   by the deck's overflow:hidden. */
 .sonar-deck__sources {
     flex: 1;
-    overflow-y: auto;
+    overflow: auto;
     padding: 0.875rem 1rem;
     display: flex;
     flex-direction: column;
@@ -161,10 +163,11 @@
     min-height: 0;
 }
 
-/* Population panel tab content container */
+/* Population panel tab content container. Same both-axis scroll — a deep/nested filter (the MJ
+   filter-builder indents groups and grows wide) pans instead of overflowing the fixed-height panel. */
 .sonar-deck__population {
     flex: 1;
-    overflow-y: auto;
+    overflow: auto;
     padding: 0.875rem 1rem;
     display: flex;
     flex-direction: column;
@@ -343,6 +346,9 @@
 .sonar-src-table {
     display: flex;
     flex-direction: column;
+    flex-shrink: 0; /* keep natural height — without this the flex parent shrinks the table and its
+                       own overflow:hidden clips rows past the fold, so they vanish with no scroll.
+                       At full height it overflows .sonar-deck__sources, whose overflow:auto scrolls. */
     border: 1px solid var(--mb-border);
     border-radius: 4px;
     overflow: hidden;
@@ -898,3 +904,19 @@
 /* Ambiguous-source marker in the add-source picker (reachable several ways → path chosen later in
    the factor builder, in-context). */
 .sonar-srcsearch__tie { margin-left: 0.35rem; font-size: 0.7rem; color: var(--sonar-accent); }
+
+/* The anchor itself in the picker — a zero-hop source (factors on its own fields). Pinned first and
+   set apart with a dashed edge so it never reads as just another related hop. */
+.sonar-srcsearch__chip--anchor { border-style: dashed; border-color: var(--mb-text-faint); }
+.sonar-srcsearch__chip--anchor i { color: var(--sonar-accent); }
+.sonar-srcsearch__tag {
+    margin-left: 0.35rem;
+    padding: 0 0.3rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--mb-text-faint) 16%, transparent);
+    color: var(--mb-text-faint);
+    font-size: 0.55rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}

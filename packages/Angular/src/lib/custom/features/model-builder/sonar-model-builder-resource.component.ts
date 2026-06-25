@@ -38,8 +38,10 @@ interface WireSegment {
 /** A related entity wired into the model (maps to Model Related Entities). `id` is the ModelRelatedEntity ID (for removal); `relatedEntityID` is the underlying entity (for factor lineage). */
 interface RelatedEntity { id: string; relatedEntityID: string; alias: string; label: string; source: string; }
 /** An entity option for the "map another entity" picker. `ambiguous` = reachable by ≥2 FK routes,
- *  so adding it prompts the user to choose a path (a tie). */
-interface EntityOption { id: string; name: string; ambiguous: boolean; }
+ *  so adding it prompts the user to choose a path (a tie). `isAnchor` = the anchor itself: a legit
+ *  zero-hop source (factors on the anchor's own fields — tenure, last login), shown apart from the
+ *  related entities so it never reads like just another hop. */
+interface EntityOption { id: string; name: string; ambiguous: boolean; isAnchor: boolean; }
 /** One bar in the live band distribution preview. */
 interface BandSlice { label: string; pct: number; band: BandKey; }
 /** One line in the sample member's "why this score" breakdown. */
@@ -124,11 +126,19 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         );
         // Include every entity the engine can reach by ≥1 FK route. count===1 → auto-resolves;
         // count>1 → ambiguous (flagged), so adding it opens the tie chooser instead of failing.
+        // The anchor seeds the BFS at count 1, so it survives the filter — kept on purpose (zero-hop
+        // factors on its own fields) but tagged isAnchor so it's never mistaken for a related hop.
         const counts = anchorId ? pathCountsFromAnchor(business, anchorId) : null;
         const opts = business
             .filter((e) => !wired.has(e.ID) && (!counts || (counts.get(e.ID) ?? 0) >= 1))
-            .map((e) => ({ id: e.ID, name: e.Name, ambiguous: (counts?.get(e.ID) ?? 1) > 1 }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+            .map((e) => ({
+                id: e.ID,
+                name: e.Name,
+                ambiguous: e.ID !== anchorId && (counts?.get(e.ID) ?? 1) > 1,
+                isAnchor: e.ID === anchorId,
+            }))
+            // Pin the anchor first; everything else alphabetical.
+            .sort((a, b) => (a.isAnchor === b.isAnchor ? a.name.localeCompare(b.name) : a.isAnchor ? -1 : 1));
         return opts;
     });
 
@@ -371,10 +381,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.activeView.set("rubric");
     }
 
-    /** Bands were saved — attach the set to the model if it had none, then refresh + close. */
+    /** Bands were saved — point the model at the chosen set (covers both "had none" and "switched to
+     *  a different set"), then refresh + close. */
     public async onBandsSaved(bandSetId: string): Promise<void> {
         const model = this.selectedModel();
-        if (model && !model.BandSetID) {
+        if (model && model.BandSetID !== bandSetId) {
             await this.modelService.setBandSet(model.ID, bandSetId);
             await this.selectModel(model.ID);
         }

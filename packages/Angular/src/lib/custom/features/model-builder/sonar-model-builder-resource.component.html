@@ -22,6 +22,7 @@
             @if (canRecompute()) {
                 <button class="sonar-btn" [disabled]="recomputing()" (click)="recompute()">{{ recomputing() ? "Recomputing…" : "Recompute" }}</button>
             }
+            <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('bands')">Bands</button>
             <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('versions')">Versions</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('publish')">Publish version</button>
         </div>
@@ -173,11 +174,14 @@
                                 <div class="sonar-srcsearch__results">
                                     @for (e of filteredAvailable(); track e.id) {
                                         <span class="sonar-srcsearch__chip" draggable="true"
+                                              [class.sonar-srcsearch__chip--anchor]="e.isAnchor"
                                               (dragstart)="onSourceDragStart(e.id, $event)"
                                               (click)="onAddSourceSelect(e.id)"
-                                              [attr.title]="e.ambiguous ? ('Reachable several ways — you\'ll pick the path for ' + e.name) : ('Drag or click to map ' + e.name)">
-                                            <i class="fa-solid fa-table"></i> {{ e.name }}
-                                            @if (e.ambiguous) {
+                                              [attr.title]="e.isAnchor ? ('Score on ' + e.name + '\'s own fields (no hop)') : e.ambiguous ? ('Reachable several ways — you\'ll pick the path for ' + e.name) : ('Drag or click to map ' + e.name)">
+                                            <i class="fa-solid" [class.fa-table]="!e.isAnchor" [class.fa-bullseye]="e.isAnchor"></i> {{ e.name }}
+                                            @if (e.isAnchor) {
+                                                <span class="sonar-srcsearch__tag">anchor fields</span>
+                                            } @else if (e.ambiguous) {
                                                 <i class="fa-solid fa-code-branch sonar-srcsearch__tie" aria-label="multiple paths"></i>
                                             }
                                         </span>
@@ -272,6 +276,9 @@
                         <p class="sonar-deck__empty-sm">Computing preview…</p>
                     } @else {
                         <p class="sonar-deck__empty-sm">Add signals and a band set, then Simulate.</p>
+                        @if (!selectedModel()?.BandSetID && !isPublished()) {
+                            <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('bands')">Set up bands</button>
+                        }
                     }
                 } @else if (bandDist().length === 0) {
                     <p class="sonar-deck__empty-sm">No scores yet — add signals to the rubric, then Simulate.</p>

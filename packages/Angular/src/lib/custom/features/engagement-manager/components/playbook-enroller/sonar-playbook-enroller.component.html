@@ -1,66 +1,82 @@
 <div class="sonar-modal">
     <div class="sonar-modal__scrim" (click)="close.emit()"></div>
-    <div class="sonar-modal__panel" style="max-width: 500px;">
+    <div class="sonar-modal__panel" style="max-width: 520px;">
         <div class="sonar-fb__bar" style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
             <div class="sonar-fb__title">
-                <span class="sonar-card__label" style="text-transform: uppercase; font-size: var(--sonar-font-xs); color: var(--sonar-accent);">Playbook Outreach Engine</span>
-                <h2 class="sonar-factor__name" style="font-size: var(--sonar-font-lg); margin-top: 0.25rem; font-weight: 700;">Launch Cohort Playbook</h2>
+                <span class="sonar-card__label" style="text-transform: uppercase; font-size: var(--sonar-font-xs); color: var(--sonar-accent);">Action Layer</span>
+                <h2 class="sonar-factor__name" style="font-size: var(--sonar-font-lg); margin-top: 0.25rem; font-weight: 700;">Run intervention on this cohort</h2>
             </div>
             <button class="sonar-modal__close-btn" (click)="close.emit()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--sonar-faint);">&times;</button>
         </div>
 
         <div class="sonar-stack" style="gap: 1.25rem;">
+            <!-- Channel (real MJ action — fires to one destination you control) -->
             <div>
-                <label class="sonar-fb__hint" style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Select Playbook Sequence</label>
-                <select class="sonar-input" style="width: 100%;" [ngModel]="selectedPlaybook()" (ngModelChange)="selectedPlaybook.set($event)">
-                    @for (p of playbooks; track p.id) {
-                        <option [value]="p.name">{{ p.name }}</option>
+                <label class="sonar-fb__hint" style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Channel</label>
+                <select class="sonar-input" style="width: 100%;" [ngModel]="channel().name" (ngModelChange)="onChannelChange($event)">
+                    @for (c of channels; track c.name) {
+                        <option [value]="c.name">{{ c.label }}</option>
                     }
                 </select>
             </div>
 
             <div>
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
-                    <label class="sonar-fb__hint" style="font-weight: 600; margin: 0;">Control Group Holdout</label>
-                    <span class="sonar-mono" style="font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-atrisk);">{{ holdoutPct() }}% holdout</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <input type="range" min="5" max="20" step="5" style="flex: 1;" [ngModel]="holdoutPct()" (ngModelChange)="holdoutPct.set(+$event)" />
-                </div>
-                <p class="sonar-fb__hint" style="margin-top: 0.25rem;">A percentage of the segment is isolated from the campaign to measure reactivation lift objectively.</p>
+                <label class="sonar-fb__hint" style="margin-bottom: 0.5rem; display: block; font-weight: 600;">{{ channel().urlLabel }}</label>
+                <input class="sonar-input" style="width: 100%;" [ngModel]="webhookUrl()" (ngModelChange)="webhookUrl.set($event); onConfigChange()"
+                       placeholder="https://hooks.slack.com/services/…" />
+                <p class="sonar-fb__hint" style="margin-top: 0.25rem;">Every message posts here — your own channel — so a run can't reach members' real contacts.</p>
             </div>
 
-            <!-- Visual Split Path Diagram -->
-            <div class="sonar-holdout-diagram">
-                <div class="sonar-holdout-node sonar-holdout-node--root">
-                    <span class="sonar-holdout-node__title">Cohort Segment</span>
-                    <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-faint);">{{ totalMembers }} members</span>
-                </div>
-                
-                <div class="sonar-holdout-split">
-                    <div class="sonar-holdout-branch">
-                        <div class="sonar-holdout-line sonar-holdout-line--campaign"></div>
-                        <div class="sonar-holdout-node sonar-holdout-node--campaign">
-                            <span class="sonar-holdout-node__title">Campaign Outreach</span>
-                            <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-healthy);">{{ 100 - holdoutPct() }}% enrolled</span>
-                        </div>
-                    </div>
-                    
-                    <div class="sonar-holdout-branch">
-                        <div class="sonar-holdout-line sonar-holdout-line--holdout"></div>
-                        <div class="sonar-holdout-node sonar-holdout-node--holdout">
-                            <span class="sonar-holdout-node__title">Holdout Control</span>
-                            <span class="sonar-mono" style="font-size: 10px; color: var(--sonar-atrisk);">{{ holdoutPct() }}% isolated</span>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <label class="sonar-fb__hint" style="margin-bottom: 0.5rem; display: block; font-weight: 600;">Message</label>
+                <input class="sonar-input" style="width: 100%;" [ngModel]="message()" (ngModelChange)="message.set($event); onConfigChange()" />
+                <p class="sonar-fb__hint" style="margin-top: 0.25rem;"><span class="sonar-mono" ngNonBindable>{{member}}</span> is replaced with each member's id.</p>
             </div>
+
+            <!-- Holdout -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+                    <label class="sonar-fb__hint" style="font-weight: 600; margin: 0;">Control group holdout</label>
+                    <span class="sonar-mono" style="font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-atrisk);">{{ holdoutPct() }}% held back</span>
+                </div>
+                <input type="range" min="0" max="50" step="5" style="width: 100%;" [ngModel]="holdoutPct()" (ngModelChange)="holdoutPct.set(+$event); onConfigChange()" />
+                <p class="sonar-fb__hint" style="margin-top: 0.25rem;">Held-back members get nothing fired — the comparison baseline for measuring lift later.</p>
+            </div>
+
+            <!-- Cap (real-fire safety) -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+                    <label class="sonar-fb__hint" style="font-weight: 600; margin: 0;">Send cap (safety)</label>
+                    <span class="sonar-mono" style="font-size: var(--sonar-font-sm); font-weight: 700;">{{ cap() }} max</span>
+                </div>
+                <input type="range" min="1" max="50" step="1" style="width: 100%;" [ngModel]="cap()" (ngModelChange)="cap.set(+$event); onConfigChange()" />
+                <p class="sonar-fb__hint" style="margin-top: 0.25rem;">Caps how many members this run assigns — a guard against blasting the whole cohort.</p>
+            </div>
+
+            <!-- Preview result (dry-run) -->
+            @if (preview(); as p) {
+                <div class="sonar-card" style="background: var(--sonar-surface-sunken); padding: 1rem;">
+                    <div class="sonar-card__label" style="margin-bottom: 0.5rem;">Preview — nothing fired yet</div>
+                    <p style="margin: 0; font-size: var(--sonar-font-sm);">
+                        Will fire <strong class="sonar-ink">{{ p.treated }}</strong> real {{ channel().label }} message(s), hold back
+                        <strong class="sonar-ink">{{ p.held }}</strong>.
+                        @if (p.alreadyAssigned > 0) { <span class="sonar-faint">({{ p.alreadyAssigned }} already enrolled, skipped.)</span> }
+                        @if (p.capped) { <span class="sonar-faint">Capped at {{ cap() }} of {{ p.eligible }} eligible.</span> }
+                    </p>
+                </div>
+            }
+            @if (error()) {
+                <div class="sonar-chip sonar-chip--critical" style="white-space: normal; height: auto; padding: 0.5rem 0.75rem;">⚠ {{ error() }}</div>
+            }
         </div>
 
-        <div class="sonar-fb__bar" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--sonar-border); padding-top: 1.25rem;">
+        <div class="sonar-fb__bar" style="margin-top: 1.75rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--sonar-border); padding-top: 1.25rem;">
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
-            <button class="sonar-btn sonar-btn--primary" [disabled]="isEnrolling()" (click)="launchPlaybook()">
-                {{ isEnrolling() ? "Enrolling…" : "Confirm & Launch Campaign" }}
+            <button class="sonar-btn" [disabled]="!canRun()" (click)="runPreview()">
+                {{ previewing() ? "Previewing…" : "Preview" }}
+            </button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!canRun() || !preview()" (click)="launch()">
+                {{ launching() ? "Firing…" : (preview() ? "Confirm & fire " + preview()!.treated : "Preview first") }}
             </button>
         </div>
     </div>

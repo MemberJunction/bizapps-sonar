@@ -1,4 +1,15 @@
 <div class="sonar-sb">
+    <!-- pick which set to edit/use, or start a new one -->
+    <div class="sonar-sb__setbar">
+        <span class="sonar-card__label">Band set</span>
+        <select class="sonar-field sonar-sb__setpick" [ngModel]="resolvedSetId()" (ngModelChange)="selectSet($event)">
+            @if (!resolvedSetId()) { <option [ngValue]="null">{{ setName() }} — new (unsaved)</option> }
+            @for (s of allSets(); track s.ID) { <option [ngValue]="s.ID">{{ s.Name }}</option> }
+        </select>
+        <button class="sonar-btn" (click)="newSet()">+ New band set</button>
+        <span class="sonar-faint sonar-fb__hint">Sets are shared — editing one updates every model that uses it.</span>
+    </div>
+
     <div class="sonar-fb__bar">
         <div class="sonar-fb__title">
             <input class="sonar-fb__name" [ngModel]="setName()" (ngModelChange)="setName.set($event)" placeholder="Band set name" />

@@ -21,19 +21,8 @@
     <!-- 3-pane workspace: steps · config · persistent summary+preview -->
     <div class="sonar-fb__panes">
 
-        <!-- LEFT: mode toggle (pinned) + jumpable step rail -->
+        <!-- LEFT: jumpable step rail -->
         <nav class="sonar-fb__steps" aria-label="Signal builder steps">
-            <div class="sonar-segmented sonar-segmented--vert" role="tablist" aria-label="How this signal is computed">
-                <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'data'"
-                        [class.sonar-segmented__opt--active]="mode() === 'data'" (click)="onModeChange('data')">
-                    <i class="fa-solid fa-table-cells"></i> Measure from data
-                </button>
-                <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'action'"
-                        [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
-                    <i class="fa-solid fa-flask"></i> Custom signal
-                </button>
-            </div>
-
             <div class="sonar-fb__steplist">
                 @for (s of steps(); track s.key) {
                     <button type="button" class="sonar-step"
@@ -53,6 +42,18 @@
             @switch (currentStep()) {
 
                 @case ('signal') {
+                    <!-- The fork that defines the whole signal: data aggregation vs. a custom Action. -->
+                    <div class="sonar-segmented sonar-fb__mode" role="tablist" aria-label="How this signal is computed">
+                        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'data'"
+                                [class.sonar-segmented__opt--active]="mode() === 'data'" (click)="onModeChange('data')">
+                            <i class="fa-solid fa-table-cells"></i> Measure from data
+                        </button>
+                        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'action'"
+                                [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
+                            <i class="fa-solid fa-flask"></i> Custom signal
+                        </button>
+                    </div>
+
                     @if (mode() === 'data') {
                         <div class="sonar-card sonar-presets-card">
                             <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
@@ -66,31 +67,34 @@
 
                         <section class="sonar-card">
                             <div class="sonar-card__label">What should this signal measure?</div>
-                            <div class="sonar-sentence">
-                                <select class="sonar-token" [ngModel]="aggregation()" (ngModelChange)="aggregation.set($event)">
-                                    @for (a of aggregations; track a) { <option [value]="a">{{ aggregationLabels[a] }}</option> }
-                                </select>
-                                @if (fieldRequired()) {
-                                    <select class="sonar-token" [ngModel]="aggregateField()" (ngModelChange)="aggregateField.set($event)">
-                                        <option value="" disabled>pick a value…</option>
-                                        @for (f of aggregatableFields(); track f.name) { <option [value]="f.name">{{ f.label }}</option> }
+                            <div class="sonar-fb__fields">
+                                <div class="sonar-fb__field">
+                                    <span class="sonar-fb__field-label">Measure</span>
+                                    <select class="sonar-input" [ngModel]="aggregation()" (ngModelChange)="aggregation.set($event)">
+                                        @for (a of aggregations; track a) { <option [value]="a">{{ aggregationLabels[a] }}</option> }
                                     </select>
-                                } @else {
-                                    <span class="sonar-sentence__word">records</span>
+                                </div>
+                                @if (fieldRequired()) {
+                                    <div class="sonar-fb__field">
+                                        <span class="sonar-fb__field-label sonar-fb__field-label--child">Of value</span>
+                                        <select class="sonar-input" [ngModel]="aggregateField()" (ngModelChange)="aggregateField.set($event)">
+                                            <option value="" disabled>pick a value…</option>
+                                            @for (f of aggregatableFields(); track f.name) { <option [value]="f.name">{{ f.label }}</option> }
+                                        </select>
+                                    </div>
                                 }
-                                in
-                                <select class="sonar-token sonar-token--entity" [ngModel]="sourceId()" (ngModelChange)="onSourceChange($event)">
-                                    @for (s of selectableSources(); track s.id) { <option [value]="s.id">{{ s.label }}</option> }
-                                </select>
-                                <br />over
-                                <select class="sonar-token" [ngModel]="windowId()" (ngModelChange)="windowId.set($event)">
-                                    @for (w of windows(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
-                                </select>
-                                — where more is
-                                <select class="sonar-token" [ngModel]="higherIsBetter()" (ngModelChange)="higherIsBetter.set($event)">
-                                    <option [ngValue]="true">a good sign</option>
-                                    <option [ngValue]="false">a warning sign</option>
-                                </select>.
+                                <div class="sonar-fb__field">
+                                    <span class="sonar-fb__field-label">From</span>
+                                    <select class="sonar-input" [ngModel]="sourceId()" (ngModelChange)="onSourceChange($event)">
+                                        @for (s of selectableSources(); track s.id) { <option [value]="s.id">{{ s.label }}</option> }
+                                    </select>
+                                </div>
+                                <div class="sonar-fb__field">
+                                    <span class="sonar-fb__field-label">Over</span>
+                                    <select class="sonar-input" [ngModel]="windowId()" (ngModelChange)="windowId.set($event)">
+                                        @for (w of windows(); track w.id) { <option [value]="w.id">{{ w.name }}</option> }
+                                    </select>
+                                </div>
                             </div>
 
                             @if (!fieldRequired()) {
@@ -102,6 +106,18 @@
                             @if (fieldRequired() && aggregatableFields().length === 0) {
                                 <p class="sonar-fb__hint">⚠ No numeric fields found on that source to {{ aggregationLabels[aggregation()] | lowercase }}.</p>
                             }
+
+                            <!-- Interpretation lives apart from "what to measure": which way is good? -->
+                            <div class="sonar-fb__norm-group-label">How to read it</div>
+                            <div class="sonar-fb__fields">
+                                <div class="sonar-fb__field">
+                                    <span class="sonar-fb__field-label">More is…</span>
+                                    <select class="sonar-input" [ngModel]="higherIsBetter()" (ngModelChange)="higherIsBetter.set($event)">
+                                        <option [ngValue]="true">a good sign</option>
+                                        <option [ngValue]="false">a warning sign</option>
+                                    </select>
+                                </div>
+                            </div>
 
                             <!-- Tie chooser: in-context, right under the sentence (ambiguous source path). -->
                             @if (sourceTie(); as routes) {

@@ -13,3 +13,4 @@ export * from "./SonarValidateFactorAction";
 export * from "./SonarMemberActivityStreakAction";
 export * from "./SonarListFactorActionsAction";
 export * from "./SonarRunInterventionAction";
+export * from "./SonarReviewSentimentAction";

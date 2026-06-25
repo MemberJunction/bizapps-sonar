@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, input, output, signal } from "@angular/core";
+import { mjBizAppsSonarScoreBandSetEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreBandService } from "../../../../core/services/score-band.service";
 
 /** One editable band row. `id` is present once the row exists in the DB (drives create vs update). */
@@ -40,18 +41,27 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     public readonly scaleMin = 0;
     public readonly scaleMax = 100;
 
-    public readonly setName = signal("Default Health Bands");
-    public readonly description = signal("Generic 0–100 health scale for member engagement models.");
-
-    public readonly bands = signal<ScoreBand[]>([
+    /** The blank-slate scaffold a brand-new band set starts from (also the very first default). */
+    private static readonly NEW_SET_NAME = "New band set";
+    private static readonly NEW_SET_DESC = "0–100 health scale.";
+    private static readonly NEW_SET_BANDS: ScoreBand[] = [
         { label: "Critical", min: 0, max: 40, severity: 3, color: "#ef7d74", isTerminal: true },
         { label: "At-Risk", min: 40, max: 70, severity: 2, color: "#e6ab52", isTerminal: false },
         { label: "Healthy", min: 70, max: 100, severity: 1, color: "#3ddc97", isTerminal: false },
-    ]);
+    ];
+
+    public readonly setName = signal("Default Health Bands");
+    public readonly description = signal("Generic 0–100 health scale for member engagement models.");
+
+    public readonly bands = signal<ScoreBand[]>(SonarScoreBandBuilderComponent.NEW_SET_BANDS.map((b) => ({ ...b })));
+
+    /** All existing band sets, for the "switch set" picker. */
+    public readonly allSets = signal<mjBizAppsSonarScoreBandSetEntity[]>([]);
 
     // --- persistence state ---
-    /** The set we're actually editing (resolved on load); null until we know. */
-    private readonly resolvedSetId = signal<string | null>(null);
+    /** The set we're actually editing (resolved on load); null = an unsaved new set. Public so the
+     *  picker can bind its selected value. */
+    public readonly resolvedSetId = signal<string | null>(null);
     /** IDs of bands that existed in the DB at load — used to detect removals on save. */
     private readonly originalBandIds = signal<string[]>([]);
     public readonly loaded = signal(false);
@@ -88,32 +98,56 @@ export class SonarScoreBandBuilderComponent implements OnInit {
 
     public async ngOnInit(): Promise<void> {
         try {
-            // Prefer the model's own set; otherwise edit the first existing set (e.g. the seeded default).
             const sets = await this.bandService.listSets();
+            this.allSets.set(sets);
+            // Prefer the model's own set; otherwise edit the first existing set (e.g. the seeded default).
             const target = this.bandSetId()
                 ? sets.find((s) => s.ID === this.bandSetId())
                 : sets[0];
-            if (target) {
-                this.resolvedSetId.set(target.ID);
-                this.setName.set(target.Name);
-                this.description.set(target.Description ?? "");
-                const dbBands = await this.bandService.getBands(target.ID);
-                if (dbBands.length > 0) {
-                    this.bands.set(dbBands.map((b) => ({
-                        id: b.ID,
-                        label: b.Label,
-                        min: b.MinScore,
-                        max: b.MaxScore,
-                        severity: b.Severity,
-                        color: b.ColorHex ?? "#94A3B8",
-                        isTerminal: b.IsTerminal,
-                    })));
-                    this.originalBandIds.set(dbBands.map((b) => b.ID));
-                }
-            }
+            await this.loadSet(target ?? null);
         } finally {
             this.loaded.set(true);
         }
+    }
+
+    /** Switch the editor to a different existing set (discards in-flight edits to the previous one).
+     *  A null selection is the "new (unsaved)" placeholder — nothing to load. */
+    public async selectSet(setId: string | null): Promise<void> {
+        if (!setId) return;
+        const target = this.allSets().find((s) => s.ID === setId);
+        if (target) await this.loadSet(target);
+    }
+
+    /** Start a fresh, unsaved band set from the scaffold; Save will create it (not mutate an existing one). */
+    public newSet(): void {
+        this.resolvedSetId.set(null);
+        this.originalBandIds.set([]);
+        this.setName.set(SonarScoreBandBuilderComponent.NEW_SET_NAME);
+        this.description.set(SonarScoreBandBuilderComponent.NEW_SET_DESC);
+        this.bands.set(SonarScoreBandBuilderComponent.NEW_SET_BANDS.map((b) => ({ ...b })));
+    }
+
+    /** Load a set's identity + bands into the editor. null → keep the new-set scaffold. */
+    private async loadSet(set: mjBizAppsSonarScoreBandSetEntity | null): Promise<void> {
+        if (!set) return;
+        this.resolvedSetId.set(set.ID);
+        this.setName.set(set.Name);
+        this.description.set(set.Description ?? "");
+        const dbBands = await this.bandService.getBands(set.ID);
+        this.bands.set(
+            dbBands.length > 0
+                ? dbBands.map((b) => ({
+                      id: b.ID,
+                      label: b.Label,
+                      min: b.MinScore,
+                      max: b.MaxScore,
+                      severity: b.Severity,
+                      color: b.ColorHex ?? "#94A3B8",
+                      isTerminal: b.IsTerminal,
+                  }))
+                : SonarScoreBandBuilderComponent.NEW_SET_BANDS.map((b) => ({ ...b })),
+        );
+        this.originalBandIds.set(dbBands.map((b) => b.ID));
     }
 
     /** Patch one field on a band immutably so the signal (and the preview) updates. */
@@ -173,6 +207,8 @@ export class SonarScoreBandBuilderComponent implements OnInit {
             for (const id of removed) await this.bandService.deleteBand(id);
             this.originalBandIds.set(keptIds);
 
+            // Refresh the picker so a just-created set (or renamed one) shows up.
+            this.allSets.set(await this.bandService.listSets());
             this.saved.emit(set.ID);
         } finally {
             this.saving.set(false);

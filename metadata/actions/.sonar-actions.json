@@ -484,7 +484,7 @@
             "ID": "5044A100-0005-4000-8000-0000000000A1"
           },
           "sync": {
-            "lastModified": "2026-06-25T01:25:53.405Z",
+            "lastModified": "2026-06-25T16:43:49.771Z",
             "checksum": "2ffb1b176b19392a10d4d821ea59e7a79099381ddc0d33e31dfb67106a8a4fec"
           }
         }
@@ -501,7 +501,7 @@
             "ID": "5044A100-0005-4000-8000-0000000000C1"
           },
           "sync": {
-            "lastModified": "2026-06-25T01:25:53.446Z",
+            "lastModified": "2026-06-25T16:43:49.807Z",
             "checksum": "72c1a8e46e70e7a78763dcc92ca669d43faf6c5fecfa798374f59a01bf68d9a3"
           }
         },
@@ -516,15 +516,261 @@
             "ID": "5044A100-0005-4000-8000-0000000000C2"
           },
           "sync": {
-            "lastModified": "2026-06-25T01:25:53.464Z",
+            "lastModified": "2026-06-25T16:43:49.830Z",
             "checksum": "9ad94d5306e46b2e9be7ac72f33d1aa90e10d3ffc44ada73fead454d4382f089"
           }
         }
       ]
     },
     "sync": {
-      "lastModified": "2026-06-25T01:25:53.355Z",
+      "lastModified": "2026-06-25T16:43:49.699Z",
       "checksum": "a01535b2d9f00ed0df8953cf88d1da023a2824b89f2832c1c7b975fb3ac11147"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Run Intervention",
+      "Description": "Runs an action-layer intervention: builds an ad-hoc segment + intervention from the operator's current band/score view, splits the cohort into treated/held-back (deterministic holdout), and on commit fires the chosen MJ Action for treated members + records assignments. preview mode returns counts without writing or firing.",
+      "DriverClass": "SonarRunIntervention",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-bullhorn",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0006-4000-8000-000000000005"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ConfigJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON: { modelId, segment:{name,filter:{bandId,minScore,maxScore}}, intervention:{name,holdoutPercent}, action:{actionId,params:[{name,value}]}, cap, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0006-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.853Z",
+            "checksum": "599efb6f247d26de3d79f7b2d0ee4c1e3a7e5c20c97a725784d7e77da2eea711"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { cohortSize, alreadyAssigned, eligible, capped, treated, held, sent, failed, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0006-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.887Z",
+            "checksum": "863de4ac6da10feb05eeeb84f664b99a6b6f0c220040836882c94b47ff243ff6"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Intervention previewed or fired."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0006-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.917Z",
+            "checksum": "a7aed7a692dc3e2bee6b352b3b41049a4f3837b32fdd94c569d5ea543b76a090"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ConfigJSON missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0006-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.935Z",
+            "checksum": "d003887984b199012f66126ace10a0b76300892628c5a98c7e9324fbe09f3560"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The intervention run failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0006-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.953Z",
+            "checksum": "f128f10e76d1f4975726d77a75b89cb1d8de0f70bc23a542994bc0191de4e556"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T16:43:49.719Z",
+      "checksum": "b296b49ca83391b402ef9ed0f2e06be7d788c273b65ed1d08fd4cd9a8ea5883d"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Resource Review Sentiment",
+      "Description": "Action-backed LLM factor: rates a member's engagement sentiment 0-1 by reading the prose of their resource reviews (not the star rating) via the 'Sonar: Resource Review Sentiment' AIPrompt. Non-deterministic, makes external model calls; returns no-data (null) with a reason when no reviews exist or the model is unavailable.",
+      "DriverClass": "SonarReviewSentiment",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-comment-dots",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0007-4000-8000-000000000007"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The anchor record id (member id) to score, injected by the scoring engine."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:53.940Z",
+            "checksum": "7551e54fc25096479780857051cd344eaaadb5c82ac09e1368070c5a76e6d0d6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AsOf",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "As-of date (ISO), injected by the engine; defaults to now. Only reviews created on or before this date are considered."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:53.973Z",
+            "checksum": "2f0db8d4db5dc3e63ae87bbd9082a2962a7d729f75482b0e0663782593aff472"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Value",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Output: engagement sentiment 0-1 (1 = warm/enthusiastic), or null when there is no review text / the model is unavailable."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000A6"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:54.002Z",
+            "checksum": "bba605a123f1735e37bbe18b7263bb2f7ca9b190b5eac74b4e31becc6cdef513"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Explanation",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Output: the model's short reason for the score (lands in the explainability waterfall)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000A7"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:54.034Z",
+            "checksum": "a7450ff230c13f5e8a5940834623f7f87b95d879224f7aa49f51a2b79ddb002d"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Sentiment computed (or no-data returned with a reason)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:54.069Z",
+            "checksum": "f81843e66bdacf6e80df4fc77c25d5a244f63b49472ba7d7178d37c06a228c1e"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:54.087Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The sentiment computation failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0007-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T19:39:54.103Z",
+            "checksum": "19919ce16a9559d9c82db3ee702739332cb4d614a38855f9eb1d6a7b1fb4a3f7"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T19:39:53.875Z",
+      "checksum": "2fb601dc68d466b4a4cde8417581fae5e28367ec3ea6f0bbc900acc356c034eb"
     }
   }
 ]

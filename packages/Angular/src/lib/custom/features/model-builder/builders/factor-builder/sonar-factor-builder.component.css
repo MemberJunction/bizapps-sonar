@@ -142,6 +142,46 @@
 .sonar-fb__hint { font-size: 0.74rem; margin-top: 0.5rem; color: var(--sonar-muted); }
 .sonar-sentence__word { font-weight: 600; color: var(--sonar-muted); }
 
+/* The data-vs-action fork, horizontal at the top of the Signal step. */
+.sonar-fb__mode { margin-bottom: 1rem; }
+/* (Filter-builder accent is remapped to --sonar-accent centrally in sonar-shell.css, so the
+   factor filter and the cockpit population filter stay consistent.) */
+
+/* Structured "what to measure" rows — a parameter grid: a fixed label column on the left and a
+   control column on the right, so every dropdown's left edge lines up vertically as the eye scans
+   (replaces the old inline madlib; matches the Scale step's structured feel). */
+.sonar-fb__fields { display: flex; flex-direction: column; gap: 0.75rem; }
+.sonar-fb__field {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 240px);
+    align-items: center;
+    gap: 1rem;
+}
+.sonar-fb__field-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
+.sonar-fb__field .sonar-input { width: 100%; }
+
+/* Conditional child row (e.g. "Of value", which only appears for Sum/Average): indent + a connector
+   glyph mark it as a consequence of the Measure choice, so it doesn't read as a field that randomly
+   blinked in. Control stays in the same column → alignment holds. */
+.sonar-fb__field-label--child {
+    padding-left: 1rem;
+    font-weight: 500;
+    color: var(--sonar-muted);
+}
+.sonar-fb__field-label--child::before {
+    content: "↳";
+    margin-left: -1rem;
+    margin-right: 0.4rem;
+    color: var(--sonar-faint);
+}
+
+/* Narrow fallback: stack label over a full-width control so targets don't jam. */
+@media (max-width: 560px) {
+    .sonar-fb__field { grid-template-columns: 1fr; gap: 0.25rem; }
+    .sonar-fb__field-label--child { padding-left: 0; }
+    .sonar-fb__field-label--child::before { margin-left: 0; }
+}
+
 /* ============================================================ Normalization Cards Grid */
 .sonar-norm-grid {
     display: grid;

@@ -8,6 +8,7 @@ import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphq
 const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
 const ACTION_RECOMPUTE_MODEL = "Sonar: Recompute Model";
 const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
+const ACTION_RUN_INTERVENTION = "Sonar: Run Intervention";
 
 /** One bar of a model's band distribution. */
 export interface PreviewBand { label: string; count: number; pct: number; }
@@ -27,6 +28,26 @@ export interface RecomputeResult { runId: string; status: string; recordsScored:
 
 /** Result of validating/previewing a single draft factor ("Sonar: Validate Factor"). */
 export interface ValidateFactorResult { valid: boolean; errors: string[]; matching: number; strength: number; explanation: string; anchorId: string | null; membersWithData: number; }
+
+/** The counts an intervention run (or preview) returns — the engine's InterventionRunResult. */
+export interface InterventionRunCounts {
+    cohortSize: number; alreadyAssigned: number; eligible: number; capped: boolean;
+    treated: number; held: number; sent: number; failed: number; preview: boolean;
+}
+/** What the Engagement Manager sends to fire (or preview) an on-the-fly intervention. */
+export interface RunInterventionInput {
+    modelId: string;
+    segmentName: string;
+    /** Score-evaluable cohort filter (band + score range) — the score-only subset of the EM view. */
+    filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null };
+    interventionName: string;
+    holdoutPercent: number;
+    /** Registered name of the MJ Action to fire (e.g. "Slack Webhook"). */
+    actionName: string;
+    /** Static params for that action (e.g. WebhookURL + Message; "{{member}}" → each member's id). */
+    actionParams: { name: string; value: string }[];
+    cap: number;
+}
 /** Raw payload returned by the Validate Factor Action (engine FactorPreviewResult). */
 interface FactorPreviewPayload { membersWithData: number; sampleAnchorId: string | null; sampleRawValue: number | null; sampleStrength: number | null; }
 /** Draft factor config the preview validates (the unsaved builder state). */
@@ -156,5 +177,37 @@ export class SonarEngineService {
             anchorId: payload.sampleAnchorId,
             membersWithData: payload.membersWithData,
         };
+    }
+
+    /**
+     * Run (or preview) an on-the-fly intervention via "Sonar: Run Intervention". `preview: true`
+     * resolves the cohort + treated/held split and fires NOTHING (the dry-run gate); `preview: false`
+     * commits — writes assignments + fires the chosen action for treated members. Resolves both the
+     * Run-Intervention action and the chosen messaging action (e.g. Slack Webhook) by name.
+     */
+    public async runIntervention(
+        input: RunInterventionInput,
+        preview: boolean,
+    ): Promise<{ counts: InterventionRunCounts | null; errors: string[] }> {
+        const runId = await this.resolveActionId(ACTION_RUN_INTERVENTION);
+        if (!runId) return { counts: null, errors: [`Action '${ACTION_RUN_INTERVENTION}' not found.`] };
+        const actionId = await this.resolveActionId(input.actionName);
+        if (!actionId) return { counts: null, errors: [`Action '${input.actionName}' not found.`] };
+
+        const config = {
+            modelId: input.modelId,
+            segment: { name: input.segmentName, filter: input.filter },
+            intervention: { name: input.interventionName, holdoutPercent: input.holdoutPercent },
+            action: { actionId, params: input.actionParams },
+            cap: input.cap,
+            preview,
+        };
+        const result = await this.actionClient().RunAction(runId, [
+            { Name: "ConfigJSON", Value: JSON.stringify(config), Type: "Input" },
+        ]);
+        if (!result.Success) {
+            return { counts: null, errors: [result.Message || "Intervention run failed."] };
+        }
+        return { counts: this.extractResult<InterventionRunCounts>(result), errors: [] };
     }
 }
