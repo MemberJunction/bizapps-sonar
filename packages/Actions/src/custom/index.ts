@@ -6,7 +6,9 @@
  * Each class registers under a DriverClass key (@RegisterClass) that the matching __mj.Action
  * metadata record points at (created in the engine-actions migration).
  */
+export * from "./SonarFactorAction";
 export * from "./SonarPreviewModelAction";
 export * from "./SonarRecomputeModelAction";
 export * from "./SonarValidateFactorAction";
 export * from "./SonarMemberActivityStreakAction";
+export * from "./SonarListFactorActionsAction";

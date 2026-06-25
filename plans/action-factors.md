@@ -241,3 +241,67 @@ declarative aggregation eventually), so it's an imperfect exemplar of the rule.
 **Governance in the UI:** show `PromotionState` as a badge; a `Draft` action is selectable for
 preview/simulate but blocks publish/recompute (mirrors the engine gate, §5). Catalog defaults to
 Approved-only with a "show drafts" toggle for authors.
+
+---
+
+## 12. The factor-action interface (`SonarFactorAction`) — decided 2026-06-24
+
+**Why.** Until now a factor-action was just a naming convention (`AnchorRecordID` in, `Value` out)
+that each action re-implemented by hand. Nothing forced an action to say *what it is* — so in the
+builder it read as a black box: raw param names, no sense of what it measures, reads, or produces.
+The fix is a real interface every factor-action implements, with a **mandatory self-description**.
+
+**The base class.** `packages/Actions/src/custom/SonarFactorAction.ts` — abstract, extends MJ's
+`BaseAction`. It owns the plumbing (input parse/validate, output write, error→fail mapping) so no
+action drifts from the contract. A subclass implements exactly **two** members:
+
+```ts
+abstract class SonarFactorAction extends BaseAction {
+  abstract readonly contract: FactorActionContract;                       // DESCRIBE
+  protected abstract computeValue(ctx: FactorComputeContext):             // COMPUTE
+    Promise<FactorValue | number | null>;
+}
+```
+
+Three slots:
+
+1. **Describe** — `contract` (mandatory): `measures` (one sentence), `reads` (entities it touches),
+   `output` (`unit`/`min`/`max`/`higherIsBetter`/`sample`), `cost` (`deterministic`/`externalCalls`/
+   `expensive`). This is what the builder's "What this signal does" panel renders. **No contract →
+   not a valid factor-action → not in the catalog.** The interface *enforces* transparency.
+   - `reads` is the honest flip-side of the foot-down rule (§11): the author doesn't *choose* the
+     source, but is *told* what it is. Hidden, not secret.
+2. **Inputs** — the base always provides `AnchorRecordID` + `AsOf` (parsed/validated). Any other
+   declared params are **behavioral** config only (§11 foot-down rule); `ctx.getParam(name)` reads them.
+3. **Output** — `computeValue` returns a `FactorValue = { value: number｜null; explanation?: string }`
+   (a bare `number｜null` is accepted and normalized). The base writes the `Value` output param the
+   engine reads, plus an optional `Explanation` param. `value: null` = "no data" (MissingDataPolicy
+   handles it, same as a declarative factor with no row).
+
+**Key decisions:**
+- **Output is object-shaped (`{value, explanation}`)** even though only `value` is filled at first.
+  The black-box problem isn't only at authoring time — at *scoring* time a bare number can't explain
+  *why*. `explanation` flows into the explainability waterfall so an action factor is legible there too.
+- **Contract reaches the UI via a server describe-endpoint** (`Sonar: List Factor Actions`, step 4),
+  which enumerates registered `SonarFactorAction` subclasses and returns their contracts. Code is the
+  single source of truth; **no migration**; the catalog stops reverse-engineering the contract from
+  `MJ: Action Params` rows. (A metadata table is the eventual clean home — roadmap when migrations
+  resume.)
+- **Contract is mandatory** — guarantees no black boxes ever reach the catalog.
+
+**Build sequence (status 2026-06-24):**
+1. ✅ `SonarFactorAction` base + types (`FactorValue`, `FactorActionContract`, `FactorComputeContext`) — builds clean.
+2. ✅ Engine carries `explanation`: `actionRunner` reads the optional `Explanation` output (falls back to a value trace) → `FactorResult.explanation` (already wired through to the score). 81/81 engine tests pass.
+3. ✅ Re-cast `SonarMemberActivityStreak` onto the base: declares `contract`, implements `computeValue`, and **drops the ActivityEntity/MemberField/DateField data-source params** (source now baked in — §11's "known deviation" is fixed). Reference implementation.
+4. ✅ `Sonar: List Factor Actions` describe-endpoint (`SonarListFactorActionsAction`): subclasses self-register via `registerFactorAction` (avoids instantiating all ~517 MJ actions); the endpoint joins registered contracts with their Active MJ Action records + behavioral params and returns a JSON catalog. Action seeded in `.sonar-actions.json` (`mj sync push`). Verified live server-side.
+5. ✅ UI: `ActionCatalogService` calls the endpoint (with a one-time `Config(true)` refresh so a just-synced action resolves without an app reload); builder renders the **"What this signal does"** panel (measures/reads/output/profile) + pre-fills direction from `contract.output.higherIsBetter`. Verified in Explorer, light + dark.
+
+**Stale-param cleanup (done):** the streak's dropped data-source params (`ActivityEntity`/`MemberField`/`DateField`)
+were deleted from `MJ: Action Params` in both DBs and pruned from `.sonar-actions.json`, so the catalog
+shows the streak with **zero** config fields (just its contract). A running MJAPI caches action-param
+metadata, so it shows the old fields until its next restart — source of truth is clean.
+
+**Lessons (re: adding/changing actions live):** a `Custom` (compiled) action needs a build + MJAPI
+restart. A new action also needs the client `ActionEngine` cache refreshed (handled by the
+`Config(true)`-on-miss in `ActionCatalogService`) AND the server-side metadata cache refreshed for
+param changes to show. A `Runtime` action (DB-stored code, via ActionSmith) avoids the *code* restart.
