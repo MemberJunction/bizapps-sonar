@@ -17,7 +17,22 @@ export interface FactorActionContract {
     /** Present when the action is LLM-backed: the registered AIPrompt name driving it. Enables the
      *  builder's view/edit/test prompt panel. */
     promptName?: string;
+    /** Typed config the builder renders + validates (mirrors the engine-side FactorParamSpec). When
+     *  present, the builder uses THIS over the action's raw MJ Action Params rows. */
+    params?: FactorParamSpec[];
 }
+
+/** Typed config a factor-action exposes — a toolbox, not a shape (see plans/factor-param-schema.md).
+ *  The only data-reference kind is `wired-source-ref` (a source already wired into the model), so
+ *  "point at any table" is unrepresentable. Serializes down to scalar ActionParamsJSON.params. */
+export type FactorParamSpec =
+    | { name: string; label?: string; kind: "wired-source-ref"; required: boolean }
+    | { name: string; label?: string; kind: "source-fields-ref"; sourceParam: string; columnTypes?: Array<"text" | "date" | "number">; min?: number; max?: number; required: boolean }
+    | { name: string; label?: string; kind: "number"; min?: number; max?: number; step?: number; required: boolean; default?: number }
+    | { name: string; label?: string; kind: "enum"; values: string[]; required: boolean; default?: string }
+    | { name: string; label?: string; kind: "boolean"; default?: boolean }
+    | { name: string; label?: string; kind: "source-text-projection"; sourceParam: string }
+    | { name: string; label?: string; kind: "string"; maxLen?: number; required: boolean };
 
 /** One configurable (behavioral) param of a factor-action → one field in the builder form. */
 export interface FactorActionParam {

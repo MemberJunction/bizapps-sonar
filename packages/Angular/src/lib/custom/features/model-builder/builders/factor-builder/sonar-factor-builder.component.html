@@ -52,9 +52,21 @@
                                 [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
                             <i class="fa-solid fa-flask"></i> Custom signal
                         </button>
+                        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'author'"
+                                [class.sonar-segmented__opt--active]="mode() === 'author'" (click)="onModeChange('author')">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Author with AI
+                        </button>
                     </div>
 
-                    @if (mode() === 'data') {
+                    @if (mode() === 'author') {
+                        <!-- Author a brand-new custom signal with AI (Codesmith harness, §5/§12). On approve
+                             it switches to the Custom signal tab with the new action selected to bind. -->
+                        <sonar-codesmith-harness
+                            [anchorName]="anchorName()"
+                            [context]="codesmithContext()"
+                            (authored)="onCodesmithAuthored($event)"
+                            (cancelled)="onModeChange('action')"></sonar-codesmith-harness>
+                    } @else if (mode() === 'data') {
                         <div class="sonar-card sonar-presets-card">
                             <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
                             <div class="sonar-presets-row">
@@ -188,10 +200,64 @@
                                         </div>
                                     </div>
 
-                                    <!-- Prompt view/edit/test — LLM-backed actions only (self-gates on promptName) -->
-                                    <sonar-prompt-editor [promptName]="promptName()" [anchorEntityID]="anchorEntityID()" [actionId]="actionId()"></sonar-prompt-editor>
-
-                                    @if (act.params.length > 0) {
+                                    @if (typedParams(); as tparams) {
+                                        <!-- Typed contract params (plans/factor-param-schema.md) — controls + validation by
+                                             kind. The PRIMARY config (which source/fields the signal reads), so it sits
+                                             directly under the contract, above the advanced prompt panel — not buried below it. -->
+                                        <div class="sonar-fb__norm-group-label">Configure</div>
+                                        <div class="sonar-fb__params">
+                                            @for (p of tparams; track p.name) {
+                                                <label class="sonar-fb__param">
+                                                    <span class="sonar-fb__param-label">
+                                                        {{ p.label || p.name }}@if (paramRequired(p)) {<span class="sonar-fb__req" title="Required">*</span>}
+                                                    </span>
+                                                    @switch (p.kind) {
+                                                        @case ("wired-source-ref") {
+                                                            <select class="sonar-input" [ngModel]="actionParamValues()[p.name] || null" (ngModelChange)="onWiredSourcePick(p.name, $event)">
+                                                                <option [ngValue]="null" disabled>Pick a data source…</option>
+                                                                @for (s of sources(); track s.id) { <option [ngValue]="s.id">{{ s.label }}</option> }
+                                                            </select>
+                                                            @if (sources().length === 0) { <span class="sonar-fb__param-help">No data sources wired into this model yet — add one in the Model Builder first.</span> }
+                                                        }
+                                                        @case ("source-fields-ref") {
+                                                            @if (!sourceChosen(p)) {
+                                                                <span class="sonar-fb__param-help">Pick the source above first, then choose its fields.</span>
+                                                            } @else {
+                                                                <div class="sonar-fb__fields">
+                                                                    @for (c of columnsFor(p); track c.name) {
+                                                                        <label class="sonar-fb__field-opt">
+                                                                            <input type="checkbox" [checked]="selectedFields(p.name).includes(c.name)" (change)="toggleField(p.name, c.name)" />
+                                                                            <span>{{ c.label }}</span>
+                                                                        </label>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        }
+                                                        @case ("number") {
+                                                            <input class="sonar-input sonar-mono" type="number" [ngModel]="actionParamValues()[p.name]" (ngModelChange)="setParam(p.name, $event)"
+                                                                   [attr.min]="numAttr(p, 'min')" [attr.max]="numAttr(p, 'max')" [attr.step]="numAttr(p, 'step')" />
+                                                        }
+                                                        @case ("enum") {
+                                                            <select class="sonar-input" [ngModel]="actionParamValues()[p.name] || null" (ngModelChange)="setParam(p.name, $event)">
+                                                                <option [ngValue]="null" disabled>Choose…</option>
+                                                                @for (v of enumValues(p); track v) { <option [ngValue]="v">{{ v }}</option> }
+                                                            </select>
+                                                        }
+                                                        @case ("boolean") {
+                                                            <label class="sonar-fb__field-opt">
+                                                                <input type="checkbox" [checked]="actionParamValues()[p.name] === 'true'" (change)="setParam(p.name, actionParamValues()[p.name] === 'true' ? 'false' : 'true')" />
+                                                                <span>Enabled</span>
+                                                            </label>
+                                                        }
+                                                        @default {
+                                                            <input class="sonar-input" [ngModel]="actionParamValues()[p.name]" (ngModelChange)="setParam(p.name, $event)" placeholder="value…" />
+                                                        }
+                                                    }
+                                                </label>
+                                            }
+                                        </div>
+                                    } @else if (act.params.length > 0) {
+                                        <div class="sonar-fb__norm-group-label">Configure</div>
                                         <div class="sonar-fb__params">
                                             @for (p of act.params; track p.name) {
                                                 <label class="sonar-fb__param">
@@ -207,6 +273,11 @@
                                     } @else {
                                         <p class="sonar-fb__hint">This action needs no extra configuration.</p>
                                     }
+
+                                    <!-- Prompt view/edit/test — LLM-backed actions only (self-gates on promptName).
+                                         Advanced: tuning the prompt comes AFTER binding the data the signal reads, so it
+                                         drops below the params (and you can set the source/fields before test-running it). -->
+                                    <sonar-prompt-editor [promptName]="promptName()" [anchorEntityID]="anchorEntityID()" [actionId]="actionId()"></sonar-prompt-editor>
 
                                     <div class="sonar-fb__promo">
                                         <span class="sonar-fb__promo-label">Governance</span>

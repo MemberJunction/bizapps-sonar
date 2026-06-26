@@ -15,6 +15,29 @@ export interface FactorValue {
 }
 
 /**
+ * Typed config a factor-action exposes to the builder (plans/factor-param-schema.md). A *toolbox*,
+ * not a shape — an action declares only the params it consumes; a factor that reads no model data
+ * declares no source kinds. The ONE invariant: data is referenced ONLY via `wired-source-ref`
+ * (resolves to a source already wired into the model) — there is deliberately no "any-entity" kind,
+ * so the foot-down rule is an unrepresentable state, not a guideline.
+ *
+ * This drives the builder's controls + save-time validation. It SERIALIZES DOWN to scalar
+ * `ActionParamsJSON.params` entries (the engine's param contract is scalar): the builder resolves a
+ * `wired-source-ref` to scalar strings (e.g. `<name>Entity`, `<name>MemberField`) and a
+ * `source-fields-ref` to a JSON-array string — the action reads those via `ctx.getParam`.
+ */
+export type FactorParamSpec =
+    // --- implemented (consumer #1 = parameterized sentiment factor) ---
+    | { name: string; label?: string; kind: "wired-source-ref"; required: boolean }
+    | { name: string; label?: string; kind: "source-fields-ref"; sourceParam: string; columnTypes?: Array<"text" | "date" | "number">; min?: number; max?: number; required: boolean }
+    | { name: string; label?: string; kind: "number"; min?: number; max?: number; step?: number; required: boolean; default?: number }
+    | { name: string; label?: string; kind: "enum"; values: string[]; required: boolean; default?: string }
+    | { name: string; label?: string; kind: "boolean"; default?: boolean }
+    // --- reserved (only when a consumer needs it) ---
+    | { name: string; label?: string; kind: "source-text-projection"; sourceParam: string }
+    | { name: string; label?: string; kind: "string"; maxLen?: number; required: boolean };
+
+/**
  * A factor-action's self-description — the "contract" that makes it NOT a black box. Read by the
  * builder catalog and the "What this signal does" panel so an author understands the signal before
  * binding it. Mandatory: an action with no contract is not a valid factor-action.
@@ -47,6 +70,10 @@ export interface FactorActionContract {
      *  builder offer a view/edit/test panel for the prompt (otherwise the prompt is a hidden internal).
      *  Omit for non-prompt actions. */
     promptName?: string;
+    /** Typed config the builder renders + validates (see {@link FactorParamSpec}). Omit for actions
+     *  with no configuration. When present, the builder uses THIS (the code contract is the source of
+     *  truth) over the action's raw `MJ: Action Params` rows. */
+    params?: FactorParamSpec[];
 }
 
 /** One registered factor-action: its @RegisterClass key (= the MJ Action's DriverClass, so the
@@ -119,6 +146,13 @@ export abstract class SonarFactorAction extends SonarActionBase {
         if (!asOf) {
             return this.fail(params, "VALIDATION_ERROR", "AsOf must be a valid date.");
         }
+        // Enforce the typed param contract at run time (the rule, not just a builder hint). A
+        // configured factor with missing/invalid params fails clean here instead of silently
+        // scoring on the wrong/default source.
+        const paramError = this.validateParams(params);
+        if (paramError) {
+            return this.fail(params, "VALIDATION_ERROR", paramError);
+        }
 
         try {
             const ctx: FactorComputeContext = {
@@ -142,6 +176,75 @@ export abstract class SonarFactorAction extends SonarActionBase {
             };
         } catch (e: unknown) {
             return this.fail(params, "ERROR", e instanceof Error ? e.message : String(e));
+        }
+    }
+
+    /**
+     * Validate the incoming params against the contract's typed `params` schema — the run-time half of
+     * the enforcement (the builder enforces at save; this guarantees it regardless of how the factor's
+     * ActionParamsJSON got set: an agent, a hand-edit, a stale record). Returns an error message or
+     * null. Backward-compatible: a factor that provides NO typed config at all is left to the action's
+     * documented fallback (legacy/un-parameterized factors keep working). A `wired-source-ref` is
+     * checked via its resolved `<name>Entity` scalar (§13 serialization).
+     */
+    private validateParams(params: RunActionParams): string | null {
+        const specs = this.contract.params;
+        if (!specs || specs.length === 0) return null;
+        // Did this factor provide any typed config? (else: fallback path, not enforced)
+        const configured = specs.some((s) => {
+            if (this.getInput(params, s.name) != null) return true;
+            return s.kind === "wired-source-ref" && this.getInput(params, `${s.name}Entity`) != null;
+        });
+        if (!configured) return null;
+
+        for (const s of specs) {
+            const required = "required" in s && s.required === true;
+            switch (s.kind) {
+                case "wired-source-ref": {
+                    if (required && !this.getInput(params, `${s.name}Entity`)) {
+                        return `'${s.label ?? s.name}' is required but no source is configured.`;
+                    }
+                    break;
+                }
+                case "source-fields-ref": {
+                    if (required && this.parseStringArray(this.getInput(params, s.name)).length === 0) {
+                        return `'${s.label ?? s.name}' requires at least one field.`;
+                    }
+                    break;
+                }
+                case "number": {
+                    const v = this.getInput(params, s.name);
+                    if (required && v == null) return `'${s.label ?? s.name}' is required.`;
+                    if (v != null) {
+                        const n = Number(v);
+                        if (!Number.isFinite(n)) return `'${s.label ?? s.name}' must be a number.`;
+                        if (s.min != null && n < s.min) return `'${s.label ?? s.name}' must be ≥ ${s.min}.`;
+                        if (s.max != null && n > s.max) return `'${s.label ?? s.name}' must be ≤ ${s.max}.`;
+                    }
+                    break;
+                }
+                case "enum": {
+                    const v = this.getInput(params, s.name);
+                    if (required && v == null) return `'${s.label ?? s.name}' is required.`;
+                    if (v != null && !s.values.includes(v)) {
+                        return `'${s.label ?? s.name}' must be one of: ${s.values.join(", ")}.`;
+                    }
+                    break;
+                }
+                // boolean / string / source-text-projection: no constraint to enforce yet.
+            }
+        }
+        return null;
+    }
+
+    /** Parse a JSON-array-string param value (e.g. a source-fields-ref) into string[]; [] on failure. */
+    private parseStringArray(raw: string | null): string[] {
+        if (!raw) return [];
+        try {
+            const v: unknown = JSON.parse(raw);
+            return Array.isArray(v) ? v.map(String) : [];
+        } catch {
+            return [];
         }
     }
 

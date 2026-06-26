@@ -13,15 +13,26 @@ import {
 
 const DRIVER_CLASS = "SonarReviewSentiment";
 const SENTIMENT_PROMPT = "Sonar: Resource Review Sentiment";
-const REVIEW_ENTITY = "Resource Reviews";
+// Fallbacks for an un-parameterized factor (e.g. one created before the param schema) — the original
+// hardcoded behavior, so existing factors keep working unchanged.
+const DEFAULT_ENTITY = "Resource Reviews";
+const DEFAULT_MEMBER_FIELD = "MemberID";
+const DEFAULT_DATE_FIELD = "CreatedDate";
+const DEFAULT_FIELDS = ["Review"];
 
-/** Self-description shown in the builder catalog + "what this signal does" panel. */
+/** Self-description shown in the builder catalog + "what this signal does" panel. The source is now
+ *  operator-chosen (params), so `reads` is the generic template — a configured factor resolves to the
+ *  real source name (plans/factor-param-schema.md §5). */
 const CONTRACT: FactorActionContract = {
-    measures: "How warm vs. frustrated a member's resource reviews read (LLM sentiment over the prose, not the star rating)",
-    reads: ["Resource Reviews"],
+    measures: "How warm vs. frustrated a member's free-text reads (LLM sentiment over the prose, not any star rating)",
+    reads: ["(the configured text source)"],
     output: { min: 0, max: 1, higherIsBetter: true, sample: 0.8 },
     cost: { deterministic: false, externalCalls: true, expensive: true },
     promptName: SENTIMENT_PROMPT, // exposes the prompt for the builder's view/edit/test panel
+    params: [
+        { name: "source", label: "Text source", kind: "wired-source-ref", required: true },
+        { name: "fields", label: "Text field(s)", kind: "source-fields-ref", sourceParam: "source", columnTypes: ["text"], required: true },
+    ],
 };
 registerFactorAction(DRIVER_CLASS, CONTRACT);
 
@@ -72,23 +83,45 @@ export class SonarReviewSentimentAction extends SonarFactorAction {
         return { value: score, explanation: result.result.reason };
     }
 
-    /** This member's non-empty review prose, newest first, each with its date (the baked source —
-     *  disclosed via contract.reads). Dates let the prompt weigh recent tone over stale tone. */
+    /** This member's free text, newest first, each with its date. The source/fields are operator-chosen
+     *  (resolved scalars from the param schema; fall back to the original Resource-Reviews defaults when
+     *  unconfigured). Dates let the prompt weigh recent tone over stale tone. */
     private async loadReviews(ctx: FactorComputeContext): Promise<Array<{ text: string; date: string }>> {
-        const res = await new RunView().RunView<{ Review: string; CreatedDate: Date }>(
+        const entity = ctx.getParam("sourceEntity") || DEFAULT_ENTITY;
+        const memberField = ctx.getParam("sourceMemberField") || DEFAULT_MEMBER_FIELD;
+        const dateField = ctx.getParam("dateField") || DEFAULT_DATE_FIELD;
+        const fields = this.parseFields(ctx.getParam("fields"));
+
+        const nonEmpty = fields.map((f) => `[${f}] IS NOT NULL`).join(" OR ");
+        const res = await new RunView().RunView<Record<string, unknown>>(
             {
-                EntityName: REVIEW_ENTITY,
-                ExtraFilter: `MemberID='${ctx.anchorRecordID}' AND Review IS NOT NULL AND LEN(Review) > 0 AND CreatedDate <= '${ctx.asOf.toISOString()}'`,
-                Fields: ["Review", "CreatedDate"],
-                OrderBy: "CreatedDate DESC",
+                EntityName: entity,
+                ExtraFilter: `[${memberField}]='${ctx.anchorRecordID}' AND [${dateField}] <= '${ctx.asOf.toISOString()}' AND (${nonEmpty})`,
+                Fields: [...fields, dateField],
+                OrderBy: `[${dateField}] DESC`,
                 ResultType: "simple",
             },
             ctx.contextUser,
         );
         if (!res.Success) return [];
         return (res.Results ?? [])
-            .filter((r) => !!r.Review)
-            .map((r) => ({ text: r.Review, date: new Date(r.CreatedDate).toISOString().slice(0, 10) }));
+            .map((row) => ({
+                // Compose the chosen fields into one block (e.g. Title + Body), dropping blanks.
+                text: fields.map((f) => row[f]).filter((v) => v != null && String(v).trim().length > 0).map(String).join(" — "),
+                date: row[dateField] ? new Date(String(row[dateField])).toISOString().slice(0, 10) : "",
+            }))
+            .filter((r) => r.text.length > 0);
+    }
+
+    /** The configured text fields (JSON-array string from the builder), or the default. */
+    private parseFields(raw: string | null): string[] {
+        if (!raw) return DEFAULT_FIELDS;
+        try {
+            const parsed: unknown = JSON.parse(raw);
+            return Array.isArray(parsed) && parsed.length > 0 ? parsed.map(String) : DEFAULT_FIELDS;
+        } catch {
+            return DEFAULT_FIELDS;
+        }
     }
 
     /** Load the sentiment AIPrompt by name (its template + model pin + caching live in metadata). */

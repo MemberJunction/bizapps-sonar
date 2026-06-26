@@ -47,6 +47,10 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
 
+    /** Gates MOCK preview markup (the hardcoded AI briefing cards) that isn't wired to real analytics
+     *  yet. Kept in the template for later — flip to true to show it once it's backed by real data. */
+    public readonly showPreview = false;
+
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
     public readonly loadingModel = signal(false);

@@ -32,6 +32,10 @@ interface AuditRow { what: string; change: string; by: string; when: string; }
     styleUrls: ["../../shared/styles/sonar-shell.css", "./sonar-admin-ops-resource.component.css"],
 })
 export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
+    /** Gates MOCK preview markup (the "All models healthy" chip + the compute/token/rate gauges) that
+     *  has no backing metering. Kept in the template for later — flip to true once wired to real data. */
+    public readonly showPreview = false;
+
     /** Recompute runs across all models, newest first — wired to real ScoreRecomputeRun rows. */
     public readonly runs = signal<RunRow[]>([]);
     /** Published versions across all models — wired to real ScoreModelVersion rows. */

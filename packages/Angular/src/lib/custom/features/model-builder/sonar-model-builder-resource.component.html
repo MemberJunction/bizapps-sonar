@@ -195,6 +195,25 @@
                             </div>
                         }
 
+                        <!-- Structured join-path picker: an ambiguous source's path is CHOSEN here at
+                             wire time (no free-text), before it's added. -->
+                        @if (pendingSourceTie(); as tie) {
+                            <div class="sonar-srctie">
+                                <div class="sonar-srctie__head">
+                                    <i class="fa-solid fa-code-branch"></i>
+                                    <span><strong class="sonar-ink">{{ tie.entityName }}</strong> connects to {{ anchorName() }} several ways — pick the path:</span>
+                                    <button class="sonar-srcsearch__close" (click)="cancelSourceTie()" title="Cancel">✕</button>
+                                </div>
+                                <div class="sonar-srctie__opts">
+                                    @for (o of tie.options; track o.relationshipPath) {
+                                        <button type="button" class="sonar-srctie__opt" [disabled]="sourceBusy()" (click)="confirmSourcePath(o.relationshipPath)">
+                                            <i class="fa-solid fa-diagram-project"></i> {{ o.label }}
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+
                         <!-- Flat source table (replaces the SVG graph; still a drop target) -->
                         <div class="sonar-src-table" [class.sonar-src-table--droptarget]="graphDropActive()"
                              (dragover)="onGraphDragOver($event)" (dragleave)="onGraphDragLeave()" (drop)="onGraphDrop($event)">

@@ -8,7 +8,11 @@
             </div>
         </div>
         <div class="sonar-page__actions">
+            <!-- MOCK: static "All models healthy" — not derived from any real health signal. Hidden until
+                 wired to a real model-health rollup. Flip `showPreview` to revive. -->
+            @if (showPreview) {
             <span class="sonar-chip sonar-chip--healthy"><span class="sonar-dot sonar-bars__fill--healthy"></span> All models healthy</span>
+            }
         </div>
     </div>
 
@@ -81,7 +85,10 @@
                                 </div>
                             </div>
 
-                            <!-- Token & Compute Metering Gauges -->
+                            <!-- Token & Compute Metering Gauges — MOCK: hardcoded 84% / 62% / 28% with
+                                 fabricated unit counts; no metering backend exists. Hidden until wired to
+                                 real compute/token/rate quotas. Flip `showPreview` to revive the markup. -->
+                            @if (showPreview) {
                             <div class="sonar-ops__gauges-grid">
                                 <!-- Gauge 1: Compute Credits -->
                                 <div class="sonar-ops__gauge-item">
@@ -122,6 +129,7 @@
                                     </div>
                                 </div>
                             </div>
+                            }
 
                             <!-- Upgraded Runs Table -->
                             <div class="sonar-table-wrap">

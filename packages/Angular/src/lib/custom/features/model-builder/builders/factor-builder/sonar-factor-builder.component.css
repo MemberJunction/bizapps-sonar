@@ -285,6 +285,10 @@
 .sonar-fb__param-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
 .sonar-fb__param-help { font-size: 0.76rem; color: var(--sonar-muted); line-height: 1.45; }
 .sonar-fb__req { color: var(--sonar-critical); margin-left: 0.15rem; }
+/* source-fields-ref multi-select + boolean: a compact checkbox list. */
+.sonar-fb__fields { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; padding: 0.15rem 0; }
+.sonar-fb__field-opt { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--sonar-ink); cursor: pointer; }
+.sonar-fb__field-opt input { accent-color: var(--sonar-accent); }
 
 /* Governance block — promotion-state select sits below the params with a hairline divider. */
 .sonar-fb__promo {

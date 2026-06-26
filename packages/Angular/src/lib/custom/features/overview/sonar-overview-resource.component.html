@@ -70,7 +70,10 @@
             } @else if (model()) {
                 <div class="sonar-stack">
                     <!-- Hero anchor: the one bold focal card; everything else on the page stays quiet. -->
-                    <!-- AI Quick-Start Briefings -->
+                    <!-- AI Quick-Start Briefings — MOCK: hardcoded narrative ("4.2 points in Chapter A",
+                         "At-Risk Winback / 14% conversion lift") with no backing data. Hidden until wired
+                         to real drift/lift analytics. Flip `showPreview` to revive the (built) markup. -->
+                    @if (showPreview) {
                     <section class="sonar-home__briefings">
                         <div class="sonar-ai-card">
                             <div class="sonar-ai-card__head">
@@ -78,7 +81,7 @@
                                 <span class="sonar-ai-card__title">Critical Drifts Detected</span>
                             </div>
                             <p class="sonar-ai-card__desc">
-                                Average Score dropped <strong>4.2 points</strong> in Chapter A. 
+                                Average Score dropped <strong>4.2 points</strong> in Chapter A.
                                 <strong>{{ criticalCount() }} members</strong> have fallen into Critical following renewal payment lapses.
                             </p>
                         </div>
@@ -88,11 +91,12 @@
                                 <span class="sonar-ai-card__title">Outreach Lift Metrics</span>
                             </div>
                             <p class="sonar-ai-card__desc">
-                                Re-engagement campaign <strong>"At-Risk Winback"</strong> is showing a <strong>14% conversion lift</strong> 
+                                Re-engagement campaign <strong>"At-Risk Winback"</strong> is showing a <strong>14% conversion lift</strong>
                                 over the holdout control group in current A/B trials.
                             </p>
                         </div>
                     </section>
+                    }
 
                     <!-- Hero anchor: Sandbox & Migration Flow -->
                     <section class="sonar-home__hero">

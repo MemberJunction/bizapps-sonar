@@ -635,7 +635,7 @@
   {
     "fields": {
       "Name": "Sonar: Resource Review Sentiment",
-      "Description": "Action-backed LLM factor: rates a member's engagement sentiment 0-1 by reading the prose of their resource reviews (not the star rating) via the 'Sonar: Resource Review Sentiment' AIPrompt. Non-deterministic, makes external model calls; returns no-data (null) with a reason when no reviews exist or the model is unavailable.",
+      "Description": "Action-backed LLM factor: rates a member's engagement sentiment 0-1 from the prose of a CONFIGURABLE text source — pick a wired data source + its text field(s) in the factor builder — via the 'Sonar: Resource Review Sentiment' AIPrompt. Non-deterministic, external model calls; returns no-data (null) with a reason when no text exists or the model is unavailable.",
       "DriverClass": "SonarReviewSentiment",
       "Type": "Custom",
       "Status": "Active",
@@ -769,8 +769,8 @@
       ]
     },
     "sync": {
-      "lastModified": "2026-06-25T19:39:53.875Z",
-      "checksum": "2fb601dc68d466b4a4cde8417581fae5e28367ec3ea6f0bbc900acc356c034eb"
+      "lastModified": "2026-06-26T16:49:10.096Z",
+      "checksum": "7aa166a86643b04497e86846881bcf141390dd7b62653b11257e6dafaabda467"
     }
   },
   {
@@ -2019,6 +2019,144 @@
     "sync": {
       "lastModified": "2026-06-26T15:16:39.856Z",
       "checksum": "193eed111990328244048266aaae6004527687ead2cd51803b94eeef47157837"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Author Factor Action",
+      "Description": "The §5 escape hatch: when a signal can't be a declarative factor (streaks, decay, sentiment, cross-source ratios), hands a Sonar factor-action brief + the description to the stock ActionSmith agent and returns the Runtime action it authored (CodeApprovalStatus='Pending', a human approves before it scores). ActionSmith is reused untouched.",
+      "DriverClass": "SonarAuthorFactorAction",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-hammer",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0012-4000-8000-000000000012"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Description",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The signal to build, in plain English (e.g. 'longest streak of consecutive months with an event registration')."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.216Z",
+            "checksum": "f9c97988460bbdd29d3adc0172bf803c74d9c3dd4fce300ae1744a3287fc125f"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Context",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional grounding: the anchor entity and available data sources, so the generated code targets real data."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.263Z",
+            "checksum": "b00403690bb65426cdf4e142be1c659d575db0081c2a05dd83edc04fde933dbf"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { actionId, approvalStatus, name, message }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.289Z",
+            "checksum": "9fc81a7f50ef507b8f3f173c67da681641dce3fb4fa503d6b18d066d0b465846"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "ActionSmith authored a Runtime factor-action (Pending approval)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.323Z",
+            "checksum": "eae4d502c2bfedd25e6200d210aaef166c6d56cc83a02b8fe0fab1aff53d837c"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Description was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.339Z",
+            "checksum": "e37df24b97fdc18f50db0d696bf15aa74618403ea87eed80747a2b21b8606263"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The ActionSmith agent is not present in this environment."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.355Z",
+            "checksum": "1bf0075ce5a8128ba05e335b5017ec2bf11d9bcc1c91f3882035c95fc18d27d6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "ActionSmith did not complete (or errored) — message carries the reason."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.371Z",
+            "checksum": "74888034fd56dc4c58ee0a18e639c4ae6b27790f3588cd2cdb8a73765f3bb975"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T16:49:10.152Z",
+      "checksum": "e7577f3f4f8ce3de9cd2bbc2abe7a4bc5e252058594f4c2230d0eea79920cdd5"
     }
   }
 ]

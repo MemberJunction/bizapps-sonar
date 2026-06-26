@@ -2,6 +2,7 @@ import { ActionEngineServer } from "@memberjunction/actions";
 import { ActionParam, ActionResult } from "@memberjunction/actions-base";
 import { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
 import {
+    ActionConfigError,
     ActionFactorSpec,
     ActionRunResult,
     ActionRunner,
@@ -63,7 +64,13 @@ export function createActionRunner(): ActionRunner {
             Filters: [],
         });
         if (!result.Success) {
-            throw new Error(result.Message ?? `Action '${action.Name}' failed.`);
+            const msg = result.Message ?? `Action '${action.Name}' failed.`;
+            // A VALIDATION_ERROR is a config problem (bad/missing params) — fixed across anchors, so
+            // surface it as a loud, run-stopping ActionConfigError rather than per-anchor no-data.
+            if (result.Result?.ResultCode === "VALIDATION_ERROR") {
+                throw new ActionConfigError(`Factor action '${action.Name}': ${msg}`);
+            }
+            throw new Error(msg);
         }
 
         // Read the LAST param with the output name: an action that *appends* its result (rather

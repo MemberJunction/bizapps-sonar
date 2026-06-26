@@ -29,6 +29,7 @@ import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-fil
 import { SonarModelSetupComponent } from './features/model-builder/builders/model-setup/sonar-model-setup.component';
 import { SonarFactorBuilderComponent } from './features/model-builder/builders/factor-builder/sonar-factor-builder.component';
 import { SonarPromptEditorComponent } from './features/model-builder/builders/factor-builder/sonar-prompt-editor.component';
+import { SonarCodesmithHarnessComponent } from './features/model-builder/builders/factor-builder/sonar-codesmith-harness.component';
 import { SonarScoreBandBuilderComponent } from './features/model-builder/builders/score-band-builder/sonar-score-band-builder.component';
 import { SonarPublishSnapshotComponent } from './features/model-builder/builders/publish-snapshot/sonar-publish-snapshot.component';
 import { SonarVersionHistoryComponent } from './features/model-builder/builders/version-history/sonar-version-history.component';
@@ -63,6 +64,7 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         SonarModelSetupComponent,
         SonarFactorBuilderComponent,
         SonarPromptEditorComponent,
+        SonarCodesmithHarnessComponent,
         SonarScoreBandBuilderComponent,
         SonarPublishSnapshotComponent,
         SonarVersionHistoryComponent,

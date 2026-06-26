@@ -416,6 +416,27 @@
     flex-direction: column;
     gap: 0.4rem;
 }
+/* Structured join-path picker for an ambiguous source (chosen at wire time). */
+.sonar-srctie {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    padding: 0.6rem 0.75rem; margin-bottom: 0.5rem;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm);
+}
+.sonar-srctie__head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--sonar-muted); }
+.sonar-srctie__head i { color: var(--sonar-accent); }
+.sonar-srctie__head .sonar-srcsearch__close { margin-left: auto; }
+.sonar-srctie__opts { display: flex; flex-direction: column; gap: 0.35rem; }
+.sonar-srctie__opt {
+    display: flex; align-items: center; gap: 0.5rem; text-align: left;
+    padding: 0.45rem 0.6rem; font-size: 0.85rem;
+    background: var(--sonar-surface); color: var(--sonar-ink);
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); cursor: pointer;
+    transition: border-color 120ms, background 120ms;
+}
+.sonar-srctie__opt:hover { border-color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 6%, var(--sonar-surface)); }
+.sonar-srctie__opt i { color: var(--sonar-accent); }
 .sonar-srcsearch__bar {
     display: flex;
     align-items: center;

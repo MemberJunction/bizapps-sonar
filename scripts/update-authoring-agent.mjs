@@ -11,7 +11,7 @@ import "@memberjunction/core-entities";
 const AGENT_NAME = "Sonar Authoring Agent";
 // Tools to ensure are linked to the agent (idempotent). The write tools were linked by the seed script;
 // these are the ones this updater (re)links — Build Model + the two READ tools that give the agent eyes.
-const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities"];
+const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities", "Sonar: Author Factor Action"];
 // Pin a capable model. Flash-Lite (the system default) is too weak for reliable multi-step tool-calling —
 // it narrates "I built the model" without actually emitting the tool call ~2/3 of the time. Gemini 3.5
 // Flash is much stronger at tool use, still fast/cheap. Pinning makes selection deterministic.
@@ -61,8 +61,11 @@ You can SEE existing state. Use these BEFORE asking the user to re-state things 
 
 ## Rules
 - DECLARATIVE-FIRST: build signals as declarative factors (count/sum/avg over a source, with a window/
-  filter). Signals SQL can't express (streaks, decay, sentiment) need custom code — NOT available to you
-  yet; if asked for one, say so and stop rather than approximating.
+  filter). For a signal SQL CAN'T express (streaks, decay/recency, sentiment, cross-source ratios), use
+  **Sonar: Author Factor Action** — describe the signal plainly and it authors a custom code factor via
+  ActionSmith. It returns a Runtime action at CodeApprovalStatus='Pending' (a human approves the code
+  before it scores). Reach for it ONLY when declarative genuinely can't express the signal; never
+  approximate a code-signal with a wrong aggregation.
 - FINISH the whole request in one go. If you cannot complete every requested part, state exactly what is
   missing — NEVER claim you are done when you are not.
 - VERIFY before claiming: only report a source/factor as added if its tool call returned success. If

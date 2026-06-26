@@ -196,3 +196,12 @@ export function toRelationshipPath(path: CandidatePath): string {
     const leafHops = path.hops.slice(0, -1).map((h) => ({ fks: h.fks }));
     return leafHops.length ? JSON.stringify(leafHops) : "";
 }
+
+/** Render a candidate path as an anchor → … → leaf chain (e.g. "Members → Enrollments → Events"),
+ *  using the supplied id→name mapper. Shared by the source tie-pickers (model builder + factor builder)
+ *  so a route reads the same everywhere. */
+export function describePath(path: CandidatePath, nameOf: (id: string) => string): string {
+    if (path.hops.length === 0) return "";
+    const leafToAnchor = [path.hops[0].fromEntityId, ...path.hops.map((h) => h.toEntityId)];
+    return leafToAnchor.reverse().map(nameOf).join(" → ");
+}

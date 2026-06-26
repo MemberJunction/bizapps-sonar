@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+    ActionConfigError,
     ActionFactorEvaluator,
     ActionFactorSpec,
     ActionRunner,
+    clampToRange,
     parseActionParams,
 } from "../factors/ActionFactorEvaluator";
 import type { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
@@ -23,6 +25,8 @@ function spec(overrides: Partial<ActionFactorSpec> = {}): ActionFactorSpec {
         outputParam: "Value",
         staticParams: [],
         maxConcurrency: 4,
+        outputMin: null,
+        outputMax: null,
         ...overrides,
     };
 }
@@ -103,6 +107,15 @@ describe("ActionFactorEvaluator", () => {
         expect(out.has("bad")).toBe(false);
     });
 
+    it("FAILS THE RUN on a config error (doesn't degrade to no-data for everyone)", async () => {
+        const runner: ActionRunner = async () => {
+            throw new ActionConfigError("'source' is required but no source is configured.");
+        };
+        await expect(
+            new ActionFactorEvaluator(spec(), runner).evaluateBatch(keys("m1", "m2"), asOf, ctx),
+        ).rejects.toThrow(/source.*required/);
+    });
+
     it("processes every anchor and never exceeds the concurrency cap", async () => {
         let inFlight = 0;
         let peak = 0;
@@ -127,5 +140,43 @@ describe("ActionFactorEvaluator", () => {
         const runner: ActionRunner = async () => ({ rawValue: 1, explanation: "" });
         const out = await new ActionFactorEvaluator(spec(), runner).evaluateBatch([], asOf, ctx);
         expect(out.size).toBe(0);
+    });
+
+    it("clamps action values to the factor's declared output range", async () => {
+        // Action misbehaves: returns 1.4 and -0.2 for a [0,1] factor (e.g. a sloppy sentiment model).
+        const runner: ActionRunner = async (anchorId) => ({
+            rawValue: anchorId === "hi" ? 1.4 : anchorId === "lo" ? -0.2 : 0.5,
+            explanation: "",
+        });
+        const out = await new ActionFactorEvaluator(spec({ outputMin: 0, outputMax: 1 }), runner).evaluateBatch(
+            keys("hi", "lo", "mid"),
+            asOf,
+            ctx,
+        );
+        expect(out.get("hi")?.rawValue).toBe(1);   // clamped down to max
+        expect(out.get("lo")?.rawValue).toBe(0);   // clamped up to min
+        expect(out.get("mid")?.rawValue).toBe(0.5); // in range, untouched
+    });
+
+    it("does not clamp when bounds are null (unbounded factor)", async () => {
+        const runner: ActionRunner = async () => ({ rawValue: 999, explanation: "" });
+        const out = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(keys("m1"), asOf, ctx);
+        expect(out.get("m1")?.rawValue).toBe(999);
+    });
+});
+
+describe("clampToRange", () => {
+    it("clamps below min / above max and flags drift", () => {
+        expect(clampToRange(-0.2, 0, 1)).toEqual({ value: 0, clamped: true });
+        expect(clampToRange(1.4, 0, 1)).toEqual({ value: 1, clamped: true });
+    });
+    it("passes through in-range values with no drift", () => {
+        expect(clampToRange(0.5, 0, 1)).toEqual({ value: 0.5, clamped: false });
+        expect(clampToRange(0, 0, 1)).toEqual({ value: 0, clamped: false });
+    });
+    it("treats null bounds as unbounded on that end", () => {
+        expect(clampToRange(999, 0, null)).toEqual({ value: 999, clamped: false });
+        expect(clampToRange(-999, null, 1)).toEqual({ value: -999, clamped: false });
+        expect(clampToRange(5, null, null)).toEqual({ value: 5, clamped: false });
     });
 });

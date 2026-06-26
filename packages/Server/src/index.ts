@@ -16,6 +16,12 @@ import '@mj-biz-apps/sonar-actions';
 // loaded here (otherwise: "Could not find a class for action Slack Webhook").
 import '@memberjunction/core-actions';
 
+// Register the Runtime-action bridge builder (DefaultRuntimeActionBridgeBuilder). Without this
+// side-effect import, ClassFactory hands ActionEngine the abstract base and
+// `builder.BuildHandlers is not a function` blows up Test/Run Runtime Action — which is the path
+// ActionSmith uses to author + test Sonar factor-actions (Sonar: Author Factor Action, §5).
+import '@memberjunction/action-runtime-host';
+
 // Server-side entity subclasses — must come after common-entities so
 // @RegisterClass auto-increment gives these higher priority
 import '@mj-biz-apps/sonar-core-entities-server';

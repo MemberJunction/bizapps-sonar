@@ -1,0 +1,149 @@
+/* Codesmith harness — the "author a custom signal with AI" panel inside the factor builder. All
+   surfaces/text anchor to MJ + Sonar tokens (no hardcoded hex), matching the rest of the builder. */
+.sonar-codesmith {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    background: var(--sonar-surface);
+    padding: 1.25rem 1.5rem 1.5rem;
+    box-shadow: var(--sonar-shadow-sm);
+}
+
+.sonar-codesmith__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid var(--sonar-border);
+}
+.sonar-codesmith__title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--sonar-ink);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+/* Icon in an accent-tinted tile — gives the AI-authoring lane a clear identity. */
+.sonar-codesmith__title i {
+    color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 14%, transparent);
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--sonar-radius-sm);
+    font-size: 0.85rem;
+}
+.sonar-codesmith__close {
+    background: none;
+    border: none;
+    color: var(--sonar-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--sonar-radius-sm);
+}
+.sonar-codesmith__close:hover { color: var(--sonar-ink); background: color-mix(in srgb, var(--sonar-accent) 6%, transparent); }
+
+.sonar-codesmith__lead {
+    margin: 0;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-muted);
+    line-height: 1.5;
+}
+.sonar-codesmith__desc { width: 100%; min-height: 5.5rem; resize: vertical; font: inherit; line-height: 1.55; }
+.sonar-codesmith__ctx { font-size: var(--sonar-font-xs); color: var(--sonar-muted); display: flex; align-items: center; gap: 0.4rem; }
+.sonar-codesmith__ctx i { color: var(--sonar-accent); }
+.sonar-codesmith__go { align-self: flex-start; }
+
+/* Long-running authoring state + live oversight feed */
+.sonar-codesmith__working {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--sonar-border);
+    border-left: 2px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm);
+    background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+}
+.sonar-codesmith__working-head { display: flex; gap: 0.75rem; align-items: flex-start; }
+.sonar-codesmith__working-head > i { color: var(--sonar-accent); margin-top: 0.15rem; }
+.sonar-codesmith__working-title { font-weight: 600; font-size: var(--sonar-font-sm); color: var(--sonar-ink); }
+.sonar-codesmith__working-sub { font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }
+
+/* Oversight feed — what ActionSmith did, streamed live then kept under the result. */
+.sonar-codesmith__feed { display: flex; flex-direction: column; gap: 0.3rem; }
+.sonar-codesmith__feed--done {
+    border: 1px solid var(--sonar-border);
+    border-left: 2px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm);
+    background: color-mix(in srgb, var(--sonar-accent) 4%, var(--sonar-surface));
+    padding: 0.5rem 0.75rem;
+}
+.sonar-codesmith__step { display: flex; align-items: baseline; gap: 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.4; }
+.sonar-codesmith__step i { font-size: 0.7rem; color: var(--sonar-faint); width: 0.9rem; flex-shrink: 0; }
+.sonar-codesmith__step--action { color: var(--sonar-ink); font-weight: 600; }
+.sonar-codesmith__step--action i { color: var(--sonar-accent); }
+
+/* Review */
+.sonar-codesmith__result-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-codesmith__result-name { font-weight: 600; font-size: var(--sonar-font-sm); color: var(--sonar-ink); }
+.sonar-codesmith__section-label {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sonar-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+}
+.sonar-codesmith__section-label i { color: var(--sonar-accent); }
+
+.sonar-codesmith__code {
+    margin: 0;
+    max-height: 18rem;
+    overflow: auto;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--sonar-border-strong);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-ink);
+    font-family: var(--sonar-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    white-space: pre;
+    tab-size: 2;
+}
+.sonar-codesmith__code::-webkit-scrollbar { width: 0.5rem; height: 0.5rem; }
+.sonar-codesmith__code::-webkit-scrollbar-thumb { background: var(--sonar-border-strong); border-radius: 0.25rem; }
+
+.sonar-codesmith__test-row { display: flex; gap: 0.5rem; align-items: center; }
+.sonar-codesmith__anchor { flex: 1; font-variant-numeric: tabular-nums; }
+.sonar-codesmith__test-ok { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--sonar-radius-sm); background: var(--sonar-surface); border: 1px solid var(--sonar-border); }
+.sonar-codesmith__test-val { font-size: 1.25rem; font-weight: 700; color: var(--sonar-ink); font-variant-numeric: tabular-nums; }
+.sonar-codesmith__test-why { font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.4; }
+.sonar-codesmith__test-err { font-size: var(--sonar-font-sm); color: var(--sonar-critical); display: flex; align-items: center; gap: 0.4rem; }
+
+.sonar-codesmith__iterate { display: flex; gap: 0.5rem; align-items: center; }
+.sonar-codesmith__iterate .sonar-input { flex: 1; }
+
+.sonar-codesmith__approve { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--sonar-border); }
+.sonar-codesmith__approve-note { font-size: var(--sonar-font-xs); color: var(--sonar-muted); }
+
+.sonar-codesmith__done { display: flex; align-items: center; gap: 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-healthy); font-weight: 600; }
+.sonar-codesmith__done i { color: var(--sonar-healthy); }
+
+.sonar-codesmith__error {
+    color: var(--sonar-critical);
+    background: var(--sonar-critical-bg);
+    border: 1px solid color-mix(in srgb, var(--sonar-critical) 30%, transparent);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.5rem 0.75rem;
+    font-size: var(--sonar-font-sm);
+}

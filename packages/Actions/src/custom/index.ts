@@ -24,3 +24,4 @@ export * from "./SonarRunAuthoringAgentAction";
 export * from "./SonarBuildModelAction";
 export * from "./SonarDescribeModelAction";
 export * from "./SonarListRelatedEntitiesAction";
+export * from "./SonarAuthorFactorAction";

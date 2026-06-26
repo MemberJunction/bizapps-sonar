@@ -318,6 +318,8 @@ export class FactorCompiler {
             outputParam,
             staticParams,
             maxConcurrency: factor.MaxConcurrency ?? DEFAULT_MAX_CONCURRENCY,
+            outputMin: factor.OutputMin ?? null,
+            outputMax: factor.OutputMax ?? null,
         };
         return new ActionFactorEvaluator(spec, this.actionRunner);
     }

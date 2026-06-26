@@ -2,14 +2,17 @@ import { Component, computed, effect, inject, input, output, signal, WritableSig
 import { BaseEntity, Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
-import { ActionCatalogService, FactorAction, FactorActionContract } from "../../../../core/services/action-catalog.service";
+import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSpec } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
+import { AuthoredFactor } from "../../../../core/services/sonar-factor-smith.service";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
 import { resolveAnchorName } from "../../../../core/services/anchor-name.util";
 
-/** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save). */
-type BuilderMode = "data" | "action";
+/** The authoring modes the builder forks into (UI-local). `data`/`action` map to Factor.FactorType on
+ *  save; `author` is the Codesmith lane — it produces an action-backed factor, then switches to `action`
+ *  to bind it (so it's never itself a save target). */
+type BuilderMode = "data" | "action" | "author";
 
 /** One editable row of a Banded / Lookup table (kept as strings; parsed on serialize). */
 interface ParamRow { left: string; output: string; }
@@ -257,7 +260,7 @@ export class SonarFactorBuilderComponent {
     public onModeChange(mode: BuilderMode): void {
         this.mode.set(mode);
         this.currentStep.set("signal"); // step set differs by mode (no Filter for actions)
-        if (mode === "action") this.preview.set(null);
+        if (mode !== "data") this.preview.set(null); // preview is data-mode only
     }
 
     /** The chosen factor-action (resolved from actionId). */
@@ -269,12 +272,53 @@ export class SonarFactorBuilderComponent {
         this.actionId.set(id);
         const action = this.actions().find((a) => a.id === id) ?? null;
         const seeded: Record<string, string> = {};
-        for (const p of action?.params ?? []) {
-            if (p.defaultValue != null) seeded[p.name] = p.defaultValue;
+        const typed = action?.contract.params;
+        if (typed && typed.length) {
+            // Typed schema is the source of truth: seed scalar defaults (number/enum/boolean).
+            for (const p of typed) {
+                if (p.kind === "number" && p.default != null) seeded[p.name] = String(p.default);
+                else if (p.kind === "enum" && p.default != null) seeded[p.name] = p.default;
+                else if (p.kind === "boolean" && p.default != null) seeded[p.name] = String(p.default);
+            }
+        } else {
+            for (const p of action?.params ?? []) {
+                if (p.defaultValue != null) seeded[p.name] = p.defaultValue;
+            }
         }
         this.actionParamValues.set(seeded);
         if (!this.isNameEdited() && action) this.factorName.set(action.name);
         if (action) this.higherIsBetter.set(action.contract.output.higherIsBetter);
+    }
+
+    // --- Codesmith: the "Author with AI" tab (plans §5/§12) ---
+    /** Anchor entity display name — for the harness's grounding context + test label. */
+    public readonly anchorName = computed(() => {
+        const id = this.anchorEntityID();
+        return id ? (new Metadata().Entities.find((e) => e.ID === id)?.Name ?? null) : null;
+    });
+
+    /** Short grounding summary handed to ActionSmith so generated code targets THIS model's data. */
+    public readonly codesmithContext = computed(() => {
+        const anchor = this.anchorName() ?? "the anchor entity";
+        const srcs = this.sources().map((s) => s.label).filter(Boolean);
+        return `Anchor: ${anchor}.` + (srcs.length ? ` Wired sources: ${srcs.join(", ")}.` : "");
+    });
+
+    /** A Codesmith-authored + approved action: add it to the catalog list, select it, and switch to the
+     *  Custom signal tab to bind it. (Durable catalog visibility across reloads waits on the catalog-merge
+     *  for Runtime actions, §5 piece 2 — for now it's selectable this session.) */
+    public onCodesmithAuthored(f: AuthoredFactor): void {
+        if (!f.actionId) return;
+        const fa: FactorAction = {
+            id: f.actionId,
+            name: f.name ?? "Custom signal",
+            description: "AI-authored custom signal (approved).",
+            contract: { measures: f.name ?? "Custom signal", reads: [], output: { higherIsBetter: true }, cost: { deterministic: true, externalCalls: false, expensive: false } },
+            params: [],
+        };
+        this.actions.update((list) => (list.some((a) => a.id === fa.id) ? list : [...list, fa]));
+        this.onActionChange(fa.id);
+        this.onModeChange("action");
     }
 
     /** The selected action's prompt name, when it's LLM-backed — bound to the prompt-editor child,
@@ -286,15 +330,106 @@ export class SonarFactorBuilderComponent {
         this.actionParamValues.update((prev) => ({ ...prev, [name]: value }));
     }
 
-    /** All required params of the selected action have a non-blank value. */
+    /** All required params have a value. Typed contract params (FactorParamSpec) take precedence over
+     *  the legacy DB Action Params when present. */
     public readonly actionConfigValid = computed<boolean>(() => {
         const action = this.selectedAction();
         if (!action) return false;
         const values = this.actionParamValues();
+        const typed = this.typedParams();
+        if (typed) {
+            return typed.every((p) => {
+                if (p.kind === "boolean") return true;
+                if (!("required" in p) || !p.required) return true;
+                if (p.kind === "source-fields-ref") return this.selectedFields(p.name).length > 0;
+                return (values[p.name] ?? "").trim().length > 0;
+            });
+        }
         return action.params
             .filter((p) => p.isRequired)
             .every((p) => (values[p.name] ?? "").trim().length > 0);
     });
+
+    // --- typed contract params (plans/factor-param-schema.md) -------------------------------------
+    /** The action's typed param schema, when it declares one (drives the typed controls instead of
+     *  the legacy DB-param text boxes). Null = fall back to the DB-param form. */
+    public readonly typedParams = computed<FactorParamSpec[] | null>(() => {
+        const p = this.selectedAction()?.contract.params;
+        return p && p.length ? p : null;
+    });
+
+    /** Map an MJ SQL type to the coarse kind a `source-fields-ref` filters on. */
+    private classifyColumn(sqlType: string): "text" | "date" | "number" | "other" {
+        const t = sqlType.toLowerCase();
+        if (/(char|text|xml)/.test(t)) return "text";
+        if (/(date|time)/.test(t)) return "date";
+        if (/(int|decimal|numeric|float|real|money|bit)/.test(t)) return "number";
+        return "other";
+    }
+
+    /** Columns of the source currently chosen for a `source-fields-ref`, filtered by its columnTypes.
+     *  Accepts the broad spec (returns [] for other kinds) so the template needn't narrow. */
+    public columnsFor(spec: FactorParamSpec): { name: string; label: string }[] {
+        if (spec.kind !== "source-fields-ref") return [];
+        const mreId = this.actionParamValues()[spec.sourceParam];
+        const src = this.sources().find((s) => s.id === mreId);
+        if (!src) return [];
+        const ent = new Metadata().Entities.find((e) => e.ID === src.relatedEntityID);
+        if (!ent) return [];
+        const types = spec.columnTypes;
+        return ent.Fields
+            .filter((f) => !f.IsPrimaryKey && (!types || types.includes(this.classifyColumn(f.Type) as "text" | "date" | "number")))
+            .map((f) => ({ name: f.Name, label: f.DisplayName || f.Name }));
+    }
+
+    /** Whether a typed param is required (boolean kind has no required flag → false). */
+    public paramRequired(p: FactorParamSpec): boolean {
+        return "required" in p && p.required === true;
+    }
+    /** enum values for a param (empty for non-enum) — so the template needn't narrow. */
+    public enumValues(p: FactorParamSpec): string[] {
+        return p.kind === "enum" ? p.values : [];
+    }
+    /** A numeric attribute (min/max/step) of a number param, or null — template-narrowing-free. */
+    public numAttr(p: FactorParamSpec, attr: "min" | "max" | "step"): number | null {
+        return p.kind === "number" && p[attr] != null ? (p[attr] as number) : null;
+    }
+    /** Whether a source-fields-ref's source has been chosen yet (gates the field list). */
+    public sourceChosen(p: FactorParamSpec): boolean {
+        return p.kind === "source-fields-ref" && (this.actionParamValues()[p.sourceParam] ?? "").length > 0;
+    }
+
+    /** Pick a wired source for a `wired-source-ref`: store the MRE id + the resolved entity name &
+     *  anchor-FK column (the scalars the action reads), and clear any dependent field selections so a
+     *  stale column from the old source can't slip into the save payload (§11.1). */
+    public onWiredSourcePick(name: string, mreId: string): void {
+        const src = this.sources().find((s) => s.id === mreId);
+        const ent = src ? new Metadata().Entities.find((e) => e.ID === src.relatedEntityID) : null;
+        const fk = ent?.Fields.find((f) => f.RelatedEntityID === this.anchorEntityID())?.Name ?? "";
+        this.actionParamValues.update((prev) => {
+            const next = { ...prev, [name]: mreId, [`${name}Entity`]: ent?.Name ?? "", [`${name}MemberField`]: fk };
+            for (const p of this.typedParams() ?? []) {
+                if (p.kind === "source-fields-ref" && p.sourceParam === name) delete next[p.name];
+            }
+            return next;
+        });
+    }
+
+    /** The columns currently chosen for a `source-fields-ref` (stored as a JSON-array string). */
+    public selectedFields(name: string): string[] {
+        try {
+            const v: unknown = JSON.parse(this.actionParamValues()[name] || "[]");
+            return Array.isArray(v) ? (v as string[]) : [];
+        } catch {
+            return [];
+        }
+    }
+
+    /** Toggle a column in a `source-fields-ref`'s multi-select. */
+    public toggleField(name: string, column: string): void {
+        const cur = this.selectedFields(name);
+        this.setParam(name, JSON.stringify(cur.includes(column) ? cur.filter((c) => c !== column) : [...cur, column]));
+    }
 
     /** One-line output summary for the "What this signal does" panel (unit · range · direction · sample). */
     public outputSummary(c: FactorActionContract): string {
@@ -568,6 +703,7 @@ export class SonarFactorBuilderComponent {
         if (this.saving() || !this.modelId() || !this.anchorEntityID() || this.factorName().trim().length === 0 || !this.normalizationConfigValid()) {
             return false;
         }
+        if (this.mode() === "author") return false; // authoring tab — nothing to save until it binds as 'action'
         return this.mode() === "action"
             ? this.actionConfigValid()
             // An unresolved tie (ambiguous source path) can't compile — block save until it's picked.
@@ -585,9 +721,11 @@ export class SonarFactorBuilderComponent {
     /** Step 1 (Signal) is configured: data needs a resolved source (+ a field when measuring one);
      *  action needs a chosen action with its required params filled. */
     public readonly signalStepValid = computed(() =>
-        this.mode() === "action"
-            ? this.actionConfigValid()
-            : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0),
+        this.mode() === "author"
+            ? false
+            : this.mode() === "action"
+                ? this.actionConfigValid()
+                : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0),
     );
 
     /** Value-bearing filter conditions (mirrors pruneFilter's keep rule) — for the summary + marker. */
@@ -742,9 +880,19 @@ export class SonarFactorBuilderComponent {
      *  blanks. Returns undefined when there are no values (engine then uses pure defaults). */
     private buildActionParamsJSON(): string | undefined {
         const params: Record<string, string> = {};
-        for (const p of this.selectedAction()?.params ?? []) {
-            const v = (this.actionParamValues()[p.name] ?? "").trim();
-            if (v.length > 0) params[p.name] = v;
+        if (this.typedParams()) {
+            // Typed schema: serialize every populated value, incl. builder-resolved extras
+            // (sourceEntity/sourceMemberField). The map is kept clean — reset on action change,
+            // dependents cleared on source change (§13 serialization).
+            for (const [k, v] of Object.entries(this.actionParamValues())) {
+                const t = (v ?? "").trim();
+                if (t.length > 0) params[k] = t;
+            }
+        } else {
+            for (const p of this.selectedAction()?.params ?? []) {
+                const v = (this.actionParamValues()[p.name] ?? "").trim();
+                if (v.length > 0) params[p.name] = v;
+            }
         }
         return Object.keys(params).length > 0 ? JSON.stringify({ params }) : undefined;
     }

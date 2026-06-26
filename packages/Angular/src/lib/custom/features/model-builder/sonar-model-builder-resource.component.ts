@@ -10,7 +10,7 @@ import { FactorService, RubricRow, EditFactorVM } from "../../core/services/fact
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
-import { pathCountsFromAnchor } from "../../core/entity-graph";
+import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath } from "../../core/entity-graph";
 import { ToastService } from "../../core/services/toast.service";
 import { bandKey, BandKey } from "../../core/services/score-read.service";
 import { resolveAnchorName } from "../../core/services/anchor-name.util";
@@ -114,6 +114,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public readonly newSourceId = signal<string | null>(null);
     /** Saving flag for add/remove data-source operations. */
     public readonly sourceBusy = signal(false);
+    /** When adding an entity reachable several FK ways, the path is resolved HERE (structured pick)
+     *  before the source is wired — not deferred to a free-text blob. Null = no pending tie. */
+    public readonly pendingSourceTie = signal<{ entityId: string; entityName: string; options: { label: string; relationshipPath: string }[] } | null>(null);
     /** Entities the user can map in: business entities (not `__mj*`) the engine can actually score
      *  against this anchor — reachable by a single FK path (direct or auto-resolved multi-hop) — and
      *  not already wired. One BFS builds the reachable set; we membership-test the rest. */
@@ -861,11 +864,47 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const model = this.selectedModel();
         const entityId = this.newSourceId();
         if (!model || !entityId || this.sourceBusy() || this.isPublished()) return;
+        // Reachable several FK ways? Resolve the join path HERE via a structured pick (the path is a
+        // chosen option, never a free-text blob) before wiring it — instead of deferring to later.
+        if (this.availableEntities().find((e) => e.id === entityId)?.ambiguous) {
+            this.openSourceTie(entityId, model.AnchorEntityID);
+            return;
+        }
+        await this.commitSource(entityId, undefined); // unique/direct path → engine auto-resolves
+    }
+
+    /** Build the path options for an ambiguous source and open the picker. */
+    private openSourceTie(entityId: string, anchorEntityId: string): void {
+        const business = new Metadata().Entities.filter((e) => !e.SchemaName?.startsWith("__mj"));
+        const nameOf = (id: string): string => business.find((e) => e.ID === id)?.Name ?? id;
+        const options = candidatePaths(business, anchorEntityId, entityId)
+            .map((p) => ({ label: describePath(p, nameOf), relationshipPath: toRelationshipPath(p) }));
+        this.pendingSourceTie.set({ entityId, entityName: nameOf(entityId), options });
+    }
+
+    /** User picked a path for the ambiguous source → wire it with that explicit path. */
+    public async confirmSourcePath(relationshipPath: string): Promise<void> {
+        const tie = this.pendingSourceTie();
+        if (!tie) return;
+        await this.commitSource(tie.entityId, relationshipPath);
+        this.pendingSourceTie.set(null);
+    }
+
+    /** Abandon an in-progress ambiguous-source pick. */
+    public cancelSourceTie(): void {
+        this.pendingSourceTie.set(null);
+        this.newSourceId.set(null);
+    }
+
+    /** Persist a data source (optionally with an explicit, structured relationship path) + refresh. */
+    private async commitSource(entityId: string, relationshipPath: string | undefined): Promise<void> {
+        const model = this.selectedModel();
+        if (!model || this.sourceBusy() || this.isPublished()) return;
         this.sourceBusy.set(true);
         try {
             const ent = new Metadata().Entities.find((e) => e.ID === entityId);
             const alias = (ent?.Name ?? entityId).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-            const added = await this.modelService.addDataSource({ modelId: model.ID, relatedEntityID: entityId, alias });
+            const added = await this.modelService.addDataSource({ modelId: model.ID, relatedEntityID: entityId, alias, relationshipPath });
             if (!added) { this.toast.error("Couldn't add that data source. Please try again."); return; }
             this.newSourceId.set(null);
             this.addingSource.set(false);
