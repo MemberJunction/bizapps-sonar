@@ -257,3 +257,47 @@ trust primitives needed.
 
 Next: seed metadata for Create Factor, then add the rest of the tool surface (Add Data Source, Create
 Model, Set Bands), then stand up the Loop agent over them.
+
+---
+
+## 12. Human-in-the-loop confirmation — MJ-native mechanisms (research 2026-06-26)
+
+We need the operator to **confirm the agent's actions**, not just see them. MJ has native mechanisms —
+and crucially, **they are rendered by the ng-conversations chat UI**, not by a custom panel:
+
+| Mechanism | When | What it does |
+|---|---|---|
+| **Chat step** (`step:'Chat'` + `message`) | pause mid-run | Agent pauses, asks the user; persists an `AIAgentRequest` row; resumes on reply. |
+| **ResponseForm** (`responseForm`) | before acting | Agent renders a structured form (`<mj-dynamic-form>`) to collect input / confirm before proceeding. Host can intercept via `BeforeResponseFormSubmittedEventArgs` (cancellable). |
+| **ClientTools** (`nextStep.type:'ClientTools'`) | during a turn | Agent invokes a browser tool (e.g. a confirm dialog), BLOCKS, gets the result back. |
+| **ActionableCommands** | after acting | Post-work buttons (`open:resource`) to jump to what was created — navigation, not a gate. |
+| **CodeApprovalStatus** (Pending→Approved) | before code runs | Pre-execution gate on generated/Runtime code (Codesmith). The real governance gate. |
+
+Rendered by `message-item.component` in `@memberjunction/ng-conversations`
+(`<mj-dynamic-form>`, `<mj-actionable-commands>`). **Our custom `sonar-assistant-panel` shows none of
+these** — it only renders text bubbles + the oversight feed.
+
+### Implication → the substrate decision
+To get native confirmation, either (a) **adopt MJ's conversation UI** (which renders ResponseForm /
+ActionableCommands / Chat-step forms for free), or (b) **re-implement that rendering** in our custom
+panel. Since the user chose a **floating** copilot, MJ's `ChatAgentsOverlayComponent` (the shell's
+floating chat) is the convergence point: floating + native confirmation + oversight + persistence +
+multi-turn. The 5.43 upgrade removed the `AgentSessionID` skew that made us abandon the MJ chat UI —
+so this is worth re-evaluating now (the standalone chat-area still wanted a "workspace"; the overlay
+is the self-contained variant).
+
+### Revised roadmap (supersedes the old build order)
+1. **Agent reliability (do first).** `Sonar: Build Model` single transactional action (whole spec in
+   one call → no fragile 4-step chaining); slug-collision tolerance on Create Model; prompt: "reuse
+   the returned modelID, never re-create, finish all steps, don't claim Done if you didn't." Add a
+   repeatable eval harness that measures completion-rate over N runs.
+2. **Confirmation layer.** Agent uses **Chat-step + ResponseForm** to confirm significant actions
+   ("I'll build model X with factors Y, Z — confirm?"). Backstops already in place: the agent only
+   makes **Drafts** (publish is the human gate) and **CodeApprovalStatus** gates any Codesmith code.
+3. **UI substrate spike.** Evaluate `ChatAgentsOverlayComponent` on 5.43 pointed at the Sonar agent
+   (defaultAgentId / conversation DefaultAgentID, or @mention). If it works → adopt it (retire the
+   custom panel), gaining native confirmation + persistence. If the workspace dependency still
+   blocks → keep the custom panel and render `responseForm`/`actionableCommands` ourselves.
+4. **Codesmith harness.** Reuses the oversight feed + a read-only code preview (`ng-code-editor`) +
+   test results + the **CodeApprovalStatus** approve/reject gate. Prereq: the factor-action adapter
+   (§5) + a reliable parent agent (step 1).

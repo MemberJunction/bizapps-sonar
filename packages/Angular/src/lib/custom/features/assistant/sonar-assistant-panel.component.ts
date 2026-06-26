@@ -8,20 +8,27 @@ const SONAR_AUTHORING_AGENT_ID = "CF1D58BA-451E-4515-89BD-AC3F16A19534";
 /** MJ's single Default environment (this deployment has one). */
 const DEFAULT_ENVIRONMENT_ID = "F51358F3-9447-4176-B313-BF8025FD8D09";
 
-/** One turn in the panel transcript. */
+/** One step the agent took during a run (for the oversight feed). `isAction` = an actual tool/action
+ *  call (Create Model, etc.) vs. internal reasoning — actions get the prominent treatment. */
+interface AgentStep {
+    label: string;
+    isAction: boolean;
+}
+
+/** One turn in the panel transcript. Assistant turns carry the steps the agent took (oversight). */
 interface ChatTurn {
     role: "user" | "assistant";
     text: string;
+    steps?: AgentStep[];
 }
 
 /**
- * Copilot panel for the Sonar Authoring Agent, using the MJ-native conversation path: a Conversation
- * pinned to our agent (created lazily) + a ConversationDetail per user message, then
- * `RunAgentFromConversationDetail` — which runs the agent server-side, loads prior turns
- * (MaxHistoryMessages) for multi-turn memory, streams progress, and persists the exchange. (Requires
- * MJ ≥5.43, which exposes ConversationDetail.AgentSessionID — the 5.40.2 server lacked it.) The agent
- * produces DRAFTS only. `contextNote` lets a host inject what the user is viewing so "add a recency
- * factor" acts in context. See plans/agentic-authoring.md §4c.
+ * Copilot panel for the Sonar Authoring Agent (MJ-native conversation path, MJ ≥5.43). Creates a
+ * Conversation pinned to our agent + a ConversationDetail per message, then
+ * `RunAgentFromConversationDetail` (multi-turn history, streamed progress, persistence). The agent
+ * produces DRAFTS only — and every action it takes is surfaced as a visible **oversight feed** so the
+ * operator sees exactly what it did (created a model, added a factor…). `contextNote` lets a host
+ * inject what the user is viewing. See plans/agentic-authoring.md §4c.
  */
 @Component({
     standalone: false,
@@ -37,12 +44,11 @@ export class SonarAssistantPanelComponent {
 
     public readonly turns = signal<ChatTurn[]>([]);
     public readonly running = signal(false);
-    /** Live status line during a run (streamed from the agent). */
-    public readonly progress = signal<string | null>(null);
+    /** The agent's actions/steps for the in-flight run (the live oversight feed). */
+    public readonly liveSteps = signal<AgentStep[]>([]);
     public readonly errorMsg = signal<string | null>(null);
     public prompt = "";
 
-    /** The conversation this panel writes into — created lazily, pinned to our agent. */
     private conversationId: string | null = null;
     private firstSend = true;
 
@@ -51,9 +57,9 @@ export class SonarAssistantPanelComponent {
         if (!text || this.running()) return;
         this.prompt = "";
         this.errorMsg.set(null);
+        this.liveSteps.set([]);
         this.turns.update((t) => [...t, { role: "user", text }]);
         this.running.set(true);
-        this.progress.set("Thinking…");
 
         try {
             const content = this.firstSend && this.contextNote ? `${this.contextNote}\n\n${text}` : text;
@@ -63,10 +69,11 @@ export class SonarAssistantPanelComponent {
                 ConversationDetailId: detailId,
                 AgentId: SONAR_AUTHORING_AGENT_ID,
                 MaxHistoryMessages: 20,
-                OnProgress: (p) => this.progress.set(this.formatProgress(p)),
+                OnProgress: (p) => this.recordStep(p),
             });
+            const steps = this.liveSteps();
             if (result.Success) {
-                this.turns.update((t) => [...t, { role: "assistant", text: this.renderResult(result.Result) }]);
+                this.turns.update((t) => [...t, { role: "assistant", text: this.renderResult(result.Result), steps }]);
             } else {
                 this.errorMsg.set(result.ErrorMessage || "The agent couldn't complete that.");
             }
@@ -74,7 +81,6 @@ export class SonarAssistantPanelComponent {
             this.errorMsg.set(e instanceof Error ? e.message : String(e));
         } finally {
             this.running.set(false);
-            this.progress.set(null);
         }
     }
 
@@ -84,6 +90,27 @@ export class SonarAssistantPanelComponent {
             e.preventDefault();
             void this.send();
         }
+    }
+
+    /** Turn a streamed progress event into an oversight step, de-duping consecutive repeats. */
+    private recordStep(p: { Message?: string; CurrentStep?: string; StatusMessage?: string }): void {
+        const raw = (p.Message ?? p.StatusMessage ?? p.CurrentStep ?? "").trim();
+        if (!raw) return;
+        // "Executing **Sonar: Create Model** action with parameters…" → action label "Create Model".
+        const actionMatch = raw.match(/\*\*(?:Sonar:\s*)?(.+?)\*\*/);
+        const step: AgentStep = actionMatch
+            ? { label: actionMatch[1], isAction: true }
+            : { label: this.firstLine(raw), isAction: false };
+        this.liveSteps.update((s) => {
+            const last = s[s.length - 1];
+            if (last && last.label === step.label && last.isAction === step.isAction) return s;
+            return [...s, step];
+        });
+    }
+
+    private firstLine(s: string): string {
+        const line = s.split("\n")[0].trim();
+        return line.length > 90 ? line.slice(0, 88) + "…" : line;
     }
 
     /** Ensure a Conversation exists (pinned to our agent), then save the user message as a
@@ -111,11 +138,6 @@ export class SonarAssistantPanelComponent {
             throw new Error(detail.LatestResult?.Message || "Could not save your message.");
         }
         return detail.ID;
-    }
-
-    /** One readable status line from a streamed progress update. */
-    private formatProgress(p: { Message?: string; CurrentStep?: string; StatusMessage?: string }): string {
-        return p.Message ?? p.StatusMessage ?? p.CurrentStep ?? "Working…";
     }
 
     /** Coax a human-readable reply out of the agent's result payload. */

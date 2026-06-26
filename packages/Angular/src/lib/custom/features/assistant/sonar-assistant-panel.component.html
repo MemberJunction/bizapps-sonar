@@ -4,14 +4,36 @@
             <div class="sonar-asst__turn sonar-asst__turn--{{ t.role }}">
                 <div class="sonar-asst__bubble">{{ t.text }}</div>
             </div>
-        }
-        @if (running()) {
-            <div class="sonar-asst__turn sonar-asst__turn--assistant">
-                <div class="sonar-asst__bubble sonar-asst__bubble--progress">
-                    <i class="fa-solid fa-spinner fa-spin"></i> {{ progress() || "Working…" }}
+            @if (t.role === "assistant" && t.steps?.length) {
+                <!-- Oversight: what the agent actually did this turn. -->
+                <div class="sonar-asst__activity">
+                    <div class="sonar-asst__activity-head"><i class="fa-solid fa-list-check"></i> What I did</div>
+                    @for (s of t.steps; track $index) {
+                        <div class="sonar-asst__step" [class.sonar-asst__step--action]="s.isAction">
+                            <i class="fa-solid" [class.fa-bolt]="s.isAction" [class.fa-angle-right]="!s.isAction"></i>
+                            <span>{{ s.label }}</span>
+                        </div>
+                    }
                 </div>
+            }
+        }
+
+        @if (running()) {
+            <div class="sonar-asst__activity sonar-asst__activity--live">
+                <div class="sonar-asst__activity-head">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Working…
+                </div>
+                @for (s of liveSteps(); track $index) {
+                    <div class="sonar-asst__step" [class.sonar-asst__step--action]="s.isAction">
+                        <i class="fa-solid" [class.fa-bolt]="s.isAction" [class.fa-angle-right]="!s.isAction"></i>
+                        <span>{{ s.label }}</span>
+                    </div>
+                } @empty {
+                    <div class="sonar-asst__step"><i class="fa-solid fa-angle-right"></i><span>Thinking…</span></div>
+                }
             </div>
         }
+
         @if (errorMsg()) {
             <div class="sonar-asst__error"><i class="fa-solid fa-triangle-exclamation"></i> {{ errorMsg() }}</div>
         }
@@ -19,7 +41,7 @@
             <div class="sonar-asst__empty">
                 Describe a model or factor in plain English — e.g.
                 <em>“score Members by their event registrations in the last 90 days.”</em>
-                I’ll draft it for your review. Nothing is published.
+                I’ll draft it for your review and show you each step. Nothing is published.
             </div>
         }
     </div>

@@ -1,0 +1,15 @@
+@if (open()) {
+    <div class="sonar-copilot__panel">
+        <div class="sonar-copilot__head">
+            <span class="sonar-copilot__title"><i class="fa-solid fa-wand-magic-sparkles"></i> Sonar Assistant</span>
+            <button class="sonar-copilot__close" (click)="close()" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="sonar-copilot__sub">Describe a model or factor — I draft it for review and show each step. Nothing is published.</p>
+        <div class="sonar-copilot__body">
+            <sonar-assistant-panel></sonar-assistant-panel>
+        </div>
+    </div>
+}
+<button class="sonar-copilot__fab" [class.sonar-copilot__fab--open]="open()" (click)="toggle()" title="Sonar Assistant">
+    <i class="fa-solid" [class.fa-wand-magic-sparkles]="!open()" [class.fa-xmark]="open()"></i>
+</button>

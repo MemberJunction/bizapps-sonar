@@ -1,0 +1,57 @@
+/* Floating launcher — sits beside MJ's shell chat bubble (which is at bottom-right ~1.5rem), so we
+   offset left to avoid overlap. */
+.sonar-copilot__fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 5.5rem;
+    z-index: 1000;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--sonar-accent) 45%, transparent);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.sonar-copilot__fab:hover { transform: translateY(-1px); box-shadow: 0 6px 18px color-mix(in srgb, var(--sonar-accent) 55%, transparent); }
+.sonar-copilot__fab:active { transform: scale(0.96); }
+.sonar-copilot__fab--open { background: var(--sonar-surface); color: var(--sonar-muted); border: 1px solid var(--sonar-border); box-shadow: var(--sonar-shadow-sm); }
+
+/* The overlay panel, anchored above the launcher. */
+.sonar-copilot__panel {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    width: 420px;
+    max-width: calc(100vw - 3rem);
+    height: min(70vh, 640px);
+    display: flex;
+    flex-direction: column;
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+}
+.sonar-copilot__head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+}
+.sonar-copilot__title { font-weight: 700; font-size: var(--sonar-font-base); color: var(--sonar-ink); display: flex; align-items: center; gap: 0.5rem; }
+.sonar-copilot__title i { color: var(--sonar-accent); }
+.sonar-copilot__close {
+    background: none; border: none; cursor: pointer; color: var(--sonar-faint);
+    font-size: 1rem; padding: 0.25rem; border-radius: var(--sonar-radius-sm);
+}
+.sonar-copilot__close:hover { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
+.sonar-copilot__sub { flex-shrink: 0; margin: 0; padding: 0.5rem 1rem 0; font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }
+.sonar-copilot__body { flex: 1; min-height: 0; padding: 0.75rem 1rem 1rem; display: flex; }
+.sonar-copilot__body sonar-assistant-panel { flex: 1; min-height: 0; display: flex; }

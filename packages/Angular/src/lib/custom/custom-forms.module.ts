@@ -8,17 +8,14 @@ import { FilterBuilderModule } from '@memberjunction/ng-filter-builder';
 // Searchable single-select (filter-as-you-type). Standalone MJ UI component — used for the
 // long entity pickers (anchor / data sources) where a native <select> would be unusable.
 import { MJComboboxComponent } from '@memberjunction/ng-ui-components';
-// MJ's conversation chat UI — reused (not rebuilt) for the Assistant surface, pinned to the
-// Sonar Authoring Agent. Provides <mj-conversation-chat-area>.
-import { ConversationsModule } from '@memberjunction/ng-conversations';
 
 // Feature surfaces (each reachable via nav DriverClass).
 import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
 import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
 import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
 import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin-ops-resource.component';
-import { SonarAssistantResourceComponent } from './features/assistant/sonar-assistant-resource.component';
 import { SonarAssistantPanelComponent } from './features/assistant/sonar-assistant-panel.component';
+import { SonarCopilotLauncherComponent } from './features/assistant/sonar-copilot-launcher.component';
 
 // Shared UI — reusable across features.
 import { SonarMultiselectComponent } from './shared/multiselect/sonar-multiselect.component';
@@ -55,8 +52,8 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         SonarModelBuilderResourceComponent,
         SonarEngagementManagerResourceComponent,
         SonarAdminOpsResourceComponent,
-        SonarAssistantResourceComponent,
         SonarAssistantPanelComponent,
+        SonarCopilotLauncherComponent,
         SonarMultiselectComponent,
         SonarModelSidebarComponent,
         SonarFilterBarComponent,
@@ -75,15 +72,13 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         CommonModule,
         FormsModule,
         FilterBuilderModule,
-        MJComboboxComponent,
-        ConversationsModule
+        MJComboboxComponent
     ],
     exports: [
         SonarOverviewResourceComponent,
         SonarModelBuilderResourceComponent,
         SonarEngagementManagerResourceComponent,
-        SonarAdminOpsResourceComponent,
-        SonarAssistantResourceComponent
+        SonarAdminOpsResourceComponent
     ]
 })
 export class CustomFormsModule { }

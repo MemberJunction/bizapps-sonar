@@ -45,6 +45,43 @@
 }
 .sonar-asst__bubble--progress i { color: var(--sonar-accent); margin-right: 0.35rem; }
 
+/* Oversight feed — the agent's actions/steps, live during a run and kept under each reply. */
+.sonar-asst__activity {
+    align-self: flex-start;
+    max-width: 85%;
+    border: 1px solid var(--sonar-border);
+    border-left: 2px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm);
+    background: color-mix(in srgb, var(--sonar-accent) 4%, var(--sonar-surface));
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.sonar-asst__activity--live { background: color-mix(in srgb, var(--sonar-accent) 7%, var(--sonar-surface)); }
+.sonar-asst__activity-head {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sonar-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.sonar-asst__activity-head i { color: var(--sonar-accent); }
+.sonar-asst__step {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-muted);
+    line-height: 1.4;
+}
+.sonar-asst__step i { font-size: 0.7rem; color: var(--sonar-faint); width: 0.9rem; flex-shrink: 0; }
+.sonar-asst__step--action { color: var(--sonar-ink); font-weight: 600; }
+.sonar-asst__step--action i { color: var(--sonar-accent); }
+
 .sonar-asst__error {
     color: var(--sonar-critical);
     background: var(--sonar-critical-bg);
