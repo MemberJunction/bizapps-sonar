@@ -1,11 +1,12 @@
-import { Component, Input, signal } from "@angular/core";
+import { Component, Input, inject, signal } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
-import { ActionEngineBase } from "@memberjunction/actions-base";
-import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
-import { extractActionParam } from "../../core/services/action-result.util";
+import { MJConversationEntity, MJConversationDetailEntity } from "@memberjunction/core-entities";
+import { AgentClientService } from "@memberjunction/ng-agent-client";
 
-/** Registered Name of the server-side action that runs the agent (resolved to an ID at runtime). */
-const ACTION_RUN_AUTHORING_AGENT = "Sonar: Run Authoring Agent";
+/** The seeded Sonar Authoring Agent (Loop). See scripts/seed-authoring-agent.mjs. */
+const SONAR_AUTHORING_AGENT_ID = "CF1D58BA-451E-4515-89BD-AC3F16A19534";
+/** MJ's single Default environment (this deployment has one). */
+const DEFAULT_ENVIRONMENT_ID = "F51358F3-9447-4176-B313-BF8025FD8D09";
 
 /** One turn in the panel transcript. */
 interface ChatTurn {
@@ -14,13 +15,13 @@ interface ChatTurn {
 }
 
 /**
- * A thin copilot panel for the Sonar Authoring Agent. Runs the agent SERVER-SIDE via the
- * `Sonar: Run Authoring Agent` action (GraphQL RunAction) — the same seam the rest of the Sonar UI
- * uses for engine actions. We go server-side because the client-side MJ conversation/agent stack is
- * version-skewed in this deployment (RunAgent discards messages; the conversation-detail path queries
- * a field the server schema lacks). The agent runs in MJAPI where the model/LLM/tools live, and
- * produces DRAFTS only. `contextNote` lets a host inject what the user is viewing (e.g. the open
- * model) so "add a recency factor" acts in context. See plans/agentic-authoring.md §4c.
+ * Copilot panel for the Sonar Authoring Agent, using the MJ-native conversation path: a Conversation
+ * pinned to our agent (created lazily) + a ConversationDetail per user message, then
+ * `RunAgentFromConversationDetail` — which runs the agent server-side, loads prior turns
+ * (MaxHistoryMessages) for multi-turn memory, streams progress, and persists the exchange. (Requires
+ * MJ ≥5.43, which exposes ConversationDetail.AgentSessionID — the 5.40.2 server lacked it.) The agent
+ * produces DRAFTS only. `contextNote` lets a host inject what the user is viewing so "add a recency
+ * factor" acts in context. See plans/agentic-authoring.md §4c.
  */
 @Component({
     standalone: false,
@@ -29,17 +30,20 @@ interface ChatTurn {
     styleUrls: ["./sonar-assistant-panel.component.css"],
 })
 export class SonarAssistantPanelComponent {
+    private readonly agentClient = inject(AgentClientService);
+
     /** Optional context the host injects, prepended to the first user message. */
     @Input() public contextNote: string | null = null;
 
     public readonly turns = signal<ChatTurn[]>([]);
     public readonly running = signal(false);
-    /** Live status line during a run (RunAction is request/response, so just a steady "Working…"). */
+    /** Live status line during a run (streamed from the agent). */
     public readonly progress = signal<string | null>(null);
     public readonly errorMsg = signal<string | null>(null);
     public prompt = "";
 
-    private actionId: string | null = null;
+    /** The conversation this panel writes into — created lazily, pinned to our agent. */
+    private conversationId: string | null = null;
     private firstSend = true;
 
     public async send(): Promise<void> {
@@ -49,25 +53,22 @@ export class SonarAssistantPanelComponent {
         this.errorMsg.set(null);
         this.turns.update((t) => [...t, { role: "user", text }]);
         this.running.set(true);
-        this.progress.set("Working… the agent is drafting this for you.");
+        this.progress.set("Thinking…");
 
         try {
-            const actionId = await this.resolveActionId();
-            if (!actionId) {
-                this.errorMsg.set(`Action '${ACTION_RUN_AUTHORING_AGENT}' not found (seeded? MJAPI restarted?).`);
-                return;
-            }
-            const params = [{ Name: "Prompt", Value: text, Type: "Input" as const }];
-            if (this.firstSend && this.contextNote) {
-                params.push({ Name: "ContextNote", Value: this.contextNote, Type: "Input" as const });
-            }
+            const content = this.firstSend && this.contextNote ? `${this.contextNote}\n\n${text}` : text;
             this.firstSend = false;
-            const result = await this.actionClient().RunAction(actionId, params);
+            const detailId = await this.saveUserMessage(content);
+            const result = await this.agentClient.RunAgentFromConversationDetail({
+                ConversationDetailId: detailId,
+                AgentId: SONAR_AUTHORING_AGENT_ID,
+                MaxHistoryMessages: 20,
+                OnProgress: (p) => this.progress.set(this.formatProgress(p)),
+            });
             if (result.Success) {
-                const reply = extractActionParam(result, "Reply");
-                this.turns.update((t) => [...t, { role: "assistant", text: this.replyText(reply) }]);
+                this.turns.update((t) => [...t, { role: "assistant", text: this.renderResult(result.Result) }]);
             } else {
-                this.errorMsg.set(result.Message || "The agent couldn't complete that.");
+                this.errorMsg.set(result.ErrorMessage || "The agent couldn't complete that.");
             }
         } catch (e: unknown) {
             this.errorMsg.set(e instanceof Error ? e.message : String(e));
@@ -85,28 +86,50 @@ export class SonarAssistantPanelComponent {
         }
     }
 
-    private replyText(reply: unknown): string {
-        return typeof reply === "string" && reply.trim()
-            ? reply
-            : "Done — your draft is ready. Open the Model Builder to review it.";
-    }
-
-    /** A GraphQLActionClient over the app's active data provider (mirrors the engine/catalog services). */
-    private actionClient(): GraphQLActionClient {
-        return new GraphQLActionClient(Metadata.Provider as GraphQLDataProvider);
-    }
-
-    /** Resolve (and cache) the action's ID from its registered Name. */
-    private async resolveActionId(): Promise<string | null> {
-        if (this.actionId) return this.actionId;
-        const provider = Metadata.Provider as GraphQLDataProvider;
-        await ActionEngineBase.Instance.Config(false, provider.CurrentUser, provider);
-        let action = ActionEngineBase.Instance.Actions.find((a) => a.Name === ACTION_RUN_AUTHORING_AGENT);
-        if (!action) {
-            await ActionEngineBase.Instance.Config(true, provider.CurrentUser, provider);
-            action = ActionEngineBase.Instance.Actions.find((a) => a.Name === ACTION_RUN_AUTHORING_AGENT);
+    /** Ensure a Conversation exists (pinned to our agent), then save the user message as a
+     *  ConversationDetail and return its ID for the agent run. */
+    private async saveUserMessage(content: string): Promise<string> {
+        const md = new Metadata();
+        if (!this.conversationId) {
+            const conv = await md.GetEntityObject<MJConversationEntity>("MJ: Conversations");
+            conv.NewRecord();
+            conv.Name = "Sonar Authoring";
+            conv.UserID = md.CurrentUser.ID;
+            conv.EnvironmentID = DEFAULT_ENVIRONMENT_ID;
+            conv.DefaultAgentID = SONAR_AUTHORING_AGENT_ID;
+            if (!(await conv.Save())) {
+                throw new Error(conv.LatestResult?.Message || "Could not start a conversation.");
+            }
+            this.conversationId = conv.ID;
         }
-        this.actionId = action?.ID ?? null;
-        return this.actionId;
+        const detail = await md.GetEntityObject<MJConversationDetailEntity>("MJ: Conversation Details");
+        detail.NewRecord();
+        detail.ConversationID = this.conversationId;
+        detail.Role = "User";
+        detail.Message = content;
+        if (!(await detail.Save())) {
+            throw new Error(detail.LatestResult?.Message || "Could not save your message.");
+        }
+        return detail.ID;
+    }
+
+    /** One readable status line from a streamed progress update. */
+    private formatProgress(p: { Message?: string; CurrentStep?: string; StatusMessage?: string }): string {
+        return p.Message ?? p.StatusMessage ?? p.CurrentStep ?? "Working…";
+    }
+
+    /** Coax a human-readable reply out of the agent's result payload. */
+    private renderResult(result: unknown): string {
+        if (typeof result === "string" && result.trim()) return result;
+        if (result && typeof result === "object") {
+            const r = result as Record<string, unknown>;
+            for (const key of ["message", "Message", "summary", "Summary"]) {
+                const v = r[key];
+                if (typeof v === "string" && v.trim()) return v;
+            }
+            const payload = r["payload"] as { message?: unknown } | undefined;
+            if (payload && typeof payload.message === "string" && payload.message.trim()) return payload.message;
+        }
+        return "Done — your draft is ready. Open the Model Builder to review it.";
     }
 }

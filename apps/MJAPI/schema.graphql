@@ -1429,6 +1429,12 @@ type CallerLocationGQL {
   location: String!
 }
 
+type CancelRealtimeSessionToolResult {
+  AbortedCount: Int!
+  ErrorMessage: String
+  Success: Boolean!
+}
+
 type CaptureErrorOutput {
   EntityName: String!
   ErrorMessage: String!
@@ -1445,6 +1451,12 @@ type CategoryStatsGQL {
   avgMs: Float!
   category: String!
   events: Int!
+}
+
+type CheckEntityPermissionsResult {
+  ErrorMessage: String
+  Results: [EntityPermissionResult!]!
+  Success: Boolean!
 }
 
 input ClassifyFeedbackInput {
@@ -2648,6 +2660,18 @@ input CreateMJAIAgentCategoryInput {
   Status: String
 }
 
+input CreateMJAIAgentChannelInput {
+  ClientPluginClass: String
+  ConfigSchema: String
+  Description: String
+  ID: String
+  IsActive: Boolean
+  Name: String
+  RestoreContext___: RestoreContextInput
+  ServerPluginClass: String
+  TransportType: String
+}
+
 input CreateMJAIAgentClientToolInput {
   AgentID: String
   ClientToolDefinitionID: String
@@ -2655,6 +2679,19 @@ input CreateMJAIAgentClientToolInput {
   IsRequired: Boolean
   Priority: Int
   RestoreContext___: RestoreContextInput
+}
+
+input CreateMJAIAgentCoAgentInput {
+  CoAgentID: String
+  Configuration: String
+  ID: String
+  IsDefault: Boolean
+  RestoreContext___: RestoreContextInput
+  Sequence: Int
+  Status: String
+  TargetAgentID: String
+  TargetAgentTypeID: String
+  Type: String
 }
 
 input CreateMJAIAgentConfigurationInput {
@@ -2724,6 +2761,7 @@ input CreateMJAIAgentInput {
   AcceptUnregisteredFiles: Boolean
   AgentTypePromptParams: String
   AllowEphemeralClientTools: Boolean
+  AllowMemoryWrite: Boolean
   ArtifactCreationMode: String
   AttachmentRootPath: String
   AttachmentStorageProviderID: String
@@ -2734,6 +2772,7 @@ input CreateMJAIAgentInput {
   ContextCompressionMessageThreshold: Int
   ContextCompressionPromptID: String
   DefaultArtifactTypeID: String
+  DefaultCoAgentID: String
   DefaultPromptEffortLevel: Int
   DefaultStorageAccountID: String
   Description: String
@@ -2785,6 +2824,7 @@ input CreateMJAIAgentInput {
   StartingPayloadValidationMode: String
   Status: String
   TechnicalDesign: String
+  TypeConfiguration: String
   TypeID: String
 }
 
@@ -2822,6 +2862,7 @@ input CreateMJAIAgentNoteInput {
   AccessCount: Int
   AgentID: String
   AgentNoteTypeID: String
+  AuthorType: String
   Comments: String
   CompanyID: String
   ConsolidatedIntoNoteID: String
@@ -2933,6 +2974,7 @@ input CreateMJAIAgentRequestTypeInput {
 
 input CreateMJAIAgentRunInput {
   AgentID: String
+  AgentSessionID: String
   AgentState: String
   CancellationReason: String
   Comments: String
@@ -3044,6 +3086,66 @@ input CreateMJAIAgentSearchScopeInput {
   Status: String
 }
 
+input CreateMJAIAgentSessionBridgeInput {
+  Address: String
+  AgentSessionID: String
+  BotParticipantID: String
+  CloseReason: String
+  Config: String
+  ConnectedAt: Timestamp
+  Direction: String
+  DisconnectedAt: Timestamp
+  ExternalConnectionID: String
+  HostInstanceID: String
+  ID: String
+  JoinMethod: String
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+  ScheduledStartTime: Timestamp
+  Status: String
+  TurnMode: String
+}
+
+input CreateMJAIAgentSessionBridgeParticipantInput {
+  DisplayName: String
+  ExternalParticipantID: String
+  ID: String
+  IsAgent: Boolean
+  JoinedAt: Timestamp
+  LeftAt: Timestamp
+  RestoreContext___: RestoreContextInput
+  Role: String
+  SessionBridgeID: String
+  UserID: String
+}
+
+input CreateMJAIAgentSessionChannelInput {
+  AgentSessionID: String
+  ChannelID: String
+  Config: String
+  DisconnectedAt: Timestamp
+  ID: String
+  LastActiveAt: Timestamp
+  RestoreContext___: RestoreContextInput
+  SocketUrl: String
+  Status: String
+}
+
+input CreateMJAIAgentSessionInput {
+  AgentID: String
+  CloseReason: String
+  ClosedAt: Timestamp
+  Config: String
+  ConversationID: String
+  HostInstanceID: String
+  ID: String
+  LastActiveAt: Timestamp
+  LastSessionID: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  UserID: String
+}
+
 input CreateMJAIAgentStepInput {
   ActionID: String
   ActionInputMapping: String
@@ -3083,6 +3185,8 @@ input CreateMJAIAgentStepPathInput {
 input CreateMJAIAgentTypeInput {
   AgentPromptPlaceholder: String
   AssignmentStrategy: String
+  ConfigSchema: String
+  DefaultConfiguration: String
   DefaultStorageAccountID: String
   Description: String
   DriverClass: String
@@ -3107,6 +3211,41 @@ input CreateMJAIArchitectureInput {
   RestoreContext___: RestoreContextInput
   WikipediaURL: String
   YearIntroduced: Int
+}
+
+input CreateMJAIBridgeAgentIdentityInput {
+  AgentID: String
+  Configuration: String
+  DisplayName: String
+  ID: String
+  IdentityType: String
+  IdentityValue: String
+  IsActive: Boolean
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateMJAIBridgeProviderChannelInput {
+  ChannelID: String
+  Configuration: String
+  ID: String
+  IsDefault: Boolean
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+  Sequence: Int
+}
+
+input CreateMJAIBridgeProviderInput {
+  BridgeType: String
+  ConfigSchema: String
+  Configuration: String
+  Description: String
+  DriverClass: String
+  ID: String
+  Name: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SupportedFeatures: String
 }
 
 input CreateMJAIClientToolDefinitionInput {
@@ -3488,6 +3627,20 @@ input CreateMJAIPromptTypeInput {
   ID: String
   Name: String
   RestoreContext___: RestoreContextInput
+}
+
+input CreateMJAIRemoteBrowserProviderInput {
+  ConfigSchema: String
+  Configuration: String
+  DefaultControlMode: String
+  Description: String
+  DriverClass: String
+  ID: String
+  Name: String
+  ProviderType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SupportedFeatures: String
 }
 
 input CreateMJAIResultCacheInput {
@@ -4529,6 +4682,7 @@ input CreateMJConversationDetailAttachmentInput {
 input CreateMJConversationDetailInput {
   ActionableCommands: String
   AgentID: String
+  AgentSessionID: String
   ArtifactID: String
   ArtifactVersionID: String
   AutomaticCommands: String
@@ -4938,6 +5092,7 @@ input CreateMJEntityActionInvocationInput {
   ID: String
   InvocationTypeID: String
   RestoreContext___: RestoreContextInput
+  RuntimeUXDriverClass: String
   Status: String
 }
 
@@ -5403,6 +5558,7 @@ input CreateMJIntegrationInput {
   BatchMaxRequestCount: Int
   BatchRequestWaitTime: Int
   ClassName: String
+  Configuration: String
   CredentialTypeID: String
   Description: String
   ID: String
@@ -5444,6 +5600,7 @@ input CreateMJIntegrationObjectInput {
   APIPath: String
   Category: String
   Configuration: String
+  ContentHashApplicable: Boolean
   CreateAPIPath: String
   CreateBodyKey: String
   CreateBodyShape: String
@@ -5466,10 +5623,15 @@ input CreateMJIntegrationObjectInput {
   ResponseDataKey: String
   RestoreContext___: RestoreContextInput
   Sequence: Int
+  StableOrderingKey: String
   Status: String
+  SupportsCreate: Boolean
+  SupportsDelete: Boolean
   SupportsIncrementalSync: Boolean
   SupportsPagination: Boolean
+  SupportsUpdate: Boolean
   SupportsWrite: Boolean
+  SyncStrategy: String
   UpdateAPIPath: String
   UpdateBodyKey: String
   UpdateBodyShape: String
@@ -5857,6 +6019,7 @@ input CreateMJOpenAppInput {
   RestoreContext___: RestoreContextInput
   SchemaName: String
   Status: String
+  Subpath: String
   Version: String
 }
 
@@ -5914,6 +6077,51 @@ input CreateMJPermissionDomainInput {
   SupportsDeny: Boolean
   SupportsExpiration: Boolean
   SupportsHierarchyInheritance: Boolean
+}
+
+input CreateMJProcessRunDetailInput {
+  AIAgentRunID: String
+  ActionExecutionLogID: String
+  AttemptCount: Int
+  CompletedAt: Timestamp
+  DurationMs: Int
+  EntityID: String
+  ErrorMessage: String
+  ID: String
+  ProcessRunID: String
+  RecordID: String
+  RestoreContext___: RestoreContextInput
+  ResultPayload: String
+  StartedAt: Timestamp
+  Status: String
+}
+
+input CreateMJProcessRunInput {
+  BatchSize: Int
+  CancellationRequested: Boolean
+  Configuration: String
+  DryRun: Boolean
+  EndTime: Timestamp
+  EntityID: String
+  ErrorCount: Int
+  ErrorMessage: String
+  ID: String
+  LastProcessedKey: String
+  LastProcessedOffset: Int
+  ProcessedItems: Int
+  RecordProcessID: String
+  RestoreContext___: RestoreContextInput
+  ScheduledJobRunID: String
+  SkippedCount: Int
+  SourceFilter: String
+  SourceID: String
+  SourceType: String
+  StartTime: Timestamp
+  StartedByUserID: String
+  Status: String
+  SuccessCount: Int
+  TotalItemCount: Int
+  TriggeredBy: String
 }
 
 input CreateMJProjectInput {
@@ -6215,6 +6423,95 @@ input CreateMJRecordMergeLogInput {
   SurvivingRecordID: String
 }
 
+input CreateMJRecordProcessCategoryInput {
+  Description: String
+  ID: String
+  Name: String
+  ParentID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateMJRecordProcessInput {
+  ActionID: String
+  AgentID: String
+  BatchSize: Int
+  CategoryID: String
+  Configuration: String
+  CronExpression: String
+  Description: String
+  EntityID: String
+  ID: String
+  InputMapping: String
+  MaxConcurrency: Int
+  Name: String
+  OnChangeEnabled: Boolean
+  OnChangeFilter: String
+  OnChangeInvocationType: String
+  OnDemandEnabled: Boolean
+  OutputMapping: String
+  PromptID: String
+  RestoreContext___: RestoreContextInput
+  ScheduleEnabled: Boolean
+  ScopeFilter: String
+  ScopeListID: String
+  ScopeType: String
+  ScopeViewID: String
+  SkipUnchanged: Boolean
+  Status: String
+  Timezone: String
+  WatermarkStrategy: String
+  WorkType: String
+}
+
+input CreateMJRecordProcessWatermarkInput {
+  EntityID: String
+  Hash: String
+  ID: String
+  LastProcessedAt: Timestamp
+  RecordID: String
+  RecordProcessID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateMJRemoteOperationCategoryInput {
+  Description: String
+  ID: String
+  Name: String
+  ParentID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input CreateMJRemoteOperationInput {
+  CacheTTLSeconds: Int
+  CategoryID: String
+  Code: String
+  CodeApprovalStatus: String
+  CodeApprovedAt: Timestamp
+  CodeApprovedByUserID: String
+  CodeComments: String
+  CodeLocked: Boolean
+  ContractFingerprint: String
+  Description: String
+  ExecutionMode: String
+  GenerationType: String
+  ID: String
+  InputTypeDefinition: String
+  InputTypeIsArray: Boolean
+  InputTypeName: String
+  Libraries: String
+  MaxConcurrency: Int
+  Name: String
+  OperationKey: String
+  OutputTypeDefinition: String
+  OutputTypeIsArray: Boolean
+  OutputTypeName: String
+  RequiredScope: String
+  RequiresSystemUser: Boolean
+  RestoreContext___: RestoreContextInput
+  Status: String
+  TimeoutMS: Int
+}
+
 input CreateMJReportCategoryInput {
   Description: String
   ID: String
@@ -6381,6 +6678,7 @@ input CreateMJScheduledJobInput {
   LockToken: String
   LockedAt: Timestamp
   LockedByInstance: String
+  MaxRuntimeMinutes: Int
   Name: String
   NextRunAt: Timestamp
   NotifyOnFailure: Boolean
@@ -7338,8 +7636,10 @@ type CreateReportResultType {
 input CreateScheduleInput {
   CompanyIntegrationID: String!
   CronExpression: String!
+  DeactivateAbsent: Boolean
   Description: String
   FullSync: Boolean
+  JobKind: String = "sync"
   Name: String!
   SyncDirection: String
   Timezone: String
@@ -7698,6 +7998,20 @@ input CreatemjBizAppsSonarTimeWindowInput {
   WindowType: String
 }
 
+type CustomColumnCandidate {
+  ColumnName: String!
+  EntityName: String!
+  InferredType: String!
+  NeedsColumn: Boolean!
+  SourceKey: String!
+}
+
+type CustomColumnCandidatesOutput {
+  Candidates: [CustomColumnCandidate!]!
+  Message: String!
+  Success: Boolean!
+}
+
 input DatasetItemFilterTypeGQL {
   Filter: String!
   ItemCode: String!
@@ -7868,6 +8182,11 @@ input EntityMapUpdateInput {
   SyncDirection: String
 }
 
+type EntityPermissionResult {
+  CanRead: Boolean!
+  EntityName: String!
+}
+
 input EntityRecordNameInput {
   CompositeKey: CompositeKeyInputType!
   EntityName: String!
@@ -7913,6 +8232,21 @@ type ExecuteMCPToolResult {
   ErrorMessage: String
   Result: JSONObject
   Success: Boolean!
+}
+
+input ExecuteRemoteOperationInput {
+  inputJSON: String!
+  invokeMode: String!
+  operationKey: String!
+  progressChannelId: String
+}
+
+type ExecuteRemoteOperationResultType {
+  errorMessage: String
+  handle: String
+  outputJSON: String
+  resultCode: String
+  success: Boolean!
 }
 
 type ExecuteTaskGraphResult {
@@ -8185,6 +8519,71 @@ type IntegrationStatusOutput {
   TotalEntityMaps: Float
 }
 
+input IntegrationSyncConfigInput {
+  """
+  §4 cross-layer pipelining: a child map starts when ITS parents finish, not the whole layer.
+  """
+  CrossLayerPipeline: Boolean
+
+  """
+  §7 Comprehensive refresh deactivates Declared objects/fields ABSENT from an AUTHORITATIVE discovery (reversible). Default false.
+  """
+  DeactivateAbsent: Boolean
+
+  """
+  Batch size for stage-2 streaming field discovery (records per FetchChanges page). Default 500.
+  """
+  DiscoveryBatchSize: Int
+
+  """
+  Max records sampled in stage-2 streaming field discovery (a column corpus + PK guess; NOT a full scan). Default 500.
+  """
+  DiscoveryMaxRecords: Int
+
+  """
+  Time budget (ms) for stage-2 streaming field discovery before it stops and uses what it gathered.
+  """
+  DiscoveryTimeBudgetMs: Int
+
+  """
+  Upper bound the per-layer AIMD controller ramps toward. Default = connector MaxConcurrencyHint.
+  """
+  MaxConcurrency: Int
+
+  """
+  Merkle/partition hash-diff reconcile for watermark-less change detection (buffers the set in RAM).
+  """
+  PartitionReconcile: Boolean
+
+  """Override the rate-limiter burst capacity (tokens)."""
+  RateLimitBurst: Int
+
+  """
+  Override the source rate limit (requests/sec). Default = connector RateLimitPolicy / derived.
+  """
+  RateLimitTokensPerSec: Float
+
+  """
+  Entity maps processed concurrently within a dependency layer (clamped 1-16). Default 1 (sequential).
+  """
+  SyncConcurrency: Int
+}
+
+type IntegrationSyncConfigOutput {
+  CrossLayerPipeline: Boolean
+  DeactivateAbsent: Boolean
+  DiscoveryBatchSize: Int
+  DiscoveryMaxRecords: Int
+  DiscoveryTimeBudgetMs: Int
+  MaxConcurrency: Int
+  Message: String!
+  PartitionReconcile: Boolean
+  RateLimitBurst: Int
+  RateLimitTokensPerSec: Float
+  Success: Boolean!
+  SyncConcurrency: Int
+}
+
 type InviteResultType {
   ExpiresAt: Timestamp
   InvitationID: String
@@ -8327,6 +8726,37 @@ input ListStorageObjectsInput {
   AccountID: String!
   Delimiter: String
   Prefix: String!
+}
+
+type LiveKitAgentRoomSessionResult {
+  ClientToken: String!
+  ErrorMessage: String
+  Identity: String!
+  RoomName: String!
+  ServerUrl: String!
+  SessionBridgeID: String!
+  Success: Boolean!
+}
+
+type LiveKitClientTokenResult {
+  ErrorMessage: String
+  Identity: String!
+  RoomName: String!
+  ServerUrl: String!
+  Success: Boolean!
+  Token: String!
+}
+
+input LiveKitRecordingInput {
+  Layout: String
+  RoomName: String!
+}
+
+type LiveKitRecordingResult {
+  EgressID: String!
+  ErrorMessage: String
+  Status: String!
+  Success: Boolean!
 }
 
 type MCPOAuthConnectionStatus {
@@ -8547,6 +8977,46 @@ type MJAIAgentCategory_ {
   _mj__UpdatedAt: Timestamp!
 }
 
+type MJAIAgentChannel_ {
+  """
+  Driver key resolved at runtime via MJGlobal.ClassFactory.CreateInstance on the client. MUST match the @RegisterClass key on the concrete client-side channel plugin (typically an Angular component).
+  """
+  ClientPluginClass: String!
+
+  """
+  Optional JSON Schema used to validate the per-instance channel configuration (AIAgentSessionChannel.Config).
+  """
+  ConfigSchema: String
+
+  """Optional human-readable description of what the channel surface does."""
+  Description: String
+  ID: String!
+
+  """
+  Whether this channel definition is available for use. Inactive channels cannot be attached to a session.
+  """
+  IsActive: Boolean!
+  MJAIAgentSessionChannels_ChannelIDArray: [MJAIAgentSessionChannel_!]!
+  MJAIBridgeProviderChannels_ChannelIDArray: [MJAIBridgeProviderChannel_!]!
+
+  """
+  Unique channel definition name (e.g. VoiceAudio, TextChat, ClientControl, Whiteboard).
+  """
+  Name: String!
+
+  """
+  Driver key resolved at runtime via MJGlobal.ClassFactory.CreateInstance on the server. MUST match the @RegisterClass key on the concrete server-side channel plugin.
+  """
+  ServerPluginClass: String!
+
+  """
+  Which transport plane this channel rides: PubSub (the shared control plane), WebRTC (binary media), or WebSocket.
+  """
+  TransportType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
 type MJAIAgentClientTool_ {
   Agent: String
   AgentID: String!
@@ -8563,6 +9033,58 @@ type MJAIAgentClientTool_ {
   Sort order for tool listing in prompts. Lower numbers appear first. Tools with the same priority are listed alphabetically.
   """
   Priority: Int!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Agent-to-agent affinity registry. Today: OPT-IN co-agent pairings — which underlying agents (or whole agent types) a Realtime-type co-agent can front in live sessions. A co-agent with NO rows is universal (fronts any single agent supplied at runtime — the zero-config default); rows restrict the co-agent to a prebuilt target list. The Type column reserves future relationship natures (Peer/Delegate/Fallback/Reviewer/Observer). Distinct from AIAgentRelationship, which wires agent-to-SUB-AGENT invocation (mappings, message modes); this table is peer affinity with no invocation config.
+"""
+type MJAIAgentCoAgent_ {
+  CoAgent: String
+
+  """
+  The relationship OWNER. For Type=CoAgent this is the Realtime-type co-agent (the live voice); it must be an Active agent of the Realtime type (enforced server-side). For reserved future types, the agent the relationship is read FROM.
+  """
+  CoAgentID: String!
+
+  """
+  Optional per-relationship configuration JSON (shape owned by the Type, e.g. a future Peer arena's turn budget). NULL for plain pairings.
+  """
+  Configuration: String
+  ID: String!
+
+  """
+  When 1: for a TargetAgentID row, this target is the co-agent's default underlying agent (used when a session starts against the co-agent without an explicit runtime target); for a TargetAgentTypeID row, this co-agent is the default co-agent for agents of that type. At most one default per (CoAgentID, Type) is enforced server-side.
+  """
+  IsDefault: Boolean!
+
+  """
+  Display/priority order of this pairing in target-agent pickers and resolution ties (ascending).
+  """
+  Sequence: Int!
+
+  """
+  Whether this pairing participates in resolution. Disabled rows are kept for audit/toggling but ignored by the resolution chain and pickers.
+  """
+  Status: String!
+  TargetAgent: String
+
+  """
+  A specific paired agent — for Type=CoAgent, an underlying agent this co-agent can front. Exactly one of TargetAgentID / TargetAgentTypeID is set per row.
+  """
+  TargetAgentID: String
+  TargetAgentType: String
+
+  """
+  A whole agent TYPE as the paired side — for Type=CoAgent, this co-agent applies to every agent of the type (with IsDefault=1, it is the type-level default co-agent, replacing a column-based default that would create an AIAgent↔AIAgentType FK cycle). Exactly one of TargetAgentID / TargetAgentTypeID is set per row.
+  """
+  TargetAgentTypeID: String
+
+  """
+  Nature of the relationship, read CoAgentID → target side. CoAgent = the owner can front the target in realtime sessions (the ONLY type implemented today). Peer (agent-to-agent conversation partners), Delegate (handoff/escalation), Fallback (substitute when owner unavailable), Reviewer (target reviews owner output), Observer (target observes owner sessions) are RESERVED for future features — the vocabulary ships now so generated string-union types stay stable.
+  """
+  Type: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
 }
@@ -8944,6 +9466,11 @@ type MJAIAgentNote_ {
   AgentNoteTypeID: String
 
   """
+  Type of author that created the note: Agent = written in-flight during an agent run, MemoryManager = extracted/consolidated by the scheduled Memory Manager, User = manually created by a person.
+  """
+  AuthorType: String!
+
+  """
   Internal comments about this note, not included in agent context injection.
   """
   Comments: String
@@ -9045,7 +9572,7 @@ type MJAIAgentNote_ {
   SourceConversationID: String
 
   """
-  Status of the note: Pending (awaiting review), Active (in use), or Revoked (disabled).
+  Lifecycle status of the note. Pending = awaiting approval, Active = vetted and injectable, Provisional = written in-flight by an agent (immediately injectable, awaiting Memory Manager hardening to Active), Revoked = superseded/withdrawn, Archived = retired by consolidation or decay.
   """
   Status: String!
 
@@ -9476,6 +10003,11 @@ type MJAIAgentRun_ {
   AgentID: String!
 
   """
+  Links this run to the long-lived AIAgentSession it executed within. NULL for runs outside any real-time session. This is the persisted session reference and is distinct from the per-connection transport sessionID.
+  """
+  AgentSessionID: String
+
+  """
   JSON serialization of the complete agent state, including conversation context, variables, and execution state. Enables pause/resume functionality.
   """
   AgentState: String
@@ -9567,6 +10099,7 @@ type MJAIAgentRun_ {
   MJAIAgentRuns_LastRunIDArray: [MJAIAgentRun_!]!
   MJAIAgentRuns_ParentRunIDArray: [MJAIAgentRun_!]!
   MJAIPromptRuns_AgentRunIDArray: [MJAIPromptRun_!]!
+  MJProcessRunDetails_AIAgentRunIDArray: [MJProcessRunDetail_!]!
 
   """Final message from the agent to the end user at the end of a run"""
   Message: String
@@ -9773,6 +10306,192 @@ type MJAIAgentSearchScope_ {
   _mj__UpdatedAt: Timestamp!
 }
 
+type MJAIAgentSessionBridgeParticipant_ {
+  """The participant's display name as shown on the platform."""
+  DisplayName: String
+
+  """
+  The platform's participant identifier (used to map diarized audio to a person).
+  """
+  ExternalParticipantID: String
+  ID: String!
+
+  """True when this participant is the bridged AI agent bot itself."""
+  IsAgent: Boolean!
+
+  """When the participant joined the meeting/call."""
+  JoinedAt: Timestamp
+
+  """When the participant left. NULL while still present."""
+  LeftAt: Timestamp
+
+  """
+  The participant's role in the meeting/call: Host, CoHost, Participant, or Agent (the AI bot).
+  """
+  Role: String!
+  SessionBridge: String
+  SessionBridgeID: String!
+  User: String
+
+  """
+  The matched MJ user, when the participant can be identified (NULL for external/anonymous participants).
+  """
+  UserID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIAgentSessionBridge_ {
+  """
+  The endpoint address: a meeting join URL (meetings) or a phone number (telephony).
+  """
+  Address: String
+  AgentSessionID: String!
+
+  """
+  The agent bot's own participant id within the meeting/call once admitted.
+  """
+  BotParticipantID: String
+
+  """
+  Why the bridge closed: Explicit, HostEnded (the meeting/call ended), Janitor (orphan sweep), Error, or Shutdown. NULL while active.
+  """
+  CloseReason: String
+
+  """
+  Per-session bridge configuration/state JSON (validated against the provider ConfigSchema).
+  """
+  Config: String
+
+  """
+  When the bridge became Connected (media flowing). NULL until connected.
+  """
+  ConnectedAt: Timestamp
+
+  """
+  Direction of the connection: Outbound (the agent goes to a meeting / places a call) or Inbound (a meeting/call routes to the agent).
+  """
+  Direction: String!
+
+  """When the bridge disconnected. NULL while still connected."""
+  DisconnectedAt: Timestamp
+
+  """
+  The platform's identifier for the connection (meeting id / call SID), set once connecting.
+  """
+  ExternalConnectionID: String
+
+  """
+  Identifier of the server node currently hosting this bridge's bot connection (hostname:pid:bootId). Used for affinity and janitor orphan reconciliation, mirroring AIAgentSession.
+  """
+  HostInstanceID: String
+  ID: String!
+
+  """
+  How the agent connected: OnDemand, Scheduled, Invite (calendar), NativeInvite (platform UI), InboundRoute (call/invite to the agent's identity), or InMeetingCommand (chat command).
+  """
+  JoinMethod: String!
+  MJAIAgentSessionBridgeParticipants_SessionBridgeIDArray: [MJAIAgentSessionBridgeParticipant_!]!
+  Provider: String!
+  ProviderID: String!
+
+  """
+  For scheduled/invite joins: when the bridge should connect. NULL for immediate (on-demand/inbound).
+  """
+  ScheduledStartTime: Timestamp
+
+  """
+  Bridge connection lifecycle: Pending, Scheduled, Connecting, Connected, Disconnecting, Disconnected, or Failed.
+  """
+  Status: String!
+
+  """
+  Turn-taking mode for this bridged session: Passive (speak only when addressed — default), Active (proactive in silence windows), or Hybrid (passive voice + post-to-chat hand-raise).
+  """
+  TurnMode: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIAgentSessionChannel_ {
+  AgentSessionID: String!
+  Channel: String!
+  ChannelID: String!
+
+  """
+  JSON of per-instance channel configuration/state, validated against the channel definitions ConfigSchema.
+  """
+  Config: String
+
+  """When this channel instance disconnected. NULL while still connected."""
+  DisconnectedAt: Timestamp
+  ID: String!
+
+  """
+  Timestamp of the last activity (or heartbeat) on this channel instance.
+  """
+  LastActiveAt: Timestamp!
+
+  """
+  Socket URL handed to the client for this channel. NULL for PubSub channels, which ride the shared session subscription rather than a dedicated socket.
+  """
+  SocketUrl: String
+
+  """Connection status of this channel instance within the session."""
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIAgentSession_ {
+  Agent: String
+  AgentID: String!
+
+  """
+  Why the session was closed: Explicit (user hang-up / deliberate API close), Janitor (orphan or staleness sweep), Shutdown (graceful server shutdown), Error (session failure). NULL while the session is Active/Idle.
+  """
+  CloseReason: String
+
+  """
+  When the session was closed (terminal). NULL while the session is Active or Idle.
+  """
+  ClosedAt: Timestamp
+
+  """
+  JSON block for free-form, low-traffic session-specific state and variables.
+  """
+  Config: String
+  Conversation: String
+  ConversationID: String
+
+  """
+  Identifier of the server node currently hosting this sessions in-memory sockets (e.g. hostname:pid:bootId). Used for affinity and janitor orphan reconciliation.
+  """
+  HostInstanceID: String
+  ID: String!
+
+  """
+  Timestamp of the last activity on the session. Bubbled up from the most-recently-active channel; used by the heartbeat and staleness sweep.
+  """
+  LastActiveAt: Timestamp!
+  LastSessionID: String
+  MJAIAgentRuns_AgentSessionIDArray: [MJAIAgentRun_!]!
+  MJAIAgentSessionBridges_AgentSessionIDArray: [MJAIAgentSessionBridge_!]!
+  MJAIAgentSessionChannels_AgentSessionIDArray: [MJAIAgentSessionChannel_!]!
+  MJAIAgentSessions_LastSessionIDArray: [MJAIAgentSession_!]!
+  MJConversationDetails_AgentSessionIDArray: [MJConversationDetail_!]!
+  RootLastSessionID: String
+
+  """
+  Lifecycle status of the session. Active = traffic flowing; Idle = connected but quiet beyond the idle threshold; Closed = terminal (ClosedAt set, channels disconnected).
+  """
+  Status: String!
+  User: String!
+  UserID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
 """
 Defines paths (edges) between steps in a flow-based AI agent execution graph
 """
@@ -9871,6 +10590,16 @@ type MJAIAgentType_ {
   JSON-serialized AgentRequestAssignmentStrategy defining the default assignment strategy for all agents of this type. Overridden by per-invocation or category-level strategies in the resolution chain.
   """
   AssignmentStrategy: String
+
+  """
+  JSON Schema (draft-07) describing the shape of TypeConfiguration payloads on agents of this type. When present, agent saves validate their TypeConfiguration against it server-side (MJAIAgentEntityServer.ValidateAsync); null = TypeConfiguration is freeform for this type.
+  """
+  ConfigSchema: String
+
+  """
+  Type-level DEFAULT configuration JSON for agents of this type — the base layer of the effective-configuration merge: type DefaultConfiguration <- agent TypeConfiguration <- runtime overrides (later layers win per key, deep-merged). Must itself conform to ConfigSchema when one is published. Null = no type defaults.
+  """
+  DefaultConfiguration: String
   DefaultStorageAccount: String
 
   """
@@ -9895,6 +10624,7 @@ type MJAIAgentType_ {
   Indicates whether this agent type is available for use. Inactive types cannot be assigned to new agents.
   """
   IsActive: Boolean!
+  MJAIAgentCoAgents_TargetAgentTypeIDArray: [MJAIAgentCoAgent_!]!
   MJAIAgents_TypeIDArray: [MJAIAgent_!]!
 
   """
@@ -9949,6 +10679,11 @@ type MJAIAgent_ {
   AllowEphemeralClientTools: Boolean!
 
   """
+  When enabled, the agent may commit durable memories mid-run via the memoryWrites loop-response field. Writes are framework-guarded (type restriction, scope clamp, near-duplicate check, per-run cap) and land as Provisional notes pending Memory Manager hardening. On by default; disable for restricted or experimental agents.
+  """
+  AllowMemoryWrite: Boolean!
+
+  """
   Controls how artifacts are created from this agent's payloads. "Always" creates visible artifacts, "Never" skips artifact creation, "System Only" creates hidden system artifacts.
   """
   ArtifactCreationMode: String!
@@ -9997,6 +10732,12 @@ type MJAIAgent_ {
   Default artifact type produced by this agent. This is the primary artifact type; additional artifact types can be linked via AIAgentArtifactType junction table. Can be NULL if agent does not produce artifacts by default.
   """
   DefaultArtifactTypeID: String
+  DefaultCoAgent: String
+
+  """
+  Default co-agent (a Realtime-type AI Agent) that voices THIS agent in real-time sessions — a per-agent persona. Overridden by the runtime coAgentId parameter; NULL falls through to a type-level AIAgentCoAgent default row, then the global default co-agent.
+  """
+  DefaultCoAgentID: String
 
   """
   Default effort level for all prompts executed by this agent (1-100, where 1=minimal effort, 100=maximum effort). Takes precedence over individual prompt EffortLevel settings but can be overridden by runtime parameters. Inherited by sub-agents unless explicitly overridden.
@@ -10108,6 +10849,8 @@ type MJAIAgent_ {
   MJAIAgentActions_AgentIDArray: [MJAIAgentAction_!]!
   MJAIAgentArtifactTypes_AgentIDArray: [MJAIAgentArtifactType_!]!
   MJAIAgentClientTools_AgentIDArray: [MJAIAgentClientTool_!]!
+  MJAIAgentCoAgents_CoAgentIDArray: [MJAIAgentCoAgent_!]!
+  MJAIAgentCoAgents_TargetAgentIDArray: [MJAIAgentCoAgent_!]!
   MJAIAgentConfigurations_AgentIDArray: [MJAIAgentConfiguration_!]!
   MJAIAgentDataSources_AgentIDArray: [MJAIAgentDataSource_!]!
   MJAIAgentExamples_AgentIDArray: [MJAIAgentExample_!]!
@@ -10122,14 +10865,18 @@ type MJAIAgent_ {
   MJAIAgentRequests_AgentIDArray: [MJAIAgentRequest_!]!
   MJAIAgentRuns_AgentIDArray: [MJAIAgentRun_!]!
   MJAIAgentSearchScopes_AgentIDArray: [MJAIAgentSearchScope_!]!
+  MJAIAgentSessions_AgentIDArray: [MJAIAgentSession_!]!
   MJAIAgentSteps_AgentIDArray: [MJAIAgentStep_!]!
   MJAIAgentSteps_SubAgentIDArray: [MJAIAgentStep_!]!
+  MJAIAgents_DefaultCoAgentIDArray: [MJAIAgent_!]!
   MJAIAgents_ParentIDArray: [MJAIAgent_!]!
+  MJAIBridgeAgentIdentities_AgentIDArray: [MJAIBridgeAgentIdentity_!]!
   MJAIPromptRuns_AgentIDArray: [MJAIPromptRun_!]!
   MJAIResultCache_AgentIDArray: [MJAIResultCache_!]!
   MJActions_CreatedByAgentIDArray: [MJAction_!]!
   MJConversationDetails_AgentIDArray: [MJConversationDetail_!]!
   MJConversations_DefaultAgentIDArray: [MJConversation_!]!
+  MJRecordProcesses_AgentIDArray: [MJRecordProcess_!]!
   MJSearchExecutionLogs_AIAgentIDArray: [MJSearchExecutionLog_!]!
   MJTasks_AgentIDArray: [MJTask_!]!
 
@@ -10244,6 +10991,7 @@ type MJAIAgent_ {
   JSON configuration for optional reranking of retrieved memory items. Schema: { enabled: boolean, rerankerModelId: string, retrievalMultiplier: number (default 3), minRelevanceThreshold: number (default 0.5), rerankPromptId?: string, contextFields?: string[], fallbackOnError: boolean (default true) }. When null or disabled, vector search results are used directly without reranking.
   """
   RerankerConfiguration: String
+  RootDefaultCoAgentID: String
   RootParentID: String
 
   """
@@ -10278,6 +11026,11 @@ type MJAIAgent_ {
   Type: String
 
   """
+  Agent-type-specific configuration JSON, validated against the agent type's ConfigSchema (when one is published) in the server-side entity subclass. For Realtime-type co-agents this holds the realtime profile: preferred model, per-provider voice settings, tone/speaking style (folded into the session system prompt at mint), user-override policy, and narration pacing. Null = type defaults apply.
+  """
+  TypeConfiguration: String
+
+  """
   Reference to the AIAgentType that defines the category and system-level behavior for this agent. Cannot be null.
   """
   TypeID: String
@@ -10305,6 +11058,108 @@ type MJAIArchitecture_ {
   RootParentArchitectureID: String
   WikipediaURL: String
   YearIntroduced: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIBridgeAgentIdentity_ {
+  Agent: String
+  AgentID: String!
+
+  """
+  Identity-level configuration JSON (e.g. tenant/mailbox references, calendar-watch scopes). Credentials resolve via the MJ credential system; never inline.
+  """
+  Configuration: String
+
+  """Friendly display name shown to other participants (e.g. "Sage (AI)")."""
+  DisplayName: String
+  ID: String!
+
+  """
+  The kind of address: Email (a calendar mailbox organizers invite), PhoneNumber (an inbound DID), or AccountID (a platform-native bot/user account).
+  """
+  IdentityType: String!
+
+  """
+  The address value itself (e.g. sage@customer.com, +15551234567, or a platform account id). Unique per provider.
+  """
+  IdentityValue: String!
+
+  """
+  Whether this identity is active. Inactive identities are ignored by invite watchers and inbound routing.
+  """
+  IsActive: Boolean!
+  Provider: String!
+  ProviderID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIBridgeProviderChannel_ {
+  Channel: String!
+  ChannelID: String!
+
+  """
+  Optional per-provider configuration JSON for this channel contribution (e.g. mapping platform tool names to the channel's tool vocabulary).
+  """
+  Configuration: String
+  ID: String!
+
+  """
+  When 1, this channel is auto-attached to a new bridge session on this provider; when 0, it is available but attached on demand.
+  """
+  IsDefault: Boolean!
+  Provider: String!
+  ProviderID: String!
+
+  """Display/attachment order of this channel for the provider (ascending)."""
+  Sequence: Int!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIBridgeProvider_ {
+  """
+  The family of endpoint this bridge connects to: Meeting (a conferencing room) or Telephony (a phone call). LiveKit (MJ-native multi-party room) is a Meeting.
+  """
+  BridgeType: String!
+
+  """
+  Optional JSON Schema validating the provider Configuration and per-session bridge Config payloads.
+  """
+  ConfigSchema: String
+
+  """
+  Provider-level configuration JSON (e.g. credential references resolved via the MJ credential system, region, bot display name). Never store secrets inline.
+  """
+  Configuration: String
+
+  """Optional human-readable description of the platform / driver."""
+  Description: String
+
+  """
+  Driver key resolved at runtime via MJGlobal.ClassFactory.CreateInstance(BaseRealtimeBridge, DriverClass). MUST match the @RegisterClass key on the concrete bridge driver.
+  """
+  DriverClass: String!
+  ID: String!
+  MJAIAgentSessionBridges_ProviderIDArray: [MJAIAgentSessionBridge_!]!
+  MJAIBridgeAgentIdentities_ProviderIDArray: [MJAIBridgeAgentIdentity_!]!
+  MJAIBridgeProviderChannels_ProviderIDArray: [MJAIBridgeProviderChannel_!]!
+
+  """
+  Unique platform name (e.g. Zoom, Microsoft Teams, Google Meet, Webex, Slack, Discord, RingCentral, Twilio, Vonage, LiveKit).
+  """
+  Name: String!
+
+  """
+  Whether this provider is available for use. Inactive providers cannot start new bridge sessions.
+  """
+  Status: String!
+
+  """
+  Strongly-typed JSON of the platform's supported features (the IBridgeProviderFeatures interface, bound via JSONType metadata): join methods (OnDemandJoin, ScheduledJoin, InviteJoin, NativeInvite, InboundRouting, OutboundDial), directional media tracks (AudioIn/Out, VideoIn/Out, ScreenIn/Out), and signals (SpeakerDiarization, DTMF, CallTransfer, Recording). The engine gates optional driver calls on these flags; the base driver throws BridgeCapabilityNotSupportedError when a feature is claimed but unimplemented. Held as JSON so new features need no schema change. NULL/omitted = unsupported.
+  """
+  SupportedFeatures: String
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
 }
@@ -11549,6 +12404,7 @@ type MJAIPrompt_ {
   MJAIPrompts_ResultSelectorPromptIDArray: [MJAIPrompt_!]!
   MJAIResultCache_AIPromptIDArray: [MJAIResultCache_!]!
   MJActions_DefaultCompactPromptIDArray: [MJAction_!]!
+  MJRecordProcesses_PromptIDArray: [MJRecordProcess_!]!
 
   """Maximum number of retry attempts for API failures."""
   MaxRetries: Int!
@@ -11692,6 +12548,54 @@ type MJAIPrompt_ {
   Determines how validation failures are handled: Strict (fail), Warn (log warning), or None (ignore).
   """
   ValidationBehavior: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+type MJAIRemoteBrowserProvider_ {
+  """
+  Optional JSON Schema validating the backend Configuration and per-session remote-browser Config payloads.
+  """
+  ConfigSchema: String
+
+  """
+  Backend-level configuration JSON (e.g. API region, default Chrome container image for SelfHost, credential references resolved via the MJ credential system, egress proxy settings). Never store secrets inline.
+  """
+  Configuration: String
+
+  """
+  Default control mode for channels using this backend, overridable per-channel and at runtime: AgentOnly (only the agent drives — e.g. a sales demo), ViewOnly (the agent drives while humans watch the live view but cannot take over), or Collaborative (a human can grab the wheel — e.g. a trainer agent that demonstrates then watches the user try). The backend must support the capabilities a mode requires (HumanTakeover for Collaborative, LiveView for ViewOnly/Collaborative).
+  """
+  DefaultControlMode: String!
+
+  """Optional human-readable description of the backend / driver."""
+  Description: String
+
+  """
+  Driver key resolved at runtime via MJGlobal.ClassFactory.CreateInstance(BaseRemoteBrowserProvider, DriverClass). MUST match the @RegisterClass key on the concrete provider driver.
+  """
+  DriverClass: String!
+  ID: String!
+
+  """
+  Unique backend name (e.g. Self-Hosted Chrome, Browserbase, Steel, Browserless, Hyperbrowser).
+  """
+  Name: String!
+
+  """
+  How the browser is hosted: SelfHost (MJ orchestrates a lightweight headless-Chrome container we connect to over CDP) or Service (a browser-as-a-service such as Browserbase/Steel/Browserless/Hyperbrowser exposes a CDP connect endpoint).
+  """
+  ProviderType: String!
+
+  """
+  Whether this backend is available for use. Disabled backends cannot start new remote-browser sessions.
+  """
+  Status: String!
+
+  """
+  Strongly-typed JSON of the backend's supported features (the IRemoteBrowserProviderFeatures interface, bound via JSONType metadata): the universal CDP-control substrate (RawCdpControl), an optional provider-native AI-control harness (NativeAIControl, e.g. Browserbase Stagehand), LiveView, HumanTakeover, ScreenStreaming, and operational capabilities (Stealth, ProxyEgress, SessionRecording, PersistentContext, MultiTab, FileDownloads, CaptchaSolving). The engine gates optional driver calls on these flags; the base driver throws RemoteBrowserCapabilityNotSupportedError when a feature is claimed but unimplemented. Held as JSON so new features need no schema change. NULL/omitted = unsupported.
+  """
+  SupportedFeatures: String
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
 }
@@ -12221,6 +13125,7 @@ type MJActionExecutionLog_ {
   """Timestamp when the action execution ended (timezone-aware)"""
   EndedAt: Timestamp
   ID: String!
+  MJProcessRunDetails_ActionExecutionLogIDArray: [MJProcessRunDetail_!]!
 
   """JSON-formatted output data or response from the action execution"""
   Message: String
@@ -12433,6 +13338,7 @@ type MJAction_ {
   MJActions_ParentIDArray: [MJAction_!]!
   MJEntityActions_ActionIDArray: [MJEntityAction_!]!
   MJMCPServerTools_GeneratedActionIDArray: [MJMCPServerTool_!]!
+  MJRecordProcesses_ActionIDArray: [MJRecordProcess_!]!
   MJScheduledActions_ActionIDArray: [MJScheduledAction_!]!
 
   """
@@ -14768,7 +15674,7 @@ type MJConversationDetailArtifact_ {
   Foreign key to ArtifactVersion - the specific artifact version linked to this conversation message
   """
   ArtifactVersionID: String!
-  ConversationDetail: String!
+  ConversationDetail: String
 
   """
   Foreign key to ConversationDetail - the conversation message associated with this artifact
@@ -14794,7 +15700,7 @@ type MJConversationDetailAttachment_ {
   Foreign key to the ArtifactVersion created alongside this attachment by the storage-unification path. When set, the agent resolver routes via the artifact path (manifest + tool dispatch) and skips inline embedding of the attachment to avoid double-processing. NULL for pre-v5.35 attachment rows authored before storage unification.
   """
   ArtifactVersionID: String
-  ConversationDetail: String!
+  ConversationDetail: String
   ConversationDetailID: String!
 
   """
@@ -14859,7 +15765,7 @@ Stores per-user ratings for conversation messages, supporting multi-user convers
 type MJConversationDetailRating_ {
   """Optional textual feedback from the user about this message."""
   Comments: String
-  ConversationDetail: String!
+  ConversationDetail: String
 
   """The conversation message being rated."""
   ConversationDetailID: String!
@@ -14889,6 +15795,11 @@ type MJConversationDetail_ {
   Denormalized agent ID for quick lookup of agent name and icon without joining through AgentRun
   """
   AgentID: String
+
+  """
+  Links this message to the AIAgentSession that was active when it was created. NULL for messages typed in standard text chat outside any live session. Lets the conversation timeline group a sessions messages into a single collapsible block.
+  """
+  AgentSessionID: String
   Artifact: String
 
   """
@@ -15066,6 +15977,7 @@ type MJConversation_ {
   MJAIAgentExamples_SourceConversationIDArray: [MJAIAgentExample_!]!
   MJAIAgentNotes_SourceConversationIDArray: [MJAIAgentNote_!]!
   MJAIAgentRuns_ConversationIDArray: [MJAIAgentRun_!]!
+  MJAIAgentSessions_ConversationIDArray: [MJAIAgentSession_!]!
   MJConversationArtifacts_ConversationIDArray: [MJConversationArtifact_!]!
   MJConversationDetails_ConversationIDArray: [MJConversationDetail_!]!
   MJReports_ConversationIDArray: [MJReport_!]!
@@ -16088,6 +17000,11 @@ type MJEntityActionInvocation_ {
   ID: String!
   InvocationType: String!
   InvocationTypeID: String!
+
+  """
+  Optional class name of a registered runtime-UX driver component (a BaseEntityActionRuntimeUX subclass resolved via MJGlobal.ClassFactory) that owns this invocation's interaction — parameter collection, dry-run preview, confirmation, and progress. NULL invokes the action directly with no custom UX. This lets any action opt into a richer, reusable runtime experience while the grid/toolbar stays operation-agnostic.
+  """
+  RuntimeUXDriverClass: String
 
   """Status of the entity action invocation (Pending, Active, Disabled)."""
   Status: String!
@@ -17144,6 +18061,8 @@ type MJEntity_ {
   MJGeneratedCodes_LinkedEntityIDArray: [MJGeneratedCode_!]!
   MJIntegrationURLFormats_EntityIDArray: [MJIntegrationURLFormat_!]!
   MJLists_EntityIDArray: [MJList_!]!
+  MJProcessRunDetails_EntityIDArray: [MJProcessRunDetail_!]!
+  MJProcessRuns_EntityIDArray: [MJProcessRun_!]!
   MJQueryEntities_EntityIDArray: [MJQueryEntity_!]!
   MJQueryFields_SourceEntityIDArray: [MJQueryField_!]!
   MJRecommendationItems_DestinationEntityIDArray: [MJRecommendationItem_!]!
@@ -17153,6 +18072,8 @@ type MJEntity_ {
   MJRecordLinks_SourceEntityIDArray: [MJRecordLink_!]!
   MJRecordLinks_TargetEntityIDArray: [MJRecordLink_!]!
   MJRecordMergeLogs_EntityIDArray: [MJRecordMergeLog_!]!
+  MJRecordProcessWatermarks_EntityIDArray: [MJRecordProcessWatermark_!]!
+  MJRecordProcesses_EntityIDArray: [MJRecordProcess_!]!
   MJResourceTypes_CategoryEntityIDArray: [MJResourceType_!]!
   MJResourceTypes_EntityIDArray: [MJResourceType_!]!
   MJSearchScopeEntities_EntityIDArray: [MJSearchScopeEntity_!]!
@@ -17791,6 +18712,11 @@ type MJIntegrationObject_ {
   Configuration: String
 
   """
+  Whether per-record content hashing is meaningful for this object (false for append-only/event streams where every row is new). Controls whether the engine uses content-hash to skip unchanged-row writes.
+  """
+  ContentHashApplicable: Boolean!
+
+  """
   HTTP path template for create operations. Generic CRUD in BaseRESTIntegrationConnector substitutes parent IDs into {var} placeholders. NULL means create not supported via metadata-driven path.
   """
   CreateAPIPath: String
@@ -17882,8 +18808,23 @@ type MJIntegrationObject_ {
   """Processing and display order. Lower numbers are processed first."""
   Sequence: Int!
 
+  """
+  Stable, monotonic ordering column (usually the PK) used for keyset/no-watermark resume of a scan. Null when the object has no stable key.
+  """
+  StableOrderingKey: String
+
   """Active, Deprecated, or Disabled. Mirrors EntityField status values."""
   Status: String!
+
+  """
+  Whether this object supports record creation in the external system (per-operation granularity beyond SupportsWrite). Drives whether the generic CreateRecord path is wired and whether the object is offered for write-back create.
+  """
+  SupportsCreate: Boolean!
+
+  """
+  Whether this object supports record deletion/tombstoning in the external system (per-operation granularity beyond SupportsWrite).
+  """
+  SupportsDelete: Boolean!
 
   """Whether this object supports watermark-based incremental sync"""
   SupportsIncrementalSync: Boolean!
@@ -17891,8 +18832,18 @@ type MJIntegrationObject_ {
   """Whether this endpoint supports paginated fetching"""
   SupportsPagination: Boolean!
 
+  """
+  Whether this object supports record updates in the external system (per-operation granularity beyond SupportsWrite).
+  """
+  SupportsUpdate: Boolean!
+
   """Whether data can be pushed back to this object via the API"""
   SupportsWrite: Boolean!
+
+  """
+  Declared incremental sync strategy for this object (e.g. WatermarkIncremental, ContentHash, FullSnapshot). Informs how the engine narrows subsequent syncs.
+  """
+  SyncStrategy: String
 
   """
   HTTP path template for update operations. Typically contains {ID} placeholder substituted with the record ExternalID at runtime.
@@ -17986,6 +18937,11 @@ type MJIntegration_ {
 
   """The TypeScript/JavaScript class name implementing this integration."""
   ClassName: String
+
+  """
+  Integration-level connector configuration JSON (e.g. out-of-scope object families, vendor-specific tuning). Free-form JSON the connector reads at runtime.
+  """
+  Configuration: String
   CredentialType: String
 
   """
@@ -18213,6 +19169,7 @@ type MJList_ {
   MJListDetails_ListIDArray: [MJListDetail_!]!
   MJListInvitations_ListIDArray: [MJListInvitation_!]!
   MJListShares_ListIDArray: [MJListShare_!]!
+  MJRecordProcesses_ScopeListIDArray: [MJRecordProcess_!]!
   Name: String!
 
   """
@@ -18964,6 +19921,11 @@ type MJOpenApp_ {
   """
   Status: String!
 
+  """
+  In-repo subdirectory the app was installed from for multi-app repositories (e.g. 'CRM/HubSpot'). NULL when the app's mj-app.json is at the repository root.
+  """
+  Subpath: String
+
   """Currently installed semver version string (e.g. 1.2.3)"""
   Version: String!
   _mj__CreatedAt: Timestamp!
@@ -19070,6 +20032,162 @@ type MJPermissionDomain_ {
   When true, this provider resolves permissions hierarchically (e.g., category-level grants cascade to items within the category).
   """
   SupportsHierarchyInheritance: Boolean!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Per-record result within a Process Run: powers audit, resume (skip already-done records), and the run-viewer UX. One row per processed record. EXAMPLE: customer CUST-00417 -> Succeeded with ResultPayload {"satisfaction":"High","sentiment":0.82} and a link to its AI Agent Run; customer CUST-00418 -> Failed with ErrorMessage "Model timeout".
+"""
+type MJProcessRunDetail_ {
+  AIAgentRun: String
+
+  """
+  Foreign key to the AI Agent Run for deep tracing, when the work was an Agent
+  """
+  AIAgentRunID: String
+  ActionExecutionLog: String
+
+  """
+  Foreign key to the Action Execution Log for deep tracing, when the work was an Action
+  """
+  ActionExecutionLogID: String
+
+  """Number of processing attempts for this record (supports retry)"""
+  AttemptCount: Int!
+
+  """When processing of this record completed"""
+  CompletedAt: Timestamp
+
+  """Processing duration for this record in milliseconds"""
+  DurationMs: Int
+  Entity: String!
+
+  """
+  Foreign key to the entity of the processed record. Stored (not inherited) because a single run may span entities for ad-hoc / engine-driven runs.
+  """
+  EntityID: String!
+
+  """Per-record error message when Status=Failed"""
+  ErrorMessage: String
+  ID: String!
+
+  """Foreign key to the parent Process Run"""
+  ProcessRunID: String!
+
+  """
+  Primary key of the processed record, stored as text to remain composite-key safe
+  """
+  RecordID: String!
+
+  """Structured output payload (JSON) produced for this record"""
+  ResultPayload: String
+
+  """When processing of this record started"""
+  StartedAt: Timestamp
+
+  """Per-record status: Pending, Succeeded, Failed, or Skipped"""
+  Status: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Source-agnostic header for one execution of any set-processing job. Deliberately generic: a Record Process run sets RecordProcessID, but legacy/engine-driven jobs (e.g., a geocoding sweep or vector sync) keep their own source tables and still record a run here with RecordProcessID = NULL, giving every batch a uniform audit + resume trail. EXAMPLE: the Saturday 2am run of "Weekly Customer Health Summary" over 1,284 active customers (RecordProcessID set, TriggeredBy=Schedule); or a nightly geocoding sweep (RecordProcessID NULL).
+"""
+type MJProcessRun_ {
+  """Effective batch size for this run"""
+  BatchSize: Int
+
+  """Pause/cancel handshake flag honored by the processor between batches"""
+  CancellationRequested: Boolean!
+
+  """JSON snapshot of the effective configuration for this run"""
+  Configuration: String
+
+  """
+  When 1, this run was a dry-run (compute-only) preview: the per-record diffs were computed and persisted as Process Run Details, but no changes were written back to the target records. When 0, the run applied its changes.
+  """
+  DryRun: Boolean!
+
+  """When the run ended"""
+  EndTime: Timestamp
+  Entity: String
+
+  """
+  Foreign key to the entity processed by this run, when the run is entity-scoped
+  """
+  EntityID: String
+
+  """Count of records that failed processing"""
+  ErrorCount: Int!
+
+  """Run-level error message when Status=Failed"""
+  ErrorMessage: String
+  ID: String!
+
+  """
+  Keyset-based resume cursor (AfterKey) for sources that paginate by seek
+  """
+  LastProcessedKey: String
+
+  """
+  Offset-based resume cursor (StartRow) for sources that paginate by offset
+  """
+  LastProcessedOffset: Int
+  MJProcessRunDetails_ProcessRunIDArray: [MJProcessRunDetail_!]!
+
+  """Count of records processed so far"""
+  ProcessedItems: Int!
+  RecordProcess: String
+
+  """
+  Foreign key to the Record Process that spawned this run; NULL for ad-hoc / engine-driven runs not tied to a saved definition
+  """
+  RecordProcessID: String
+  ScheduledJobRun: String
+
+  """
+  Foreign key to the Scheduled Job Run that launched this run, when scheduler-launched
+  """
+  ScheduledJobRunID: String
+
+  """Count of records skipped (e.g., unchanged per watermark)"""
+  SkippedCount: Int!
+
+  """
+  Resolved filter snapshot used to materialize the record set for this run
+  """
+  SourceFilter: String
+
+  """
+  Polymorphic source identifier (e.g., ViewID or ListID) when applicable; no FK because it spans entities
+  """
+  SourceID: String
+
+  """
+  The kind of record-set source resolved for this run: View, List, Filter, Array, Keyset, or SingleRecord
+  """
+  SourceType: String!
+
+  """When the run started"""
+  StartTime: Timestamp
+  StartedByUser: String
+
+  """Foreign key to the user who started the run"""
+  StartedByUserID: String
+
+  """Run status: Pending, Running, Paused, Completed, Failed, or Cancelled"""
+  Status: String!
+
+  """Count of records processed successfully"""
+  SuccessCount: Int!
+
+  """Estimated or known total number of records to process"""
+  TotalItemCount: Int
+
+  """What triggered this run: OnChange, Schedule, OnDemand, or Manual"""
+  TriggeredBy: String!
   _mj__CreatedAt: Timestamp!
   _mj__UpdatedAt: Timestamp!
 }
@@ -19907,6 +21025,329 @@ type MJRecordMergeLog_ {
 }
 
 """
+Hierarchical folder for organizing Record Processes in the UI. Example: "Customer Lifecycle" with a child category "Retention".
+"""
+type MJRecordProcessCategory_ {
+  """Optional description of what belongs in this category"""
+  Description: String
+  ID: String!
+  MJRecordProcessCategories_ParentIDArray: [MJRecordProcessCategory_!]!
+  MJRecordProcesses_CategoryIDArray: [MJRecordProcess_!]!
+
+  """Display name of the category"""
+  Name: String!
+  Parent: String
+
+  """
+  Self-referencing foreign key to the parent category, enabling a nested folder hierarchy (NULL for a top-level category)
+  """
+  ParentID: String
+  RootParentID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Per-record change-detection watermark backing WatermarkStrategy=Checksum. Stores the last content hash a Record Process processed for a given record so unchanged records are skipped on the next run. Only used by Checksum mode; UpdatedAt mode compares __mj_UpdatedAt and stores nothing here.
+"""
+type MJRecordProcessWatermark_ {
+  Entity: String!
+
+  """Foreign key to the entity of the watermarked record"""
+  EntityID: String!
+
+  """
+  Content hash of the record as of the last time it was processed by this Record Process
+  """
+  Hash: String!
+  ID: String!
+
+  """When this record was last processed by this Record Process"""
+  LastProcessedAt: Timestamp!
+
+  """
+  Primary key of the watermarked record, stored as text to remain composite-key safe
+  """
+  RecordID: String!
+  RecordProcess: String!
+
+  """Foreign key to the Record Process this watermark belongs to"""
+  RecordProcessID: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+A declarative, reusable job definition that binds three axes of a business process: WORK (an Action or an Agent) x SCOPE (a single record, a User View, a List, or an ad-hoc Filter) x TRIGGER (on-change save hooks, a cron schedule, and/or on demand). One row is one configured process; each execution of it produces a Process Run with per-record Process Run Details. EXAMPLE: a "Weekly Customer Health Summary" row runs the "Customer Summarizer" agent over the "Active Customers" view every Saturday 2am, also whenever a customer's NPS/support fields change, and on demand; for each customer it infers {satisfaction, sentiment, personalityStyle, summary} and writes satisfaction/sentiment back onto the Customer plus a summary into a Customer Insights child row, skipping customers unchanged since the last run.
+"""
+type MJRecordProcess_ {
+  Action: String
+
+  """Foreign key to the Action to run, when WorkType=Action"""
+  ActionID: String
+  Agent: String
+
+  """Foreign key to the AI Agent to run, when WorkType=Agent"""
+  AgentID: String
+
+  """Number of records processed per batch (default 100)"""
+  BatchSize: Int
+  Category: String
+
+  """Optional hierarchical category for organizing this process in the UI"""
+  CategoryID: String
+
+  """
+  JSON configuration for the process's work, used by work types that need structured config beyond Input/Output mappings. For WorkType='FieldRules' this holds the serialized FieldRuleSet (the rules applied to each record). NULL for work types that do not use it.
+  """
+  Configuration: String
+
+  """Cron expression for the schedule trigger, when ScheduleEnabled=1"""
+  CronExpression: String
+
+  """Optional description of what this process does"""
+  Description: String
+  Entity: String!
+
+  """
+  Foreign key to the target entity whose records this process operates on
+  """
+  EntityID: String!
+  ID: String!
+
+  """
+  JSON mapping describing how a record maps to the work inputs (optionally including an EntityDocumentID for render-to-text)
+  """
+  InputMapping: String
+  MJProcessRuns_RecordProcessIDArray: [MJProcessRun_!]!
+  MJRecordProcessWatermarks_RecordProcessIDArray: [MJRecordProcessWatermark_!]!
+
+  """
+  Maximum number of records processed concurrently within a batch (default 1)
+  """
+  MaxConcurrency: Int
+
+  """
+  Human-readable name of the process definition (e.g., "Weekly Customer Health Summary")
+  """
+  Name: String!
+
+  """When 1, the process runs per-record on save via an owned Entity Action"""
+  OnChangeEnabled: Boolean!
+
+  """
+  Gating expression evaluated against the changed record (with changed-fields context) that compiles into the owned Entity Action Filter; only when it passes does the on-change trigger fire
+  """
+  OnChangeFilter: String
+
+  """
+  Which save event fires the on-change trigger: AfterCreate, AfterUpdate, AfterDelete, or Validate
+  """
+  OnChangeInvocationType: String
+
+  """When 1, the process can be run on demand (button / resolver)"""
+  OnDemandEnabled: Boolean!
+
+  """
+  JSON mapping describing how the structured output payload writes back (to fields, a child record, or tags)
+  """
+  OutputMapping: String
+  Prompt: String
+
+  """
+  Foreign key to the AI Prompt to run for each record, when WorkType=Infer. The prompt's structured output is written back to the data model via OutputMapping.
+  """
+  PromptID: String
+
+  """When 1, the process runs on a cron schedule via an owned Scheduled Job"""
+  ScheduleEnabled: Boolean!
+
+  """
+  Ad-hoc WHERE clause used to resolve the record set, when ScopeType=Filter
+  """
+  ScopeFilter: String
+  ScopeList: String
+
+  """Foreign key to the List defining the scope, when ScopeType=List"""
+  ScopeListID: String
+
+  """
+  How the record set is scoped for the Schedule and On-Demand triggers: SingleRecord, View, List, or Filter. The On-Change trigger is always single-record and ignores this.
+  """
+  ScopeType: String!
+  ScopeView: String
+
+  """Foreign key to the User View defining the scope, when ScopeType=View"""
+  ScopeViewID: String
+
+  """
+  When 1, records whose watermark indicates no change since the last run are skipped
+  """
+  SkipUnchanged: Boolean!
+
+  """
+  Lifecycle status: Draft (not yet wired), Active (triggers live), or Disabled
+  """
+  Status: String!
+
+  """IANA timezone for evaluating the cron expression (default UTC)"""
+  Timezone: String
+
+  """
+  How unchanged records are detected for SkipUnchanged: Checksum (per-record content hash, stored in RecordProcessWatermark), UpdatedAt (compares __mj_UpdatedAt, stores nothing), or None
+  """
+  WatermarkStrategy: String
+
+  """
+  Whether the work is an Action, an Agent, or an Infer (per-record AI Prompt). Agents are dispatched through the Execute Agent action and must be top-level + ExposeAsAction; Infer runs the AI Prompt named by PromptID for each record and writes its structured output back via OutputMapping.
+  """
+  WorkType: String!
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Hierarchical folder for organizing Remote Operations in the UI. Example: "Record Processes" with a child category "Control" holding RunNow / Pause / Cancel.
+"""
+type MJRemoteOperationCategory_ {
+  """Optional description of what belongs in this category"""
+  Description: String
+  ID: String!
+  MJRemoteOperationCategories_ParentIDArray: [MJRemoteOperationCategory_!]!
+  MJRemoteOperations_CategoryIDArray: [MJRemoteOperation_!]!
+
+  """Display name of the category"""
+  Name: String!
+  Parent: String
+
+  """
+  Self-referencing foreign key to the parent category, enabling a nested folder hierarchy (NULL for a top-level category)
+  """
+  ParentID: String
+  RootParentID: String
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
+Definition of a typed, provider-routed server operation invoked identically from the client (marshalled over GraphQL) and the server (dispatched in-process) - the typed peer of BaseEntity (CRUD) and RunView (set reads) for arbitrary capabilities. Input/output types are declared here and emitted by CodeGen into a typed base class; the body may be hand-written or AI-authored from Description. EXAMPLE: "RecordProcess.RunNow" (ExecutionMode=LongRunning) takes {recordProcessID} and returns {processRunID}, authorized by the recordprocess:execute scope plus the caller's entity permissions.
+"""
+type MJRemoteOperation_ {
+  """Optional result cache TTL in seconds (NULL = no caching)"""
+  CacheTTLSeconds: Int
+  Category: String
+
+  """Optional hierarchical category for organizing this operation in the UI"""
+  CategoryID: String
+
+  """
+  The AI-generated implementation body (when GenerationType=AI); regenerated only when Description changes
+  """
+  Code: String
+
+  """
+  Human approval gate for AI-generated code: Pending, Approved, or Rejected. Only Approved AI code is emitted and routable.
+  """
+  CodeApprovalStatus: String!
+
+  """When the generated code was approved"""
+  CodeApprovedAt: Timestamp
+  CodeApprovedByUser: String
+
+  """Foreign key to the user who approved the generated code"""
+  CodeApprovedByUserID: String
+
+  """
+  The model's explanation / comments for the AI-generated Code (populated alongside Code when GenerationType=AI). Human-facing review aid.
+  """
+  CodeComments: String
+
+  """
+  When 1, the AI-generated Code is frozen and Save() will not regenerate it even if Description changes (the Generated-Actions CodeLocked analog). Default 0.
+  """
+  CodeLocked: Boolean!
+
+  """
+  Fingerprint of the input/output contract; carried in the wire envelope so the server can reject a stale client loudly instead of mis-deserializing
+  """
+  ContractFingerprint: String
+
+  """
+  Human description of the operation; also the seed for AI-generated implementation code when GenerationType=AI
+  """
+  Description: String
+
+  """
+  Sync (request/response) or LongRunning (returns a handle; supports detached and attached consumption)
+  """
+  ExecutionMode: String!
+
+  """
+  How the server implementation is provided: Manual (hand-written subclass), AI (generated from Description), or Default (standard generated plumbing)
+  """
+  GenerationType: String!
+  ID: String!
+
+  """
+  Raw TypeScript interface/type source defining the input shape (same mechanism as EntityField JSON-type definitions)
+  """
+  InputTypeDefinition: String
+
+  """When 1, the input type is emitted as an array (TInput[])"""
+  InputTypeIsArray: Boolean!
+
+  """
+  TypeScript type name for the operation input (emitted by CodeGen as the TInput interface)
+  """
+  InputTypeName: String
+
+  """
+  JSON array of the libraries the generated body imports: [{ "Library": "@memberjunction/ai-prompts", "ItemsUsed": ["AIPromptRunner"] }, ...]. Bound to the RemoteOperationLibrary JSONType via metadata sync so CodeGen emits a typed LibrariesObject accessor; CodeGen uses it to emit the imports at the top of the generated remote_operations.ts. NULL/empty = only the default always-available libraries are imported.
+  """
+  Libraries: String
+
+  """Optional cap on concurrent executions of this operation"""
+  MaxConcurrency: Int
+
+  """Human-readable name of the operation"""
+  Name: String!
+
+  """
+  Stable, unique registry key and wire token used to dispatch the operation (e.g., "RecordProcess.RunNow"). Namespaced by convention.
+  """
+  OperationKey: String!
+
+  """Raw TypeScript interface/type source defining the output shape"""
+  OutputTypeDefinition: String
+
+  """When 1, the output type is emitted as an array (TOutput[])"""
+  OutputTypeIsArray: Boolean!
+
+  """
+  TypeScript type name for the operation output (emitted by CodeGen as the TOutput interface)
+  """
+  OutputTypeName: String
+
+  """
+  Optional API-key scope string (e.g., recordprocess:execute) enforced for API-key/MCP callers; NULL means no scope gate (interactive users are still bounded by their entity permissions)
+  """
+  RequiredScope: String
+
+  """When 1, only the system user may invoke this operation"""
+  RequiresSystemUser: Boolean!
+
+  """
+  Lifecycle status: Active (routable), Disabled, or Pending. Only Active operations can be invoked.
+  """
+  Status: String!
+
+  """Optional execution timeout in milliseconds"""
+  TimeoutMS: Int
+  _mj__CreatedAt: Timestamp!
+  _mj__UpdatedAt: Timestamp!
+}
+
+"""
 Organizes reports into logical groupings for navigation, access control, and discovery within the reporting system.
 """
 type MJReportCategory_ {
@@ -20319,6 +21760,7 @@ type MJScheduledJobRun_ {
   ID: String!
   MJAIAgentRuns_ScheduledJobRunIDArray: [MJAIAgentRun_!]!
   MJCompanyIntegrationRuns_ScheduledJobRunIDArray: [MJCompanyIntegrationRun_!]!
+  MJProcessRuns_ScheduledJobRunIDArray: [MJProcessRun_!]!
 
   """
   Timestamp when this execution was queued (for ConcurrencyMode=Queue). NULL for immediate executions. When set, indicates this run is waiting for a previous execution to complete before starting.
@@ -20445,6 +21887,11 @@ type MJScheduledJob_ {
   LockedByInstance: String
   MJCompanyIntegrations_ScheduledJobIDArray: [MJCompanyIntegration_!]!
   MJScheduledJobRuns_ScheduledJobIDArray: [MJScheduledJobRun_!]!
+
+  """
+  Optional per-job override for the acquire-time lock lease length, in minutes. When set and positive, the engine uses max(default lease, MaxRuntimeMinutes) as the initial ExpectedCompletionAt — so it only ever EXTENDS the default lease, never shrinks it. Intended for jobs whose work is a single long-running call that cannot heartbeat mid-flight (e.g. one slow synchronous action). Jobs that heartbeat via the plugin opt-in pattern do not need this. NULL = use the engine default lease (LeaseTimeoutMinutes). See plans/scheduled-job-engine-heartbeat-lease.md (GH #2749).
+  """
+  MaxRuntimeMinutes: Int
 
   """
   Human-readable name for this scheduled job. Should clearly identify what the job does.
@@ -22650,6 +24097,7 @@ type MJUserView_ {
   MJDataContextItems_ViewIDArray: [MJDataContextItem_!]!
   MJEntityRelationships_DisplayUserViewIDArray: [MJEntityRelationship_!]!
   MJLists_SourceViewIDArray: [MJList_!]!
+  MJRecordProcesses_ScopeViewIDArray: [MJRecordProcess_!]!
   MJUserViewRuns_UserViewIDArray: [MJUserViewRun_!]!
   Name: String!
 
@@ -22725,6 +24173,8 @@ type MJUser_ {
   MJAIAgentRequests_RequestForUserIDArray: [MJAIAgentRequest_!]!
   MJAIAgentRequests_ResponseByUserIDArray: [MJAIAgentRequest_!]!
   MJAIAgentRuns_UserIDArray: [MJAIAgentRun_!]!
+  MJAIAgentSessionBridgeParticipants_UserIDArray: [MJAIAgentSessionBridgeParticipant_!]!
+  MJAIAgentSessions_UserIDArray: [MJAIAgentSession_!]!
   MJAIAgents_OwnerUserIDArray: [MJAIAgent_!]!
   MJAPIKeys_CreatedByUserIDArray: [MJAPIKey_!]!
   MJAPIKeys_UserIDArray: [MJAPIKey_!]!
@@ -22778,6 +24228,7 @@ type MJUser_ {
   MJOAuthAuthorizationStates_UserIDArray: [MJOAuthAuthorizationState_!]!
   MJOpenAppInstallHistories_ExecutedByUserIDArray: [MJOpenAppInstallHistory_!]!
   MJOpenApps_InstalledByUserIDArray: [MJOpenApp_!]!
+  MJProcessRuns_StartedByUserIDArray: [MJProcessRun_!]!
   MJPublicLinks_UserIDArray: [MJPublicLink_!]!
   MJQueryCategories_UserIDArray: [MJQueryCategory_!]!
   MJRecommendationRuns_RunByUserIDArray: [MJRecommendationRun_!]!
@@ -22785,6 +24236,7 @@ type MJUser_ {
   MJRecordChanges_UserIDArray: [MJRecordChange_!]!
   MJRecordMergeLogs_ApprovedByUserIDArray: [MJRecordMergeLog_!]!
   MJRecordMergeLogs_InitiatedByUserIDArray: [MJRecordMergeLog_!]!
+  MJRemoteOperations_CodeApprovedByUserIDArray: [MJRemoteOperation_!]!
   MJReportCategories_UserIDArray: [MJReportCategory_!]!
   MJReportSnapshots_UserIDArray: [MJReportSnapshot_!]!
   MJReportUserStates_UserIDArray: [MJReportUserState_!]!
@@ -23264,6 +24716,11 @@ type MemorySnapshotGQL {
   timestamp: Float!
 }
 
+input MintLiveKitClientTokenInput {
+  DisplayName: String
+  RoomName: String!
+}
+
 input MoveStorageObjectInput {
   AccountID: String!
   NewName: String!
@@ -23273,12 +24730,15 @@ input MoveStorageObjectInput {
 type Mutation {
   AcceptListInvitation(token: String!): AcceptInvitationResultType!
   AddViewResultsToList(listId: String!, viewId: String!): ApplyListResultType!
+  AgentSessionHeartbeat(agentSessionId: String!): Boolean!
 
   """
   Apply a previously-previewed delta. Server enforces the drop-guard regardless of UI.
   """
   ApplyListDelta(input: ApplyDeltaInput!): ApplyListResultType!
+  CancelRealtimeSessionTool(agentSessionId: String!, callId: String): CancelRealtimeSessionToolResult!
   ClassifyFeedback(input: ClassifyFeedbackInput!): FeedbackClassificationResult!
+  CloseAgentSession(agentSessionId: String!): Boolean!
 
   """
   Preview a set-op (union / intersection / difference) across N sources, optionally projected into a target list.
@@ -23352,7 +24812,9 @@ type Mutation {
   CreateMJAIAgentAction(input: CreateMJAIAgentActionInput!): MJAIAgentAction_!
   CreateMJAIAgentArtifactType(input: CreateMJAIAgentArtifactTypeInput!): MJAIAgentArtifactType_!
   CreateMJAIAgentCategory(input: CreateMJAIAgentCategoryInput!): MJAIAgentCategory_!
+  CreateMJAIAgentChannel(input: CreateMJAIAgentChannelInput!): MJAIAgentChannel_!
   CreateMJAIAgentClientTool(input: CreateMJAIAgentClientToolInput!): MJAIAgentClientTool_!
+  CreateMJAIAgentCoAgent(input: CreateMJAIAgentCoAgentInput!): MJAIAgentCoAgent_!
   CreateMJAIAgentConfiguration(input: CreateMJAIAgentConfigurationInput!): MJAIAgentConfiguration_!
   CreateMJAIAgentDataSource(input: CreateMJAIAgentDataSourceInput!): MJAIAgentDataSource_!
   CreateMJAIAgentExample(input: CreateMJAIAgentExampleInput!): MJAIAgentExample_!
@@ -23370,10 +24832,17 @@ type Mutation {
   CreateMJAIAgentRunMedia(input: CreateMJAIAgentRunMediaInput!): MJAIAgentRunMedia_!
   CreateMJAIAgentRunStep(input: CreateMJAIAgentRunStepInput!): MJAIAgentRunStep_!
   CreateMJAIAgentSearchScope(input: CreateMJAIAgentSearchScopeInput!): MJAIAgentSearchScope_!
+  CreateMJAIAgentSession(input: CreateMJAIAgentSessionInput!): MJAIAgentSession_!
+  CreateMJAIAgentSessionBridge(input: CreateMJAIAgentSessionBridgeInput!): MJAIAgentSessionBridge_!
+  CreateMJAIAgentSessionBridgeParticipant(input: CreateMJAIAgentSessionBridgeParticipantInput!): MJAIAgentSessionBridgeParticipant_!
+  CreateMJAIAgentSessionChannel(input: CreateMJAIAgentSessionChannelInput!): MJAIAgentSessionChannel_!
   CreateMJAIAgentStep(input: CreateMJAIAgentStepInput!): MJAIAgentStep_!
   CreateMJAIAgentStepPath(input: CreateMJAIAgentStepPathInput!): MJAIAgentStepPath_!
   CreateMJAIAgentType(input: CreateMJAIAgentTypeInput!): MJAIAgentType_!
   CreateMJAIArchitecture(input: CreateMJAIArchitectureInput!): MJAIArchitecture_!
+  CreateMJAIBridgeAgentIdentity(input: CreateMJAIBridgeAgentIdentityInput!): MJAIBridgeAgentIdentity_!
+  CreateMJAIBridgeProvider(input: CreateMJAIBridgeProviderInput!): MJAIBridgeProvider_!
+  CreateMJAIBridgeProviderChannel(input: CreateMJAIBridgeProviderChannelInput!): MJAIBridgeProviderChannel_!
   CreateMJAIClientToolDefinition(input: CreateMJAIClientToolDefinitionInput!): MJAIClientToolDefinition_!
   CreateMJAIConfiguration(input: CreateMJAIConfigurationInput!): MJAIConfiguration_!
   CreateMJAIConfigurationParam(input: CreateMJAIConfigurationParamInput!): MJAIConfigurationParam_!
@@ -23394,6 +24863,7 @@ type Mutation {
   CreateMJAIPromptRun(input: CreateMJAIPromptRunInput!): MJAIPromptRun_!
   CreateMJAIPromptRunMedia(input: CreateMJAIPromptRunMediaInput!): MJAIPromptRunMedia_!
   CreateMJAIPromptType(input: CreateMJAIPromptTypeInput!): MJAIPromptType_!
+  CreateMJAIRemoteBrowserProvider(input: CreateMJAIRemoteBrowserProviderInput!): MJAIRemoteBrowserProvider_!
   CreateMJAIResultCache(input: CreateMJAIResultCacheInput!): MJAIResultCache_!
   CreateMJAIVendor(input: CreateMJAIVendorInput!): MJAIVendor_!
   CreateMJAIVendorType(input: CreateMJAIVendorTypeInput!): MJAIVendorType_!
@@ -23578,6 +25048,8 @@ type Mutation {
   CreateMJOutputFormatType(input: CreateMJOutputFormatTypeInput!): MJOutputFormatType_!
   CreateMJOutputTriggerType(input: CreateMJOutputTriggerTypeInput!): MJOutputTriggerType_!
   CreateMJPermissionDomain(input: CreateMJPermissionDomainInput!): MJPermissionDomain_!
+  CreateMJProcessRun(input: CreateMJProcessRunInput!): MJProcessRun_!
+  CreateMJProcessRunDetail(input: CreateMJProcessRunDetailInput!): MJProcessRunDetail_!
   CreateMJProject(input: CreateMJProjectInput!): MJProject_!
   CreateMJPublicLink(input: CreateMJPublicLinkInput!): MJPublicLink_!
   CreateMJQuery(input: CreateMJQueryInput!): MJQuery_!
@@ -23601,6 +25073,11 @@ type Mutation {
   CreateMJRecordLink(input: CreateMJRecordLinkInput!): MJRecordLink_!
   CreateMJRecordMergeDeletionLog(input: CreateMJRecordMergeDeletionLogInput!): MJRecordMergeDeletionLog_!
   CreateMJRecordMergeLog(input: CreateMJRecordMergeLogInput!): MJRecordMergeLog_!
+  CreateMJRecordProcess(input: CreateMJRecordProcessInput!): MJRecordProcess_!
+  CreateMJRecordProcessCategory(input: CreateMJRecordProcessCategoryInput!): MJRecordProcessCategory_!
+  CreateMJRecordProcessWatermark(input: CreateMJRecordProcessWatermarkInput!): MJRecordProcessWatermark_!
+  CreateMJRemoteOperation(input: CreateMJRemoteOperationInput!): MJRemoteOperation_!
+  CreateMJRemoteOperationCategory(input: CreateMJRemoteOperationCategoryInput!): MJRemoteOperationCategory_!
   CreateMJReport(input: CreateMJReportInput!): MJReport_!
   CreateMJReportCategory(input: CreateMJReportCategoryInput!): MJReportCategory_!
   CreateMJReportSnapshot(input: CreateMJReportSnapshotInput!): MJReportSnapshot_!
@@ -23778,7 +25255,9 @@ type Mutation {
   DeleteMJAIAgentAction(ID: String!, options___: DeleteOptionsInput!): MJAIAgentAction_!
   DeleteMJAIAgentArtifactType(ID: String!, options___: DeleteOptionsInput!): MJAIAgentArtifactType_!
   DeleteMJAIAgentCategory(ID: String!, options___: DeleteOptionsInput!): MJAIAgentCategory_!
+  DeleteMJAIAgentChannel(ID: String!, options___: DeleteOptionsInput!): MJAIAgentChannel_!
   DeleteMJAIAgentClientTool(ID: String!, options___: DeleteOptionsInput!): MJAIAgentClientTool_!
+  DeleteMJAIAgentCoAgent(ID: String!, options___: DeleteOptionsInput!): MJAIAgentCoAgent_!
   DeleteMJAIAgentConfiguration(ID: String!, options___: DeleteOptionsInput!): MJAIAgentConfiguration_!
   DeleteMJAIAgentDataSource(ID: String!, options___: DeleteOptionsInput!): MJAIAgentDataSource_!
   DeleteMJAIAgentExample(ID: String!, options___: DeleteOptionsInput!): MJAIAgentExample_!
@@ -23796,10 +25275,17 @@ type Mutation {
   DeleteMJAIAgentRunMedia(ID: String!, options___: DeleteOptionsInput!): MJAIAgentRunMedia_!
   DeleteMJAIAgentRunStep(ID: String!, options___: DeleteOptionsInput!): MJAIAgentRunStep_!
   DeleteMJAIAgentSearchScope(ID: String!, options___: DeleteOptionsInput!): MJAIAgentSearchScope_!
+  DeleteMJAIAgentSession(ID: String!, options___: DeleteOptionsInput!): MJAIAgentSession_!
+  DeleteMJAIAgentSessionBridge(ID: String!, options___: DeleteOptionsInput!): MJAIAgentSessionBridge_!
+  DeleteMJAIAgentSessionBridgeParticipant(ID: String!, options___: DeleteOptionsInput!): MJAIAgentSessionBridgeParticipant_!
+  DeleteMJAIAgentSessionChannel(ID: String!, options___: DeleteOptionsInput!): MJAIAgentSessionChannel_!
   DeleteMJAIAgentStep(ID: String!, options___: DeleteOptionsInput!): MJAIAgentStep_!
   DeleteMJAIAgentStepPath(ID: String!, options___: DeleteOptionsInput!): MJAIAgentStepPath_!
   DeleteMJAIAgentType(ID: String!, options___: DeleteOptionsInput!): MJAIAgentType_!
   DeleteMJAIArchitecture(ID: String!, options___: DeleteOptionsInput!): MJAIArchitecture_!
+  DeleteMJAIBridgeAgentIdentity(ID: String!, options___: DeleteOptionsInput!): MJAIBridgeAgentIdentity_!
+  DeleteMJAIBridgeProvider(ID: String!, options___: DeleteOptionsInput!): MJAIBridgeProvider_!
+  DeleteMJAIBridgeProviderChannel(ID: String!, options___: DeleteOptionsInput!): MJAIBridgeProviderChannel_!
   DeleteMJAIClientToolDefinition(ID: String!, options___: DeleteOptionsInput!): MJAIClientToolDefinition_!
   DeleteMJAIConfiguration(ID: String!, options___: DeleteOptionsInput!): MJAIConfiguration_!
   DeleteMJAIConfigurationParam(ID: String!, options___: DeleteOptionsInput!): MJAIConfigurationParam_!
@@ -23820,6 +25306,7 @@ type Mutation {
   DeleteMJAIPromptRun(ID: String!, options___: DeleteOptionsInput!): MJAIPromptRun_!
   DeleteMJAIPromptRunMedia(ID: String!, options___: DeleteOptionsInput!): MJAIPromptRunMedia_!
   DeleteMJAIPromptType(ID: String!, options___: DeleteOptionsInput!): MJAIPromptType_!
+  DeleteMJAIRemoteBrowserProvider(ID: String!, options___: DeleteOptionsInput!): MJAIRemoteBrowserProvider_!
   DeleteMJAIResultCache(ID: String!, options___: DeleteOptionsInput!): MJAIResultCache_!
   DeleteMJAIVendor(ID: String!, options___: DeleteOptionsInput!): MJAIVendor_!
   DeleteMJAIVendorType(ID: String!, options___: DeleteOptionsInput!): MJAIVendorType_!
@@ -24004,6 +25491,8 @@ type Mutation {
   DeleteMJOutputFormatType(ID: String!, options___: DeleteOptionsInput!): MJOutputFormatType_!
   DeleteMJOutputTriggerType(ID: String!, options___: DeleteOptionsInput!): MJOutputTriggerType_!
   DeleteMJPermissionDomain(ID: String!, options___: DeleteOptionsInput!): MJPermissionDomain_!
+  DeleteMJProcessRun(ID: String!, options___: DeleteOptionsInput!): MJProcessRun_!
+  DeleteMJProcessRunDetail(ID: String!, options___: DeleteOptionsInput!): MJProcessRunDetail_!
   DeleteMJProject(ID: String!, options___: DeleteOptionsInput!): MJProject_!
   DeleteMJPublicLink(ID: String!, options___: DeleteOptionsInput!): MJPublicLink_!
   DeleteMJQuery(ID: String!, options___: DeleteOptionsInput!): MJQuery_!
@@ -24027,6 +25516,11 @@ type Mutation {
   DeleteMJRecordLink(ID: String!, options___: DeleteOptionsInput!): MJRecordLink_!
   DeleteMJRecordMergeDeletionLog(ID: String!, options___: DeleteOptionsInput!): MJRecordMergeDeletionLog_!
   DeleteMJRecordMergeLog(ID: String!, options___: DeleteOptionsInput!): MJRecordMergeLog_!
+  DeleteMJRecordProcess(ID: String!, options___: DeleteOptionsInput!): MJRecordProcess_!
+  DeleteMJRecordProcessCategory(ID: String!, options___: DeleteOptionsInput!): MJRecordProcessCategory_!
+  DeleteMJRecordProcessWatermark(ID: String!, options___: DeleteOptionsInput!): MJRecordProcessWatermark_!
+  DeleteMJRemoteOperation(ID: String!, options___: DeleteOptionsInput!): MJRemoteOperation_!
+  DeleteMJRemoteOperationCategory(ID: String!, options___: DeleteOptionsInput!): MJRemoteOperationCategory_!
   DeleteMJReport(ID: String!, options___: DeleteOptionsInput!): MJReport_!
   DeleteMJReportCategory(ID: String!, options___: DeleteOptionsInput!): MJReportCategory_!
   DeleteMJReportSnapshot(ID: String!, options___: DeleteOptionsInput!): MJReportSnapshot_!
@@ -24138,7 +25632,12 @@ type Mutation {
   DeletemjBizAppsSonarScoreSegment(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarScoreSegment_!
   DeletemjBizAppsSonarTimeWindow(ID: String!, options___: DeleteOptionsInput!): mjBizAppsSonarTimeWindow_!
   EmbedText(modelSize: String!, textToEmbed: [String!]!): EmbedTextResult!
+  EndLiveKitRoom(roomName: String!): Boolean!
   ExecuteMCPTool(input: ExecuteMCPToolInput!): ExecuteMCPToolResult!
+  ExecuteRealtimeSessionTool(agentSessionId: String!, argsJson: String!, callId: String!, toolName: String!): String!
+  ExecuteRemoteBrowserAction(agentSessionID: String!, deltaX: Float, deltaY: Float, key: String, kind: String!, ms: Float, selector: String, text: String, url: String, x: Float, y: Float): RemoteBrowserActionResult!
+  ExecuteRemoteBrowserGoal(agentSessionID: String!, goal: String!, maxSteps: Int, preferredStrategy: String, startUrl: String): RemoteBrowserGoalResultType!
+  ExecuteRemoteOperation(input: ExecuteRemoteOperationInput!): ExecuteRemoteOperationResultType!
   ExecuteSimplePrompt(messages: String, modelPower: String, preferredModels: [String!], responseFormat: String, systemPrompt: String!): SimplePromptResult!
   ExecuteTaskGraph(conversationDetailId: String!, createNotifications: Boolean, environmentId: String!, sessionId: String!, taskGraphJson: String!): ExecuteTaskGraphResult!
   ExecuteTransactionGroup(group: TransactionInputType!): TransactionOutputType!
@@ -24178,14 +25677,21 @@ type Mutation {
     """
     verb: String
   ): IntegrationGenerateActionOutput!
+  IntegrationPromoteCustomColumns(companyIntegrationID: String!, entityNames: [String!]): PromoteCustomColumnsOutput!
   IntegrationReactivateConnection(companyIntegrationID: String!): MutationResultOutput!
   IntegrationRefreshConnectorSchema(
     companyIntegrationID: String!
+
+    """
+    Comprehensive refresh (default true): objects/fields ABSENT from this discovery are deactivated (Status='Disabled', never deleted, reversible on a later rediscovery). Pass false for a scoped/partial discovery so it never disables what it didn't probe.
+    """
+    deactivateAbsent: Boolean
 
     """Optional vendor-wide PK convention hint (e.g. 'id' for HubSpot)"""
     universalPKConvention: String
   ): RefreshConnectorSchemaOutput!
   IntegrationSchemaEvolution(companyIntegrationID: String!, platform: String! = "sqlserver", skipGitCommit: Boolean! = false, skipRestart: Boolean! = false): SchemaEvolutionOutput!
+  IntegrationSetSyncConfig(companyIntegrationID: String!, config: IntegrationSyncConfigInput!): IntegrationSyncConfigOutput!
   IntegrationStartSync(
     companyIntegrationID: String!
 
@@ -24233,9 +25739,12 @@ type Mutation {
     """create, update, or delete"""
     operation: String!
   ): WriteRecordOutput!
+  InterpretRemoteBrowserPage(agentSessionID: String!, query: String): RemoteBrowserInterpretation!
   InviteToList(input: InviteToListInput!): InviteResultType!
+  InviteUsersToLiveKitRoom(roomName: String!, userIDs: [String!]!): Boolean!
   MaterializeListFromView(options: MaterializeOptionsInput!, viewId: String!): ApplyListResultType!
   MergeRecords(request: RecordMergeRequest!): RecordMergeResult!
+  MintLiveKitClientToken(input: MintLiveKitClientTokenInput!): LiveKitClientTokenResult!
   MoveStorageObject(input: MoveStorageObjectInput!): Boolean!
   PauseClassificationPipeline(processRunID: String!): AutotagPipelineResult!
 
@@ -24250,6 +25759,10 @@ type Mutation {
   RefreshListFromSource(confirmDrops: Boolean!, listId: String!, mode: String!): ApplyListResultType!
   RefreshMCPOAuthToken(input: RefreshMCPOAuthTokenInput!): RefreshMCPOAuthTokenResult!
   RejectTagSuggestion(reviewerNotes: String, suggestionID: String!): RejectSuggestionResult!
+  RelayRealtimeToolTurn(agentSessionId: String!, argsJson: String, resultJson: String, toolName: String!): Boolean!
+  RelayRealtimeTranscript(agentSessionId: String!, replacesPrevious: Boolean, role: String!, text: String!): Boolean!
+  RelayRealtimeUsage(agentSessionId: String!, inputTokens: Int!, outputTokens: Int!): Boolean!
+  RelayRemoteBrowserHumanInput(agentSessionID: String!, button: String, deltaX: Float, deltaY: Float, key: String, kind: String!, modifiers: String, text: String, x: Float, y: Float): Boolean!
   RespondToAgentRequest(requestId: String!, response: String, responseData: String, resumeAgent: Boolean, status: String!): AIAgentRunResult!
   RespondToClientToolRequest(errorMessage: String, requestID: String!, result: String, success: Boolean!): Boolean!
   ResumeClassificationPipeline(processRunID: String!): AutotagPipelineResult!
@@ -24275,11 +25788,23 @@ type Mutation {
   RunTemplate(contextData: String, templateId: String!): TemplateRunResult!
   RunTest(environment: String, fireAndForget: Boolean, tags: String, testId: String!, variables: String, verbose: Boolean): TestRunResult!
   RunTestSuite(environment: String, fireAndForget: Boolean, parallel: Boolean, selectedTestIds: String, sequenceEnd: Int, sequenceStart: Int, suiteId: String!, tags: String, variables: String, verbose: Boolean): TestSuiteRunResult!
+  SaveSessionChannelArtifact(agentSessionId: String!, channelName: String!, contentJson: String!, name: String!): SaveSessionChannelArtifactResult!
+  SaveSessionChannelState(agentSessionId: String!, channelName: String!, stateJson: String!): Boolean!
   SearchKnowledge(agentID: ID, filters: SearchFiltersInput, maxResults: Float, minScore: Float, query: String!, scopeIDs: [ID!], searchContext: SearchContextInput): SearchKnowledgeResult!
   SearchKnowledgeAsSystemUser(filters: SearchFiltersInput, maxResults: Float, minScore: Float, query: String!): SearchKnowledgeResult!
   SendComponentFeedback(feedback: ComponentFeedbackInput!): ComponentFeedbackResponse!
   SetRecordFavoriteStatus(params: UserFavoriteSetParams!): UserFavoriteResult!
   ShareList(input: ShareListInput!): ShareResultType!
+  StartAgentSession(agentId: String!, configJson: String, conversationId: String, lastSessionId: String): StartAgentSessionResult!
+  StartLiveKitAgentRoomSession(input: StartLiveKitAgentRoomSessionInput!): LiveKitAgentRoomSessionResult!
+  StartLiveKitRecording(input: LiveKitRecordingInput!): LiveKitRecordingResult!
+  StartRealtimeClientSession(clientToolsJson: String, coAgentId: String, configOverridesJson: String, conversationId: String, lastSessionId: String, preferredModelId: String, targetAgentId: String): StartRealtimeClientSessionResult!
+  StartRemoteBrowserAudioStream(agentSessionID: String!): RemoteBrowserAudioStreamResult!
+  StartRemoteBrowserScreencast(agentSessionID: String!): RemoteBrowserScreencastResult!
+  StopLiveKitAgentRoomSession(sessionBridgeID: String!): Boolean!
+  StopLiveKitRecording(egressID: String!): LiveKitRecordingResult!
+  StopRemoteBrowserAudioStream(agentSessionID: String!): Boolean!
+  StopRemoteBrowserScreencast(agentSessionID: String!): Boolean!
   StreamScopedSearch(agentID: ID, maxResults: Float, minScore: Float, query: String!, scopeIDs: [ID!], searchContext: JSON): SearchStreamStartResult!
   SubmitFeedback(input: SubmitFeedbackInput!): FeedbackResponseType!
   SyncData(items: [ActionItemInputType!]!): SyncDataResultType!
@@ -24353,7 +25878,9 @@ type Mutation {
   UpdateMJAIAgentAction(input: UpdateMJAIAgentActionInput!): MJAIAgentAction_!
   UpdateMJAIAgentArtifactType(input: UpdateMJAIAgentArtifactTypeInput!): MJAIAgentArtifactType_!
   UpdateMJAIAgentCategory(input: UpdateMJAIAgentCategoryInput!): MJAIAgentCategory_!
+  UpdateMJAIAgentChannel(input: UpdateMJAIAgentChannelInput!): MJAIAgentChannel_!
   UpdateMJAIAgentClientTool(input: UpdateMJAIAgentClientToolInput!): MJAIAgentClientTool_!
+  UpdateMJAIAgentCoAgent(input: UpdateMJAIAgentCoAgentInput!): MJAIAgentCoAgent_!
   UpdateMJAIAgentConfiguration(input: UpdateMJAIAgentConfigurationInput!): MJAIAgentConfiguration_!
   UpdateMJAIAgentDataSource(input: UpdateMJAIAgentDataSourceInput!): MJAIAgentDataSource_!
   UpdateMJAIAgentExample(input: UpdateMJAIAgentExampleInput!): MJAIAgentExample_!
@@ -24371,10 +25898,17 @@ type Mutation {
   UpdateMJAIAgentRunMedia(input: UpdateMJAIAgentRunMediaInput!): MJAIAgentRunMedia_!
   UpdateMJAIAgentRunStep(input: UpdateMJAIAgentRunStepInput!): MJAIAgentRunStep_!
   UpdateMJAIAgentSearchScope(input: UpdateMJAIAgentSearchScopeInput!): MJAIAgentSearchScope_!
+  UpdateMJAIAgentSession(input: UpdateMJAIAgentSessionInput!): MJAIAgentSession_!
+  UpdateMJAIAgentSessionBridge(input: UpdateMJAIAgentSessionBridgeInput!): MJAIAgentSessionBridge_!
+  UpdateMJAIAgentSessionBridgeParticipant(input: UpdateMJAIAgentSessionBridgeParticipantInput!): MJAIAgentSessionBridgeParticipant_!
+  UpdateMJAIAgentSessionChannel(input: UpdateMJAIAgentSessionChannelInput!): MJAIAgentSessionChannel_!
   UpdateMJAIAgentStep(input: UpdateMJAIAgentStepInput!): MJAIAgentStep_!
   UpdateMJAIAgentStepPath(input: UpdateMJAIAgentStepPathInput!): MJAIAgentStepPath_!
   UpdateMJAIAgentType(input: UpdateMJAIAgentTypeInput!): MJAIAgentType_!
   UpdateMJAIArchitecture(input: UpdateMJAIArchitectureInput!): MJAIArchitecture_!
+  UpdateMJAIBridgeAgentIdentity(input: UpdateMJAIBridgeAgentIdentityInput!): MJAIBridgeAgentIdentity_!
+  UpdateMJAIBridgeProvider(input: UpdateMJAIBridgeProviderInput!): MJAIBridgeProvider_!
+  UpdateMJAIBridgeProviderChannel(input: UpdateMJAIBridgeProviderChannelInput!): MJAIBridgeProviderChannel_!
   UpdateMJAIClientToolDefinition(input: UpdateMJAIClientToolDefinitionInput!): MJAIClientToolDefinition_!
   UpdateMJAIConfiguration(input: UpdateMJAIConfigurationInput!): MJAIConfiguration_!
   UpdateMJAIConfigurationParam(input: UpdateMJAIConfigurationParamInput!): MJAIConfigurationParam_!
@@ -24395,6 +25929,7 @@ type Mutation {
   UpdateMJAIPromptRun(input: UpdateMJAIPromptRunInput!): MJAIPromptRun_!
   UpdateMJAIPromptRunMedia(input: UpdateMJAIPromptRunMediaInput!): MJAIPromptRunMedia_!
   UpdateMJAIPromptType(input: UpdateMJAIPromptTypeInput!): MJAIPromptType_!
+  UpdateMJAIRemoteBrowserProvider(input: UpdateMJAIRemoteBrowserProviderInput!): MJAIRemoteBrowserProvider_!
   UpdateMJAIResultCache(input: UpdateMJAIResultCacheInput!): MJAIResultCache_!
   UpdateMJAIVendor(input: UpdateMJAIVendorInput!): MJAIVendor_!
   UpdateMJAIVendorType(input: UpdateMJAIVendorTypeInput!): MJAIVendorType_!
@@ -24579,6 +26114,8 @@ type Mutation {
   UpdateMJOutputFormatType(input: UpdateMJOutputFormatTypeInput!): MJOutputFormatType_!
   UpdateMJOutputTriggerType(input: UpdateMJOutputTriggerTypeInput!): MJOutputTriggerType_!
   UpdateMJPermissionDomain(input: UpdateMJPermissionDomainInput!): MJPermissionDomain_!
+  UpdateMJProcessRun(input: UpdateMJProcessRunInput!): MJProcessRun_!
+  UpdateMJProcessRunDetail(input: UpdateMJProcessRunDetailInput!): MJProcessRunDetail_!
   UpdateMJProject(input: UpdateMJProjectInput!): MJProject_!
   UpdateMJPublicLink(input: UpdateMJPublicLinkInput!): MJPublicLink_!
   UpdateMJQuery(input: UpdateMJQueryInput!): MJQuery_!
@@ -24602,6 +26139,11 @@ type Mutation {
   UpdateMJRecordLink(input: UpdateMJRecordLinkInput!): MJRecordLink_!
   UpdateMJRecordMergeDeletionLog(input: UpdateMJRecordMergeDeletionLogInput!): MJRecordMergeDeletionLog_!
   UpdateMJRecordMergeLog(input: UpdateMJRecordMergeLogInput!): MJRecordMergeLog_!
+  UpdateMJRecordProcess(input: UpdateMJRecordProcessInput!): MJRecordProcess_!
+  UpdateMJRecordProcessCategory(input: UpdateMJRecordProcessCategoryInput!): MJRecordProcessCategory_!
+  UpdateMJRecordProcessWatermark(input: UpdateMJRecordProcessWatermarkInput!): MJRecordProcessWatermark_!
+  UpdateMJRemoteOperation(input: UpdateMJRemoteOperationInput!): MJRemoteOperation_!
+  UpdateMJRemoteOperationCategory(input: UpdateMJRemoteOperationCategoryInput!): MJRemoteOperationCategory_!
   UpdateMJReport(input: UpdateMJReportInput!): MJReport_!
   UpdateMJReportCategory(input: UpdateMJReportCategoryInput!): MJReportCategory_!
   UpdateMJReportSnapshot(input: UpdateMJReportSnapshotInput!): MJReportSnapshot_!
@@ -24788,11 +26330,24 @@ type PreviewRecordOutput {
   Data: String!
 }
 
+type PromoteCustomColumnsOutput {
+  ColumnsAdded: [PromotedColumn!]!
+  Message: String!
+  Promoted: Boolean!
+  SchemaUpdatePending: Boolean!
+  Success: Boolean!
+}
+
 type PromoteSuggestionResult {
   ErrorMessage: String
   ResolvedTagID: String
   ResolvedTagName: String
   Success: Boolean!
+}
+
+type PromotedColumn {
+  ColumnName: String!
+  EntityName: String!
 }
 
 type PushStatusNotification {
@@ -24896,6 +26451,7 @@ type Query {
   AvailableSearchProviders: [AvailableSearchProviderGQL!]!
   CacheStats: CacheStatsGQL!
   CacheStatsDetail: CacheStatsDetailGQL!
+  CheckEntityPermissionsSystemUser(EntityNames: [String!]!, UserEmail: String!): CheckEntityPermissionsResult!
   CreatePreAuthDownloadUrl(input: CreatePreAuthDownloadUrlInput!): String!
   CurrentUser: MJUser_!
   CurrentUserDefaultViewByEntityID(EntityID: Int!): [MJUserView_!]!
@@ -24932,10 +26488,13 @@ type Query {
   GetQueryDataByName(AuditLogDescription: String, CategoryID: String, CategoryPath: String, ForceAuditLog: Boolean, MaxRows: Int, Parameters: JSONObject, QueryName: String!, StartRow: Int): RunQueryResultType!
   GetQueryDataByNameSystemUser(AuditLogDescription: String, CategoryID: String, CategoryPath: String, ForceAuditLog: Boolean, MaxRows: Int, Parameters: JSONObject, QueryName: String!, StartRow: Int): RunQueryResultType!
   GetQueryDataSystemUser(AuditLogDescription: String, CategoryID: String, CategoryPath: String, ForceAuditLog: Boolean, MaxRows: Int, Parameters: JSONObject, QueryID: String!, StartRow: Int): RunQueryResultType!
+  GetRealtimeModelVoices: [RealtimeModelVoicesResult!]!
   GetRecordDependencies(CompositeKey: CompositeKeyInputType!, entityName: String!): [RecordDependencyResult!]!
   GetRecordDuplicates(params: PotentialDuplicateRequestType!): PotentialDuplicateResponseType!
   GetRecordFavoriteStatus(params: UserFavoriteSearchParams!): UserFavoriteResult!
   GetRegistryComponent(hash: String, name: String!, namespace: String!, registryName: String!, version: String): ComponentSpecWithHashType!
+  GetRemoteBrowserGoalResult(agentSessionID: String!, goalRunID: String!): RemoteBrowserGoalResultType!
+  GetRemoteBrowserSelection(agentSessionID: String!): RemoteBrowserSelection!
   GetReportData(ReportID: String!): RunReportResultType!
   GetServerTelemetryActiveEvents: [TelemetryEventGQL!]!
   GetServerTelemetryDuplicates(minCount: Int! = 2): [TelemetryPatternGQL!]!
@@ -24953,9 +26512,11 @@ type Query {
   IntegrationGetRSUProgress: OperationProgressOutput!
   IntegrationGetRun(runID: String!): IntegrationRunDetailOutput!
   IntegrationGetStatus(companyIntegrationID: String!): IntegrationStatusOutput!
+  IntegrationGetSyncConfig(companyIntegrationID: String!): IntegrationSyncConfigOutput!
   IntegrationGetSyncHistory(companyIntegrationID: String!, limit: Float! = 20): SyncHistoryOutput!
   IntegrationGetSyncProgress(companyIntegrationID: String!): OperationProgressOutput!
   IntegrationListConnections(activeOnly: Boolean! = true, companyID: String): ListConnectionsOutput!
+  IntegrationListCustomColumnCandidates(companyIntegrationID: String!, entityName: String): CustomColumnCandidatesOutput!
   IntegrationListEntityMaps(companyIntegrationID: String!): ListEntityMapsOutput!
   IntegrationListFieldMaps(entityMapID: String!): ListFieldMapsOutput!
   IntegrationListRuns(companyIntegrationID: String, inFlightOnly: Boolean, limit: Float! = 50, runKind: String): IntegrationListRunsOutput!
@@ -24974,7 +26535,9 @@ type Query {
   MJAIAgentAction(ID: String!): MJAIAgentAction_
   MJAIAgentArtifactType(ID: String!): MJAIAgentArtifactType_
   MJAIAgentCategory(ID: String!): MJAIAgentCategory_
+  MJAIAgentChannel(ID: String!): MJAIAgentChannel_
   MJAIAgentClientTool(ID: String!): MJAIAgentClientTool_
+  MJAIAgentCoAgent(ID: String!): MJAIAgentCoAgent_
   MJAIAgentConfiguration(ID: String!): MJAIAgentConfiguration_
   MJAIAgentDataSource(ID: String!): MJAIAgentDataSource_
   MJAIAgentExample(ID: String!): MJAIAgentExample_
@@ -24992,10 +26555,17 @@ type Query {
   MJAIAgentRunMedia(ID: String!): MJAIAgentRunMedia_
   MJAIAgentRunStep(ID: String!): MJAIAgentRunStep_
   MJAIAgentSearchScope(ID: String!): MJAIAgentSearchScope_
+  MJAIAgentSession(ID: String!): MJAIAgentSession_
+  MJAIAgentSessionBridge(ID: String!): MJAIAgentSessionBridge_
+  MJAIAgentSessionBridgeParticipant(ID: String!): MJAIAgentSessionBridgeParticipant_
+  MJAIAgentSessionChannel(ID: String!): MJAIAgentSessionChannel_
   MJAIAgentStep(ID: String!): MJAIAgentStep_
   MJAIAgentStepPath(ID: String!): MJAIAgentStepPath_
   MJAIAgentType(ID: String!): MJAIAgentType_
   MJAIArchitecture(ID: String!): MJAIArchitecture_
+  MJAIBridgeAgentIdentity(ID: String!): MJAIBridgeAgentIdentity_
+  MJAIBridgeProvider(ID: String!): MJAIBridgeProvider_
+  MJAIBridgeProviderChannel(ID: String!): MJAIBridgeProviderChannel_
   MJAIClientToolDefinition(ID: String!): MJAIClientToolDefinition_
   MJAIConfiguration(ID: String!): MJAIConfiguration_
   MJAIConfigurationParam(ID: String!): MJAIConfigurationParam_
@@ -25016,6 +26586,7 @@ type Query {
   MJAIPromptRun(ID: String!): MJAIPromptRun_
   MJAIPromptRunMedia(ID: String!): MJAIPromptRunMedia_
   MJAIPromptType(ID: String!): MJAIPromptType_
+  MJAIRemoteBrowserProvider(ID: String!): MJAIRemoteBrowserProvider_
   MJAIResultCache(ID: String!): MJAIResultCache_
   MJAIVendor(ID: String!): MJAIVendor_
   MJAIVendorType(ID: String!): MJAIVendorType_
@@ -25200,6 +26771,8 @@ type Query {
   MJOutputFormatType(ID: String!): MJOutputFormatType_
   MJOutputTriggerType(ID: String!): MJOutputTriggerType_
   MJPermissionDomain(ID: String!): MJPermissionDomain_
+  MJProcessRun(ID: String!): MJProcessRun_
+  MJProcessRunDetail(ID: String!): MJProcessRunDetail_
   MJProject(ID: String!): MJProject_
   MJPublicLink(ID: String!): MJPublicLink_
   MJQuery(ID: String!): MJQuery_
@@ -25223,6 +26796,11 @@ type Query {
   MJRecordLink(ID: String!): MJRecordLink_
   MJRecordMergeDeletionLog(ID: String!): MJRecordMergeDeletionLog_
   MJRecordMergeLog(ID: String!): MJRecordMergeLog_
+  MJRecordProcess(ID: String!): MJRecordProcess_
+  MJRecordProcessCategory(ID: String!): MJRecordProcessCategory_
+  MJRecordProcessWatermark(ID: String!): MJRecordProcessWatermark_
+  MJRemoteOperation(ID: String!): MJRemoteOperation_
+  MJRemoteOperationCategory(ID: String!): MJRemoteOperationCategory_
   MJReport(ID: String!): MJReport_
   MJReportCategory(ID: String!): MJReportCategory_
   MJReportSnapshot(ID: String!): MJReportSnapshot_
@@ -25313,6 +26891,7 @@ type Query {
   Preview a list operation. Returns a signed DeltaToken that ApplyListDelta will accept (subject to TTL + drift checks).
   """
   PreviewListDelta(input: ComputeDeltaInput!): ListDeltaType!
+  RemoteBrowserSnapshot(agentSessionID: String!): RemoteBrowserSnapshot!
   ResolveComponentDependencies(componentId: String!, registryName: String!): ComponentDependencyTreeType
   ResolveCountry(input: String!): GeoResolveResult!
   ResolveStateProvince(countryInput: String!, stateInput: String!): GeoResolveResult!
@@ -25507,9 +27086,15 @@ type Query {
   RunMJAIAgentCategoryDynamicView(input: RunDynamicViewInput!): RunMJAIAgentCategoryViewResult!
   RunMJAIAgentCategoryViewByID(input: RunViewByIDInput!): RunMJAIAgentCategoryViewResult!
   RunMJAIAgentCategoryViewByName(input: RunViewByNameInput!): RunMJAIAgentCategoryViewResult!
+  RunMJAIAgentChannelDynamicView(input: RunDynamicViewInput!): RunMJAIAgentChannelViewResult!
+  RunMJAIAgentChannelViewByID(input: RunViewByIDInput!): RunMJAIAgentChannelViewResult!
+  RunMJAIAgentChannelViewByName(input: RunViewByNameInput!): RunMJAIAgentChannelViewResult!
   RunMJAIAgentClientToolDynamicView(input: RunDynamicViewInput!): RunMJAIAgentClientToolViewResult!
   RunMJAIAgentClientToolViewByID(input: RunViewByIDInput!): RunMJAIAgentClientToolViewResult!
   RunMJAIAgentClientToolViewByName(input: RunViewByNameInput!): RunMJAIAgentClientToolViewResult!
+  RunMJAIAgentCoAgentDynamicView(input: RunDynamicViewInput!): RunMJAIAgentCoAgentViewResult!
+  RunMJAIAgentCoAgentViewByID(input: RunViewByIDInput!): RunMJAIAgentCoAgentViewResult!
+  RunMJAIAgentCoAgentViewByName(input: RunViewByNameInput!): RunMJAIAgentCoAgentViewResult!
   RunMJAIAgentConfigurationDynamicView(input: RunDynamicViewInput!): RunMJAIAgentConfigurationViewResult!
   RunMJAIAgentConfigurationViewByID(input: RunViewByIDInput!): RunMJAIAgentConfigurationViewResult!
   RunMJAIAgentConfigurationViewByName(input: RunViewByNameInput!): RunMJAIAgentConfigurationViewResult!
@@ -25562,6 +27147,18 @@ type Query {
   RunMJAIAgentSearchScopeDynamicView(input: RunDynamicViewInput!): RunMJAIAgentSearchScopeViewResult!
   RunMJAIAgentSearchScopeViewByID(input: RunViewByIDInput!): RunMJAIAgentSearchScopeViewResult!
   RunMJAIAgentSearchScopeViewByName(input: RunViewByNameInput!): RunMJAIAgentSearchScopeViewResult!
+  RunMJAIAgentSessionBridgeDynamicView(input: RunDynamicViewInput!): RunMJAIAgentSessionBridgeViewResult!
+  RunMJAIAgentSessionBridgeParticipantDynamicView(input: RunDynamicViewInput!): RunMJAIAgentSessionBridgeParticipantViewResult!
+  RunMJAIAgentSessionBridgeParticipantViewByID(input: RunViewByIDInput!): RunMJAIAgentSessionBridgeParticipantViewResult!
+  RunMJAIAgentSessionBridgeParticipantViewByName(input: RunViewByNameInput!): RunMJAIAgentSessionBridgeParticipantViewResult!
+  RunMJAIAgentSessionBridgeViewByID(input: RunViewByIDInput!): RunMJAIAgentSessionBridgeViewResult!
+  RunMJAIAgentSessionBridgeViewByName(input: RunViewByNameInput!): RunMJAIAgentSessionBridgeViewResult!
+  RunMJAIAgentSessionChannelDynamicView(input: RunDynamicViewInput!): RunMJAIAgentSessionChannelViewResult!
+  RunMJAIAgentSessionChannelViewByID(input: RunViewByIDInput!): RunMJAIAgentSessionChannelViewResult!
+  RunMJAIAgentSessionChannelViewByName(input: RunViewByNameInput!): RunMJAIAgentSessionChannelViewResult!
+  RunMJAIAgentSessionDynamicView(input: RunDynamicViewInput!): RunMJAIAgentSessionViewResult!
+  RunMJAIAgentSessionViewByID(input: RunViewByIDInput!): RunMJAIAgentSessionViewResult!
+  RunMJAIAgentSessionViewByName(input: RunViewByNameInput!): RunMJAIAgentSessionViewResult!
   RunMJAIAgentStepDynamicView(input: RunDynamicViewInput!): RunMJAIAgentStepViewResult!
   RunMJAIAgentStepPathDynamicView(input: RunDynamicViewInput!): RunMJAIAgentStepPathViewResult!
   RunMJAIAgentStepPathViewByID(input: RunViewByIDInput!): RunMJAIAgentStepPathViewResult!
@@ -25576,6 +27173,15 @@ type Query {
   RunMJAIArchitectureDynamicView(input: RunDynamicViewInput!): RunMJAIArchitectureViewResult!
   RunMJAIArchitectureViewByID(input: RunViewByIDInput!): RunMJAIArchitectureViewResult!
   RunMJAIArchitectureViewByName(input: RunViewByNameInput!): RunMJAIArchitectureViewResult!
+  RunMJAIBridgeAgentIdentityDynamicView(input: RunDynamicViewInput!): RunMJAIBridgeAgentIdentityViewResult!
+  RunMJAIBridgeAgentIdentityViewByID(input: RunViewByIDInput!): RunMJAIBridgeAgentIdentityViewResult!
+  RunMJAIBridgeAgentIdentityViewByName(input: RunViewByNameInput!): RunMJAIBridgeAgentIdentityViewResult!
+  RunMJAIBridgeProviderChannelDynamicView(input: RunDynamicViewInput!): RunMJAIBridgeProviderChannelViewResult!
+  RunMJAIBridgeProviderChannelViewByID(input: RunViewByIDInput!): RunMJAIBridgeProviderChannelViewResult!
+  RunMJAIBridgeProviderChannelViewByName(input: RunViewByNameInput!): RunMJAIBridgeProviderChannelViewResult!
+  RunMJAIBridgeProviderDynamicView(input: RunDynamicViewInput!): RunMJAIBridgeProviderViewResult!
+  RunMJAIBridgeProviderViewByID(input: RunViewByIDInput!): RunMJAIBridgeProviderViewResult!
+  RunMJAIBridgeProviderViewByName(input: RunViewByNameInput!): RunMJAIBridgeProviderViewResult!
   RunMJAIClientToolDefinitionDynamicView(input: RunDynamicViewInput!): RunMJAIClientToolDefinitionViewResult!
   RunMJAIClientToolDefinitionViewByID(input: RunViewByIDInput!): RunMJAIClientToolDefinitionViewResult!
   RunMJAIClientToolDefinitionViewByName(input: RunViewByNameInput!): RunMJAIClientToolDefinitionViewResult!
@@ -25636,6 +27242,9 @@ type Query {
   RunMJAIPromptTypeViewByName(input: RunViewByNameInput!): RunMJAIPromptTypeViewResult!
   RunMJAIPromptViewByID(input: RunViewByIDInput!): RunMJAIPromptViewResult!
   RunMJAIPromptViewByName(input: RunViewByNameInput!): RunMJAIPromptViewResult!
+  RunMJAIRemoteBrowserProviderDynamicView(input: RunDynamicViewInput!): RunMJAIRemoteBrowserProviderViewResult!
+  RunMJAIRemoteBrowserProviderViewByID(input: RunViewByIDInput!): RunMJAIRemoteBrowserProviderViewResult!
+  RunMJAIRemoteBrowserProviderViewByName(input: RunViewByNameInput!): RunMJAIRemoteBrowserProviderViewResult!
   RunMJAIResultCacheDynamicView(input: RunDynamicViewInput!): RunMJAIResultCacheViewResult!
   RunMJAIResultCacheViewByID(input: RunViewByIDInput!): RunMJAIResultCacheViewResult!
   RunMJAIResultCacheViewByName(input: RunViewByNameInput!): RunMJAIResultCacheViewResult!
@@ -26188,6 +27797,12 @@ type Query {
   RunMJPermissionDomainDynamicView(input: RunDynamicViewInput!): RunMJPermissionDomainViewResult!
   RunMJPermissionDomainViewByID(input: RunViewByIDInput!): RunMJPermissionDomainViewResult!
   RunMJPermissionDomainViewByName(input: RunViewByNameInput!): RunMJPermissionDomainViewResult!
+  RunMJProcessRunDetailDynamicView(input: RunDynamicViewInput!): RunMJProcessRunDetailViewResult!
+  RunMJProcessRunDetailViewByID(input: RunViewByIDInput!): RunMJProcessRunDetailViewResult!
+  RunMJProcessRunDetailViewByName(input: RunViewByNameInput!): RunMJProcessRunDetailViewResult!
+  RunMJProcessRunDynamicView(input: RunDynamicViewInput!): RunMJProcessRunViewResult!
+  RunMJProcessRunViewByID(input: RunViewByIDInput!): RunMJProcessRunViewResult!
+  RunMJProcessRunViewByName(input: RunViewByNameInput!): RunMJProcessRunViewResult!
   RunMJProjectDynamicView(input: RunDynamicViewInput!): RunMJProjectViewResult!
   RunMJProjectViewByID(input: RunViewByIDInput!): RunMJProjectViewResult!
   RunMJProjectViewByName(input: RunViewByNameInput!): RunMJProjectViewResult!
@@ -26257,6 +27872,21 @@ type Query {
   RunMJRecordMergeLogDynamicView(input: RunDynamicViewInput!): RunMJRecordMergeLogViewResult!
   RunMJRecordMergeLogViewByID(input: RunViewByIDInput!): RunMJRecordMergeLogViewResult!
   RunMJRecordMergeLogViewByName(input: RunViewByNameInput!): RunMJRecordMergeLogViewResult!
+  RunMJRecordProcessCategoryDynamicView(input: RunDynamicViewInput!): RunMJRecordProcessCategoryViewResult!
+  RunMJRecordProcessCategoryViewByID(input: RunViewByIDInput!): RunMJRecordProcessCategoryViewResult!
+  RunMJRecordProcessCategoryViewByName(input: RunViewByNameInput!): RunMJRecordProcessCategoryViewResult!
+  RunMJRecordProcessDynamicView(input: RunDynamicViewInput!): RunMJRecordProcessViewResult!
+  RunMJRecordProcessViewByID(input: RunViewByIDInput!): RunMJRecordProcessViewResult!
+  RunMJRecordProcessViewByName(input: RunViewByNameInput!): RunMJRecordProcessViewResult!
+  RunMJRecordProcessWatermarkDynamicView(input: RunDynamicViewInput!): RunMJRecordProcessWatermarkViewResult!
+  RunMJRecordProcessWatermarkViewByID(input: RunViewByIDInput!): RunMJRecordProcessWatermarkViewResult!
+  RunMJRecordProcessWatermarkViewByName(input: RunViewByNameInput!): RunMJRecordProcessWatermarkViewResult!
+  RunMJRemoteOperationCategoryDynamicView(input: RunDynamicViewInput!): RunMJRemoteOperationCategoryViewResult!
+  RunMJRemoteOperationCategoryViewByID(input: RunViewByIDInput!): RunMJRemoteOperationCategoryViewResult!
+  RunMJRemoteOperationCategoryViewByName(input: RunViewByNameInput!): RunMJRemoteOperationCategoryViewResult!
+  RunMJRemoteOperationDynamicView(input: RunDynamicViewInput!): RunMJRemoteOperationViewResult!
+  RunMJRemoteOperationViewByID(input: RunViewByIDInput!): RunMJRemoteOperationViewResult!
+  RunMJRemoteOperationViewByName(input: RunViewByNameInput!): RunMJRemoteOperationViewResult!
   RunMJReportCategoryDynamicView(input: RunDynamicViewInput!): RunMJReportCategoryViewResult!
   RunMJReportCategoryViewByID(input: RunViewByIDInput!): RunMJReportCategoryViewResult!
   RunMJReportCategoryViewByName(input: RunViewByNameInput!): RunMJReportCategoryViewResult!
@@ -26774,6 +28404,17 @@ type RSUStepOutput {
   Status: String!
 }
 
+type RealtimeModelVoicesResult {
+  ModelID: String!
+  ModelName: String!
+  Voices: [RealtimeVoiceOptionResult!]!
+}
+
+type RealtimeVoiceOptionResult {
+  ID: String!
+  Name: String!
+}
+
 type RebuildTagEmbeddingsResult {
   ErrorMessage: String
   Refreshed: Int!
@@ -26860,6 +28501,57 @@ type RegistryComponentSearchResultType {
 type RejectSuggestionResult {
   ErrorMessage: String
   Success: Boolean!
+}
+
+type RemoteBrowserActionResult {
+  CurrentUrl: String
+  Detail: String
+  Success: Boolean!
+}
+
+type RemoteBrowserAudioStreamResult {
+  Streaming: Boolean!
+}
+
+type RemoteBrowserGoalResultType {
+  CurrentUrl: String
+  Detail: String
+  GoalRunID: String
+  Status: String
+  StepCount: Int
+  Strategy: String
+  Success: Boolean!
+}
+
+type RemoteBrowserInterpretation {
+  Description: String
+  Detail: String
+  Elements: [RemoteBrowserInterpretedElement!]!
+}
+
+type RemoteBrowserInterpretedElement {
+  Confidence: Float!
+  Label: String!
+  X: Float!
+  Y: Float!
+}
+
+type RemoteBrowserScreencastResult {
+  Streaming: Boolean!
+}
+
+type RemoteBrowserSelection {
+  Text: String!
+}
+
+type RemoteBrowserSnapshot {
+  CurrentUrl: String
+  ScreenshotBase64: String
+}
+
+type RemoteOperationProgressNotification {
+  ChannelId: String!
+  ProgressJSON: String!
 }
 
 input RestoreContextInput {
@@ -27632,10 +29324,30 @@ type RunMJAIAgentCategoryViewResult {
   UserViewRunID: String
 }
 
+type RunMJAIAgentChannelViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentChannel_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
 type RunMJAIAgentClientToolViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [MJAIAgentClientTool_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIAgentCoAgentViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentCoAgent_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -27812,6 +29524,46 @@ type RunMJAIAgentSearchScopeViewResult {
   UserViewRunID: String
 }
 
+type RunMJAIAgentSessionBridgeParticipantViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentSessionBridgeParticipant_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIAgentSessionBridgeViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentSessionBridge_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIAgentSessionChannelViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentSessionChannel_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIAgentSessionViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIAgentSession_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
 type RunMJAIAgentStepPathViewResult {
   ErrorMessage: String
   ExecutionTime: Int
@@ -27856,6 +29608,36 @@ type RunMJAIArchitectureViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [MJAIArchitecture_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIBridgeAgentIdentityViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIBridgeAgentIdentity_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIBridgeProviderChannelViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIBridgeProviderChannel_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIBridgeProviderViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIBridgeProvider_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -28056,6 +29838,16 @@ type RunMJAIPromptViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [MJAIPrompt_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJAIRemoteBrowserProviderViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJAIRemoteBrowserProvider_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -29902,6 +31694,26 @@ type RunMJPermissionDomainViewResult {
   UserViewRunID: String
 }
 
+type RunMJProcessRunDetailViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJProcessRunDetail_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJProcessRunViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJProcessRun_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
 type RunMJProjectViewResult {
   ErrorMessage: String
   ExecutionTime: Int
@@ -30126,6 +31938,56 @@ type RunMJRecordMergeLogViewResult {
   ErrorMessage: String
   ExecutionTime: Int
   Results: [MJRecordMergeLog_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJRecordProcessCategoryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJRecordProcessCategory_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJRecordProcessViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJRecordProcess_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJRecordProcessWatermarkViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJRecordProcessWatermark_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJRemoteOperationCategoryViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJRemoteOperationCategory_!]!
+  RowCount: Int
+  Success: Boolean!
+  TotalRowCount: Int
+  UserViewRunID: String
+}
+
+type RunMJRemoteOperationViewResult {
+  ErrorMessage: String
+  ExecutionTime: Int
+  Results: [MJRemoteOperation_!]!
   RowCount: Int
   Success: Boolean!
   TotalRowCount: Int
@@ -31703,6 +33565,14 @@ type RunmjBizAppsSonarTimeWindowViewResult {
   UserViewRunID: String
 }
 
+type SaveSessionChannelArtifactResult {
+  ArtifactID: String
+  ArtifactVersionID: String
+  ConversationDetailLinked: Boolean!
+  ErrorMessage: String
+  Success: Boolean!
+}
+
 type ScheduleSummaryOutput {
   CronExpression: String
   FailureCount: Float
@@ -32049,6 +33919,38 @@ type SqlLoggingSession {
   statementCount: Int!
 }
 
+type StartAgentSessionResult {
+  agentSessionId: String!
+  conversationId: String!
+  status: String!
+}
+
+input StartLiveKitAgentRoomSessionInput {
+  AgentID: String
+  AgentName: String
+  AgentSessionID: String
+  RealtimeModelID: String
+  RealtimeVoice: String
+  RoomName: String
+  TargetAgentID: String
+  TurnMode: String
+}
+
+type StartRealtimeClientSessionResult {
+  AgentSessionId: String!
+  ConversationId: String!
+  EffectiveConfigJson: String
+  EphemeralToken: String!
+  ExpiresAt: String!
+  Model: String!
+  ModelName: String
+  NarrationInstructionsTemplate: String
+  NarrationPaceMs: Int
+  PriorChannelStatesJson: String
+  Provider: String!
+  SessionConfigJson: String!
+}
+
 input StartSqlLoggingInput {
   fileName: String
   filterToCurrentUser: Boolean
@@ -32106,6 +34008,7 @@ type Subscription {
   ClientToolRequest(sessionID: String!): ClientToolRequestNotification!
   IntegrationProgress(companyIntegrationID: String, runID: String, topic: String): IntegrationProgressNotification!
   PipelineProgress(pipelineRunID: String!): PipelineProgressNotification!
+  RemoteOperationProgress(channelId: ID!): RemoteOperationProgressNotification!
   SearchStreamEvents(streamID: ID!): SearchStreamNotification!
   cacheInvalidation: CacheInvalidationNotification!
   colorSubscription: ColorNotification!
@@ -33397,6 +35300,19 @@ input UpdateMJAIAgentCategoryInput {
   Status: String
 }
 
+input UpdateMJAIAgentChannelInput {
+  ClientPluginClass: String
+  ConfigSchema: String
+  Description: String
+  ID: String!
+  IsActive: Boolean
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  ServerPluginClass: String
+  TransportType: String
+}
+
 input UpdateMJAIAgentClientToolInput {
   AgentID: String
   ClientToolDefinitionID: String
@@ -33405,6 +35321,20 @@ input UpdateMJAIAgentClientToolInput {
   OldValues___: [KeyValuePairInput!]
   Priority: Int
   RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJAIAgentCoAgentInput {
+  CoAgentID: String
+  Configuration: String
+  ID: String!
+  IsDefault: Boolean
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Sequence: Int
+  Status: String
+  TargetAgentID: String
+  TargetAgentTypeID: String
+  Type: String
 }
 
 input UpdateMJAIAgentConfigurationInput {
@@ -33477,6 +35407,7 @@ input UpdateMJAIAgentInput {
   AcceptUnregisteredFiles: Boolean
   AgentTypePromptParams: String
   AllowEphemeralClientTools: Boolean
+  AllowMemoryWrite: Boolean
   ArtifactCreationMode: String
   AttachmentRootPath: String
   AttachmentStorageProviderID: String
@@ -33487,6 +35418,7 @@ input UpdateMJAIAgentInput {
   ContextCompressionMessageThreshold: Int
   ContextCompressionPromptID: String
   DefaultArtifactTypeID: String
+  DefaultCoAgentID: String
   DefaultPromptEffortLevel: Int
   DefaultStorageAccountID: String
   Description: String
@@ -33539,6 +35471,7 @@ input UpdateMJAIAgentInput {
   StartingPayloadValidationMode: String
   Status: String
   TechnicalDesign: String
+  TypeConfiguration: String
   TypeID: String
 }
 
@@ -33579,6 +35512,7 @@ input UpdateMJAIAgentNoteInput {
   AccessCount: Int
   AgentID: String
   AgentNoteTypeID: String
+  AuthorType: String
   Comments: String
   CompanyID: String
   ConsolidatedIntoNoteID: String
@@ -33697,6 +35631,7 @@ input UpdateMJAIAgentRequestTypeInput {
 
 input UpdateMJAIAgentRunInput {
   AgentID: String
+  AgentSessionID: String
   AgentState: String
   CancellationReason: String
   Comments: String
@@ -33812,6 +35747,70 @@ input UpdateMJAIAgentSearchScopeInput {
   Status: String
 }
 
+input UpdateMJAIAgentSessionBridgeInput {
+  Address: String
+  AgentSessionID: String
+  BotParticipantID: String
+  CloseReason: String
+  Config: String
+  ConnectedAt: Timestamp
+  Direction: String
+  DisconnectedAt: Timestamp
+  ExternalConnectionID: String
+  HostInstanceID: String
+  ID: String!
+  JoinMethod: String
+  OldValues___: [KeyValuePairInput!]
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+  ScheduledStartTime: Timestamp
+  Status: String
+  TurnMode: String
+}
+
+input UpdateMJAIAgentSessionBridgeParticipantInput {
+  DisplayName: String
+  ExternalParticipantID: String
+  ID: String!
+  IsAgent: Boolean
+  JoinedAt: Timestamp
+  LeftAt: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Role: String
+  SessionBridgeID: String
+  UserID: String
+}
+
+input UpdateMJAIAgentSessionChannelInput {
+  AgentSessionID: String
+  ChannelID: String
+  Config: String
+  DisconnectedAt: Timestamp
+  ID: String!
+  LastActiveAt: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  SocketUrl: String
+  Status: String
+}
+
+input UpdateMJAIAgentSessionInput {
+  AgentID: String
+  CloseReason: String
+  ClosedAt: Timestamp
+  Config: String
+  ConversationID: String
+  HostInstanceID: String
+  ID: String!
+  LastActiveAt: Timestamp
+  LastSessionID: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Status: String
+  UserID: String
+}
+
 input UpdateMJAIAgentStepInput {
   ActionID: String
   ActionInputMapping: String
@@ -33853,6 +35852,8 @@ input UpdateMJAIAgentStepPathInput {
 input UpdateMJAIAgentTypeInput {
   AgentPromptPlaceholder: String
   AssignmentStrategy: String
+  ConfigSchema: String
+  DefaultConfiguration: String
   DefaultStorageAccountID: String
   Description: String
   DriverClass: String
@@ -33879,6 +35880,44 @@ input UpdateMJAIArchitectureInput {
   RestoreContext___: RestoreContextInput
   WikipediaURL: String
   YearIntroduced: Int
+}
+
+input UpdateMJAIBridgeAgentIdentityInput {
+  AgentID: String
+  Configuration: String
+  DisplayName: String
+  ID: String!
+  IdentityType: String
+  IdentityValue: String
+  IsActive: Boolean
+  OldValues___: [KeyValuePairInput!]
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJAIBridgeProviderChannelInput {
+  ChannelID: String
+  Configuration: String
+  ID: String!
+  IsDefault: Boolean
+  OldValues___: [KeyValuePairInput!]
+  ProviderID: String
+  RestoreContext___: RestoreContextInput
+  Sequence: Int
+}
+
+input UpdateMJAIBridgeProviderInput {
+  BridgeType: String
+  ConfigSchema: String
+  Configuration: String
+  Description: String
+  DriverClass: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SupportedFeatures: String
 }
 
 input UpdateMJAIClientToolDefinitionInput {
@@ -34280,6 +36319,21 @@ input UpdateMJAIPromptTypeInput {
   Name: String
   OldValues___: [KeyValuePairInput!]
   RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJAIRemoteBrowserProviderInput {
+  ConfigSchema: String
+  Configuration: String
+  DefaultControlMode: String
+  Description: String
+  DriverClass: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ProviderType: String
+  RestoreContext___: RestoreContextInput
+  Status: String
+  SupportedFeatures: String
 }
 
 input UpdateMJAIResultCacheInput {
@@ -35404,6 +37458,7 @@ input UpdateMJConversationDetailAttachmentInput {
 input UpdateMJConversationDetailInput {
   ActionableCommands: String
   AgentID: String
+  AgentSessionID: String
   ArtifactID: String
   ArtifactVersionID: String
   AutomaticCommands: String
@@ -35846,6 +37901,7 @@ input UpdateMJEntityActionInvocationInput {
   InvocationTypeID: String
   OldValues___: [KeyValuePairInput!]
   RestoreContext___: RestoreContextInput
+  RuntimeUXDriverClass: String
   Status: String
 }
 
@@ -36342,6 +38398,7 @@ input UpdateMJIntegrationInput {
   BatchMaxRequestCount: Int
   BatchRequestWaitTime: Int
   ClassName: String
+  Configuration: String
   CredentialTypeID: String
   Description: String
   ID: String!
@@ -36385,6 +38442,7 @@ input UpdateMJIntegrationObjectInput {
   APIPath: String
   Category: String
   Configuration: String
+  ContentHashApplicable: Boolean
   CreateAPIPath: String
   CreateBodyKey: String
   CreateBodyShape: String
@@ -36408,10 +38466,15 @@ input UpdateMJIntegrationObjectInput {
   ResponseDataKey: String
   RestoreContext___: RestoreContextInput
   Sequence: Int
+  StableOrderingKey: String
   Status: String
+  SupportsCreate: Boolean
+  SupportsDelete: Boolean
   SupportsIncrementalSync: Boolean
   SupportsPagination: Boolean
+  SupportsUpdate: Boolean
   SupportsWrite: Boolean
+  SyncStrategy: String
   UpdateAPIPath: String
   UpdateBodyKey: String
   UpdateBodyShape: String
@@ -36828,6 +38891,7 @@ input UpdateMJOpenAppInput {
   RestoreContext___: RestoreContextInput
   SchemaName: String
   Status: String
+  Subpath: String
   Version: String
 }
 
@@ -36890,6 +38954,53 @@ input UpdateMJPermissionDomainInput {
   SupportsDeny: Boolean
   SupportsExpiration: Boolean
   SupportsHierarchyInheritance: Boolean
+}
+
+input UpdateMJProcessRunDetailInput {
+  AIAgentRunID: String
+  ActionExecutionLogID: String
+  AttemptCount: Int
+  CompletedAt: Timestamp
+  DurationMs: Int
+  EntityID: String
+  ErrorMessage: String
+  ID: String!
+  OldValues___: [KeyValuePairInput!]
+  ProcessRunID: String
+  RecordID: String
+  RestoreContext___: RestoreContextInput
+  ResultPayload: String
+  StartedAt: Timestamp
+  Status: String
+}
+
+input UpdateMJProcessRunInput {
+  BatchSize: Int
+  CancellationRequested: Boolean
+  Configuration: String
+  DryRun: Boolean
+  EndTime: Timestamp
+  EntityID: String
+  ErrorCount: Int
+  ErrorMessage: String
+  ID: String!
+  LastProcessedKey: String
+  LastProcessedOffset: Int
+  OldValues___: [KeyValuePairInput!]
+  ProcessedItems: Int
+  RecordProcessID: String
+  RestoreContext___: RestoreContextInput
+  ScheduledJobRunID: String
+  SkippedCount: Int
+  SourceFilter: String
+  SourceID: String
+  SourceType: String
+  StartTime: Timestamp
+  StartedByUserID: String
+  Status: String
+  SuccessCount: Int
+  TotalItemCount: Int
+  TriggeredBy: String
 }
 
 input UpdateMJProjectInput {
@@ -37214,6 +39325,100 @@ input UpdateMJRecordMergeLogInput {
   SurvivingRecordID: String
 }
 
+input UpdateMJRecordProcessCategoryInput {
+  Description: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ParentID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJRecordProcessInput {
+  ActionID: String
+  AgentID: String
+  BatchSize: Int
+  CategoryID: String
+  Configuration: String
+  CronExpression: String
+  Description: String
+  EntityID: String
+  ID: String!
+  InputMapping: String
+  MaxConcurrency: Int
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  OnChangeEnabled: Boolean
+  OnChangeFilter: String
+  OnChangeInvocationType: String
+  OnDemandEnabled: Boolean
+  OutputMapping: String
+  PromptID: String
+  RestoreContext___: RestoreContextInput
+  ScheduleEnabled: Boolean
+  ScopeFilter: String
+  ScopeListID: String
+  ScopeType: String
+  ScopeViewID: String
+  SkipUnchanged: Boolean
+  Status: String
+  Timezone: String
+  WatermarkStrategy: String
+  WorkType: String
+}
+
+input UpdateMJRecordProcessWatermarkInput {
+  EntityID: String
+  Hash: String
+  ID: String!
+  LastProcessedAt: Timestamp
+  OldValues___: [KeyValuePairInput!]
+  RecordID: String
+  RecordProcessID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJRemoteOperationCategoryInput {
+  Description: String
+  ID: String!
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  ParentID: String
+  RestoreContext___: RestoreContextInput
+}
+
+input UpdateMJRemoteOperationInput {
+  CacheTTLSeconds: Int
+  CategoryID: String
+  Code: String
+  CodeApprovalStatus: String
+  CodeApprovedAt: Timestamp
+  CodeApprovedByUserID: String
+  CodeComments: String
+  CodeLocked: Boolean
+  ContractFingerprint: String
+  Description: String
+  ExecutionMode: String
+  GenerationType: String
+  ID: String!
+  InputTypeDefinition: String
+  InputTypeIsArray: Boolean
+  InputTypeName: String
+  Libraries: String
+  MaxConcurrency: Int
+  Name: String
+  OldValues___: [KeyValuePairInput!]
+  OperationKey: String
+  OutputTypeDefinition: String
+  OutputTypeIsArray: Boolean
+  OutputTypeName: String
+  RequiredScope: String
+  RequiresSystemUser: Boolean
+  RestoreContext___: RestoreContextInput
+  Status: String
+  TimeoutMS: Int
+}
+
 input UpdateMJReportCategoryInput {
   Description: String
   ID: String!
@@ -37393,6 +39598,7 @@ input UpdateMJScheduledJobInput {
   LockToken: String
   LockedAt: Timestamp
   LockedByInstance: String
+  MaxRuntimeMinutes: Int
   Name: String
   NextRunAt: Timestamp
   NotifyOnFailure: Boolean
