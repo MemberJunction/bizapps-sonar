@@ -24,6 +24,8 @@ export class SonarSetBandSetAction extends SonarActionBase {
         if (!modelId || !bandSetId) {
             return this.fail(params, "VALIDATION_ERROR", "ModelID and BandSetID are required.");
         }
+        const locked = await this.modelEditableError(params, modelId);
+        if (locked) return locked;
 
         try {
             const ok = await this.setBandSet(modelId, bandSetId, params.ContextUser);

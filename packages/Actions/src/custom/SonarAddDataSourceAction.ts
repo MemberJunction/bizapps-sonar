@@ -2,7 +2,7 @@ import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunctio
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
-import { Metadata, UserInfo } from "@memberjunction/core";
+import { Metadata, RunView, UserInfo } from "@memberjunction/core";
 import { mjBizAppsSonarModelRelatedEntityEntity } from "@mj-biz-apps/sonar-entities";
 
 const MODEL_RELATED_ENTITY = "MJ_BizApps_Sonar: Model Related Entities";
@@ -35,11 +35,17 @@ export class SonarAddDataSourceAction extends SonarActionBase {
         if (!spec.relatedEntityID || !spec.alias) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.relatedEntityID and Spec.alias are required.");
         }
+        const locked = await this.modelEditableError(params, modelId);
+        if (locked) return locked;
+        if (await this.aliasInUse(modelId, spec.alias, params.ContextUser)) {
+            return this.failWithFix(params, "VALIDATION_ERROR", `Alias '${spec.alias}' is already used by a source on this model.`,
+                "pick a different alias, or reuse the existing source (call Sonar: Describe Model to see current aliases). Do NOT re-add the same source.");
+        }
 
         try {
             const ds = await this.addSource(modelId, spec, params.ContextUser);
-            if (!ds) {
-                return this.fail(params, "ERROR", "Failed to wire the data source.");
+            if (ds instanceof Error) {
+                return this.fail(params, "ERROR", `Could not wire data source '${spec.alias}': ${ds.message}`);
             }
             return {
                 Success: true,
@@ -52,8 +58,9 @@ export class SonarAddDataSourceAction extends SonarActionBase {
         }
     }
 
-    /** Create + save the Model Related Entity (Left join; "[]" path = let the engine auto-resolve). */
-    private async addSource(modelId: string, spec: AddDataSourceSpec, contextUser?: UserInfo): Promise<mjBizAppsSonarModelRelatedEntityEntity | null> {
+    /** Create + save the Model Related Entity (Left join). Returns the row, or an Error with the real
+     *  save message so a calling agent can self-correct. */
+    private async addSource(modelId: string, spec: AddDataSourceSpec, contextUser?: UserInfo): Promise<mjBizAppsSonarModelRelatedEntityEntity | Error> {
         const md = new Metadata();
         const ds = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, contextUser);
         ds.NewRecord();
@@ -61,17 +68,28 @@ export class SonarAddDataSourceAction extends SonarActionBase {
         ds.RelatedEntityID = spec.relatedEntityID;
         ds.Alias = spec.alias;
         ds.JoinType = "Left";
-        ds.RelationshipPath = spec.relationshipPath && spec.relationshipPath.length > 0 ? spec.relationshipPath : "[]";
-        return (await ds.Save()) ? ds : null;
+        ds.RelationshipPath = this.normalizeRelationshipPath(spec.relationshipPath);
+        return (await ds.Save()) ? ds : new Error(this.errOf(ds));
     }
 
-    private parseSpec(json: string): AddDataSourceSpec | null {
+    /** Is this alias already wired into the model? (case-insensitive — aliases are identifiers.) */
+    private async aliasInUse(modelId: string, alias: string, contextUser?: UserInfo): Promise<boolean> {
+        const res = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>(
+            { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${modelId}' AND LOWER(Alias)='${alias.trim().toLowerCase().replace(/'/g, "''")}'`, MaxRows: 1, ResultType: "simple" },
+            contextUser,
+        );
+        return res.Success && res.Results.length > 0;
+    }
+
+    /** RelationshipPath must be a JSON array. Agents tend to invent dotted/SQL strings
+     *  ("a.b.MemberID = c.ID") which fail validation — those mean "just auto-resolve", so coerce any
+     *  non-JSON-array value to "[]" (the engine then resolves the direct FK itself). */
+    private normalizeRelationshipPath(path: string | undefined): string {
+        if (!path || path.trim().length === 0) return "[]";
         try {
-            const parsed: unknown = JSON.parse(json);
-            return parsed && typeof parsed === "object" ? (parsed as AddDataSourceSpec) : null;
+            return Array.isArray(JSON.parse(path)) ? path : "[]";
         } catch {
-            return null;
+            return "[]";
         }
     }
-
 }

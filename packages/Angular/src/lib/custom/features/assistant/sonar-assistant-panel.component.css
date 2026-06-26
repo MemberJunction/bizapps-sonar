@@ -82,6 +82,54 @@
 .sonar-asst__step--action { color: var(--sonar-ink); font-weight: 600; }
 .sonar-asst__step--action i { color: var(--sonar-accent); }
 
+/* Structured response form the agent attached (choices/confirmation). */
+.sonar-asst__form {
+    align-self: flex-start;
+    max-width: 90%;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sonar-asst__form--done { opacity: 0.75; }
+.sonar-asst__form-title { font-weight: 700; font-size: var(--sonar-font-sm); color: var(--sonar-ink); }
+.sonar-asst__form-desc { margin: 0; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.5; }
+.sonar-asst__form-q { display: flex; flex-direction: column; gap: 0.3rem; }
+.sonar-asst__form-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
+.sonar-asst__req { color: var(--sonar-critical); }
+.sonar-asst__form-help { font-size: var(--sonar-font-xs); color: var(--sonar-muted); }
+.sonar-asst__form-input { width: 100%; }
+
+/* Each option as a full-width selectable row. */
+.sonar-asst__opt {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    font: inherit;
+    font-size: var(--sonar-font-sm);
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+.sonar-asst__opt:hover:not(:disabled) { background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface)); }
+.sonar-asst__opt:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 1px; }
+.sonar-asst__opt--on { border-color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface)); }
+.sonar-asst__opt i { color: var(--sonar-accent); width: 1rem; flex-shrink: 0; }
+.sonar-asst__opt:disabled { cursor: default; }
+.sonar-asst__form-submit { align-self: flex-start; margin-top: 0.25rem; }
+.sonar-asst__form-done { font-size: var(--sonar-font-sm); color: var(--sonar-muted); display: flex; align-items: center; gap: 0.4rem; }
+.sonar-asst__form-done i { color: var(--sonar-accent); }
+
 .sonar-asst__error {
     color: var(--sonar-critical);
     background: var(--sonar-critical-bg);

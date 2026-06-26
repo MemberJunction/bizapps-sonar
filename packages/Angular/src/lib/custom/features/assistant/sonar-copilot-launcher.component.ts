@@ -1,10 +1,12 @@
-import { Component, signal } from "@angular/core";
+import { Component, inject } from "@angular/core";
+import { SonarAssistantConversationService } from "./sonar-assistant-conversation.service";
 
 /**
  * A floating copilot launcher — a fixed-position button (bottom-right, beside MJ's shell chat) that
  * pops the Sonar Authoring Agent panel as an overlay. Dropped into each Sonar surface so the agent is
- * available everywhere without a dedicated nav tab. Self-contained (owns its open/close state); hosts
- * the reusable <sonar-assistant-panel>. See plans/agentic-authoring.md §4c.
+ * available everywhere without a dedicated nav tab. Open state + the conversation live in the shared
+ * {@link SonarAssistantConversationService} singleton, so neither the panel nor its transcript is lost
+ * when a host surface re-renders and recreates this launcher. See plans/agentic-authoring.md §4c.
  */
 @Component({
     standalone: false,
@@ -13,13 +15,15 @@ import { Component, signal } from "@angular/core";
     styleUrls: ["./sonar-copilot-launcher.component.css"],
 })
 export class SonarCopilotLauncherComponent {
-    public readonly open = signal(false);
+    private readonly convo = inject(SonarAssistantConversationService);
+
+    public readonly open = this.convo.open;
 
     public toggle(): void {
-        this.open.update((v) => !v);
+        this.convo.open.update((v) => !v);
     }
 
     public close(): void {
-        this.open.set(false);
+        this.convo.open.set(false);
     }
 }

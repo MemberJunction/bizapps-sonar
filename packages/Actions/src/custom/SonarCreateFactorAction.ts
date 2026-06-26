@@ -67,6 +67,10 @@ export class SonarCreateFactorAction extends SonarActionBase {
         if (!spec.name || spec.name.trim().length === 0) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.name is required.");
         }
+        const aggGap = this.aggregateFieldGap(spec.aggregation, spec.aggregateFieldName);
+        if (aggGap) return this.fail(params, "VALIDATION_ERROR", `Factor '${spec.name}': ${aggGap}`);
+        const locked = await this.modelEditableError(params, modelId);
+        if (locked) return locked;
 
         try {
             const anchorEntityID = await this.resolveAnchor(modelId, params.ContextUser);

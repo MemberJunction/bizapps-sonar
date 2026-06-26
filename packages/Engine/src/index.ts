@@ -8,6 +8,7 @@
  */
 
 export * from "./contracts/IFactorEvaluator";
+export * from "./metadata/entityScope";
 export * from "./factors/filter";
 export * from "./factors/factorSql";
 export * from "./factors/CompiledFactorEvaluator";
