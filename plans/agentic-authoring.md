@@ -301,3 +301,25 @@ is the self-contained variant).
 4. **Codesmith harness.** Reuses the oversight feed + a read-only code preview (`ng-code-editor`) +
    test results + the **CodeApprovalStatus** approve/reject gate. Prereq: the factor-action adapter
    (§5) + a reliable parent agent (step 1).
+
+### Substrate spike result (2026-06-26)
+Tried embedding `<mj-conversation-chat-area [defaultAgentId]=…>` in the floating launcher on **5.43**.
+Result: **still hangs on "Creating your conversation…"** — same as 5.40. So that blocker was NOT the
+version skew; the chat-area has a hard dependency on the conversation **workspace** to drive its
+create/pause-resume flow. It does not embed standalone. (5.43 *did* fix the separate `AgentSessionID`
+GraphQL skew, which is what unblocked our custom panel's `RunAgentFromConversationDetail`.)
+
+**Decision:** keep the **custom panel** as the copilot substrate. MJ-native confirmation (Chat-step /
+ResponseForm) rides on that same workspace machinery, so it's not available to a pinned floating
+copilot without adopting either the full workspace or the Sage-fronted `ChatAgentsOverlayComponent`
+(which would force `@mention` to reach the Sonar agent — a worse UX for a Sonar-focused copilot).
+
+**Confirmation model for Sonar (revised):** the agent only ever produces **Drafts** — it never
+publishes or deletes — so "confirm the agent's actions" is best served as **review-then-approve**, not
+**confirm-before-act**:
+- **Oversight feed** (built) shows exactly what the agent did.
+- **Draft → Publish** is the human approval gate (publishing snapshots an immutable version).
+- **CodeApprovalStatus** (Pending→Approved) is the real *pre-execution* gate for the one genuinely
+  risky case — Codesmith-generated Runtime code — and it's MJ-native.
+Reserve hard pre-action confirmation for that code path; for draft model/factor edits, review-then-publish
+is the right amount of friction.
