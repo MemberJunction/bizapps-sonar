@@ -4,9 +4,10 @@
 decisions for the harness built in `packages/Engine`. Pairs with `engine.md` (declarative factors),
 `roadmap.md` (status/backlog), `plan.md` §5.2/§7.2 (spec).
 
-**Status (2026-06-23):** harness built, builds clean, 78/78 engine tests pass. **Uncommitted.** No
-real Action bound yet (the "example" — see §8). Runs server-side (MJAPI :4102), invoked via the
-existing `Sonar: Recompute Model` / `Sonar: Validate Factor` MJ Actions like the rest of the engine.
+**Status (2026-06-25):** harness built + builds clean (102 engine tests pass). Tier-2 (streak) and
+tier-3 (LLM sentiment, §13) factor-actions both bound + verified end-to-end. Factor-action contract
+(`SonarFactorAction`, §12) + catalog endpoint + builder "what this signal does" panel + prompt
+view/edit/test (§13) all built. Runs server-side; the demo stack is MJAPI :4112 / Explorer :4302.
 
 ---
 
@@ -97,12 +98,15 @@ Example: a sentiment Action whose input is `MemberID` and output is `Sentiment` 
 
 ## 5. Governance gate
 
-In `RecomputeOrchestrator.buildWeightedFactors` (the rubric loop used by recompute AND
-`computeScores`): an `ActionBacked` factor with `PromotionState !== 'Approved'` THROWS before
-compiling. So **real scores require Approved code; drafts are still previewable** (the draft-preview
-path, `previewFactor`, builds a transient factor and bypasses this loop). The gate lives in the
-orchestrator (a scoring *policy*), not the compiler (which just builds evaluators). The full
-`ActionPromotion` table (plan §5.5) is deferred; this uses the `Factor.PromotionState` field directly.
+In `RecomputeOrchestrator.buildWeightedFactors`: an `ActionBacked` factor with
+`PromotionState !== 'Approved'` THROWS — **unless** `allowUnapprovedActions` is true. The flag is
+threaded from the entry points: `computeScores` (preview / Simulate) passes **true** so a draft
+factor can be tried; `recompute` (persist) passes **false** so persisted scores require Approved
+code. (Updated 2026-06-25: previously both shared the gate, which wrongly blocked draft factors in
+Simulate too — the comment said "drafts can be previewed" but the code didn't honor it.) The
+single-draft path `previewFactor` builds a transient factor and bypasses the rubric loop entirely.
+The gate lives in the orchestrator (a scoring *policy*), not the compiler. The full `ActionPromotion`
+table (plan §5.5) is deferred; this uses the `Factor.PromotionState` field directly.
 
 ---
 
@@ -150,11 +154,14 @@ ActionParam[]; ... }` — read outputs from `result.Params`.
 
 ---
 
-## 8. The example (next step — NOT built)
+## 8. The example (BUILT — 2026-06-24/25)
 
-Prove end-to-end with the **tier-2** signal: a code-based MJ Action **"Member Activity Streak"**
-(longest run of consecutive active months for a member — deterministic, DB-only, non-declarable),
-then bind it as an `ActionBacked` factor on the cheese (`AssociationDemo`) model and recompute.
+Both tiers are now proven end-to-end (see §13 for the LLM factor specifics):
+- **Tier-2 (deterministic):** `SonarMemberActivityStreak` / "Event Attendance Streak" — consecutive-period activity count, bound as an `ActionBacked` factor and recomputed.
+- **Tier-3 (truly custom):** `SonarReviewSentiment` — an LLM reads a member's review prose (not the star rating) and returns 0–1 sentiment + a reason. Verified through the real engine preview over the membership demo population.
+
+Original plan (kept for context): prove end-to-end with a code-based MJ Action, bind it as an
+`ActionBacked` factor, recompute.
 
 Constraints to respect:
 - **Migrations are paused** (prototype) — register the Action via metadata-sync / CodeGen or a
@@ -191,6 +198,8 @@ Constraints to respect:
   aren't a "source entity" pick — they bind an Action, which the current builder UI does not yet author
   (engine-only today; binding is done via data until a builder surface exists).
 - No `any`: the runner reads MJ's `ActionParam.Value` (typed `any`) into `unknown` then coerces.
+- **`@RegisterClass(BaseAction, "DriverClass")` — always `BaseAction`, never the intermediate base.** Factor-actions extend `SonarFactorAction` (→ `SonarActionBase` → `BaseAction`), but `ActionEngine` resolves the class by `(BaseAction, DriverClass)`. Registering under `SonarFactorAction` makes `RunAction` fail with "Could not find a class for action …" (hit once on `SonarReviewSentiment`). Hand-authored non-factor actions now extend `SonarActionBase` for the shared `getInput`/`fail`/`ok` helpers — same registration rule.
+- **Metadata IDs are hand-assigned** in `metadata/actions/.sonar-actions.json` (4-digit blocks); run `npm run check:action-ids` before `mj sync push` to catch a reused block (a 0008/0009 collision happened once).
 
 ---
 
@@ -305,3 +314,36 @@ metadata, so it shows the old fields until its next restart — source of truth 
 restart. A new action also needs the client `ActionEngine` cache refreshed (handled by the
 `Config(true)`-on-miss in `ActionCatalogService`) AND the server-side metadata cache refreshed for
 param changes to show. A `Runtime` action (DB-stored code, via ActionSmith) avoids the *code* restart.
+
+---
+
+## 13. LLM-backed factor + prompt edit/test (BUILT — 2026-06-25)
+
+The tier-3 exemplar: **`SonarReviewSentiment`** (`packages/Actions/src/custom/SonarReviewSentimentAction.ts`).
+Reads a member's free-text resource reviews (newest-first, dated) and asks an LLM to rate engagement
+sentiment 0–1 + a one-line reason. The star rating is ignored — only an LLM can read the *prose*, which
+is the whole point of the escape hatch.
+
+- **Data source:** the `membership.ResourceReview` demo table (entity "Resource Reviews"), seeded by
+  `demo/membership-reviews.sql` with sentiment that corroborates each member's engagement Status (incl.
+  one "souring Active" member the factor catches before the status field flips).
+- **Prompt as metadata:** the action declares `contract.promptName = "Sonar: Resource Review Sentiment"`.
+  The prompt lives in an MJ **AIPrompt** (Template + TemplateContent) seeded by
+  `scripts/seed-sentiment-prompt.mjs`, pinned to a current Gemini (NOT `gemini-1.5-flash` — retired →
+  failover thrash; use `gemini-3.1-flash-lite`). `AIPromptRunner.ExecutePrompt` runs it; built-in
+  caching + a null-on-no-reviews short-circuit keep population cost down.
+- **Explainability:** the action returns `Explanation` (the LLM's reason); it threads
+  `FactorResult.explanation` → `FactorContribution.explanation` → persisted
+  `ScoreFactorContribution.DetailJSON` (one codec: `Engine/src/scoring/contributionDetail.ts`). The
+  triage "Why this score" panel decodes it (`ScoreReadService`), and the model-builder preview shows it
+  inline. So an AI factor is **not** a black box at scoring time.
+
+**Prompt view/edit/test in the builder.** Because the factor declares `contract.promptName`, the factor
+builder shows a **`SonarPromptEditorComponent`** panel: view/edit the prompt text + test it against a
+sample member (runs the real factor-action → score + reason). Two server actions back it —
+`Sonar: Get Prompt` (`SonarGetPromptAction`, name → text + ids) and `Sonar: Update Prompt`
+(`SonarUpdatePromptAction`, save text to the TemplateContent). Caveats surfaced in the UI: the AIPrompt
+is **shared** (editing affects every use) and Test runs the **saved** prompt (save-then-test).
+
+**Gotcha that bit us:** `gemini-1.5-flash` is retired at Google's API; pin a live model. And see §10 —
+the action must `@RegisterClass(BaseAction, …)`, not under `SonarFactorAction`.

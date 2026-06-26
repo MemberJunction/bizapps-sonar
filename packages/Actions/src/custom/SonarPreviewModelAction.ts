@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { RecomputeOrchestrator, ScoreResult } from "@mj-biz-apps/sonar-engine";
 
@@ -23,7 +24,7 @@ interface PreviewPayload {
  * Output param: Result  (JSON string of PreviewPayload)
  */
 @RegisterClass(BaseAction, "SonarPreviewModel")
-export class SonarPreviewModelAction extends BaseAction {
+export class SonarPreviewModelAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const modelId = this.getInput(params, "ModelID");
         if (!modelId) {
@@ -43,12 +44,6 @@ export class SonarPreviewModelAction extends BaseAction {
         } catch (e: unknown) {
             return { Success: false, ResultCode: "ERROR", Message: e instanceof Error ? e.message : String(e), Params: params.Params };
         }
-    }
-
-    /** Read a single input param's value as a string (null when absent/empty). */
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
     }
 
     /** Roll a score map up into a band distribution + one sample member breakdown. */

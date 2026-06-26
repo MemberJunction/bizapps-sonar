@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
 import { mjBizAppsSonarModelRelatedEntityEntity } from "@mj-biz-apps/sonar-entities";
@@ -24,16 +25,12 @@ interface AddDataSourceSpec {
  * Output param:  Result  (JSON: { modelRelatedEntityID })
  */
 @RegisterClass(BaseAction, "SonarAddDataSource")
-export class SonarAddDataSourceAction extends BaseAction {
+export class SonarAddDataSourceAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const modelId = this.getInput(params, "ModelID");
-        const specJson = this.getInput(params, "Spec");
-        if (!modelId || !specJson) {
-            return this.fail(params, "VALIDATION_ERROR", "ModelID and Spec are required.");
-        }
-        const spec = this.parseSpec(specJson);
-        if (!spec) {
-            return this.fail(params, "VALIDATION_ERROR", "Spec is not valid JSON.");
+        const spec = this.parseJsonParam<AddDataSourceSpec>(params, "Spec");
+        if (!modelId || !spec) {
+            return this.fail(params, "VALIDATION_ERROR", "ModelID and Spec (a JSON object or string) are required.");
         }
         if (!spec.relatedEntityID || !spec.alias) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.relatedEntityID and Spec.alias are required.");
@@ -77,12 +74,4 @@ export class SonarAddDataSourceAction extends BaseAction {
         }
     }
 
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
-
-    private fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
-        return { Success: false, ResultCode: code, Message: message, Params: params.Params };
-    }
 }

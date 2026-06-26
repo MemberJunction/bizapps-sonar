@@ -5,8 +5,7 @@
  *
  * Run from repo root:  node scripts/seed-sentiment-prompt.mjs
  */
-import sql from "mssql";
-import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
+import { bootstrap } from "./lib/bootstrap.mjs";
 import { Metadata, RunView } from "@memberjunction/core";
 import "@memberjunction/core-entities"; // side-effect: register core entity subclasses (Template/AIPrompt/...)
 
@@ -36,14 +35,7 @@ async function save(entity, label) {
 }
 
 async function main() {
-    const pool = new sql.ConnectionPool({
-        user: "sa", password: "Securepassword!23", server: "localhost", port: 1433,
-        database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false },
-    });
-    await pool.connect();
-    await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
-    await UserCache.Instance.Refresh(pool);
-    const user = UserCache.Users.find((u) => u?.Type?.trim().toLowerCase() === "owner") ?? UserCache.Users[0];
+    const { pool, user } = await bootstrap();
     console.log(`context user: ${user?.Name}`);
 
     const md = new Metadata();

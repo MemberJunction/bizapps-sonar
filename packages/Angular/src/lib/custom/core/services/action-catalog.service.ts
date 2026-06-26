@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
+import { extractActionResult } from "./action-result.util";
 
 /** Invoked by registered Name; the engine resolves the ID at runtime (no hardcoded UUID). */
 const ACTION_LIST_FACTOR_ACTIONS = "Sonar: List Factor Actions";
@@ -13,6 +14,9 @@ export interface FactorActionContract {
     reads: string[];
     output: { unit?: string; min?: number; max?: number; higherIsBetter: boolean; sample?: number };
     cost: { deterministic: boolean; externalCalls: boolean; expensive: boolean };
+    /** Present when the action is LLM-backed: the registered AIPrompt name driving it. Enables the
+     *  builder's view/edit/test prompt panel. */
+    promptName?: string;
 }
 
 /** One configurable (behavioral) param of a factor-action → one field in the builder form. */
@@ -68,7 +72,7 @@ export class ActionCatalogService {
         if (!result.Success) {
             return [];
         }
-        const entries = this.extractResult<CatalogEntry[]>(result) ?? [];
+        const entries = extractActionResult<CatalogEntry[]>(result) ?? [];
         const catalog = entries.map((e) => ({
             id: e.actionId,
             name: e.name,
@@ -101,17 +105,5 @@ export class ActionCatalogService {
         }
         if (action) this.actionIdCache.set(name, action.ID);
         return action?.ID ?? null;
-    }
-
-    /** Pull our `Result` output (JSON) from an action result — same normalization SonarEngineService
-     *  uses: MJ returns 'Both' params via GraphQL ResultData as an array or index-keyed object. */
-    private extractResult<T>(result: { Result?: unknown }): T | null {
-        const data = result.Result;
-        if (data == null) return null;
-        const entries = (Array.isArray(data) ? data : typeof data === "object" ? Object.values(data) : []) as Array<{ Name?: string; Value?: unknown }>;
-        const param = entries.find((p) => p && typeof p === "object" && p.Name === "Result");
-        const raw: unknown = param ? param.Value : data;
-        if (raw == null) return null;
-        return (typeof raw === "string" ? JSON.parse(raw) : raw) as T;
     }
 }

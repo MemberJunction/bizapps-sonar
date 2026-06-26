@@ -4,8 +4,7 @@
  * for the sentiment factor (cached after the first run).
  * Run:  set -a && . ./.env && set +a && node scripts/recompute-llm-model.mjs
  */
-import sql from "mssql";
-import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
+import { bootstrap } from "./lib/bootstrap.mjs";
 import { AIEngine } from "@memberjunction/aiengine";
 import { RecomputeOrchestrator } from "@mj-biz-apps/sonar-engine";
 import "@memberjunction/core-entities";
@@ -17,14 +16,7 @@ import "@memberjunction/ai-gemini";
 const MODEL_ID = "A2708489-D1B1-45FA-BB27-F61C058C40CE"; // Context Test Model (has the Approved sentiment factor)
 
 async function main() {
-    const pool = new sql.ConnectionPool({
-        user: "sa", password: "Securepassword!23", server: "localhost", port: 1433,
-        database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false },
-    });
-    await pool.connect();
-    await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
-    await UserCache.Instance.Refresh(pool);
-    const user = UserCache.Users.find((u) => u?.Type?.trim().toLowerCase() === "owner") ?? UserCache.Users[0];
+    const { pool, user } = await bootstrap();
     await AIEngine.Instance.Config(false, user);
 
     console.log("Recomputing (persisting) — this writes DetailJSON reasons…");

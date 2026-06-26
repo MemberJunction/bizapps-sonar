@@ -12,6 +12,8 @@ import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { pathCountsFromAnchor } from "../../core/entity-graph";
 import { ToastService } from "../../core/services/toast.service";
+import { bandKey, BandKey } from "../../core/services/score-read.service";
+import { resolveAnchorName } from "../../core/services/anchor-name.util";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
 
@@ -21,9 +23,6 @@ const NUMERIC_TYPES = new Set(["int", "bigint", "smallint", "tinyint", "decimal"
 /** Filter operators that need no value (so a condition using them is complete on its own). */
 const NULL_FILTER_OPERATORS = new Set(["isnull", "isnotnull", "isempty", "isnotempty"]);
 
-
-/** Band identity used for color coding across the surface. */
-type BandKey = "healthy" | "watch" | "atrisk" | "critical";
 
 /** A rendered wire connecting a data source to a factor input socket in the patch bay overlay. */
 interface WireSegment {
@@ -685,7 +684,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 this.toast.error("Couldn't update that band. Please try again.");
                 return;
             }
-            this.bands.set(this.bands().map((x) => (x.id === b.id ? { ...x, label, min, max, key: this.bandKey(label) } : x)));
+            this.bands.set(this.bands().map((x) => (x.id === b.id ? { ...x, label, min, max, key: bandKey(label) } : x)));
             this.recomputeSampleOptimistic();          // sample's band may change instantly
             this.closeBandEditor();
             if (this.previewed()) { this.tuning.set(true); void this.applyTuning(); } // silent distribution sync
@@ -953,7 +952,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         // Band set (count for the publish gate + editable rows for in-context range tweaking).
         const bandRows = model.BandSetID ? await this.bandService.getBands(model.BandSetID) : [];
         this.bandCount.set(bandRows.length);
-        this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: this.bandKey(b.Label) })));
+        this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKey(b.Label) })));
         this.editingBandKey.set(null);
 
         // Auto-run the live preview so the sandbox populates without a manual "Simulate" click —
@@ -1014,11 +1013,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             const res = await this.engine.previewModel(id);
             if (res.errors.length > 0) this.previewError.set(res.errors[0]);
             this.previewTotal.set(res.totalScored ?? 0);
-            this.bandDist.set((res.bandDistribution ?? []).map((b) => ({ label: b.label, pct: b.pct, band: this.bandKey(b.label) })));
+            this.bandDist.set((res.bandDistribution ?? []).map((b) => ({ label: b.label, pct: b.pct, band: bandKey(b.label) })));
             const sample = res.sampleMember;
             if (sample) {
-                const name = await this.resolveAnchorName(sample.anchorId);
-                this.sampleMember.set({ name, score: sample.score, band: this.bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
+                const name = await resolveAnchorName(this.selectedModel()?.AnchorEntityID ?? null, sample.anchorId);
+                this.sampleMember.set({ name, score: sample.score, band: bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
                 const nameByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.name]));
                 this.contributions.set((sample.contributions ?? []).map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value, explanation: c.explanation })));
                 // Cache each factor's normalized value (server value = weightᵢ·normᵢ) for optimistic re-scoring.
@@ -1086,29 +1085,5 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         } finally {
             this.recomputing.set(false);
         }
-    }
-
-    /** Resolve a friendly display name for a scored anchor record (the engine returns only its ID). */
-    private async resolveAnchorName(anchorId: string): Promise<string> {
-        const model = this.selectedModel();
-        const ent = model ? new Metadata().Entities.find((e) => e.ID === model.AnchorEntityID) : null;
-        if (!ent) return anchorId;
-        const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
-        const res = await new RunView().RunView({ EntityName: ent.Name, ExtraFilter: `${pk}='${anchorId}'`, ResultType: "simple" });
-        const row = (res.Success ? res.Results?.[0] : null) as Record<string, unknown> | null;
-        if (!row) return anchorId;
-        const pick = (k: string): string | null => { const v = row[k]; return v != null && v !== "" ? String(v) : null; };
-        const nameField = ent.Fields.find((f) => f.IsNameField)?.Name;
-        const composed = [pick("FirstName"), pick("LastName")].filter(Boolean).join(" ");
-        return (nameField ? pick(nameField) : null) || composed || pick("Name") || pick("Email") || anchorId;
-    }
-
-    /** Map an arbitrary band label to a color key for the preview bars. */
-    private bandKey(label: string): BandKey {
-        const l = label.toLowerCase();
-        if (l.includes("healthy")) return "healthy";
-        if (l.includes("critical")) return "critical";
-        if (l.includes("risk")) return "atrisk";
-        return "watch";
     }
 }

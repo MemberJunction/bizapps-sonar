@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
+import { extractActionResult, extractActionParam } from "./action-result.util";
 
 /** Actions are invoked by their registered Name — the engine resolves the ID at runtime
  *  (RunAction needs the ID, but we key on the stable name, not a hardcoded UUID). */
@@ -9,6 +10,8 @@ const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
 const ACTION_RECOMPUTE_MODEL = "Sonar: Recompute Model";
 const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
 const ACTION_RUN_INTERVENTION = "Sonar: Run Intervention";
+const ACTION_GET_PROMPT = "Sonar: Get Prompt";
+const ACTION_UPDATE_PROMPT = "Sonar: Update Prompt";
 
 /** One bar of a model's band distribution. */
 export interface PreviewBand { label: string; count: number; pct: number; }
@@ -48,6 +51,10 @@ export interface RunInterventionInput {
     actionParams: { name: string; value: string }[];
     cap: number;
 }
+/** The editable prompt behind an LLM-backed factor-action (from "Sonar: Get Prompt"). */
+export interface FactorPrompt { promptId: string | null; templateContentId: string | null; text: string; error?: string; }
+/** Result of running a factor-action for one sample member (the prompt "test"). */
+export interface FactorActionTest { value: number | null; explanation: string | null; error?: string; }
 /** Raw payload returned by the Validate Factor Action (engine FactorPreviewResult). */
 interface FactorPreviewPayload { membersWithData: number; sampleAnchorId: string | null; sampleRawValue: number | null; sampleStrength: number | null; }
 /** Draft factor config the preview validates (the unsaved builder state). */
@@ -99,22 +106,9 @@ export class SonarEngineService {
         return action?.ID ?? null;
     }
 
-    /**
-     * Extract our `Result` output from an action result. MJ's RunAction returns output params
-     * via GraphQL `ResultData` (surfaced as `result.Result` after JSON-parsing) — NOT via
-     * `result.Params` (that's the echoed input). The server serializes params marked Type 'Both';
-     * `Result` arrives either as `[{ Name:'Result', Value:<json> }]` or keyed by name — handle both.
-     */
+    /** Pull the `Result` output param from an action result (shared MJ-output normalization). */
     private extractResult<T>(result: { Result?: unknown }): T | null {
-        const data = result.Result;
-        if (data == null) return null;
-        // MJ serializes the 'Both' params either as an array or an index-keyed object
-        // ({"0": {Name, Value}}); normalize to a list and pull the "Result" param's Value.
-        const entries = (Array.isArray(data) ? data : typeof data === "object" ? Object.values(data) : []) as Array<{ Name?: string; Value?: unknown }>;
-        const param = entries.find((p) => p && typeof p === "object" && p.Name === "Result");
-        let raw: unknown = param ? param.Value : data;
-        if (raw == null) return null;
-        return (typeof raw === "string" ? JSON.parse(raw) : raw) as T;
+        return extractActionResult<T>(result);
     }
 
     /** Preview a model: compute scores (no persistence) and summarize into bands + a sample member. */
@@ -209,5 +203,48 @@ export class SonarEngineService {
             return { counts: null, errors: [result.Message || "Intervention run failed."] };
         }
         return { counts: this.extractResult<InterventionRunCounts>(result), errors: [] };
+    }
+
+    /** Load an LLM-backed factor-action's editable prompt text (via "Sonar: Get Prompt"). */
+    public async getPrompt(promptName: string): Promise<FactorPrompt> {
+        const empty: FactorPrompt = { promptId: null, templateContentId: null, text: "" };
+        const actionId = await this.resolveActionId(ACTION_GET_PROMPT);
+        if (!actionId) return { ...empty, error: `Action '${ACTION_GET_PROMPT}' not found.` };
+        const result = await this.actionClient().RunAction(actionId, [
+            { Name: "PromptName", Value: promptName, Type: "Input" },
+        ]);
+        if (!result.Success) return { ...empty, error: result.Message || "Failed to load prompt." };
+        return this.extractResult<FactorPrompt>(result) ?? { ...empty, error: "No result." };
+    }
+
+    /** Save edited prompt text back to its template content (via "Sonar: Update Prompt"). */
+    public async updatePrompt(templateContentId: string, text: string): Promise<{ ok: boolean; error?: string }> {
+        const actionId = await this.resolveActionId(ACTION_UPDATE_PROMPT);
+        if (!actionId) return { ok: false, error: `Action '${ACTION_UPDATE_PROMPT}' not found.` };
+        const result = await this.actionClient().RunAction(actionId, [
+            { Name: "TemplateContentID", Value: templateContentId, Type: "Input" },
+            { Name: "Text", Value: text, Type: "Input" },
+        ]);
+        return result.Success ? { ok: true } : { ok: false, error: result.Message || "Save failed." };
+    }
+
+    /**
+     * Run a factor-action for ONE sample member — the prompt "test". Invokes the factor-action by id
+     * with the member as AnchorRecordID and reads back its Value + Explanation output params (the real
+     * scoring path, so the test reflects exactly what a recompute would produce). Uses the saved prompt.
+     */
+    public async testFactorAction(actionId: string, anchorRecordId: string): Promise<FactorActionTest> {
+        const result = await this.actionClient().RunAction(actionId, [
+            { Name: "AnchorRecordID", Value: anchorRecordId, Type: "Input" },
+            { Name: "Value", Value: null, Type: "Output" },
+            { Name: "Explanation", Value: null, Type: "Output" },
+        ]);
+        if (!result.Success) return { value: null, explanation: null, error: result.Message || "Test run failed." };
+        const value = extractActionParam(result, "Value");
+        const explanation = extractActionParam(result, "Explanation");
+        return {
+            value: value != null && value !== "" ? Number(value) : null,
+            explanation: explanation != null ? String(explanation) : null,
+        };
     }
 }

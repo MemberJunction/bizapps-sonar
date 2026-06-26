@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
 import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
@@ -53,19 +54,15 @@ interface CreateFactorSpec {
  * Output param:  Result  (JSON: { factorID, modelFactorID })
  */
 @RegisterClass(BaseAction, "SonarCreateFactor")
-export class SonarCreateFactorAction extends BaseAction {
+export class SonarCreateFactorAction extends SonarActionBase {
     /** Captured entity save-failure detail (surfaced in the ERROR result). */
     private saveError = "save returned false";
 
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const modelId = this.getInput(params, "ModelID");
-        const specJson = this.getInput(params, "Spec");
-        if (!modelId || !specJson) {
-            return this.fail(params, "VALIDATION_ERROR", "ModelID and Spec are required.");
-        }
-        const spec = this.parseSpec(specJson);
-        if (!spec) {
-            return this.fail(params, "VALIDATION_ERROR", "Spec is not valid JSON.");
+        const spec = this.parseJsonParam<CreateFactorSpec>(params, "Spec");
+        if (!modelId || !spec) {
+            return this.fail(params, "VALIDATION_ERROR", "ModelID and Spec (a JSON object or string) are required.");
         }
         if (!spec.name || spec.name.trim().length === 0) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.name is required.");
@@ -179,14 +176,5 @@ export class SonarCreateFactorAction extends BaseAction {
         return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
 
-    /** Read a single input param's value as a string (null when absent/empty). */
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
-
     /** Build a failure result preserving the inbound params. */
-    private fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
-        return { Success: false, ResultCode: code, Message: message, Params: params.Params };
-    }
 }

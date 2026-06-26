@@ -23,6 +23,7 @@
         "mj:migrate": "npx mj migrate --schema __mj_BizAppsSonar --dir ./migrations",
         "mj:codegen": "npx mj codegen",
         "mj:codegen:demo": "bash demo/codegen/run.sh",
+        "check:action-ids": "node scripts/check-action-ids.cjs",
         "demo:db:clone": "set -a && . ./.env && set +a && node demo/clone-db.cjs",
         "demo:db:load": "set -a && . ./.env && set +a && node demo/apply-to-demo.cjs demo/membership-schema.sql demo/membership-seed.sql",
         "install:deps": "npm install",

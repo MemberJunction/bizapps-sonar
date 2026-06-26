@@ -1,0 +1,41 @@
+<div class="sonar-asst">
+    <div class="sonar-asst__log">
+        @for (t of turns(); track $index) {
+            <div class="sonar-asst__turn sonar-asst__turn--{{ t.role }}">
+                <div class="sonar-asst__bubble">{{ t.text }}</div>
+            </div>
+        }
+        @if (running()) {
+            <div class="sonar-asst__turn sonar-asst__turn--assistant">
+                <div class="sonar-asst__bubble sonar-asst__bubble--progress">
+                    <i class="fa-solid fa-spinner fa-spin"></i> {{ progress() || "Working…" }}
+                </div>
+            </div>
+        }
+        @if (errorMsg()) {
+            <div class="sonar-asst__error"><i class="fa-solid fa-triangle-exclamation"></i> {{ errorMsg() }}</div>
+        }
+        @if (!turns().length && !running()) {
+            <div class="sonar-asst__empty">
+                Describe a model or factor in plain English — e.g.
+                <em>“score Members by their event registrations in the last 90 days.”</em>
+                I’ll draft it for your review. Nothing is published.
+            </div>
+        }
+    </div>
+
+    <div class="sonar-asst__compose">
+        <textarea class="sonar-input sonar-asst__input"
+                  [(ngModel)]="prompt"
+                  (keydown)="onKeydown($event)"
+                  [disabled]="running()"
+                  rows="2"
+                  placeholder="Describe what to build… (Enter to send, Shift+Enter for a new line)"></textarea>
+        <button class="sonar-btn sonar-btn--primary sonar-asst__send"
+                [disabled]="running() || !prompt.trim()"
+                (click)="send()"
+                title="Send">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+</div>

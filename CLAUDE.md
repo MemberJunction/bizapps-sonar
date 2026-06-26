@@ -25,12 +25,14 @@ bizapps-sonar/
   packages/
     Entities/          - @mj-biz-apps/sonar-entities (CodeGen-generated entity subclasses)
     CoreEntitiesServer/- @mj-biz-apps/sonar-core-entities-server (server-side entity lifecycle hooks)
-    Actions/           - @mj-biz-apps/sonar-actions (CodeGen-generated action subclasses)
+    Engine/            - @mj-biz-apps/sonar-engine (ScoringEngine, FactorCompiler, RecomputeOrchestrator, ScoreWriter, action/intervention layer) — pure, unit-tested
+    Actions/           - @mj-biz-apps/sonar-actions (hand-authored custom/ actions wrapping the engine + factor-actions; the agent-callable seam)
     Server/            - @mj-biz-apps/sonar-server (server bootstrap + GraphQL resolvers)
-    Angular/           - @mj-biz-apps/sonar-ng (Angular bootstrap + form components)
+    Angular/           - @mj-biz-apps/sonar-ng (Angular bootstrap + custom/ form components)
+  scripts/             - dev/test scripts (see scripts/README.md); shared DB bootstrap in scripts/lib/bootstrap.mjs
 ```
 
-Future packages (per plan §4.5): `sonar-engine` (ScoringEngine, FactorCompiler, RecomputeOrchestrator), `sonar-writeback`, `sonar-calibration`, and surface-specific `sonar-ng-*` packages.
+Future packages (per plan §4.5): `sonar-writeback`, `sonar-calibration`, and surface-specific `sonar-ng-*` packages.
 
 ---
 
@@ -184,6 +186,30 @@ This repo uses a two-tier branching model (matching bizapps-common, BCSaaS, and 
 - **Data model groups** (plan §5): configuration (`ScoreModel`, `ScoreModelVersion`, `ModelRelatedEntity`, `ScoreBandSet`/`ScoreBand`) · factors & windows (`Factor`, `TimeWindow`, `ModelFactor`) · runtime output (`Score`, `ScoreFactorContribution`, `ScoreHistory`, `ScoreBandTransition`) · recompute/audit · Action governance & write-back · action layer · calibration network · templates.
 - **Published model versions are immutable** — publishing snapshots full config into `ScoreModelVersion` for reproducible, auditable scores.
 - **Factors satisfy one contract** (`IFactorEvaluator`): declarative (compiled to set-based SQL) or Action-backed (arbitrary code behind a promotion gate). The rubric engine never branches on which kind it holds.
+
+---
+
+## Sonar Conventions (Actions · Engine · Angular)
+
+These are the shared seams — reuse them, don't re-implement.
+
+### Hand-authored Actions (`packages/Actions/src/custom/`)
+- **Extend `SonarActionBase`** (not `BaseAction` directly) for the shared `getInput` / `fail` / `ok` helpers. Still decorate with `@RegisterClass(BaseAction, "DriverClass")` — `ActionEngine` resolves by `BaseAction` + DriverClass even through the intermediate base. (Registering under any other class = "Could not find a class for action …" at run time.)
+- **Factor-actions** extend `SonarFactorAction` (which extends `SonarActionBase`): implement `contract` + `computeValue`; the base handles AnchorRecordID/AsOf in, Value/Explanation out. An LLM-backed factor sets `contract.promptName` so the builder shows a prompt view/edit/test panel.
+- Shape: typed input params (or a `Spec`/`ConfigJSON`), one `Result` output param (Type `'Both'` so it serializes to GraphQL `ResultData`), explicit result codes.
+- **Promotion gate**: an Action-backed factor must be `PromotionState='Approved'` to move *persisted* scores (recompute); a read-only **preview/Simulate runs un-approved drafts** (so authors can test before promotion).
+- **Metadata IDs are hand-assigned** in `metadata/actions/.sonar-actions.json` as 4-digit blocks (`5044A100-00NN-…`, params `…A1/A2`, codes `…C1/C2`). They must be unique — **run `npm run check:action-ids` before `mj sync push`** (a 0008/0009 collision happened once). Pick the next free block.
+
+### Engine (`packages/Engine/`)
+- `RecomputeOrchestrator.computeScores` = preview (no persist); `recompute` = persist (needs a published version). Both share `computeForModel`.
+- **Explainability**: a factor's "why" rides `FactorResult.explanation` → `FactorContribution.explanation` → persisted `ScoreFactorContribution.DetailJSON`. The DetailJSON format has ONE codec — `scoring/contributionDetail.ts` (`encode/decodeContributionDetail`); never hand-roll the JSON.
+
+### Angular (`packages/Angular/src/lib/custom/`)
+- **Shared utils — don't duplicate**: `core/services/action-result.util.ts` (`extractActionResult` / `extractActionParam` for MJ action output), `core/services/anchor-name.util.ts` (`resolveAnchorName`), and `bandKey()` exported from `core/services/score-read.service.ts` (single source for band-label → color key; also the `BandKey` type).
+- The factor builder's prompt view/edit/test is its own component (`SonarPromptEditorComponent`), driven by the action's `contract.promptName`; reads via `SonarEngineService.getPrompt` / `updatePrompt` / `testFactorAction`.
+
+### Dev scripts (`scripts/`)
+- Seeds + live tests against `Sonar_Demo`; **not** part of build/CI. Run `set -a && . ./.env && set +a && node scripts/<name>.mjs`. Shared DB connect in `scripts/lib/bootstrap.mjs` (`const { pool, user } = await bootstrap();`). See `scripts/README.md`.
 
 ---
 

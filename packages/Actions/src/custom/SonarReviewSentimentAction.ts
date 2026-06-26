@@ -21,6 +21,7 @@ const CONTRACT: FactorActionContract = {
     reads: ["Resource Reviews"],
     output: { min: 0, max: 1, higherIsBetter: true, sample: 0.8 },
     cost: { deterministic: false, externalCalls: true, expensive: true },
+    promptName: SENTIMENT_PROMPT, // exposes the prompt for the builder's view/edit/test panel
 };
 registerFactorAction(DRIVER_CLASS, CONTRACT);
 

@@ -1,11 +1,12 @@
 import { Component, computed, effect, inject, input, output, signal, WritableSignal } from "@angular/core";
-import { Metadata, RunView } from "@memberjunction/core";
+import { BaseEntity, Metadata, RunView } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
+import { resolveAnchorName } from "../../../../core/services/anchor-name.util";
 
 /** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save). */
 type BuilderMode = "data" | "action";
@@ -77,9 +78,6 @@ export class SonarFactorBuilderComponent {
     private readonly catalog = inject(ActionCatalogService);
     private readonly engine = inject(SonarEngineService);
     private readonly models = inject(ScoreModelService);
-    /** DEV MOCK: localStorage.sonarMockTie='1' forces the selected source to look ambiguous so the
-     *  in-context path chooser can be exercised (no ambiguous source exists in the demo data). */
-    private readonly mockTie = typeof localStorage !== "undefined" && localStorage.getItem("sonarMockTie") === "1";
 
     // --- context from the host (the selected model) ---
     public readonly modelId = input<string | null>(null);
@@ -278,6 +276,10 @@ export class SonarFactorBuilderComponent {
         if (!this.isNameEdited() && action) this.factorName.set(action.name);
         if (action) this.higherIsBetter.set(action.contract.output.higherIsBetter);
     }
+
+    /** The selected action's prompt name, when it's LLM-backed — bound to the prompt-editor child,
+     *  which self-gates on it (null = not a prompt-backed action). */
+    public readonly promptName = computed(() => this.selectedAction()?.contract.promptName ?? null);
 
     /** Set one action param value (immutably, so the canSave computed re-runs). */
     public setParam(name: string, value: string): void {
@@ -484,12 +486,6 @@ export class SonarFactorBuilderComponent {
         const src = this.selectedSource();
         const anchorId = this.anchorEntityID();
         if (!src || !anchorId || this.resolvedTies().has(src.id)) return null;
-        if (this.mockTie) {
-            return [
-                { label: "Members → Enrollments → Events", relationshipPath: JSON.stringify([{ fks: ["EnrollmentID"] }, { fks: ["EventID"] }]) },
-                { label: "Members → Registrations → Events", relationshipPath: JSON.stringify([{ fks: ["RegistrationID"] }, { fks: ["EventID"] }]) },
-            ];
-        }
         const existing = (src.relationshipPath ?? "").trim();
         if (existing && existing !== "[]") return null; // already has an explicit path
         const md = new Metadata();
@@ -512,9 +508,7 @@ export class SonarFactorBuilderComponent {
     public async resolveSourcePath(relationshipPath: string): Promise<void> {
         const src = this.selectedSource();
         if (!src) return;
-        if (!this.mockTie) {
-            await this.models.setSourcePath(src.id, relationshipPath);
-        }
+        await this.models.setSourcePath(src.id, relationshipPath);
         this.resolvedTies.update((s) => new Set(s).add(src.id));
     }
 
@@ -690,27 +684,13 @@ export class SonarFactorBuilderComponent {
                 this.preview.set(null);
                 return;
             }
-            const sampleName = res.anchorId ? await this.resolveSampleName(res.anchorId) : "A member";
+            const sampleName = res.anchorId ? await resolveAnchorName(this.anchorEntityID(), res.anchorId) : "A member";
             this.preview.set({ sampleName, matching: res.matching, strength: res.strength, explanation: res.explanation, membersWithData: res.membersWithData });
         } finally {
             this.previewing.set(false);
         }
     }
 
-    /** Resolve a friendly name for the sample anchor (the engine returns only its ID). */
-    private async resolveSampleName(anchorId: string): Promise<string> {
-        const entId = this.anchorEntityID();
-        const ent = entId ? new Metadata().Entities.find((e) => e.ID === entId) : null;
-        if (!ent) return anchorId;
-        const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
-        const res = await new RunView().RunView<Record<string, unknown>>({ EntityName: ent.Name, ExtraFilter: `${pk}='${anchorId}'`, ResultType: "simple" });
-        const row = res.Success ? res.Results?.[0] : undefined;
-        if (!row) return anchorId;
-        const pick = (k: string): string | null => { const v = row[k]; return v != null && v !== "" ? String(v) : null; };
-        const nameField = ent.Fields.find((f) => f.IsNameField)?.Name;
-        const composed = [pick("FirstName"), pick("LastName")].filter(Boolean).join(" ");
-        return (nameField ? pick(nameField) : null) || composed || pick("Name") || pick("Email") || anchorId;
-    }
 
     /** Serialize the filter only when it has REAL conditions — prune blank/value-less rules
      *  (the builder seeds an empty default rule) so they never reach the engine. */

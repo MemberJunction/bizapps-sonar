@@ -22,6 +22,15 @@ export type TrendDirection = "Up" | "Flat" | "Down";
 /** Band identity used for color coding across every Sonar surface. */
 export type BandKey = "healthy" | "watch" | "atrisk" | "critical";
 
+/** Map an arbitrary band label to a color key (single source of truth for label→key inference). */
+export function bandKey(label: string): BandKey {
+    const l = label.toLowerCase();
+    if (l.includes("healthy")) return "healthy";
+    if (l.includes("critical")) return "critical";
+    if (l.includes("risk")) return "atrisk";
+    return "watch";
+}
+
 /** One slice of a model's persisted band distribution. */
 export interface BandSlice { bandId: string | null; label: string; key: BandKey; count: number; pct: number; }
 /** Population band distribution at one point in time — one per distinct AsOfDate in ScoreHistory.
@@ -120,7 +129,7 @@ export class ScoreReadService {
         const total = scores.length;
         const slices: BandSlice[] = [...counts.entries()].map(([bandId, count]) => {
             const label = bandId ? bandById.get(bandId)?.Label ?? "Unbanded" : "Unbanded";
-            return { bandId: bandId || null, label, key: this.bandKey(label), count, pct: Math.round((count / total) * 100) };
+            return { bandId: bandId || null, label, key: bandKey(label), count, pct: Math.round((count / total) * 100) };
         });
         slices.sort((a, b) => b.count - a.count);
         return { slices, total };
@@ -162,7 +171,7 @@ export class ScoreReadService {
             const dayKey = date.toISOString().slice(0, 10);
             const point = byDay.get(dayKey) ?? { asOf: date, counts: this.emptyCounts(), total: 0 };
             const label = r.BandID ? bandById.get(r.BandID)?.Label ?? "Unbanded" : "Unbanded";
-            point.counts[this.bandKey(label)] += 1;
+            point.counts[bandKey(label)] += 1;
             point.total += 1;
             byDay.set(dayKey, point);
         }
@@ -259,7 +268,7 @@ export class ScoreReadService {
                 asOf: r.AsOfDate ?? null,
                 normalizedScore: Math.round(r.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: this.bandKey(label),
+                bandKey: bandKey(label),
             } satisfies ScoreHistoryPoint;
         });
     }
@@ -278,7 +287,7 @@ export class ScoreReadService {
                 name: names.get(s.AnchorRecordID) ?? s.AnchorRecordID,
                 normalizedScore: Math.round(s.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: this.bandKey(label),
+                bandKey: bandKey(label),
                 computedAt: s.ComputedAt ?? null,
                 delta: s.Delta != null ? Math.round(s.Delta) : null,
                 trendDirection: s.TrendDirection ?? null,
@@ -513,17 +522,8 @@ export class ScoreReadService {
                 secondary: a?.email ?? null,
                 normalizedScore: Math.round(s.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: this.bandKey(label),
+                bandKey: bandKey(label),
             } satisfies MemberSuggestion;
         });
-    }
-
-    /** Map an arbitrary band label to a color key. */
-    private bandKey(label: string): BandKey {
-        const l = label.toLowerCase();
-        if (l.includes("healthy")) return "healthy";
-        if (l.includes("critical")) return "critical";
-        if (l.includes("risk")) return "atrisk";
-        return "watch";
     }
 }

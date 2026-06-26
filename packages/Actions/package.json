@@ -28,6 +28,7 @@
     "zod": "~3.24.4"
   },
   "peerDependencies": {
+    "@memberjunction/ai-agents": "^5.40.2",
     "@memberjunction/actions-base": "^5.40.2",
     "@memberjunction/actions": "^5.40.2",
     "@memberjunction/global": "^5.40.2",

@@ -1,0 +1,81 @@
+/* Thin copilot panel: a scrolling transcript above a fixed compose row. Fills its host. */
+.sonar-asst {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: 0.75rem;
+}
+
+.sonar-asst__log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.25rem;
+}
+
+.sonar-asst__turn { display: flex; }
+.sonar-asst__turn--user { justify-content: flex-end; }
+.sonar-asst__turn--assistant { justify-content: flex-start; }
+
+.sonar-asst__bubble {
+    max-width: 80%;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--sonar-radius);
+    font-size: var(--sonar-font-sm);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.sonar-asst__turn--user .sonar-asst__bubble {
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+}
+.sonar-asst__turn--assistant .sonar-asst__bubble {
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-ink);
+    border: 1px solid var(--sonar-border);
+}
+.sonar-asst__bubble--progress {
+    color: var(--sonar-muted);
+    font-style: italic;
+}
+.sonar-asst__bubble--progress i { color: var(--sonar-accent); margin-right: 0.35rem; }
+
+.sonar-asst__error {
+    color: var(--sonar-critical);
+    background: var(--sonar-critical-bg);
+    border: 1px solid color-mix(in srgb, var(--sonar-critical) 30%, transparent);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.5rem 0.75rem;
+    font-size: var(--sonar-font-sm);
+}
+
+.sonar-asst__empty {
+    margin: auto;
+    max-width: 36rem;
+    text-align: center;
+    color: var(--sonar-muted);
+    font-size: var(--sonar-font-sm);
+    line-height: 1.6;
+}
+
+.sonar-asst__compose {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+.sonar-asst__input {
+    flex: 1;
+    height: auto;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    resize: vertical;
+    font: inherit;
+    line-height: 1.5;
+}
+.sonar-asst__send { flex-shrink: 0; height: 2.75rem; }

@@ -3,8 +3,7 @@
  * Exercises the REAL path: load a member's review prose → seeded AIPrompt → live Gemini call → {score, reason}.
  * Run from repo root (env loaded):  set -a && . ./.env && set +a && node scripts/test-sentiment-factor.mjs
  */
-import sql from "mssql";
-import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
+import { bootstrap } from "./lib/bootstrap.mjs";
 import { RunView } from "@memberjunction/core";
 import { AIEngine } from "@memberjunction/aiengine";
 import { AIPromptRunner } from "@memberjunction/ai-prompts";
@@ -23,14 +22,7 @@ const MEMBERS = [
 ];
 
 async function main() {
-    const pool = new sql.ConnectionPool({
-        user: "sa", password: "Securepassword!23", server: "localhost", port: 1433,
-        database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false },
-    });
-    await pool.connect();
-    await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
-    await UserCache.Instance.Refresh(pool);
-    const user = UserCache.Users.find((u) => u?.Type?.trim().toLowerCase() === "owner") ?? UserCache.Users[0];
+    const { pool, user } = await bootstrap();
     await AIEngine.Instance.Config(false, user); // load AI models/vendors/prompts metadata
 
     const pr = await new RunView().RunView(

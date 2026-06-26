@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { RecomputeOrchestrator, FactorPreviewDraft } from "@mj-biz-apps/sonar-engine";
 
@@ -14,7 +15,7 @@ import { RecomputeOrchestrator, FactorPreviewDraft } from "@mj-biz-apps/sonar-en
  * Output param:  Result  (JSON string of FactorPreviewResult)
  */
 @RegisterClass(BaseAction, "SonarValidateFactor")
-export class SonarValidateFactorAction extends BaseAction {
+export class SonarValidateFactorAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const modelId = this.getInput(params, "ModelID");
         const draftJson = this.getInput(params, "DraftJSON");
@@ -41,9 +42,4 @@ export class SonarValidateFactorAction extends BaseAction {
         }
     }
 
-    /** Read a single input param's value as a string (null when absent/empty). */
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
 }

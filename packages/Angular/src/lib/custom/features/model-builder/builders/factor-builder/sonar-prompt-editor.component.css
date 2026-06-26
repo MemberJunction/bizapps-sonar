@@ -1,0 +1,33 @@
+/* Prompt view/edit/test panel — extracted from the factor builder. */
+.sonar-pe {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sonar-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sonar-pe__head { display: flex; align-items: baseline; gap: 0.5rem; }
+.sonar-pe__label {
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+}
+.sonar-pe__name { font-size: 0.74rem; color: var(--sonar-muted); }
+.sonar-pe__hint { font-size: 0.74rem; color: var(--sonar-muted); line-height: 1.45; margin: 0; }
+.sonar-pe__text { width: 100%; resize: vertical; line-height: 1.5; font-size: 0.8rem; }
+.sonar-pe__actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.sonar-pe__test { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.sonar-pe__test select { min-width: 10rem; max-width: 16rem; }
+.sonar-pe__result {
+    display: flex; align-items: baseline; gap: 0.6rem;
+    padding: 0.6rem 0.75rem; border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken); border: 1px solid var(--sonar-border);
+}
+.sonar-pe__score { font-size: 1rem; font-weight: 700; color: var(--sonar-accent); }
+.sonar-pe__reason { font-size: 0.78rem; color: var(--sonar-muted); font-style: italic; line-height: 1.4; }
+@media (max-width: 720px) {
+    .sonar-pe__test { margin-left: 0; width: 100%; }
+    .sonar-pe__test select { flex: 1; max-width: none; }
+}

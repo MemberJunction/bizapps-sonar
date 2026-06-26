@@ -17,6 +17,7 @@ export * from "./factors/FactorCompiler";
 export * from "./factors/anchorKey";
 export * from "./normalization/NormalizationEngine";
 export * from "./scoring/ScoringEngine";
+export * from "./scoring/contributionDetail";
 export * from "./orchestration/RecomputeOrchestrator";
 export * from "./orchestration/ScoreWriter";
 export * from "./orchestration/SegmentEvaluator";

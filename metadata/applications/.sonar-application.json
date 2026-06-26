@@ -34,6 +34,13 @@
         "ResourceType": "Custom",
         "DriverClass": "SonarAdminOpsResource",
         "isDefault": false
+      },
+      {
+        "Label": "Assistant",
+        "Icon": "fa-solid fa-wand-magic-sparkles",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarAssistantResource",
+        "isDefault": false
       }
     ]
   },
@@ -41,7 +48,7 @@
     "ID": "4F9477FB-BC8B-4CA9-A4FE-C0FB45496285"
   },
   "sync": {
-    "lastModified": "2026-06-16T16:19:24.429Z",
-    "checksum": "ddc0762120ee654100faabd3f28e7add0ed429f23bfa5e10600f2b61a1f1326d"
+    "lastModified": "2026-06-25T23:33:38.319Z",
+    "checksum": "6c7f42761bbc6f63c72627c20bf26bf66b5e75148c1c650ae2ade8efe8609090"
   }
 }

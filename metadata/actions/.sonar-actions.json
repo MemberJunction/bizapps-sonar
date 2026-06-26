@@ -1276,5 +1276,386 @@
       "lastModified": "2026-06-25T22:10:27.331Z",
       "checksum": "52e15aafde5f8d1975d798e83ab5838c0d08b07325311204d3716766b266bd11"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Get Prompt",
+      "Description": "Reads an MJ AIPrompt's editable text (resolved via name → template → active template content) for the factor builder's prompt panel. Returns the text plus the ids the editor needs to save back. Read-only.",
+      "DriverClass": "SonarGetPrompt",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-file-lines",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000C-4000-8000-000000000008"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "PromptName",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The registered AIPrompt Name to read (e.g. a factor-action's contract.promptName)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.301Z",
+            "checksum": "22b0e4db572ee75e4a06d16d1754303e4d83c3dbf402824efee0f969c1f8f33a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { promptId, templateContentId, text } (or { error })."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.330Z",
+            "checksum": "2076066c41142588f3e5acb8a9ef1a14df83ed2c9e75f6698de530589e43e248"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Prompt text returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.358Z",
+            "checksum": "b74b6cf83a6c372210c6989f89b55d4969756c3b77a4bfdf6c2379b18efac576"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "PromptName was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.377Z",
+            "checksum": "4661828b08c3f2e4cc6a50ff478b65ecb8e77e15f0ebd31887591cf94ea4cc37"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to read the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.394Z",
+            "checksum": "2173d57e58800a9456182575fa52e7b6c341dd8f2b7a687ee95e289724e9fbde"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T23:16:27.219Z",
+      "checksum": "9658f9059804f43c05df91ffb2e918816cdc6771b7ef46a6f27e77e99516af60"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Update Prompt",
+      "Description": "Saves edited LLM prompt text from the factor builder onto the AIPrompt's TemplateContent row (by TemplateContentID from Sonar: Get Prompt). NOTE: an AIPrompt is shared — editing affects every factor/use that references it.",
+      "DriverClass": "SonarUpdatePrompt",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-floppy-disk",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000D-4000-8000-000000000009"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "TemplateContentID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The MJ Template Content row id whose text to overwrite (from Sonar: Get Prompt)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.411Z",
+            "checksum": "7b5f991a3c258eb8887915fd75cfdfd664d903d6511060e1adc1776677a76fff"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Text",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The new prompt text."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.438Z",
+            "checksum": "029fc34091b5bd876434533a1226b464cd04e846fa91c0b7f906389f02c8a442"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { templateContentId, saved }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.463Z",
+            "checksum": "46f15ff95bc6f15226fa6f2a0d7482ff59598d0dbb5388879c8cc4427071eaa0"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Prompt updated."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.497Z",
+            "checksum": "07d200fd4744aa4c8ecb74bd8b1a4be1ed86bb077cc4d3bbfeeaf4a4d5181508"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "TemplateContentID was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.513Z",
+            "checksum": "98aa30e860e4d2dc133bcd4eb87bfc4a3d956cc998e9136ad89a73b9c0750d42"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Template content row not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.528Z",
+            "checksum": "81e9a45f7df0a2a9681a5edadafde19b50392a3dedc072a5722df0112f005163"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to save the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.543Z",
+            "checksum": "faa7946ae395450f09f3fd9de2ad0acdf68a49c24de6b6aa10e347dfdd6f6223"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T23:16:27.237Z",
+      "checksum": "9b74b8084faef72b93cff9ba8931f94ae80a9f76c3db28a3c4b75140ee011177"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Run Authoring Agent",
+      "Description": "Runs the Sonar Authoring Agent (Loop) server-side via AgentRunner and returns its reply. The seam the Assistant panel calls so the agent runs in MJAPI (where model/LLM/tools live), bypassing the client-side conversation stack. Produces drafts only.",
+      "DriverClass": "SonarRunAuthoringAgent",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wand-magic-sparkles",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000E-4000-8000-00000000000E"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Prompt",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The natural-language instruction for the authoring agent."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.629Z",
+            "checksum": "feff18047e1fa5af8caa36dbd70a74fcd55df2d71330a2c1965883fcd22d51b4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ContextNote",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional context (e.g. the model the user is viewing), prepended to the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.664Z",
+            "checksum": "d4352a34b6443c21d9638f7696cc2f1f0973e373543be6b55a0c5c9134cf5013"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Reply",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The agent's human-readable summary of what it built."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.696Z",
+            "checksum": "7f246ae02e1ec3aa8a20d8ee01f2d5cef5359768fa51860cff803c8e50bd3572"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Agent completed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.725Z",
+            "checksum": "9677ebcf9bdeb9e892a2e66cd3011bf8f2515dfdc97e6bc48965d8063c4cd9ee"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.745Z",
+            "checksum": "8aba3e4a213329a2909da09bb4d006c6a4a8de0cb76c0ca4f7d6bd8e94d1e613"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The authoring agent was not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.761Z",
+            "checksum": "68f86d1168cc390cf90cb8397ff3c48d0dc55e7b0cc661015052c76a727ed284"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The agent run failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.779Z",
+            "checksum": "f661fa3863e123f54f6ff636a5ca54453b8f4d1dfd31f0fd08f8558aff9bd5ae"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T07:12:45.566Z",
+      "checksum": "1e05fc0bcf7cd3d04e8d0243b451a3d3799a82e551812311a78ea475ef03141f"
+    }
   }
 ]

@@ -8,6 +8,7 @@ import {
     mjBizAppsSonarScoreBandTransitionEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
+import { encodeContributionDetail } from "../scoring/contributionDetail";
 import type { AnchorKey } from "../factors/anchorKey";
 
 /**
@@ -251,7 +252,7 @@ export class ScoreWriter {
             row.HadData = c.hadData;
             row.MissingDataApplied = c.missingDataApplied;
             // Freeze the factor's "why" alongside the math so a persisted score stays explainable.
-            row.DetailJSON = c.explanation ? JSON.stringify({ explanation: c.explanation }) : null;
+            row.DetailJSON = encodeContributionDetail(c.explanation);
             if (!(await row.Save())) {
                 LogError(
                     `ScoreWriter: failed to save contribution (factor ${c.factorId}) for score ${scoreId}.`,

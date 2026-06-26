@@ -18,3 +18,6 @@ export * from "./SonarMemberActivityStreakAction";
 export * from "./SonarListFactorActionsAction";
 export * from "./SonarRunInterventionAction";
 export * from "./SonarReviewSentimentAction";
+export * from "./SonarGetPromptAction";
+export * from "./SonarUpdatePromptAction";
+export * from "./SonarRunAuthoringAgentAction";

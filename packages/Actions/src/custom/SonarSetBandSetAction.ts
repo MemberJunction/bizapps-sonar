@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
 import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
@@ -16,7 +17,7 @@ const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
  * Output param:  Result  (JSON: { modelID, bandSetID })
  */
 @RegisterClass(BaseAction, "SonarSetBandSet")
-export class SonarSetBandSetAction extends BaseAction {
+export class SonarSetBandSetAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const modelId = this.getInput(params, "ModelID");
         const bandSetId = this.getInput(params, "BandSetID");
@@ -50,12 +51,4 @@ export class SonarSetBandSetAction extends BaseAction {
         return model.Save();
     }
 
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
-
-    private fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
-        return { Success: false, ResultCode: code, Message: message, Params: params.Params };
-    }
 }

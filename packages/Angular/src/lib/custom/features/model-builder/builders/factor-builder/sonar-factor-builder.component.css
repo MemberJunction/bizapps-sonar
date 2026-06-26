@@ -324,6 +324,7 @@
 .sonar-fb__contract-val { font-size: var(--sonar-font-sm); color: var(--sonar-ink); line-height: 1.45; }
 .sonar-fb__contract-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
+
 /* ============================================================ Tier-B normalization params */
 /* Sub-group label above each normalization grid (Relative to the group / Fixed shape). */
 .sonar-fb__norm-group-label {

@@ -4,8 +4,7 @@
  * factor runs over the whole population through the engine — not just a standalone AIPrompt call.
  * Run:  set -a && . ./.env && set +a && node scripts/test-preview-llm.mjs
  */
-import sql from "mssql";
-import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
+import { bootstrap } from "./lib/bootstrap.mjs";
 import { AIEngine } from "@memberjunction/aiengine";
 import { RecomputeOrchestrator } from "@mj-biz-apps/sonar-engine";
 import "@memberjunction/core-entities";
@@ -17,14 +16,7 @@ import "@memberjunction/ai-gemini"; // GeminiLLM driver
 const MODEL_ID = "A2708489-D1B1-45FA-BB27-F61C058C40CE"; // Context Test Model (membership, has the sentiment factor)
 
 async function main() {
-    const pool = new sql.ConnectionPool({
-        user: "sa", password: "Securepassword!23", server: "localhost", port: 1433,
-        database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false },
-    });
-    await pool.connect();
-    await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
-    await UserCache.Instance.Refresh(pool);
-    const user = UserCache.Users.find((u) => u?.Type?.trim().toLowerCase() === "owner") ?? UserCache.Users[0];
+    const { pool, user } = await bootstrap();
     await AIEngine.Instance.Config(false, user);
 
     console.log("Running computeScores (preview path) over the population…\n");

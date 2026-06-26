@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { UserInfo } from "@memberjunction/core";
 
 /**
@@ -42,6 +43,10 @@ export interface FactorActionContract {
         /** Should be rate-limited / cached / budgeted when scoring a full population. */
         expensive: boolean;
     };
+    /** If this is an LLM-backed factor, the registered name of the MJ AIPrompt it runs. Lets the
+     *  builder offer a view/edit/test panel for the prompt (otherwise the prompt is a hidden internal).
+     *  Omit for non-prompt actions. */
+    promptName?: string;
 }
 
 /** One registered factor-action: its @RegisterClass key (= the MJ Action's DriverClass, so the
@@ -98,7 +103,7 @@ export interface FactorComputeContext {
  * `computeValue` become a failed ActionResult — the engine treats that anchor as no-data and
  * continues (per-record isolation).
  */
-export abstract class SonarFactorAction extends BaseAction {
+export abstract class SonarFactorAction extends SonarActionBase {
     /** Mandatory self-description — see FactorActionContract. */
     public abstract readonly contract: FactorActionContract;
 
@@ -156,16 +161,6 @@ export abstract class SonarFactorAction extends BaseAction {
         } else {
             params.Params.push({ Name: name, Value: value, Type: "Both" });
         }
-    }
-
-    /** Read a single input param's value as a string (null when absent/empty). */
-    protected getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
-
-    protected fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
-        return { Success: false, ResultCode: code, Message: message, Params: params.Params };
     }
 
     /** AsOf defaults to "now" when not supplied; invalid strings are rejected (null). */

@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
@@ -41,7 +42,7 @@ interface RunInterventionConfig {
  * Output param: Result    (JSON string of InterventionRunResult — the counts).
  */
 @RegisterClass(BaseAction, "SonarRunIntervention")
-export class SonarRunInterventionAction extends BaseAction {
+export class SonarRunInterventionAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         const raw = this.getInput(params, "ConfigJSON");
         if (!raw) {
@@ -177,12 +178,4 @@ export class SonarRunInterventionAction extends BaseAction {
         return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
     }
 
-    private getInput(params: RunActionParams, name: string): string | null {
-        const p = params.Params.find((x: ActionParam) => x.Name === name);
-        return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
-    }
-
-    private fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
-        return { Success: false, ResultCode: code, Message: message, Params: params.Params };
-    }
 }

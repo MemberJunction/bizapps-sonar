@@ -1,0 +1,44 @@
+@if (promptName) {
+    <div class="sonar-pe">
+        <div class="sonar-pe__head">
+            <span class="sonar-pe__label">Prompt</span>
+            <span class="sonar-pe__name sonar-mono">{{ promptName }}</span>
+        </div>
+        @if (promptLoading()) {
+            <p class="sonar-pe__hint">Loading prompt…</p>
+        } @else {
+            <textarea class="sonar-input sonar-pe__text" rows="7"
+                      [ngModel]="promptText()" (ngModelChange)="promptText.set($event)"
+                      spellcheck="false"></textarea>
+            <p class="sonar-pe__hint">⚠ This prompt is shared — editing it affects every factor that uses it. Test runs the <strong class="sonar-ink">saved</strong> prompt.</p>
+            @if (promptError()) { <p class="sonar-pe__hint sonar-neg">{{ promptError() }}</p> }
+
+            <div class="sonar-pe__actions">
+                <button type="button" class="sonar-btn sonar-btn--primary" [disabled]="!promptDirty() || promptSaving()" (click)="savePrompt()">
+                    {{ promptSaving() ? "Saving…" : "Save prompt" }}
+                </button>
+                <span class="sonar-pe__test">
+                    <select class="sonar-input" [ngModel]="sampleAnchorId()" (ngModelChange)="sampleAnchorId.set($event)" [disabled]="sampleAnchors().length === 0">
+                        @if (sampleAnchors().length === 0) { <option [ngValue]="null">No members to test</option> }
+                        @for (m of sampleAnchors(); track m.id) { <option [ngValue]="m.id">{{ m.label }}</option> }
+                    </select>
+                    <button type="button" class="sonar-btn" [disabled]="!sampleAnchorId() || testing() || promptDirty()" (click)="runPromptTest()">
+                        {{ testing() ? "Testing…" : "Test" }}
+                    </button>
+                </span>
+            </div>
+            @if (promptDirty()) { <p class="sonar-pe__hint">Save your edits to test them.</p> }
+
+            @if (testResult(); as t) {
+                <div class="sonar-pe__result">
+                    @if (t.error) {
+                        <span class="sonar-neg">{{ t.error }}</span>
+                    } @else {
+                        <span class="sonar-pe__score sonar-mono">{{ t.value === null ? "no data" : t.value }}</span>
+                        @if (t.explanation) { <span class="sonar-pe__reason">{{ t.explanation }}</span> }
+                    }
+                </div>
+            }
+        }
+    </div>
+}

@@ -1,5 +1,6 @@
 import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
+import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { RunView } from "@memberjunction/core";
 import { getRegisteredFactorActions, FactorActionContract } from "./SonarFactorAction";
@@ -53,7 +54,7 @@ interface ActionParamRow {
  * Inputs:  none. Output: Result (JSON array of CatalogEntry).
  */
 @RegisterClass(BaseAction, "SonarListFactorActions")
-export class SonarListFactorActionsAction extends BaseAction {
+export class SonarListFactorActionsAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         try {
             const catalog = await this.buildCatalog(params);

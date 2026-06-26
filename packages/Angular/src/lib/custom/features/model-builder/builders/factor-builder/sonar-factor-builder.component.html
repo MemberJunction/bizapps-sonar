@@ -188,6 +188,9 @@
                                         </div>
                                     </div>
 
+                                    <!-- Prompt view/edit/test — LLM-backed actions only (self-gates on promptName) -->
+                                    <sonar-prompt-editor [promptName]="promptName()" [anchorEntityID]="anchorEntityID()" [actionId]="actionId()"></sonar-prompt-editor>
+
                                     @if (act.params.length > 0) {
                                         <div class="sonar-fb__params">
                                             @for (p of act.params; track p.name) {

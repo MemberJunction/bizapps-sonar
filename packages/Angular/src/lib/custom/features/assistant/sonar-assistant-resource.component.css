@@ -1,0 +1,15 @@
+/* Assistant surface: let the embedded MJ chat-area fill the page body and own its own scroll. */
+.sonar-assistant__chat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* The chat-area is a workstation surface, not a reflow-to-phone layout — keep a comfortable floor. */
+    min-width: 768px;
+}
+
+.sonar-assistant__chat mj-conversation-chat-area {
+    flex: 1;
+    min-height: 0;
+    display: block;
+}
