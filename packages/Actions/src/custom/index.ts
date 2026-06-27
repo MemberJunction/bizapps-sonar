@@ -29,3 +29,4 @@ export * from "./SonarStartFactorJobAction";
 export * from "./SonarRefineFactorActionAction";
 export * from "./SonarUnpublishModelAction";
 export * from "./SonarFindEntitiesAction";
+export * from "./SonarFindModelsAction";

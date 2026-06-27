@@ -2662,5 +2662,95 @@
       "lastModified": "2026-06-26T22:20:53.776Z",
       "checksum": "e8bcadc391831a1a251f02fe5041f82ef076470ae7dd07b413d4855e1b18114b"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Find Models",
+      "Description": "Resolves a score model by PARTIAL name (and lists existing models) → id/name/status/anchor. Lets the Authoring Agent fuzzy-match a vague model reference and enumerate models, instead of needing a near-exact name for Describe Model. Read-only.",
+      "DriverClass": "SonarFindModels",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-layer-group",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0017-4000-8000-000000000017"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "NameQuery",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Case-insensitive substring of the model name. Omit to list all models."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.540Z",
+            "checksum": "69051c76fdbcd107c145d618067cc8596722e102dd56d554da03dda1cbbb66a5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { models: [{ id, name, status, anchorEntityID, anchorName }], count, truncated }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.572Z",
+            "checksum": "604f3b1eccc6e43f6f99d2419544fd9aa6415a6fab5bca434b59b8dd677ef924"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Returned matching models."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.601Z",
+            "checksum": "581b407fff0b5d0833010198d03c4180aaf85362199c5b783b0844fa6b3d09c7"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Lookup failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.618Z",
+            "checksum": "70667dee711a17d124587063039b9874f8eec2070a0d0653545cbeda2a746ffa"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-27T01:28:41.465Z",
+      "checksum": "cb068811abe20a82a88633849c78b6bd563c605056e0399dccabbb13dec0ff3b"
+    }
   }
 ]

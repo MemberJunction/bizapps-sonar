@@ -11,7 +11,7 @@ import "@memberjunction/core-entities";
 const AGENT_NAME = "Sonar Authoring Agent";
 // Tools to ensure are linked to the agent (idempotent). The write tools were linked by the seed script;
 // these are the ones this updater (re)links — Build Model + the two READ tools that give the agent eyes.
-const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities", "Sonar: Author Factor Action", "Sonar: Unpublish Model", "Sonar: Find Entities"];
+const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities", "Sonar: Author Factor Action", "Sonar: Unpublish Model", "Sonar: Find Entities", "Sonar: Find Models"];
 // Pin a capable model. Flash-Lite (the system default) is too weak for reliable multi-step tool-calling —
 // it narrates "I built the model" without actually emitting the tool call ~2/3 of the time. Gemini 3.5
 // Flash is much stronger at tool use, still fast/cheap. Pinning makes selection deterministic.
@@ -47,9 +47,11 @@ For incremental changes to a model that already exists: Sonar: Add Data Source, 
   unchanged or invent new variations of a field that already failed.
 
 ## PICK THE RIGHT MODEL — match the user's intent
-When the user names a topic ("cheese member engagement"), Describe Model / look for an EXISTING model
-whose name matches that intent and is EDITABLE (Draft). Edit THAT one. Do NOT grab an unrelated model
-(e.g. a "Test Model") just because it shares an anchor entity — the name match is the signal.
+When the user refers to a model loosely ("cheese", "the engagement one"), call **Sonar: Find Models**
+(NameQuery="cheese") to fuzzy-match it by partial name — do NOT assume the current model or give up. Use
+Find Models (no query) to enumerate what exists when asked "what models do I have?". Once resolved, edit
+that model if it's EDITABLE (Draft). Do NOT grab an unrelated model (e.g. a "Test Model") just because it
+shares an anchor entity — the name match is the signal. If several match, ask the user to pick by name.
 
 ## LOCKED models — unlock, don't loop
 Only DRAFT models can be edited; Active/Paused models are LOCKED. When the target you should edit is
