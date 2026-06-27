@@ -200,6 +200,8 @@ Constraints to respect:
 - No `any`: the runner reads MJ's `ActionParam.Value` (typed `any`) into `unknown` then coerces.
 - **`@RegisterClass(BaseAction, "DriverClass")` — always `BaseAction`, never the intermediate base.** Factor-actions extend `SonarFactorAction` (→ `SonarActionBase` → `BaseAction`), but `ActionEngine` resolves the class by `(BaseAction, DriverClass)`. Registering under `SonarFactorAction` makes `RunAction` fail with "Could not find a class for action …" (hit once on `SonarReviewSentiment`). Hand-authored non-factor actions now extend `SonarActionBase` for the shared `getInput`/`fail`/`ok` helpers — same registration rule.
 - **Metadata IDs are hand-assigned** in `metadata/actions/.sonar-actions.json` (4-digit blocks); run `npm run check:action-ids` before `mj sync push` to catch a reused block (a 0008/0009 collision happened once).
+- **MJ core-entities renamed `ActionEntity` → `MJActionEntity`** (the entity is `MJ: Actions`). Stale `import { ActionEntity }` breaks the Angular build (`TS2724`). Hit via a concurrent agent's `sonar-factor-smith.service.ts`.
+- **The Angular build is all-or-nothing and nukes `dist` first** (`rmSync('dist') && ngc`). A *failed* `npm run build` in `packages/Angular` leaves **no `dist`**, so the Explorer dev server can't resolve `@mj-biz-apps/sonar-ng` and crashes (exit 143). One un-compilable file — even another agent's WIP elsewhere in the package — takes down the whole build. Fix all compile errors before relying on a running Explorer; the dev server consumes the *built* `dist`, not source.
 
 ---
 
@@ -347,3 +349,34 @@ is **shared** (editing affects every use) and Test runs the **saved** prompt (sa
 
 **Gotcha that bit us:** `gemini-1.5-flash` is retired at Google's API; pin a live model. And see §10 —
 the action must `@RegisterClass(BaseAction, …)`, not under `SonarFactorAction`.
+
+---
+
+## 14. Typed param schema + fail-loud enforcement + builder polish (BUILT — 2026-06-26)
+
+The factor-action contract gained **typed params** so config is "constrained, not rigid." Full design +
+status in `plans/factor-param-schema.md`; the engine/action-side summary:
+
+- **`FactorActionContract.params?: FactorParamSpec[]`** — a code-declared *toolbox* of param kinds
+  (`wired-source-ref`, `source-fields-ref`, `number`/`enum`/`boolean`), not a fixed shape. The ONE
+  invariant: model data is referenced ONLY via `wired-source-ref` (resolves to a source already wired
+  into the model), so the foot-down rule (§11) is now an **unrepresentable** state, not a guideline —
+  there is deliberately no "any-entity" kind.
+- **Fail loud (the run-stopping half).** `SonarFactorAction.validateParams` enforces the contract at run
+  time; a *configured-but-invalid* factor fails with `VALIDATION_ERROR` → `actionRunner` raises
+  `ActionConfigError` → `ActionFactorEvaluator` re-throws it, stopping the whole recompute instead of
+  silently degrading to per-anchor no-data on a wrong/default source. A factor that supplies **no** typed
+  config is left to the action's documented fallback (legacy factors keep working). 108 engine tests pass.
+- **Output [min,max] clamp** (cheapest guardrail) ships alongside — `clampToRange` in the evaluator,
+  bounds carried via `FactorCompiler.compileActionFactor` from `Factor.OutputMin/Max`, with a per-batch
+  drift log.
+- **Builder:** typed controls per kind; the custom-signal panel reordered so the source/fields config
+  sits **above** the prompt editor (was buried below the tall view/edit/test panel).
+- **First consumer:** `SonarReviewSentiment` (§13) now takes an operator-chosen source + text field(s)
+  instead of the hardcoded `"Resource Reviews"` / `MemberID` / `Review` — those become the fallback.
+
+**Serialization (the seam):** `FactorParamSpec` is builder-facing; the engine's saved
+`ActionParamsJSON.params` stays **scalar-only**. The builder resolves typed params down to scalars
+(`wired-source-ref` → MRE id + `<n>Entity` + `<n>MemberField`; `source-fields-ref` → a JSON-array
+string) and the action reads them via `ctx.getParam` — it never sees the model. (Table in
+`factor-param-schema.md` §13.)

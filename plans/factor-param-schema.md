@@ -115,13 +115,23 @@ template is generic. (A minor, named trade, not a blanket loss.)
 | `number`/`enum`/`boolean` (only the ones consumer #1 declares) | richer cross-param validation |
 | Engine **output [min,max] clamp** (cheapest guardrail; ships independently) | |
 
-## 7. Sibling task (separate surface — do NOT fold in)
+## 7. Sibling task (separate surface — do NOT fold in) — BUILT (2026-06-26)
 
 The `Add Data Source` tool-surface action's `relationshipPath` is a **different param surface** (a
 declarative authoring action, not a factor-action contract). `FactorParamSpec` does not touch it. It
 needs its **own** typed join-path (a structured `{ fks: string[] }[]` hop list, not a free string) —
 same principle ("typed > prose"), separate teeth. Tracked separately so it doesn't ride this schema's
 coattails and get forgotten.
+
+**Shipped:** the free-text join path is now a structured picker. `core/entity-graph.ts` gained
+`candidatePaths` (enumerate all equal-length FK routes leaf→anchor), `toRelationshipPath` (serialize a
+route to the engine's `{ fks: [...] }[]` JSON), and a shared `describePath` (render a route as
+`anchor → … → leaf`). The model builder defers an **ambiguous** source (≥2 shortest routes) to a
+`pendingSourceTie` tie-picker; `confirmSourcePath` commits the chosen route's `RelationshipPath`. A
+single-route source still auto-resolves (no picker). The same `describePath` backs the factor builder's
+source tie-picker too, so a route reads identically everywhere. (No demo model currently has an
+ambiguous source, so it was verified via the path math on a synthetic graph + injecting a realistic tie
+object into the live component — rendered clean in both themes.)
 
 ## 8. Data flow (end to end)
 
@@ -209,3 +219,26 @@ for a param named `<n>`:
 - **NEXT (one focused pass, Playwright freed):** builder controls per kind (§3) using the §13
   serialization, the reactive dependency tree + tab-order (§11), save-time validation, then wire the
   sentiment action to declare + read the source param (drop its hardcoded source). Run the visual gate.
+
+## 15. Status (2026-06-26 — slice shipped + verified)
+
+Everything in §14's "NEXT" is **BUILT + visually verified** (light + dark):
+
+- **Typed param controls** in the factor builder (`sonar-factor-builder.component`): a `@switch (p.kind)`
+  renders `wired-source-ref` (dropdown of the model's wired sources only), `source-fields-ref` (field
+  checkboxes scoped to the chosen source), and `number`/`enum`/`boolean`. Reactive dependency tree
+  (§11.1) — changing the parent source wipes dependent field picks. Save gated by `actionConfigValid`.
+- **Runtime enforcement = fail loud (§4).** `SonarFactorAction.validateParams` rejects a misconfigured
+  factor with a `VALIDATION_ERROR`; `actionRunner` maps that to an `ActionConfigError` the evaluator
+  **re-throws** (stops the whole run) instead of degrading to per-anchor no-data. An *un*-configured
+  (legacy) factor still falls back to the action's documented defaults. Verified live (invalid config →
+  run fails with "'Text source' is required …"; restored → 15/15 score). 108 engine tests pass.
+- **Sentiment action wired (§13 serialization).** `SonarReviewSentimentAction` declares `source`
+  (wired-source-ref) + `fields` (source-fields-ref) and reads the resolved scalars
+  (`sourceEntity`/`sourceMemberField`/`fields`) via `ctx.getParam`, with the old hardcoded
+  Resource-Reviews values as the unconfigured fallback. Its `reads` stays the generic template token.
+- **Custom-signal builder layout fix.** The action panel now reads top-down **action → contract →
+  Configure (source/fields) → Prompt editor → Governance**. The params — the primary "point it at data"
+  step — sit directly under the contract, above the tall prompt view/edit/test panel, instead of buried
+  below it.
+- **Sibling join-path picker (§7): BUILT** (see §7).

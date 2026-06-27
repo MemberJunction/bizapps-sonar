@@ -323,3 +323,32 @@ publishes or deletes — so "confirm the agent's actions" is best served as **re
   risky case — Codesmith-generated Runtime code — and it's MJ-native.
 Reserve hard pre-action confirmation for that code path; for draft model/factor edits, review-then-publish
 is the right amount of friction.
+
+---
+
+## 13. Codesmith harness — in-progress build (observed 2026-06-26)
+
+Status of roadmap step 4 (§12) as it stands in the working tree — **uncommitted WIP**, mid-integration:
+
+- **Client seam — `core/services/sonar-factor-smith.service.ts`** (`SonarFactorSmithService`): the three
+  touchpoints from §5 — `authorFactor(description, context)` (runs `Sonar: Author Factor Action` →
+  ActionSmith), `getCode(actionId)` (generated JS for the read-only preview), `approve(actionId)` (flips
+  `CodeApprovalStatus` → Approved, the governance gate). Returns an `AuthoredFactor` summary.
+- **Harness component — `factor-builder/sonar-codesmith-harness.component.*`**
+  (`SonarCodesmithHarnessComponent`, `standalone:false`, declared in `custom-forms.module.ts`): the
+  describe → authoring → review → test → approve flow (`HarnessPhase`). Reuses
+  `SonarEngineService.testFactorAction` for the sample test.
+- **Factor-builder wiring:** `sonar-factor-builder.component.ts` has the plumbing — `showCodesmith`
+  signal, `openCodesmith`/`closeCodesmith`, `onCodesmithAuthored` (adds the authored action to the
+  catalog + selects it), `codesmithContext` (grounding summary for ActionSmith). The **"Author a new
+  signal with AI"** button renders in the Custom-signal step.
+
+**Build fix applied (other track):** the service imported the now-renamed `ActionEntity`; updated to
+**`MJActionEntity`** (entity `MJ: Actions`) in 3 spots so the Angular package compiles — see
+`action-factors.md` §10. ⚠ `loadAction` still calls `GetEntityObject<MJActionEntity>("Actions")`; if the
+entity name also moved to `"MJ: Actions"` that's a latent runtime bug — verify before relying on it.
+
+**Open before this is usable:** seed the `Sonar: Author Factor Action` MJ Action + a reliable parent
+agent (step 1), and confirm the harness is actually mounted in the factor-builder template (the trigger
+button exists; the `<sonar-codesmith-harness>` host wiring + the read-only `ng-code-editor` preview
+should be verified end-to-end).
