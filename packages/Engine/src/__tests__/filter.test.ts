@@ -117,6 +117,12 @@ describe("compileFilter", () => {
             ),
         ).toThrow(/requires a value/);
     });
+
+    it("throws a clear error on a malformed descriptor (no filters array)", () => {
+        expect(() =>
+            compileFilter({ logic: "and" } as unknown as CompositeFilterDescriptor, columns),
+        ).toThrow(/'filters' array/);
+    });
 });
 
 describe("compileFilterInline", () => {
@@ -152,5 +158,14 @@ describe("compileFilterInline", () => {
                 columns,
             ),
         ).toThrow(/not a column/);
+    });
+
+    it("rejects a non-finite numeric value instead of emitting invalid SQL", () => {
+        expect(() =>
+            compileFilterInline(
+                group("and", { field: "Amount", operator: "gt", value: 1e400 }),
+                columns,
+            ),
+        ).toThrow(/must be finite/);
     });
 });

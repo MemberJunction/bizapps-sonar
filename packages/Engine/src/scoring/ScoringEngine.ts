@@ -30,6 +30,11 @@ export interface WeightedFactor {
     weight: number;
     /** What to do for anchors with no data for this factor (default "Zero"). */
     missingDataPolicy: EffectiveMissingDataPolicy;
+    /** The factor's normalized output range — missing-data fills are expressed relative to it, since a
+     *  contribution lives on [outputMin, outputMax] (direction already applied). Optional; defaults to
+     *  the standard [0,1] normalized scale, so callers on that scale need not set it. */
+    outputMin?: number;
+    outputMax?: number;
     results: Map<string, FactorResult>;
 }
 
@@ -138,7 +143,13 @@ export class ScoringEngine {
             } else if (f.missingDataPolicy === "Exclude") {
                 continue; // out of both numerator and denominator
             } else {
-                normalized = f.missingDataPolicy === "NeutralMidpoint" ? 0.5 : 0;
+                // NeutralMidpoint = the MIDPOINT of the factor's output range, so a factor with a custom
+                // range (e.g. 0..100) fills 50 — not a hardcoded 0.5 that would read as the floor. On the
+                // standard [0,1] scale this is 0.5, unchanged. Zero stays a literal 0 (its namesake — a
+                // hard zero contribution / deliberate penalty for missing data), independent of range.
+                const lo = f.outputMin ?? 0;
+                const hi = f.outputMax ?? 1;
+                normalized = f.missingDataPolicy === "NeutralMidpoint" ? (lo + hi) / 2 : 0;
                 rawValue = null;
                 missingApplied = true;
                 explanation = null; // nothing measured for this anchor

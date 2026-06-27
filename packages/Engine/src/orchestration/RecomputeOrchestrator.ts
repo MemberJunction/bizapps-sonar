@@ -331,8 +331,12 @@ export class RecomputeOrchestrator {
             },
             contextUser,
         );
+        // Fail loud: a failed population query must NOT silently score nobody (which would read as
+        // "everyone lost their score" on a persisted recompute). Surface it so the run is marked Failed.
         if (!result.Success) {
-            return [];
+            throw new Error(
+                `RecomputeOrchestrator: population query for '${anchorEntity.Name}' failed: ${result.ErrorMessage ?? "unknown error"}.`,
+            );
         }
         return (result.Results ?? []).map((row) =>
             toAnchorKey(compositeKeyForRow(anchorEntity, row)),
@@ -409,6 +413,8 @@ export class RecomputeOrchestrator {
                 modelFactorId: mf.ID,
                 weight: mf.Weight ?? 0,
                 missingDataPolicy: this.resolveMissingDataPolicy(mf),
+                outputMin: factor.OutputMin ?? 0,
+                outputMax: factor.OutputMax ?? 1,
                 results,
             });
         }

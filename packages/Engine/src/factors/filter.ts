@@ -80,7 +80,15 @@ export function compileFilter(
     filter: CompositeFilterDescriptor | null,
     validColumns: string[],
 ): CompiledFilter {
-    if (!filter || filter.filters.length === 0) {
+    if (!filter) {
+        return { clause: null, params: {} };
+    }
+    // Fail loud on a malformed descriptor (valid JSON but wrong shape) instead of crashing with a
+    // cryptic TypeError on `.filters.length` deeper in.
+    if (!Array.isArray(filter.filters)) {
+        throw new Error("compileFilter: filter must have a 'filters' array.");
+    }
+    if (filter.filters.length === 0) {
         return { clause: null, params: {} };
     }
     const ctx: BuildContext = { validColumns, params: {}, counter: { next: 0 } };
@@ -113,6 +121,9 @@ function sqlLiteral(value: FilterValue | undefined): string {
         return "NULL";
     }
     if (typeof value === "number") {
+        if (!Number.isFinite(value)) {
+            throw new Error(`compileFilter: numeric filter value must be finite (got ${value}).`);
+        }
         return String(value);
     }
     if (typeof value === "boolean") {
