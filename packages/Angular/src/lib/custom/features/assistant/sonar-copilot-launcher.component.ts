@@ -1,4 +1,5 @@
 import { Component, inject } from "@angular/core";
+import { MJConversationEntity } from "@memberjunction/core-entities";
 import { SonarAssistantConversationService } from "./sonar-assistant-conversation.service";
 
 /**
@@ -19,11 +20,22 @@ export class SonarCopilotLauncherComponent {
 
     public readonly open = this.convo.open;
 
+    // Bindings for the embedded <mj-conversation-chat-area>.
+    public readonly conversationId = this.convo.chatConversationId;
+    public readonly agentId = this.convo.agentId;
+    public readonly environmentId = this.convo.environmentId;
+    public get currentUser() { return this.convo.currentUser; }
+
     public toggle(): void {
         this.convo.open.update((v) => !v);
     }
 
     public close(): void {
         this.convo.open.set(false);
+    }
+
+    /** The chat created a new conversation — remember it so a reload resumes the same thread. */
+    public onConversationCreated(e: { conversation: MJConversationEntity }): void {
+        if (e?.conversation?.ID) this.convo.rememberChatConversation(e.conversation.ID);
     }
 }

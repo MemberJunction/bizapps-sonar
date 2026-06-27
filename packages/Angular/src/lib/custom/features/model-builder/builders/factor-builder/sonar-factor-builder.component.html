@@ -52,21 +52,9 @@
                                 [class.sonar-segmented__opt--active]="mode() === 'action'" (click)="onModeChange('action')">
                             <i class="fa-solid fa-flask"></i> Custom signal
                         </button>
-                        <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="mode() === 'author'"
-                                [class.sonar-segmented__opt--active]="mode() === 'author'" (click)="onModeChange('author')">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Author with AI
-                        </button>
                     </div>
 
-                    @if (mode() === 'author') {
-                        <!-- Author a brand-new custom signal with AI (Codesmith harness, §5/§12). On approve
-                             it switches to the Custom signal tab with the new action selected to bind. -->
-                        <sonar-codesmith-harness
-                            [anchorName]="anchorName()"
-                            [context]="codesmithContext()"
-                            (authored)="onCodesmithAuthored($event)"
-                            (cancelled)="onModeChange('action')"></sonar-codesmith-harness>
-                    } @else if (mode() === 'data') {
+                    @if (mode() === 'data') {
                         <div class="sonar-card sonar-presets-card">
                             <div class="sonar-presets-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Core templates:</div>
                             <div class="sonar-presets-row">
@@ -163,6 +151,10 @@
                                 A custom signal runs an Action to produce each member's number — for logic plain
                                 aggregation can't express (streaks, decay, AI). Its data source is baked into the action,
                                 so there's no entity, field, or window to pick here.
+                            </p>
+                            <p class="sonar-fb__hint sonar-fb__studio-link">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Need a signal that doesn't exist yet?
+                                Commission one in the <strong>Signal Studio</strong> — once it's approved it shows up here to bind.
                             </p>
 
                             @if (actions().length === 0) {

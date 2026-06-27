@@ -19,13 +19,16 @@ interface CatalogParam {
     defaultValue: string | null;
 }
 
-/** One catalog entry the builder renders: the MJ Action identity + its declared contract + params. */
+/** One catalog entry the builder renders: the MJ Action identity + its declared contract + params.
+ *  `kind` + `approvalStatus` let the Signal Studio split Review (runtime/Pending) from Library. */
 interface CatalogEntry {
     actionId: string;
     name: string;
     description: string | null;
     contract: FactorActionContract;
     params: CatalogParam[];
+    kind: "compiled" | "runtime";
+    approvalStatus: string | null;
 }
 
 interface ActionRow {
@@ -33,6 +36,10 @@ interface ActionRow {
     Name: string;
     Description: string | null;
     DriverClass: string | null;
+}
+interface RuntimeActionRow extends ActionRow {
+    Type: string;
+    CodeApprovalStatus: string | null;
 }
 interface ActionParamRow {
     ActionID: string;
@@ -75,34 +82,82 @@ export class SonarListFactorActionsAction extends SonarActionBase {
         }
     }
 
-    /** Join registered contracts (code) with their Active MJ Action records + params (DB). */
+    /** Join registered contracts (code) with their Active MJ Action records + params (DB), then merge in
+     *  AI-authored RUNTIME factor-actions (§5 piece 2) — those have no code-declared contract, so we
+     *  detect them by SHAPE (an AnchorRecordID input + a Value output) and synthesize a minimal one. */
     private async buildCatalog(params: RunActionParams): Promise<CatalogEntry[]> {
-        const contractByDriver = new Map(
-            getRegisteredFactorActions().map((r) => [r.driverClass, r.contract]),
-        );
-        if (contractByDriver.size === 0) {
-            return [];
-        }
-
-        const actions = await this.loadActions([...contractByDriver.keys()], params);
-        if (actions.length === 0) {
-            return [];
-        }
-        const paramsByAction = await this.loadParams(actions.map((a) => a.ID), params);
-
         const catalog: CatalogEntry[] = [];
-        for (const a of actions) {
-            const contract = contractByDriver.get((a.DriverClass ?? "").trim());
-            if (!contract) continue; // registered but no matching contract — skip defensively
-            catalog.push({
+
+        const contractByDriver = new Map(getRegisteredFactorActions().map((r) => [r.driverClass, r.contract]));
+        if (contractByDriver.size > 0) {
+            const actions = await this.loadActions([...contractByDriver.keys()], params);
+            const paramsByAction = await this.loadParams(actions.map((a) => a.ID), params);
+            for (const a of actions) {
+                const contract = contractByDriver.get((a.DriverClass ?? "").trim());
+                if (!contract) continue; // registered but no matching contract — skip defensively
+                catalog.push({ actionId: a.ID, name: a.Name, description: a.Description, contract, params: this.behavioralParams(paramsByAction.get(a.ID) ?? []), kind: "compiled", approvalStatus: "Approved" });
+            }
+        }
+
+        const seen = new Set(catalog.map((c) => c.actionId));
+        for (const r of await this.loadRuntimeFactorActions(params)) {
+            if (!seen.has(r.actionId)) catalog.push(r);
+        }
+        return catalog;
+    }
+
+    /** RUNTIME actions that have the factor SHAPE (AnchorRecordID input + Value output) — i.e. the ones
+     *  authored via Codesmith. They carry no code contract, so synthesize a minimal one from the Action. */
+    private async loadRuntimeFactorActions(params: RunActionParams): Promise<CatalogEntry[]> {
+        const res = await new RunView().RunView<RuntimeActionRow>(
+            {
+                EntityName: ACTION_ENTITY,
+                ExtraFilter: `Type='Runtime' AND Status='Active'`,
+                Fields: ["ID", "Name", "Description", "DriverClass", "Type", "CodeApprovalStatus"],
+                OrderBy: "Name ASC",
+                ResultType: "simple",
+            },
+            params.ContextUser,
+        );
+        const rows = res.Success ? res.Results ?? [] : [];
+        if (rows.length === 0) return [];
+        const paramsByAction = await this.loadParams(rows.map((r) => r.ID), params);
+
+        const out: CatalogEntry[] = [];
+        for (const a of rows) {
+            const prms = paramsByAction.get(a.ID) ?? [];
+            if (!this.isFactorShaped(prms)) continue;
+            out.push({
                 actionId: a.ID,
                 name: a.Name,
                 description: a.Description,
-                contract,
-                params: this.behavioralParams(paramsByAction.get(a.ID) ?? []),
+                contract: this.synthesizeContract(a),
+                params: this.behavioralParams(prms),
+                kind: "runtime",
+                approvalStatus: a.CodeApprovalStatus,
             });
         }
-        return catalog;
+        return out;
+    }
+
+    /** A factor-action declares an AnchorRecordID input and a Value output (§5 qualifying shape). */
+    private isFactorShaped(rows: ActionParamRow[]): boolean {
+        const has = (name: string, type: "Input" | "Output") =>
+            rows.some((p) => p.Name.trim() === name && (p.Type.trim() === type || p.Type.trim() === "Both"));
+        return has("AnchorRecordID", "Input") && has("Value", "Output");
+    }
+
+    /** A best-effort contract for an authored Runtime action (no code-declared one). Honest about being
+     *  AI-authored + that its execution profile is unknown until reviewed. */
+    private synthesizeContract(a: RuntimeActionRow): FactorActionContract {
+        const measures = (a.Description?.split(/[.\n]/)[0]?.trim()) || a.Name;
+        const note = a.CodeApprovalStatus === "Approved" ? "" : " (pending approval — won't score until approved)";
+        return {
+            measures: `${measures}${note}`,
+            reads: [],
+            output: { higherIsBetter: true },
+            cost: { deterministic: false, externalCalls: false, expensive: false },
+        };
     }
 
     /** Active MJ Action records whose DriverClass matches a registered factor-action. */

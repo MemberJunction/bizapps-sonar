@@ -22,6 +22,13 @@
         "isDefault": false
       },
       {
+        "Label": "Signal Studio",
+        "Icon": "fa-solid fa-hammer",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarSignalStudioResource",
+        "isDefault": false
+      },
+      {
         "Label": "Engagement Manager",
         "Icon": "fa-solid fa-chart-line",
         "ResourceType": "Custom",
@@ -41,7 +48,7 @@
     "ID": "4F9477FB-BC8B-4CA9-A4FE-C0FB45496285"
   },
   "sync": {
-    "lastModified": "2026-06-26T08:19:26.539Z",
-    "checksum": "ddc0762120ee654100faabd3f28e7add0ed429f23bfa5e10600f2b61a1f1326d"
+    "lastModified": "2026-06-26T18:46:40.590Z",
+    "checksum": "ed5a6325071b47022a7faf1a8a978fd21f0569e1d75f5e981897447ea969b2e4"
   }
 }

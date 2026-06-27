@@ -42,13 +42,16 @@ export interface FactorActionParam {
     defaultValue: string | null;
 }
 
-/** A factor-action available in the "custom signal" catalog. */
+/** A factor-action available in the "custom signal" catalog. `kind`/`approvalStatus` let the Signal
+ *  Studio split Review (AI-authored, pending) from the Library (compiled + approved). */
 export interface FactorAction {
     id: string;
     name: string;
     description: string | null;
     contract: FactorActionContract;
     params: FactorActionParam[];
+    kind: "compiled" | "runtime";
+    approvalStatus: string | null;
 }
 
 /** Shape returned by the "Sonar: List Factor Actions" describe-endpoint (keyed on actionId). */
@@ -58,6 +61,8 @@ interface CatalogEntry {
     description: string | null;
     contract: FactorActionContract;
     params: FactorActionParam[];
+    kind?: "compiled" | "runtime";
+    approvalStatus?: string | null;
 }
 
 /**
@@ -94,6 +99,8 @@ export class ActionCatalogService {
             description: e.description,
             contract: e.contract,
             params: e.params ?? [],
+            kind: e.kind ?? "compiled",
+            approvalStatus: e.approvalStatus ?? null,
         }));
         this.cache = catalog;
         return catalog;

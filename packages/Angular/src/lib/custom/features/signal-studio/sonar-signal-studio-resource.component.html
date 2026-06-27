@@ -1,0 +1,169 @@
+<div class="sonar-page sonar-page--railed sonar-studio">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <span class="sonar-page__icon"><i class="fa-solid fa-hammer"></i></span>
+            <div>
+                <h1 class="sonar-page__title">Signal Studio</h1>
+                <p class="sonar-page__subtitle">Commission custom scoring signals — AI writes the code, you review &amp; approve, then bind them in any model.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="sonar-page__body sonar-studio__cols">
+        <!-- LEFT RAIL: the signal pipeline -->
+        <aside class="sonar-studio__pipeline" role="navigation" aria-label="Signal pipeline">
+            <div class="sonar-group">
+                <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-bolt"></i> In flight <span class="sonar-studio__count">{{ inFlight().length }}</span></div>
+                @for (j of inFlight(); track j.agentRunId) {
+                    <div class="sonar-studio__job">
+                        <div class="sonar-studio__job-label">{{ j.label }}</div>
+                        <div class="sonar-studio__job-meta"><i class="fa-solid fa-spinner fa-spin"></i> {{ j.latestStep || j.status }} · {{ elapsed(j.startedAt) }}</div>
+                    </div>
+                } @empty { <div class="sonar-studio__empty-sm">No jobs running.</div> }
+            </div>
+
+            <div class="sonar-group">
+                <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-clipboard-check"></i> For review <span class="sonar-studio__count">{{ review().length }}</span></div>
+                @for (a of review(); track a.id) {
+                    <button type="button" class="sonar-studio__item" [class.sonar-studio__item--active]="selected()?.id === a.id" (click)="select(a)">
+                        <span class="sonar-studio__item-name">{{ a.name }}</span>
+                        <span class="sonar-chip sonar-chip--watch"><span class="sonar-dot"></span>Pending</span>
+                    </button>
+                } @empty { <div class="sonar-studio__empty-sm">Nothing awaiting review.</div> }
+            </div>
+
+            <div class="sonar-group">
+                <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-book"></i> Library <span class="sonar-studio__count">{{ library().length }}</span></div>
+                @for (a of library(); track a.id) {
+                    <button type="button" class="sonar-studio__item" [class.sonar-studio__item--active]="selected()?.id === a.id" (click)="select(a)">
+                        <span class="sonar-studio__item-name">{{ a.name }}</span>
+                        <span class="sonar-chip sonar-chip--healthy"><span class="sonar-dot"></span>Ready</span>
+                    </button>
+                } @empty { <div class="sonar-studio__empty-sm">No signals yet.</div> }
+            </div>
+        </aside>
+
+        <!-- CENTRE: code workbench -->
+        <section class="sonar-studio__center">
+            @if (selected(); as a) {
+                <div class="sonar-studio__detail-head">
+                    <div>
+                        <div class="sonar-studio__detail-name">{{ a.name }}</div>
+                        @if (a.description) { <p class="sonar-studio__hint">{{ a.description }}</p> }
+                    </div>
+                    <span class="sonar-chip" [class.sonar-chip--healthy]="isApproved()" [class.sonar-chip--watch]="!isApproved()">
+                        <span class="sonar-dot"></span>{{ isApproved() ? "Approved" : "Pending approval" }}
+                    </span>
+                </div>
+
+                <!-- Code: view / edit -->
+                <div class="sonar-studio__label">
+                    <i class="fa-solid fa-code"></i> Generated code
+                    @if (isEditable() && !editing()) {
+                        <button type="button" class="sonar-studio__inline-btn" (click)="toggleRefine()" [class.sonar-studio__inline-btn--on]="showRefine()"><i class="fa-solid fa-wand-magic-sparkles"></i> Refine with AI</button>
+                        <button type="button" class="sonar-studio__inline-btn" (click)="startEdit()"><i class="fa-solid fa-pen"></i> Edit</button>
+                    }
+                </div>
+                @if (isEditable() && showRefine() && !editing()) {
+                    <div class="sonar-studio__refine">
+                        <textarea class="sonar-input sonar-studio__refine-box" [(ngModel)]="refineFeedback" rows="3"
+                                  placeholder="e.g. weight recent activity more heavily, and return 0 instead of null when there's no data"></textarea>
+                        <div class="sonar-studio__edit-actions">
+                            <button class="sonar-btn sonar-btn--primary" [disabled]="!refineFeedback.trim() || refining()" (click)="refine()">
+                                @if (refining()) { <i class="fa-solid fa-spinner fa-spin"></i> Starting… } @else { <i class="fa-solid fa-wand-magic-sparkles"></i> Reprompt Codesmith }
+                            </button>
+                            <button class="sonar-btn" [disabled]="refining()" (click)="toggleRefine()">Cancel</button>
+                            <span class="sonar-studio__approve-note">ActionSmith rewrites &amp; self-tests the code, then it lands here as Pending for re-review.</span>
+                        </div>
+                    </div>
+                }
+                @if (editing()) {
+                    <textarea class="sonar-input sonar-studio__code-edit" [(ngModel)]="editCode" spellcheck="false"></textarea>
+                    <div class="sonar-studio__edit-actions">
+                        <button class="sonar-btn sonar-btn--primary" [disabled]="saving()" (click)="saveEdit()">
+                            @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Saving… } @else { <i class="fa-solid fa-floppy-disk"></i> Save (re-review) }
+                        </button>
+                        <button class="sonar-btn" [disabled]="saving()" (click)="cancelEdit()">Cancel</button>
+                        <span class="sonar-studio__approve-note">Editing sends it back to Pending for re-review.</span>
+                    </div>
+                } @else {
+                    <pre class="sonar-studio__code"><code>{{ code() || (isEditable() ? "(no code returned)" : "(compiled signal — defined in code, not editable here)") }}</code></pre>
+                }
+
+                <!-- Test on a sample of a model's anchor records -->
+                <div class="sonar-studio__label"><i class="fa-solid fa-flask"></i> Test on a sample of records</div>
+                <div class="sonar-studio__test-row">
+                    <select class="sonar-input sonar-studio__model-select" [ngModel]="selectedModelId" (ngModelChange)="onModelChange($event)">
+                        <option [ngValue]="null" disabled>Pick a model to test against…</option>
+                        @for (m of models(); track m.id) { <option [ngValue]="m.id">{{ m.name }} · {{ m.anchorName || "anchor" }}</option> }
+                    </select>
+                    <select class="sonar-input sonar-studio__size-select" [ngModel]="sampleSize" (ngModelChange)="onSampleSizeChange($event)" aria-label="Sample size">
+                        @for (n of sampleSizes; track n) { <option [ngValue]="n">{{ n }} {{ n === 1 ? "record" : "records" }}</option> }
+                    </select>
+                    <button class="sonar-btn" [disabled]="!sampleAnchorIds().length || testing() || editing()" (click)="runTest()">
+                        @if (testing()) { <i class="fa-solid fa-spinner fa-spin"></i> Running… } @else { <i class="fa-solid fa-play"></i> Run test }
+                    </button>
+                </div>
+                @if (selectedModel(); as m) {
+                    <div class="sonar-studio__sample-note">
+                        @if (sampleAnchorIds().length) { Testing on {{ sampleAnchorIds().length }} sample <strong>{{ m.anchorName }}</strong> {{ sampleAnchorIds().length === 1 ? "record" : "records" }}. }
+                        @else { <span class="sonar-studio__test-err"><i class="fa-solid fa-circle-exclamation"></i> No records found for {{ m.anchorName }}.</span> }
+                    </div>
+                }
+                @if (testRows().length) {
+                    <table class="sonar-studio__results">
+                        <thead><tr><th>Record</th><th class="sonar-studio__col-val">Value</th><th>Explanation</th></tr></thead>
+                        <tbody>
+                            @for (r of testRows(); track r.anchorRecordId) {
+                                <tr [class.sonar-studio__row-err]="r.error">
+                                    <td class="sonar-studio__col-rec" [title]="r.anchorRecordId">{{ r.anchorRecordId }}</td>
+                                    @if (r.error) {
+                                        <td class="sonar-studio__col-val">—</td>
+                                        <td class="sonar-studio__test-err"><i class="fa-solid fa-circle-xmark"></i> {{ r.error }}</td>
+                                    } @else {
+                                        <td class="sonar-studio__col-val">{{ r.value ?? "—" }}</td>
+                                        <td class="sonar-studio__col-why">{{ r.explanation || "—" }}</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                <!-- Approve gate -->
+                @if (isEditable() && !isApproved() && !editing()) {
+                    <div class="sonar-studio__approve">
+                        <button class="sonar-btn sonar-btn--primary" [disabled]="approving()" (click)="approve()">
+                            @if (approving()) { <i class="fa-solid fa-spinner fa-spin"></i> Approving… }
+                            @else { <i class="fa-solid fa-circle-check"></i> Approve &amp; add to Library }
+                        </button>
+                        <span class="sonar-studio__approve-note">Approving means you've read the code — nothing scores until you do.</span>
+                    </div>
+                }
+            } @else {
+                <div class="sonar-empty sonar-studio__detail-empty">
+                    <i class="fa-solid fa-clipboard-check sonar-studio__empty-icon"></i>
+                    <p>Commission a signal on the right, or pick one from the pipeline to read its code, test it on a model's records, and approve it.</p>
+                </div>
+            }
+        </section>
+
+        <!-- RIGHT RAIL: the generator -->
+        <aside class="sonar-studio__gen">
+            <div class="sonar-card sonar-studio__commission">
+                <div class="sonar-card__label"><i class="fa-solid fa-wand-magic-sparkles"></i> Commission a signal</div>
+                <p class="sonar-studio__hint">
+                    Describe a signal plain aggregations can't express — a streak, a decay curve, sentiment,
+                    a cross-source ratio — and name the data it should read. It runs in the background.
+                </p>
+                <textarea class="sonar-input sonar-studio__desc" [(ngModel)]="description" rows="5"
+                          placeholder="e.g. the longest streak of consecutive months a member registered for an event (reads Event Registrations on the Members anchor)"></textarea>
+                <button class="sonar-btn sonar-btn--primary sonar-studio__commission-go" [disabled]="!description.trim() || commissioning()" (click)="commission()">
+                    @if (commissioning()) { <i class="fa-solid fa-spinner fa-spin"></i> Starting… }
+                    @else { <i class="fa-solid fa-bolt"></i> Commission signal }
+                </button>
+                @if (notice()) { <div class="sonar-studio__notice"><i class="fa-solid fa-circle-info"></i> {{ notice() }}</div> }
+            </div>
+        </aside>
+    </div>
+</div>

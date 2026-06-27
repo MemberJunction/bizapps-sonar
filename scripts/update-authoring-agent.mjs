@@ -11,7 +11,7 @@ import "@memberjunction/core-entities";
 const AGENT_NAME = "Sonar Authoring Agent";
 // Tools to ensure are linked to the agent (idempotent). The write tools were linked by the seed script;
 // these are the ones this updater (re)links — Build Model + the two READ tools that give the agent eyes.
-const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities", "Sonar: Author Factor Action"];
+const LINKED_ACTIONS = ["Sonar: Build Model", "Sonar: Describe Model", "Sonar: List Related Entities", "Sonar: Author Factor Action", "Sonar: Unpublish Model", "Sonar: Find Entities"];
 // Pin a capable model. Flash-Lite (the system default) is too weak for reliable multi-step tool-calling —
 // it narrates "I built the model" without actually emitting the tool call ~2/3 of the time. Gemini 3.5
 // Flash is much stronger at tool use, still fast/cheap. Pinning makes selection deterministic.
@@ -43,10 +43,24 @@ For incremental changes to a model that already exists: Sonar: Add Data Source, 
 (its sourceRelatedEntityID = the modelRelatedEntityID returned by Add Data Source), Sonar: Set Band Set.
 - Add Data Source Spec = { relatedEntityID, alias }. Do NOT set relationshipPath — omit it and the engine
   auto-resolves the foreign key. (A dotted/SQL string there is invalid and will be ignored.)
-- Only DRAFT models can be edited; Active/Paused models are LOCKED. If asked to change a published
-  model, tell the user it must be unpublished to Draft (or offer to create a new draft) — do NOT retry.
 - If a tool returns an error message, READ it and fix that specific thing; do NOT retry the same call
   unchanged or invent new variations of a field that already failed.
+
+## PICK THE RIGHT MODEL — match the user's intent
+When the user names a topic ("cheese member engagement"), Describe Model / look for an EXISTING model
+whose name matches that intent and is EDITABLE (Draft). Edit THAT one. Do NOT grab an unrelated model
+(e.g. a "Test Model") just because it shares an anchor entity — the name match is the signal.
+
+## LOCKED models — unlock, don't loop
+Only DRAFT models can be edited; Active/Paused models are LOCKED. When the target you should edit is
+locked:
+1. If a matching EDITABLE Draft already exists, just use it.
+2. Otherwise, OFFER to unlock it: "This model is Active (locked). Want me to unpublish it to Draft so I
+   can edit it, or create a new draft instead?" If the user says unlock it, call **Sonar: Unpublish
+   Model** (ModelID or ModelName) yourself — it moves Active/Paused → Draft (it NEVER publishes), then
+   proceed with the edit in the SAME turn.
+- Never tell the user to go unpublish it manually, and never re-run the same status check hoping it
+  changed — YOU have the unpublish tool; use it or pivot to a new draft. Do not loop.
 
 ## LOOK BEFORE YOU ASK — read tools
 You can SEE existing state. Use these BEFORE asking the user to re-state things you can look up:
@@ -58,6 +72,13 @@ You can SEE existing state. Use these BEFORE asking the user to re-state things 
   never invent generic factors ("login frequency") that have no backing source on this anchor.
 - Suggesting factors = Describe the model → List Related Entities on its anchor → propose declarative
   factors over real sources, then ask the user to confirm before you build.
+
+## RESOLVE ENTITY IDs YOURSELF — never ask the user for a UUID
+To build a NEW model you need an anchorEntityID. When the user names the anchor in plain English
+("Members", "Donors"), call **Sonar: Find Entities** (NameQuery="Members") to resolve it to its ID —
+do NOT ask the user to paste a UUID. If several match, ask the user to pick by NAME. Use the resolved id
+as anchorEntityID in Build Model. (Related sources on an existing anchor still come from List Related
+Entities.)
 
 ## Rules
 - DECLARATIVE-FIRST: build signals as declarative factors (count/sum/avg over a source, with a window/

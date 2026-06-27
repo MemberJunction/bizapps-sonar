@@ -8,13 +8,17 @@ import { FilterBuilderModule } from '@memberjunction/ng-filter-builder';
 // Searchable single-select (filter-as-you-type). Standalone MJ UI component — used for the
 // long entity pickers (anchor / data sources) where a native <select> would be unusable.
 import { MJComboboxComponent } from '@memberjunction/ng-ui-components';
+// MJ's native conversation/chat UI. We embed <mj-conversation-chat-area> (overlayMode) in the floating
+// copilot instead of a bespoke panel — it brings token streaming, message rendering, persistence, and
+// multi-turn for free. Its services are providedIn:'root', so importing the module for the component
+// declarations is all the wiring needed. See plans/agentic-authoring.md §12.
+import { ConversationsModule } from '@memberjunction/ng-conversations';
 
 // Feature surfaces (each reachable via nav DriverClass).
 import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
 import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
 import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
 import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin-ops-resource.component';
-import { SonarAssistantPanelComponent } from './features/assistant/sonar-assistant-panel.component';
 import { SonarCopilotLauncherComponent } from './features/assistant/sonar-copilot-launcher.component';
 
 // Shared UI — reusable across features.
@@ -29,7 +33,7 @@ import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-fil
 import { SonarModelSetupComponent } from './features/model-builder/builders/model-setup/sonar-model-setup.component';
 import { SonarFactorBuilderComponent } from './features/model-builder/builders/factor-builder/sonar-factor-builder.component';
 import { SonarPromptEditorComponent } from './features/model-builder/builders/factor-builder/sonar-prompt-editor.component';
-import { SonarCodesmithHarnessComponent } from './features/model-builder/builders/factor-builder/sonar-codesmith-harness.component';
+import { SonarSignalStudioResourceComponent } from './features/signal-studio/sonar-signal-studio-resource.component';
 import { SonarScoreBandBuilderComponent } from './features/model-builder/builders/score-band-builder/sonar-score-band-builder.component';
 import { SonarPublishSnapshotComponent } from './features/model-builder/builders/publish-snapshot/sonar-publish-snapshot.component';
 import { SonarVersionHistoryComponent } from './features/model-builder/builders/version-history/sonar-version-history.component';
@@ -53,7 +57,6 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         SonarModelBuilderResourceComponent,
         SonarEngagementManagerResourceComponent,
         SonarAdminOpsResourceComponent,
-        SonarAssistantPanelComponent,
         SonarCopilotLauncherComponent,
         SonarMultiselectComponent,
         SonarModelSidebarComponent,
@@ -64,7 +67,7 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         SonarModelSetupComponent,
         SonarFactorBuilderComponent,
         SonarPromptEditorComponent,
-        SonarCodesmithHarnessComponent,
+        SonarSignalStudioResourceComponent,
         SonarScoreBandBuilderComponent,
         SonarPublishSnapshotComponent,
         SonarVersionHistoryComponent,
@@ -74,7 +77,8 @@ import { SonarPlaybookEnrollerComponent } from './features/engagement-manager/co
         CommonModule,
         FormsModule,
         FilterBuilderModule,
-        MJComboboxComponent
+        MJComboboxComponent,
+        ConversationsModule
     ],
     exports: [
         SonarOverviewResourceComponent,

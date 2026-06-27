@@ -1,0 +1,135 @@
+/* Signal Studio — three-rail workbench: pipeline (left) · code workbench (centre) · generator (right).
+   On MJ + Sonar tokens (no hex); mirrors the app's railed surfaces. */
+.sonar-studio__cols {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+.sonar-studio__pipeline {
+    flex: 0 0 17rem;
+    display: flex; flex-direction: column; gap: 1.5rem;
+    height: 100%; overflow-y: auto;
+    padding-right: 1rem;
+    border-right: 1px solid var(--sonar-border);
+}
+.sonar-studio__center { flex: 1 1 0; min-width: 0; height: 100%; overflow-y: auto; padding-right: 0.5rem; }
+.sonar-studio__gen {
+    flex: 0 0 21rem;
+    height: 100%; overflow-y: auto;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--sonar-border);
+}
+
+/* Pipeline groups */
+.sonar-studio__group-title { display: flex; align-items: center; gap: 0.45rem; }
+.sonar-studio__group-title i { color: var(--sonar-accent); font-size: 0.8rem; }
+.sonar-studio__count {
+    margin-left: auto; font-size: var(--sonar-font-xs); font-weight: 700; color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken); border-radius: 1rem; padding: 0.05rem 0.5rem; font-variant-numeric: tabular-nums;
+}
+.sonar-studio__empty-sm { font-size: var(--sonar-font-sm); color: var(--sonar-faint); }
+
+.sonar-studio__job {
+    border: 1px solid var(--sonar-border); border-left: 2px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm); background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+    padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;
+}
+.sonar-studio__job-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); line-height: 1.35; }
+.sonar-studio__job-meta { font-size: var(--sonar-font-xs); color: var(--sonar-muted); display: flex; align-items: center; gap: 0.4rem; }
+.sonar-studio__job-meta i { color: var(--sonar-accent); }
+
+.sonar-studio__item {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; text-align: left;
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
+    padding: 0.5rem 0.75rem; font: inherit; color: var(--sonar-ink); cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+.sonar-studio__item:hover { background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface)); }
+.sonar-studio__item:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 1px; }
+.sonar-studio__item--active { border-color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 9%, var(--sonar-surface)); }
+.sonar-studio__item-name { font-size: var(--sonar-font-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Centre workbench */
+.sonar-studio__detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sonar-studio__detail-name { font-size: 1.05rem; font-weight: 700; color: var(--sonar-ink); margin-bottom: 0.25rem; }
+.sonar-studio__hint { margin: 0; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.55; }
+.sonar-studio__label {
+    font-size: var(--sonar-font-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--sonar-muted); display: flex; align-items: center; gap: 0.5rem; margin: 1.25rem 0 0.5rem;
+}
+.sonar-studio__label > i { color: var(--sonar-accent); }
+.sonar-studio__inline-btn {
+    margin-left: auto; background: none; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    color: var(--sonar-muted); font: inherit; font-size: var(--sonar-font-xs); text-transform: none; letter-spacing: 0;
+    padding: 0.15rem 0.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;
+}
+.sonar-studio__inline-btn:hover { color: var(--sonar-ink); border-color: var(--sonar-accent); }
+.sonar-studio__inline-btn--on { color: var(--sonar-accent); border-color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface)); }
+
+/* AI refine panel */
+.sonar-studio__refine { margin: 0.625rem 0 0; }
+.sonar-studio__refine-box { width: 100%; resize: vertical; font: inherit; line-height: 1.5; }
+
+.sonar-studio__code, .sonar-studio__code-edit {
+    margin: 0; width: 100%; max-height: 24rem; overflow: auto; padding: 0.875rem 1rem;
+    border: 1px solid var(--sonar-border-strong); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken); color: var(--sonar-ink);
+    font-family: var(--sonar-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+    font-size: 0.78rem; line-height: 1.5; white-space: pre; tab-size: 2;
+}
+.sonar-studio__code-edit { min-height: 16rem; resize: vertical; }
+.sonar-studio__code::-webkit-scrollbar, .sonar-studio__code-edit::-webkit-scrollbar { width: 0.5rem; height: 0.5rem; }
+.sonar-studio__code::-webkit-scrollbar-thumb, .sonar-studio__code-edit::-webkit-scrollbar-thumb { background: var(--sonar-border-strong); border-radius: 0.25rem; }
+.sonar-studio__edit-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.625rem; }
+
+.sonar-studio__test-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.sonar-studio__model-select { flex: 1; min-width: 12rem; }
+.sonar-studio__size-select { flex: 0 0 auto; width: auto; }
+.sonar-studio__sample-note { margin-top: 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-studio__test-err { font-size: var(--sonar-font-sm); color: var(--sonar-critical); display: flex; align-items: center; gap: 0.4rem; }
+
+/* Results table — thin dividers, tabular numerics right-aligned (per the data-display rules) */
+.sonar-studio__results { width: 100%; margin-top: 0.625rem; border-collapse: collapse; font-size: var(--sonar-font-sm); }
+.sonar-studio__results th {
+    text-align: left; font-size: var(--sonar-font-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--sonar-muted); padding: 0.3rem 0.625rem; border-bottom: 1px solid var(--sonar-border-strong);
+}
+.sonar-studio__results td { padding: 0.4rem 0.625rem; border-bottom: 1px solid var(--sonar-border); color: var(--sonar-ink); vertical-align: top; }
+.sonar-studio__results tbody tr:hover { background: color-mix(in srgb, var(--sonar-accent) 4%, var(--sonar-surface)); }
+.sonar-studio__col-val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.sonar-studio__col-rec { font-family: var(--sonar-font-mono, ui-monospace, monospace); font-size: 0.72rem; color: var(--sonar-muted); max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sonar-studio__col-why { color: var(--sonar-muted); line-height: 1.4; }
+.sonar-studio__row-err td { color: var(--sonar-critical); }
+
+.sonar-studio__approve { margin-top: 1.25rem; padding-top: 0.875rem; border-top: 1px solid var(--sonar-border); display: flex; align-items: center; gap: 0.875rem; flex-wrap: wrap; }
+.sonar-studio__approve-note { font-size: var(--sonar-font-xs); color: var(--sonar-muted); }
+
+.sonar-studio__detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; min-height: 18rem; text-align: center; max-width: 26rem; margin: 0 auto; color: var(--sonar-muted); }
+.sonar-studio__empty-icon { font-size: 1.75rem; color: var(--sonar-faint); }
+
+/* Generator (right rail) */
+.sonar-studio__commission { display: flex; flex-direction: column; }
+.sonar-studio__desc { width: 100%; resize: vertical; font: inherit; line-height: 1.55; margin-bottom: 0.75rem; }
+.sonar-studio__commission-go { align-self: flex-start; }
+.sonar-studio__notice {
+    margin-top: 0.75rem; font-size: var(--sonar-font-sm); color: var(--sonar-ink);
+    background: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface));
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 30%, transparent);
+    border-radius: var(--sonar-radius-sm); padding: 0.5rem 0.75rem; display: flex; gap: 0.45rem; line-height: 1.45;
+}
+.sonar-studio__notice i { color: var(--sonar-accent); margin-top: 0.15rem; }
+
+/* Stack the rails on narrow viewports */
+@media (max-width: 1075px) {
+    .sonar-studio__cols { flex-direction: column; overflow-y: auto; }
+    .sonar-studio__pipeline, .sonar-studio__center, .sonar-studio__gen {
+        flex-basis: auto; width: 100%; height: auto; overflow: visible;
+        border: none; padding: 0;
+    }
+    .sonar-studio__pipeline { border-bottom: 1px solid var(--sonar-border); padding-bottom: 1rem; }
+    .sonar-studio__gen { border-top: 1px solid var(--sonar-border); padding-top: 1.25rem; }
+}

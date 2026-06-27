@@ -25,3 +25,7 @@ export * from "./SonarBuildModelAction";
 export * from "./SonarDescribeModelAction";
 export * from "./SonarListRelatedEntitiesAction";
 export * from "./SonarAuthorFactorAction";
+export * from "./SonarStartFactorJobAction";
+export * from "./SonarRefineFactorActionAction";
+export * from "./SonarUnpublishModelAction";
+export * from "./SonarFindEntitiesAction";

@@ -54,4 +54,4 @@
 .sonar-copilot__close:hover { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
 .sonar-copilot__sub { flex-shrink: 0; margin: 0; padding: 0.5rem 1rem 0; font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }
 .sonar-copilot__body { flex: 1; min-height: 0; padding: 0.75rem 1rem 1rem; display: flex; }
-.sonar-copilot__body sonar-assistant-panel { flex: 1; min-height: 0; display: flex; }
+.sonar-copilot__body mj-conversation-chat-area { flex: 1; min-height: 0; display: flex; }

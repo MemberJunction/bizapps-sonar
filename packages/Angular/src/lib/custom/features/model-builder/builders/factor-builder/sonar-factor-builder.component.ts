@@ -4,15 +4,13 @@ import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmp
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSpec } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
-import { AuthoredFactor } from "../../../../core/services/sonar-factor-smith.service";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
 import { resolveAnchorName } from "../../../../core/services/anchor-name.util";
 
-/** The authoring modes the builder forks into (UI-local). `data`/`action` map to Factor.FactorType on
- *  save; `author` is the Codesmith lane — it produces an action-backed factor, then switches to `action`
- *  to bind it (so it's never itself a save target). */
-type BuilderMode = "data" | "action" | "author";
+/** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save).
+ *  Authoring NEW custom signals now lives in the Signal Studio; here you only pick an existing one. */
+type BuilderMode = "data" | "action";
 
 /** One editable row of a Banded / Lookup table (kept as strings; parsed on serialize). */
 interface ParamRow { left: string; output: string; }
@@ -288,37 +286,6 @@ export class SonarFactorBuilderComponent {
         this.actionParamValues.set(seeded);
         if (!this.isNameEdited() && action) this.factorName.set(action.name);
         if (action) this.higherIsBetter.set(action.contract.output.higherIsBetter);
-    }
-
-    // --- Codesmith: the "Author with AI" tab (plans §5/§12) ---
-    /** Anchor entity display name — for the harness's grounding context + test label. */
-    public readonly anchorName = computed(() => {
-        const id = this.anchorEntityID();
-        return id ? (new Metadata().Entities.find((e) => e.ID === id)?.Name ?? null) : null;
-    });
-
-    /** Short grounding summary handed to ActionSmith so generated code targets THIS model's data. */
-    public readonly codesmithContext = computed(() => {
-        const anchor = this.anchorName() ?? "the anchor entity";
-        const srcs = this.sources().map((s) => s.label).filter(Boolean);
-        return `Anchor: ${anchor}.` + (srcs.length ? ` Wired sources: ${srcs.join(", ")}.` : "");
-    });
-
-    /** A Codesmith-authored + approved action: add it to the catalog list, select it, and switch to the
-     *  Custom signal tab to bind it. (Durable catalog visibility across reloads waits on the catalog-merge
-     *  for Runtime actions, §5 piece 2 — for now it's selectable this session.) */
-    public onCodesmithAuthored(f: AuthoredFactor): void {
-        if (!f.actionId) return;
-        const fa: FactorAction = {
-            id: f.actionId,
-            name: f.name ?? "Custom signal",
-            description: "AI-authored custom signal (approved).",
-            contract: { measures: f.name ?? "Custom signal", reads: [], output: { higherIsBetter: true }, cost: { deterministic: true, externalCalls: false, expensive: false } },
-            params: [],
-        };
-        this.actions.update((list) => (list.some((a) => a.id === fa.id) ? list : [...list, fa]));
-        this.onActionChange(fa.id);
-        this.onModeChange("action");
     }
 
     /** The selected action's prompt name, when it's LLM-backed — bound to the prompt-editor child,
@@ -703,7 +670,6 @@ export class SonarFactorBuilderComponent {
         if (this.saving() || !this.modelId() || !this.anchorEntityID() || this.factorName().trim().length === 0 || !this.normalizationConfigValid()) {
             return false;
         }
-        if (this.mode() === "author") return false; // authoring tab — nothing to save until it binds as 'action'
         return this.mode() === "action"
             ? this.actionConfigValid()
             // An unresolved tie (ambiguous source path) can't compile — block save until it's picked.
@@ -721,11 +687,9 @@ export class SonarFactorBuilderComponent {
     /** Step 1 (Signal) is configured: data needs a resolved source (+ a field when measuring one);
      *  action needs a chosen action with its required params filled. */
     public readonly signalStepValid = computed(() =>
-        this.mode() === "author"
-            ? false
-            : this.mode() === "action"
-                ? this.actionConfigValid()
-                : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0),
+        this.mode() === "action"
+            ? this.actionConfigValid()
+            : !!this.selectedSource() && !this.sourceTie() && (!this.fieldRequired() || this.aggregateField().trim().length > 0),
     );
 
     /** Value-bearing filter conditions (mirrors pruneFilter's keep rule) — for the summary + marker. */
