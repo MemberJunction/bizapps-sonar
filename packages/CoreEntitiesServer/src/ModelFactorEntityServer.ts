@@ -1,7 +1,7 @@
-import { BaseEntity, EntityDeleteOptions, LogError } from "@memberjunction/core";
+import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarModelFactorEntity } from "@mj-biz-apps/sonar-entities";
-import { appendPublishLockFailure, isModelConfigLocked } from "./publishLock";
+import { appendPublishLockFailure, failPublishLock, isModelConfigLocked } from "./publishLock";
 
 /**
  * Server guard: a ModelFactor (a row of the model's rubric — which factor, what weight) can't be
@@ -11,6 +11,13 @@ import { appendPublishLockFailure, isModelConfigLocked } from "./publishLock";
 export class ModelFactorEntityServer extends mjBizAppsSonarModelFactorEntity {
     public override get DefaultSkipAsyncValidation(): boolean {
         return false;
+    }
+
+    public override async Save(options?: EntitySaveOptions): Promise<boolean> {
+        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+            return failPublishLock(this, this.IsSaved ? "update" : "create");
+        }
+        return super.Save(options);
     }
 
     public override async ValidateAsync(): Promise<ValidationResult> {
@@ -23,10 +30,7 @@ export class ModelFactorEntityServer extends mjBizAppsSonarModelFactorEntity {
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
         if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
-            LogError(
-                `ModelFactorEntityServer: blocked delete of model factor ${this.ID} — owning model ${this.ScoreModelID} is published.`,
-            );
-            return false;
+            return failPublishLock(this, "delete");
         }
         return super.Delete(options);
     }

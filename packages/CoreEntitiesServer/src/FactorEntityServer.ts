@@ -1,7 +1,7 @@
-import { BaseEntity, EntityDeleteOptions, LogError } from "@memberjunction/core";
+import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarFactorEntity } from "@mj-biz-apps/sonar-entities";
-import { appendPublishLockFailure, isModelConfigLocked } from "./publishLock";
+import { appendPublishLockFailure, failPublishLock, isModelConfigLocked } from "./publishLock";
 
 /**
  * Server guard: a model-scoped Factor can't be created, edited, or deleted while its owning
@@ -16,6 +16,15 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
         return false;
     }
 
+    // Hard invariant: enforce in Save() so it can't be bypassed via SkipAsyncValidation (which would
+    // skip ValidateAsync). ValidateAsync stays below purely for the friendly message on the normal path.
+    public override async Save(options?: EntitySaveOptions): Promise<boolean> {
+        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+            return failPublishLock(this, this.IsSaved ? "update" : "create");
+        }
+        return super.Save(options);
+    }
+
     public override async ValidateAsync(): Promise<ValidationResult> {
         const result = await super.ValidateAsync();
         if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
@@ -26,10 +35,7 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
         if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
-            LogError(
-                `FactorEntityServer: blocked delete of factor ${this.ID} — owning model ${this.ScoreModelID} is published.`,
-            );
-            return false;
+            return failPublishLock(this, "delete");
         }
         return super.Delete(options);
     }

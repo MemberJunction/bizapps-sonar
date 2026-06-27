@@ -18,6 +18,15 @@ import {
     mjBizAppsSonarModelFactorEntity,
     mjBizAppsSonarFactorEntity,
 } from "@mj-biz-apps/sonar-entities";
+import {
+    appendPublishLockFailure,
+    failPublishLock,
+    GUARDED_SCORE_MODEL_FIELDS,
+} from "./publishLock";
+
+/** Statuses whose config is frozen — mirrors publishLock.LOCKED_STATUSES (kept local to avoid widening
+ *  that module's export surface for one hub-side check). */
+const LOCKED_STATUSES: readonly string[] = ["Active", "Paused"];
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -43,11 +52,31 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         // Capture the publish transition BEFORE saving — super.Save() clears dirty flags.
         const publishing = this.isPublishTransition();
 
+        // Hard invariant: editing the published model's OWN scoring fields drifts the live config away
+        // from the snapshot. Block it here (in Save, not just ValidateAsync) so SkipAsyncValidation can't
+        // bypass it. The publish path re-snapshots, so it's exempt; unpublishing (→ Draft) clears the lock.
+        if (!publishing && this.isScoringEditLocked()) {
+            return failPublishLock(this, "update");
+        }
+
         if (!publishing) {
             return await super.Save(options);
         } else {
             return await this.publishWithSnapshot(options);
         }
+    }
+
+    /**
+     * True when this save would mutate a frozen scoring field on a still-published model: current Status
+     * is Active/Paused and at least one GUARDED_SCORE_MODEL_FIELDS field is dirty. Name/Description/owner/
+     * scheduling fields stay editable; changing Status itself (e.g. unpublish → Draft) flips this.Status
+     * out of the locked set, so a same-save unlock-and-edit is allowed.
+     */
+    private isScoringEditLocked(): boolean {
+        if (!LOCKED_STATUSES.includes(this.Status)) {
+            return false;
+        }
+        return GUARDED_SCORE_MODEL_FIELDS.some((f) => this.GetFieldByName(f)?.Dirty === true);
     }
 
     /**
@@ -71,6 +100,11 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         const result = await super.ValidateAsync();
         if (this.Status === "Active") {
             await this.validatePublishable(result);
+        }
+        // Friendly message for the interactive path when editing a frozen scoring field (the Save()
+        // override is the actual enforcement). Skip on the publish transition, which re-snapshots.
+        if (!this.isPublishTransition() && this.isScoringEditLocked()) {
+            appendPublishLockFailure(result, "Status");
         }
         return result;
     }

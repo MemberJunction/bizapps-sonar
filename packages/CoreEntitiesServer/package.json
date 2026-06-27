@@ -13,12 +13,13 @@
   ],
   "scripts": {
     "build": "tsc && tsc-alias -f",
-    "test": "echo \"No tests configured yet\""
+    "test": "vitest run"
   },
   "author": "MemberJunction.com",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.1.1"
   },
   "dependencies": {
     "@mj-biz-apps/sonar-entities": "0.1.0"

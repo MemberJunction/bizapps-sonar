@@ -1,8 +1,9 @@
-import { BaseEntity, EntityDeleteOptions, LogError } from "@memberjunction/core";
+import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarScoreBandEntity } from "@mj-biz-apps/sonar-entities";
 import {
     appendPublishLockFailure,
+    failPublishLock,
     isBandSetConfigLocked,
 } from "./publishLock";
 
@@ -18,6 +19,13 @@ export class ScoreBandEntityServer extends mjBizAppsSonarScoreBandEntity {
         return false;
     }
 
+    public override async Save(options?: EntitySaveOptions): Promise<boolean> {
+        if (await isBandSetConfigLocked(this.BandSetID, this.ContextCurrentUser)) {
+            return failPublishLock(this, this.IsSaved ? "update" : "create");
+        }
+        return super.Save(options);
+    }
+
     public override async ValidateAsync(): Promise<ValidationResult> {
         const result = await super.ValidateAsync();
         if (await isBandSetConfigLocked(this.BandSetID, this.ContextCurrentUser)) {
@@ -28,10 +36,7 @@ export class ScoreBandEntityServer extends mjBizAppsSonarScoreBandEntity {
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
         if (await isBandSetConfigLocked(this.BandSetID, this.ContextCurrentUser)) {
-            LogError(
-                `ScoreBandEntityServer: blocked delete of band ${this.ID} — band set ${this.BandSetID} is used by a published model.`,
-            );
-            return false;
+            return failPublishLock(this, "delete");
         }
         return super.Delete(options);
     }

@@ -1,4 +1,4 @@
-import { RunView, UserInfo } from "@memberjunction/core";
+import { RunView, UserInfo, BaseEntity, BaseEntityResult, LogError } from "@memberjunction/core";
 import {
     ValidationResult,
     ValidationErrorInfo,
@@ -33,6 +33,33 @@ export const PUBLISH_LOCK_MESSAGE =
     "it to Draft before editing its factors, data sources, or bands.";
 
 /**
+ * ScoreModel's own scoring-config fields. Editing any of these while the model is Active/Paused would
+ * drift the live config away from the published snapshot, so they're frozen by the hub guard. Operational
+ * / cosmetic fields (Name, Description, Status, Owner, RecomputeMode/Cron, Notes, …) stay editable.
+ */
+export const GUARDED_SCORE_MODEL_FIELDS = [
+    "AnchorEntityID",
+    "ScoreScaleMin",
+    "ScoreScaleMax",
+    "CombineStrategy",
+    "CombineExpression",
+    "BandSetID",
+    "PopulationFilter",
+] as const;
+
+/**
+ * Hard-block a save/delete on a published model: log it, surface PUBLISH_LOCK_MESSAGE on the entity's
+ * result (so the caller sees a reason, not a bare false), and return false. Used by the Save()/Delete()
+ * OVERRIDES — unlike a ValidateAsync-only check, this can't be bypassed with SkipAsyncValidation, which
+ * is exactly the escape hatch a script/API/agent (the threat model) would use.
+ */
+export function failPublishLock(entity: BaseEntity, op: "create" | "update" | "delete"): false {
+    LogError(`${entity.EntityInfo?.Name ?? "entity"}: blocked ${op} — owning model is published (config locked).`);
+    entity.RegisterResultHistoryEntry(new BaseEntityResult(false, PUBLISH_LOCK_MESSAGE, op));
+    return false;
+}
+
+/**
  * True when `modelId` names a model whose config is locked (Status Active or Paused).
  * A null id (e.g. a shared library Factor with no owning model) is never locked → false.
  * Uses a lightweight existence query rather than hydrating the full entity.
@@ -42,6 +69,13 @@ export async function isModelConfigLocked(
     contextUser?: UserInfo,
 ): Promise<boolean> {
     if (!modelId) {
+        // KNOWN GAP (latent, not live): a shared "library" factor (ScoreModelID = null) bound into a
+        // published model via ModelFactor would slip the lock — and since the engine scores from live
+        // config, editing it could drift that model's published scores. Safe TODAY only because library
+        // factors are unreachable: no surface creates a null-model factor, and FactorCompiler throws
+        // "library factors not supported yet". When that deferred feature ships, it MUST either lock a
+        // library factor while it's bound to any locked model, or have the engine score published models
+        // from the ScoreModelVersion snapshot. Until then, null → not locked is correct.
         return false;
     }
     const rv = new RunView();
