@@ -69,13 +69,9 @@ export async function isModelConfigLocked(
     contextUser?: UserInfo,
 ): Promise<boolean> {
     if (!modelId) {
-        // KNOWN GAP (latent, not live): a shared "library" factor (ScoreModelID = null) bound into a
-        // published model via ModelFactor would slip the lock — and since the engine scores from live
-        // config, editing it could drift that model's published scores. Safe TODAY only because library
-        // factors are unreachable: no surface creates a null-model factor, and FactorCompiler throws
-        // "library factors not supported yet". When that deferred feature ships, it MUST either lock a
-        // library factor while it's bound to any locked model, or have the engine score published models
-        // from the ScoreModelVersion snapshot. Until then, null → not locked is correct.
+        // Library factors (ScoreModelID = null) are exempt. Safe today — they're unreachable (no surface
+        // creates one; FactorCompiler defers them). The exemption's correctness depends on how the
+        // deferred feature lands: see plans/library-factors.md.
         return false;
     }
     const rv = new RunView();
