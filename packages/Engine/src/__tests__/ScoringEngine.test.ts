@@ -126,6 +126,39 @@ describe("ScoringEngine", () => {
         expect(scores.get("m1")?.normalizedScore).toBeCloseTo(80);
     });
 
+    it("NeutralMidpoint fills the factor's OWN range midpoint, not a hardcoded 0.5", () => {
+        const rubric: WeightedFactor[] = [
+            {
+                factorId: "ranged",
+                modelFactorId: "mf-ranged",
+                weight: 1,
+                missingDataPolicy: "NeutralMidpoint",
+                outputMin: 0,
+                outputMax: 100, // custom output range
+                results: new Map(), // missing for all
+            },
+        ];
+        const contrib = new ScoringEngine().score(spec, rubric, ["m1"]).get("m1")?.contributions[0];
+        expect(contrib?.normalizedContribution).toBe(50); // (0 + 100) / 2, not 0.5
+        expect(contrib?.missingDataApplied).toBe(true);
+    });
+
+    it("Zero stays a literal 0 regardless of the factor's output range", () => {
+        const rubric: WeightedFactor[] = [
+            {
+                factorId: "ranged",
+                modelFactorId: "mf-ranged",
+                weight: 1,
+                missingDataPolicy: "Zero",
+                outputMin: 0.2,
+                outputMax: 1,
+                results: new Map(),
+            },
+        ];
+        const contrib = new ScoringEngine().score(spec, rubric, ["m1"]).get("m1")?.contributions[0];
+        expect(contrib?.normalizedContribution).toBe(0);
+    });
+
     it("scores a member with no data in any factor (Zero → floor) so the disengaged still surface", () => {
         // population includes m2, but no factor has data for it → all missing
         const scores = new ScoringEngine().score(spec, oneMissingRubric("Zero"), ["m1", "m2"]);
