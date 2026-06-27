@@ -35,6 +35,7 @@ side-effect imports (`@mj-biz-apps/sonar-actions`, `@memberjunction/ai-gemini`, 
 | `test-tool-surface.mjs` / `test-authoring-agent.mjs` | The agent authoring tool-surface actions. |
 | `streak-livetest.mjs`       | The Member Activity Streak factor-action. |
 | `composite-sql-smoke.mjs`   | Composite (multi-column) anchor-key SQL building. |
+| `test-unpublish-model.mjs`  | The `Sonar: Unpublish Model` action (Active/Paused → Draft; idempotent Draft path). |
 
 ## One-offs
 

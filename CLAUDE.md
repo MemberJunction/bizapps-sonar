@@ -199,6 +199,8 @@ These are the shared seams — reuse them, don't re-implement.
 - Shape: typed input params (or a `Spec`/`ConfigJSON`), one `Result` output param (Type `'Both'` so it serializes to GraphQL `ResultData`), explicit result codes.
 - **Promotion gate**: an Action-backed factor must be `PromotionState='Approved'` to move *persisted* scores (recompute); a read-only **preview/Simulate runs un-approved drafts** (so authors can test before promotion).
 - **Metadata IDs are hand-assigned** in `metadata/actions/.sonar-actions.json` as 4-digit blocks (`5044A100-00NN-…`, params `…A1/A2`, codes `…C1/C2`). They must be unique — **run `npm run check:action-ids` before `mj sync push`** (a 0008/0009 collision happened once). Pick the next free block.
+- **Custom (code-backed) signals = Runtime factor-actions**, authored async by ActionSmith via the **Signal Studio** (not the factor builder) and gated by `CodeApprovalStatus`. The authoring agent's discover/build/edit tools (`Unpublish Model`, `Find Entities`, `Find Models`, `Refine Factor Action`, `Start Factor Job`) live here too. See [`plans/signal-studio.md`](plans/signal-studio.md).
+- **`mj sync push` gotcha:** run it from the `metadata/` root (not `--dir`); the CLI's encryption validator aborts without a key, so set a throwaway `MJ_BASE_ENCRYPTION_KEY=$(openssl rand -base64 32)` for the push.
 
 ### Engine (`packages/Engine/`)
 - `RecomputeOrchestrator.computeScores` = preview (no persist); `recompute` = persist (needs a published version). Both share `computeForModel`.
@@ -207,6 +209,7 @@ These are the shared seams — reuse them, don't re-implement.
 ### Angular (`packages/Angular/src/lib/custom/`)
 - **Shared utils — don't duplicate**: `core/services/action-result.util.ts` (`extractActionResult` / `extractActionParam` for MJ action output), `core/services/anchor-name.util.ts` (`resolveAnchorName`), and `bandKey()` exported from `core/services/score-read.service.ts` (single source for band-label → color key; also the `BandKey` type).
 - The factor builder's prompt view/edit/test is its own component (`SonarPromptEditorComponent`), driven by the action's `contract.promptName`; reads via `SonarEngineService.getPrompt` / `updatePrompt` / `testFactorAction`.
+- **Copilot = MJ native chat.** The floating assistant (`features/assistant/`) embeds `<mj-conversation-chat-area>` (overlayMode) from `@memberjunction/ng-conversations`, NOT a custom panel — it brings streaming/persistence/replay/attribution. The service holds only the bindings that survive a re-render. See [`plans/signal-studio.md`](plans/signal-studio.md) §3.
 
 ### Dev scripts (`scripts/`)
 - Seeds + live tests against `Sonar_Demo`; **not** part of build/CI. Run `set -a && . ./.env && set +a && node scripts/<name>.mjs`. Shared DB connect in `scripts/lib/bootstrap.mjs` (`const { pool, user } = await bootstrap();`). See `scripts/README.md`.

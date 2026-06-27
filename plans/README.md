@@ -11,6 +11,7 @@
 |---|---|
 | 📄 Full plan (detailed DB design) | [`plan.md`](./plan.md) |
 | 🖼️ Clickable mockup index | [`mockup.html`](./mockup.html) |
+| 🛠️ Signal Studio + authoring-agent tools | [`signal-studio.md`](./signal-studio.md) |
 | 🎯 Maturity stage | `idea` → next gate: **Phase 0 MJ feasibility spike + ≥3 design-partner LOIs** |
 
 ---
