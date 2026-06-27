@@ -6,6 +6,13 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
+import {
+    ActionFactorEvaluator,
+    ActionFactorSpec,
+    ActionRunner,
+    DEFAULT_MAX_CONCURRENCY,
+    parseActionParams,
+} from "./ActionFactorEvaluator";
 import { CompiledFactorSpec, buildAggregateExpression } from "./factorSql";
 import {
     CompiledFilter,
@@ -30,11 +37,21 @@ interface WindowSpec {
  * throws a clear error rather than silently emitting wrong SQL — we widen deliberately.
  */
 export class FactorCompiler {
+    /** The runner that executes Action-backed factors (injected so this module needn't import the
+     *  heavy MJ Actions engine — the orchestrator supplies the real one). Absent → Action factors
+     *  can't compile. */
+    constructor(private readonly actionRunner?: ActionRunner) {}
+
     public async compile(
         factor: mjBizAppsSonarFactorEntity,
         contextUser: UserInfo,
     ): Promise<IFactorEvaluator> {
         this.assertSupported(factor);
+
+        // Action-backed factors run arbitrary code (an MJ Action), not SQL — a separate evaluator.
+        if (factor.FactorType === "ActionBacked") {
+            return this.compileActionFactor(factor);
+        }
 
         const relatedEntity = await this.resolveRelatedEntity(
             factor,
@@ -95,11 +112,43 @@ export class FactorCompiler {
 
     /** Fail loud on factor kinds outside the v1 slice (aggregation support is enforced in buildAggregateExpression). */
     private assertSupported(factor: mjBizAppsSonarFactorEntity): void {
-        if (factor.FactorType !== "Declarative") {
+        if (factor.FactorType !== "Declarative" && factor.FactorType !== "ActionBacked") {
             throw new Error(
-                `FactorCompiler: only Declarative factors are supported yet (got '${factor.FactorType}' for factor ${factor.ID}).`,
+                `FactorCompiler: only Declarative and Action-backed factors are supported (got '${factor.FactorType}' for factor ${factor.ID}).`,
             );
         }
+    }
+
+    /** Build an Action-backed evaluator: bind the Action + its I/O contract from ActionParamsJSON,
+     *  wire the injected ActionEngineServer runner. PerRecord only (Batch deferred). */
+    private compileActionFactor(factor: mjBizAppsSonarFactorEntity): IFactorEvaluator {
+        if (!factor.ActionID) {
+            throw new Error(
+                `FactorCompiler: Action-backed factor ${factor.ID} has no ActionID.`,
+            );
+        }
+        if (factor.ExecutionMode === "Batch") {
+            throw new Error(
+                `FactorCompiler: Batch execution mode is not supported yet (factor ${factor.ID}); use PerRecord.`,
+            );
+        }
+        if (!this.actionRunner) {
+            throw new Error(
+                `FactorCompiler: no ActionRunner configured — cannot compile Action-backed factor ${factor.ID}.`,
+            );
+        }
+        const { anchorParam, outputParam, staticParams } = parseActionParams(
+            factor.ActionParamsJSON,
+        );
+        const spec: ActionFactorSpec = {
+            factorId: factor.ID,
+            actionId: factor.ActionID,
+            anchorParam,
+            outputParam,
+            staticParams,
+            maxConcurrency: factor.MaxConcurrency ?? DEFAULT_MAX_CONCURRENCY,
+        };
+        return new ActionFactorEvaluator(spec, this.actionRunner);
     }
 
     /**
