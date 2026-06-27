@@ -14,7 +14,13 @@
             </div>
         </div>
         <div class="sonar-page__actions">
-            <button class="sonar-btn" [disabled]="!hasModel() || members().length === 0" title="Export cohort">Export cohort</button>
+            <button class="sonar-btn" [disabled]="!hasModel() || total() === 0 || exporting()" (click)="exportCohort()" title="Export the filtered cohort to CSV">
+                @if (exporting()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> Exporting…
+                } @else {
+                    <i class="fa-solid fa-file-csv"></i> Export cohort
+                }
+            </button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!hasModel() || members().length === 0" (click)="openPlaybookModal()">Launch playbook</button>
         </div>
     </div>

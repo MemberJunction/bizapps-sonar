@@ -8,6 +8,7 @@ import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, Scor
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
+import { toCsv, downloadCsv } from "../../core/services/csv.util";
 
 
 /**
@@ -69,6 +70,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly loadingMembers = signal(false);
     /** A load failed (drives the error state); null when healthy. */
     public readonly error = signal<string | null>(null);
+    /** The cohort CSV export is in flight (drives the Export button's spinner/disabled state). */
+    public readonly exporting = signal(false);
     /** Fixed placeholder rows for the loading skeleton (mirrors the triage list). */
     public readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -214,6 +217,85 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     /** Retry after an error — reload the current page. */
     public async retry(): Promise<void> { await this.loadMembers(); }
+
+    /**
+     * Export the current filtered cohort to CSV — ALL matching rows (every page, not just the visible
+     * 50), respecting the active band tile / score range / name filters. One row per member with
+     * score/band/delta/trend, one column per rubric signal (its 0–1 strength), plus a "why" column for
+     * any signal that recorded an explanation (e.g. an LLM factor's reason). Reuses the loaded rubric;
+     * batches the contribution lookup (no per-member query).
+     */
+    public async exportCohort(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id || this.exporting()) return;
+        this.exporting.set(true);
+        this.error.set(null);
+        try {
+            const band = this.selectedBand();
+            const members = await this.scoreRead.allMembersForModel(id, {
+                bandId: band ? band.bandId : undefined,
+                minScore: this.minScore(),
+                maxScore: this.maxScore(),
+                nameQuery: this.nameQuery(),
+                anchorEntityId: this.anchorEntityId() ?? undefined,
+                anchorRecordId: this.pinnedAnchorId() ?? undefined,
+                sortDir: this.sortDir(),
+            });
+            if (members.length === 0) return;
+            const byScore = await this.scoreRead.contributionsForScores(members.map((m) => m.scoreId));
+            const csv = this.buildCohortCsv(members, byScore);
+            downloadCsv(`${this.slug(this.modelName())}-cohort-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+        } catch {
+            this.error.set("Couldn't export the cohort. Please retry.");
+        } finally {
+            this.exporting.set(false);
+        }
+    }
+
+    /**
+     * Pivot members + their contributions into the cohort CSV. Factor columns come from the model
+     * rubric (stable order; a signal a member lacks shows blank). A "<signal> — why" column is added
+     * only for signals that recorded at least one explanation across the cohort, so non-LLM factors
+     * don't pad the file with empty columns.
+     */
+    private buildCohortCsv(members: ScoredMember[], byScore: Map<string, ScoreContribution[]>): string {
+        const factors = this.rubricNames();
+        const withWhy = new Set<string>();
+        for (const list of byScore.values()) {
+            for (const c of list) if (c.explanation) withWhy.add(c.label);
+        }
+
+        const headers = ["Member", "Member ID", "Score", "Band", "Delta", "Trend", "Scored At"];
+        for (const f of factors) {
+            headers.push(f);
+            if (withWhy.has(f)) headers.push(`${f} — why`);
+        }
+
+        const rows = members.map((m) => {
+            const byFactor = new Map((byScore.get(m.scoreId) ?? []).map((c) => [c.label, c]));
+            const cells: (string | number | null)[] = [
+                m.name,
+                m.anchorRecordId,
+                m.normalizedScore,
+                m.bandLabel,
+                m.delta ?? "",
+                m.trendDirection ?? "",
+                m.computedAt ? m.computedAt.toISOString().slice(0, 10) : "",
+            ];
+            for (const f of factors) {
+                const c = byFactor.get(f);
+                cells.push(c ? c.normalizedValue : "");
+                if (withWhy.has(f)) cells.push(c?.explanation ?? "");
+            }
+            return cells;
+        });
+        return toCsv(headers, rows);
+    }
+
+    /** Filesystem-safe slug for the export filename (e.g. "Demo Engagement" → "demo-engagement"). */
+    private slug(s: string): string {
+        return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "model";
+    }
 
     /** Click a band tile to filter the triage list to it; click the active one again to clear. */
     public async filterByBand(slice: BandSlice): Promise<void> {

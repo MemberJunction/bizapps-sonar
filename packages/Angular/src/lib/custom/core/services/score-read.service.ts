@@ -218,6 +218,29 @@ export class ScoreReadService {
     }
 
     /**
+     * ALL members matching the triage filters, uncapped and unpaged — backs the cohort export, which
+     * must include every filtered row, not just the visible page. Same filter/sort path as
+     * {@link membersForModel} (band tile, score range, name search/pin), minus pagination.
+     */
+    public async allMembersForModel(modelId: string, opts: MemberQueryOpts = {}): Promise<ScoredMember[]> {
+        let anchorIds: string[] | undefined;
+        const query = opts.nameQuery?.trim();
+        if (!opts.anchorRecordId && query && opts.anchorEntityId) {
+            anchorIds = await this.resolveAnchorIdsByName(opts.anchorEntityId, query);
+            if (anchorIds.length === 0) return [];
+        }
+        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+            EntityName: SCORE,
+            ExtraFilter: this.buildScoreFilter(modelId, { bandId: opts.bandId, minScore: opts.minScore, maxScore: opts.maxScore, anchorIds, anchorRecordId: opts.anchorRecordId }),
+            OrderBy: `NormalizedScore ${opts.sortDir === "desc" ? "DESC" : "ASC"}`,
+            ResultType: "entity_object",
+            IgnoreMaxRows: true,
+        });
+        const scores = result.Success ? result.Results ?? [] : [];
+        return scores.length ? this.toScoredMembers(scores) : [];
+    }
+
+    /**
      * The biggest movers since the previous recompute, split into risers (score went up) and
      * fallers (down). Reads `Score.Delta` (set by ScoreWriter), so it's two small top-N queries —
      * no full-population scan. Members scored only once (Delta null) are excluded by `Delta <>/> 0`.
@@ -324,13 +347,31 @@ export class ScoreReadService {
 
     /** A single score's contribution breakdown (factor name + weighted value), largest first. */
     public async contributionsForScore(scoreId: string): Promise<ScoreContribution[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
-            EntityName: CONTRIBUTION,
-            ExtraFilter: `ScoreID='${scoreId}'`,
-            ResultType: "entity_object",
-        });
-        const rows = result.Success ? result.Results ?? [] : [];
-        if (rows.length === 0) return [];
+        return (await this.contributionsForScores([scoreId])).get(scoreId) ?? [];
+    }
+
+    /**
+     * Contribution breakdowns for MANY scores at once → `Map<scoreId, ScoreContribution[]>` (each
+     * list largest-first). One batched contribution query per chunk of score IDs, plus one factor-name
+     * lookup — no N+1. Backs the cohort export's per-signal "why" columns.
+     */
+    public async contributionsForScores(scoreIds: string[]): Promise<Map<string, ScoreContribution[]>> {
+        const byScore = new Map<string, ScoreContribution[]>();
+        if (scoreIds.length === 0) return byScore;
+
+        const CHUNK = 200; // keep the IN(...) list well under SQL limits on large cohorts
+        const rows: mjBizAppsSonarScoreFactorContributionEntity[] = [];
+        for (let i = 0; i < scoreIds.length; i += CHUNK) {
+            const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${id}'`).join(",");
+            const res = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
+                EntityName: CONTRIBUTION,
+                ExtraFilter: `ScoreID IN (${ids})`,
+                ResultType: "entity_object",
+                IgnoreMaxRows: true,
+            });
+            if (res.Success) rows.push(...(res.Results ?? []));
+        }
+        if (rows.length === 0) return byScore;
 
         const factorIds = [...new Set(rows.map((r) => `'${r.FactorID}'`))].join(",");
         const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
@@ -341,8 +382,9 @@ export class ScoreReadService {
         const nameById = new Map((factorsResult.Results ?? []).map((f) => [f.ID, f.Name]));
 
         const round = (n: number): number => Math.round(n * 100) / 100;
-        return rows
-            .map((r) => ({
+        for (const r of rows) {
+            const list = byScore.get(r.ScoreID) ?? [];
+            list.push({
                 label: nameById.get(r.FactorID) ?? "Signal",
                 rawValue: r.RawValue ?? 0,
                 normalizedValue: round(r.NormalizedValue ?? 0),
@@ -350,8 +392,13 @@ export class ScoreReadService {
                 percentOfTotal: r.PercentOfTotal ?? 0,
                 hadData: r.HadData ?? false,
                 explanation: this.parseExplanation(r.DetailJSON),
-            }))
-            .sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue));
+            });
+            byScore.set(r.ScoreID, list);
+        }
+        for (const list of byScore.values()) {
+            list.sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue));
+        }
+        return byScore;
     }
 
     /** Pull the human "why" out of a contribution's DetailJSON ({"explanation":"…"}); null if absent/malformed. */
