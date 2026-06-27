@@ -1,7 +1,7 @@
-import { BaseEntity, EntityDeleteOptions, LogError } from "@memberjunction/core";
+import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarModelRelatedEntityEntity } from "@mj-biz-apps/sonar-entities";
-import { appendPublishLockFailure, isModelConfigLocked } from "./publishLock";
+import { appendPublishLockFailure, failPublishLock, isModelConfigLocked } from "./publishLock";
 
 /**
  * Server guard: a ModelRelatedEntity (a data-source / relationship-path row the model's factors
@@ -14,6 +14,13 @@ export class ModelRelatedEntityEntityServer extends mjBizAppsSonarModelRelatedEn
         return false;
     }
 
+    public override async Save(options?: EntitySaveOptions): Promise<boolean> {
+        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+            return failPublishLock(this, this.IsSaved ? "update" : "create");
+        }
+        return super.Save(options);
+    }
+
     public override async ValidateAsync(): Promise<ValidationResult> {
         const result = await super.ValidateAsync();
         if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
@@ -24,10 +31,7 @@ export class ModelRelatedEntityEntityServer extends mjBizAppsSonarModelRelatedEn
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
         if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
-            LogError(
-                `ModelRelatedEntityEntityServer: blocked delete of related entity ${this.ID} — owning model ${this.ScoreModelID} is published.`,
-            );
-            return false;
+            return failPublishLock(this, "delete");
         }
         return super.Delete(options);
     }
