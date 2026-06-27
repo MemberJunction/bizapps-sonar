@@ -21,23 +21,24 @@ A **library factor is the shared one** — it can be *either* declarative or act
 
 So it's a schema affordance + a planned-for-later idea (the "starter factor library"), not a usable feature.
 
-## The real design tension: data sources are model-scoped
+## Why a "pure" (shared) library factor is incoherent here
 
-A factor's data source lives on a **per-model** row: `Factor.SourceRelatedEntityID → ModelRelatedEntity → (RelatedEntityID + RelationshipPath)`. The source entity, its alias, and the anchor→source join path are all model-scoped (this is the nav-branch data-source constraint).
+A factor reads its source through an **anchor → source relationship path** — FK hops, resolved per model and stored on `Factor.SourceRelatedEntityID → ModelRelatedEntity → (RelatedEntityID + RelationshipPath)`. The key fact: **that path is anchor-specific.** Sonar deliberately constrains a model to only the data its anchor can FK-hop to.
 
-A library factor has **no model → no `ModelRelatedEntity`** to point at. So it can't express "what do I read" the normal way. That leaves two designs:
+A pure library factor would be one shared `Factor` row that many models reference. That breaks on the anchor constraint, not just on tidiness:
 
-### (A) Shared live row
-One `Factor` row that many models reference. It would need a *direct* `SourceEntityID` (a raw entity, not a model alias), and the engine would resolve the anchor→entity path **per binding model** at compile time.
-- Fights the model-scoped data-source model.
-- Only works for anchors that can actually reach that entity.
-- **Creates a publish-lock gap:** editing the shared row drifts *every* published model that binds it (the engine scores from live config). To stay safe, the lock would have to block a library factor while it's bound to any locked model (reverse lookup through `ModelFactor`), **or** the engine would have to score published models from the `ScoreModelVersion` snapshot.
+- **Across different anchors → incoherent.** "Count of Event Registrations" is meaningless for an anchor that can't reach Event Registrations, and where two anchors *can* reach it, the FK path differs. One shared definition cannot carry one correct path. There is no universal library factor.
+- **Within a single anchor → possible but pointless.** Same anchor ⇒ same reachable set ⇒ same path, so it's coherent — but Sonar binds sources per *model* (`ModelRelatedEntity`), so a shared factor would still have to reference the raw entity and re-resolve per model. At that point you've taken on the live-edit **drift** problem (editing the shared row changes every published model that binds it, since the engine scores from live config) for essentially no gain.
 
-### (B) Copy-on-add template ✅ recommended
-A library factor is a *blueprint*; adding it to a model **copies** it into a normal model-owned factor, wired to that model's `ModelRelatedEntity` at add-time. The schema already hints at this: `Factor.SourceScoreModelID` (nullable) is a "copied-from" pointer.
+So a shared library factor is **non-viable by construction** — incoherent across anchors, not worth it within one. It is not a design Sonar should adopt.
+
+## The only viable form: a copy-on-add template
+
+A library factor as a **template**: it carries the *intent* (aggregation, window, normalization, a hint at the kind of source) — **not** a baked-in path. Adding it to a model resolves the source against **that model's** FK-reachable entities (the existing constrained picker), producing a normal model-owned factor with a real `ModelRelatedEntity`. The path is resolved per model, within the anchor's reach, at add-time. The schema already has the breadcrumb: `Factor.SourceScoreModelID` (nullable) is a "copied-from" pointer.
+
 - Needs **zero** changes to the model-scoped data-source model — once instantiated it's just a regular model-owned factor.
-- **The publish-lock gap disappears:** there's no shared live row, so nothing can drift a published model. The `ScoreModelID = null` exemption in `publishLock.ts` stays correct with no further work.
+- Drift-free by construction: there is no shared live row, so nothing can drift a published model.
 
-## Decision
+## Consequence for the publish-lock
 
-Lean **(B) copy-on-add**. It fits the existing constraints and is drift-free by construction. If (A) is ever chosen instead, the publish-lock must gain the reverse-lookup guard (or the engine must move to snapshot-based scoring for published models) — see `publishLock.ts` `isModelConfigLocked` null branch.
+Because the only viable form is a copy-on-add template (no shared live row), the `ScoreModelID = null` exemption in `publishLock.ts` (`isModelConfigLocked`) is **correct as-is and needs no future guard** — the reverse-lookup lock and snapshot-scoring alternatives only matter for the shared-live-row design, which Sonar isn't taking. The null branch is exempt simply because a model-less factor is never a live, model-affecting row.

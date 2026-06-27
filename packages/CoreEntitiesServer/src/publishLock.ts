@@ -69,9 +69,10 @@ export async function isModelConfigLocked(
     contextUser?: UserInfo,
 ): Promise<boolean> {
     if (!modelId) {
-        // Library factors (ScoreModelID = null) are exempt. Safe today — they're unreachable (no surface
-        // creates one; FactorCompiler defers them). The exemption's correctness depends on how the
-        // deferred feature lands: see plans/library-factors.md.
+        // Library factors (ScoreModelID = null) are exempt — correctly, with no future guard needed. A
+        // pure/shared library factor is non-viable under Sonar's anchor→source FK constraint, so the only
+        // viable form is a copy-on-add TEMPLATE (instantiated into a normal model-owned factor), which has
+        // no shared live row to drift a published model. Reasoning: plans/library-factors.md.
         return false;
     }
     const rv = new RunView();
