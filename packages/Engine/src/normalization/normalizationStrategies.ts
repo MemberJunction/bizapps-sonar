@@ -323,17 +323,67 @@ export function parseNormalizationParams(
     }
 }
 
+/** The factor fields a NormalizationSpec is derived from (the subset of the Factor entity that matters
+ *  here — keeps this module decoupled from the entities package). */
+export interface NormalizationFactorConfig {
+    NormalizationMethod: NormalizationMethod | null;
+    OutputMin: number | null;
+    OutputMax: number | null;
+    HigherIsBetter: boolean | null;
+    NormalizationParamsJSON: string | null;
+}
+
+/**
+ * Build the NormalizationSpec for a factor: method + output range + direction, plus the parsed params for
+ * the parameterized methods (Logistic/Banded/Lookup). This is the single seam the orchestrator and the
+ * UI share, so all seven methods are reachable through one path — and `parseNormalizationParams` fails
+ * loud here on missing/malformed config rather than letting a bad factor mis-score. Pure + unit-testable.
+ */
+export function resolveNormalizationSpec(factor: NormalizationFactorConfig): NormalizationSpec {
+    const method = factor.NormalizationMethod ?? "None";
+    return {
+        method,
+        outputMin: factor.OutputMin ?? 0,
+        outputMax: factor.OutputMax ?? 1,
+        higherIsBetter: factor.HigherIsBetter ?? true,
+        params: parseNormalizationParams(method, factor.NormalizationParamsJSON),
+    };
+}
+
 /** True for a non-null object (so its keys can be read as unknown). */
 function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null;
 }
 
-/** Assert a value is a finite number, with a field-name in the error for debuggability. */
+/** Assert a value is a FINITE number (rejects NaN and Infinity), with a field-name for debuggability. */
 function requireNumber(v: unknown, field: string): number {
-    if (typeof v !== "number" || Number.isNaN(v)) {
-        throw new Error(`NormalizationEngine: ${field} must be a number.`);
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+        throw new Error(`NormalizationEngine: ${field} must be a finite number.`);
     }
     return v;
+}
+
+/**
+ * A finite number in [0, 1]. Banded/Lookup `output` and `fallback` are normalized contributions
+ * (fractions fed into toOutputRange) — an out-of-range value would silently distort the weighted sum,
+ * so reject it at parse time. "Fail loud" must cover value bounds, not just shape.
+ */
+function requireUnitInterval(v: unknown, field: string): number {
+    const n = requireNumber(v, field);
+    if (n < 0 || n > 1) {
+        throw new Error(`NormalizationEngine: ${field} must be between 0 and 1 (got ${n}).`);
+    }
+    return n;
+}
+
+/** A finite number > 0. Logistic steepness must be positive — direction is expressed via higherIsBetter,
+ *  so a negative steepness would silently double-invert the curve. */
+function requirePositive(v: unknown, field: string): number {
+    const n = requireNumber(v, field);
+    if (n <= 0) {
+        throw new Error(`NormalizationEngine: ${field} must be greater than 0 (got ${n}).`);
+    }
+    return n;
 }
 
 function parseLogistic(v: unknown): LogisticParams {
@@ -343,7 +393,7 @@ function parseLogistic(v: unknown): LogisticParams {
     return {
         method: "Logistic",
         midpoint: requireNumber(v.midpoint, "Logistic.midpoint"),
-        steepness: requireNumber(v.steepness, "Logistic.steepness"),
+        steepness: requirePositive(v.steepness, "Logistic.steepness"),
     };
 }
 
@@ -359,7 +409,7 @@ function parseBanded(v: unknown): BandedParams {
         }
         return {
             max: b.max === null ? null : requireNumber(b.max, `Banded.bands[${i}].max`),
-            output: requireNumber(b.output, `Banded.bands[${i}].output`),
+            output: requireUnitInterval(b.output, `Banded.bands[${i}].output`),
         };
     });
     if (bands.length === 0) {
@@ -380,8 +430,8 @@ function parseLookup(v: unknown): LookupParams {
         }
         return {
             value: requireNumber(e.value, `Lookup.entries[${i}].value`),
-            output: requireNumber(e.output, `Lookup.entries[${i}].output`),
+            output: requireUnitInterval(e.output, `Lookup.entries[${i}].output`),
         };
     });
-    return { method: "Lookup", entries, fallback: requireNumber(v.fallback, "Lookup.fallback") };
+    return { method: "Lookup", entries, fallback: requireUnitInterval(v.fallback, "Lookup.fallback") };
 }
