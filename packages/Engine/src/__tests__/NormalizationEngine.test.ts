@@ -3,6 +3,7 @@ import {
     NormalizationEngine,
     NormalizationSpec,
     parseNormalizationParams,
+    resolveNormalizationSpec,
 } from "../normalization/NormalizationEngine";
 import type { FactorResult } from "../contracts/IFactorEvaluator";
 
@@ -368,9 +369,87 @@ describe("parseNormalizationParams", () => {
         expect(() => parseNormalizationParams("Logistic", "{not json")).toThrow(/valid JSON/);
         expect(() =>
             parseNormalizationParams("Logistic", '{"midpoint":"x","steepness":1}'),
-        ).toThrow(/must be a number/);
+        ).toThrow(/must be a finite number/);
         expect(() => parseNormalizationParams("Banded", '{"bands":[]}')).toThrow(
             /at least one band/,
         );
+    });
+});
+
+describe("resolveNormalizationSpec — factor → spec wiring", () => {
+    it("parses NormalizationParamsJSON into spec.params for a parameterized method", () => {
+        const spec = resolveNormalizationSpec({
+            NormalizationMethod: "Logistic",
+            OutputMin: 0,
+            OutputMax: 1,
+            HigherIsBetter: true,
+            NormalizationParamsJSON: JSON.stringify({ method: "Logistic", midpoint: 10, steepness: 1 }),
+        });
+        expect(spec.params).toEqual({ method: "Logistic", midpoint: 10, steepness: 1 });
+    });
+
+    it("those params reach the strategy and produce a non-default contribution (guards the wiring gap)", () => {
+        const spec = resolveNormalizationSpec({
+            NormalizationMethod: "Logistic",
+            OutputMin: 0,
+            OutputMax: 1,
+            HigherIsBetter: true,
+            NormalizationParamsJSON: JSON.stringify({ method: "Logistic", midpoint: 10, steepness: 1 }),
+        });
+        const results = new Map<string, FactorResult>([
+            ["mid", raw(10)], // at the midpoint → fraction 0.5
+            ["hi", raw(110)], // far above → ~1
+        ]);
+        new NormalizationEngine().normalize(spec, results);
+        expect(results.get("mid")?.normalizedContribution).toBeCloseTo(0.5);
+        expect(results.get("hi")?.normalizedContribution).toBeGreaterThan(0.9);
+    });
+
+    it("returns undefined params for the pure methods", () => {
+        const spec = resolveNormalizationSpec({
+            NormalizationMethod: "MinMax",
+            OutputMin: 0,
+            OutputMax: 1,
+            HigherIsBetter: true,
+            NormalizationParamsJSON: null,
+        });
+        expect(spec.params).toBeUndefined();
+    });
+
+    it("defaults method to None and range to [0,1] when fields are null", () => {
+        const spec = resolveNormalizationSpec({
+            NormalizationMethod: null,
+            OutputMin: null,
+            OutputMax: null,
+            HigherIsBetter: null,
+            NormalizationParamsJSON: null,
+        });
+        expect(spec).toMatchObject({ method: "None", outputMin: 0, outputMax: 1, higherIsBetter: true });
+    });
+});
+
+describe("parseNormalizationParams — value-bounds validation", () => {
+    it("rejects a Banded output outside [0,1]", () => {
+        expect(() =>
+            parseNormalizationParams("Banded", '{"bands":[{"max":5,"output":5}]}'),
+        ).toThrow(/between 0 and 1/);
+    });
+
+    it("rejects a Lookup fallback outside [0,1]", () => {
+        expect(() =>
+            parseNormalizationParams("Lookup", '{"entries":[{"value":1,"output":0.5}],"fallback":-1}'),
+        ).toThrow(/between 0 and 1/);
+    });
+
+    it("rejects a non-finite number (Infinity via JSON overflow)", () => {
+        expect(() =>
+            parseNormalizationParams("Logistic", '{"midpoint":1e400,"steepness":1}'),
+        ).toThrow(/must be a finite number/);
+    });
+
+    it("rejects a non-positive Logistic steepness", () => {
+        expect(() =>
+            parseNormalizationParams("Logistic", '{"midpoint":10,"steepness":0}'),
+        ).toThrow(/greater than 0/);
     });
 });
