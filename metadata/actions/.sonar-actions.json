@@ -2752,5 +2752,161 @@
       "lastModified": "2026-06-27T01:28:41.465Z",
       "checksum": "cb068811abe20a82a88633849c78b6bd563c605056e0399dccabbb13dec0ff3b"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Test Signal",
+      "Description": "Runs a signal's code over a sample of anchor records and returns per-record { value, explanation, error } in a Both Result. Runs through Test Runtime Action's ephemeral path so a Pending signal can be tested before approval; reads its results in-process so they round-trip to the browser (unlike Test Runtime Action's Output-only result). Powers the Signal Studio's Run Test.",
+      "DriverClass": "SonarTestSignal",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-flask",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0018-4000-8000-000000000018"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "TargetActionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The signal (Runtime action) to test."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.281Z",
+            "checksum": "66306380826d7c166437c243249428c524f2d801e5a11e345d3e9d6689f0143a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordIDs",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON array of sample anchor record ids to test the signal against."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.312Z",
+            "checksum": "484a8f6f1cccc2e91ab93f7188e015e12fcd90df5b920a01d419c8163f397215"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AsOf",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "ISO date to compute the signal as of. Defaults to now."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.341Z",
+            "checksum": "93c0365cc65c5bb3f0ae411deea144b420a8698b2cdef6464142eacba89283a0"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { rows: [{ anchorRecordId, value, explanation, error }] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A4"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.371Z",
+            "checksum": "b7be2ae4b50c23da702a4cdcb44bcabbba5d36ff0027663b635bf63c95f36bd5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Returned per-record test results."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.400Z",
+            "checksum": "a5becc9d4ff73584b1ec961a550e80bd0a49d066561487c490b78c355e8f8cc5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "TargetActionID or AnchorRecordIDs missing/invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.425Z",
+            "checksum": "9c62b65790b1786a26a0f9ccd00fea8d79ba049bed5294269731f51ea55757ea"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Signal or Test Runtime Action not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.443Z",
+            "checksum": "e5b99826c93086f833e5c7d22d74e9e064d19472f6d37372f522e2f9a11e52f7"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Test run failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.461Z",
+            "checksum": "c4d9fd89f43c69790bce94f946475e554af0db6c63f85cdd446a2b6e0336054b"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-29T21:33:52.197Z",
+      "checksum": "9bc2fcc93c287b14cbcb6d328c45c4199333bba04383659c1d4f171386e39962"
+    }
   }
 ]

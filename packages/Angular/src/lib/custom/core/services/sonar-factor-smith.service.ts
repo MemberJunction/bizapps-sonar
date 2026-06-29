@@ -3,7 +3,7 @@ import { Metadata, RunView } from "@memberjunction/core";
 import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
-import { extractActionResult, extractActionParam } from "./action-result.util";
+import { extractActionResult } from "./action-result.util";
 
 /** ActionSmith — the agent every factor job runs as. */
 const ACTIONSMITH_AGENT_ID = "AF804075-E543-46E5-8D8F-2A0B8094628C";
@@ -11,9 +11,9 @@ const ACTIONSMITH_AGENT_ID = "AF804075-E543-46E5-8D8F-2A0B8094628C";
 const START_JOB_ACTION = "Sonar: Start Factor Job";
 /** The async AI-refine action (improves an existing signal in place, returns its AgentRunID). */
 const REFINE_ACTION = "Sonar: Refine Factor Action";
-/** MJ core action that runs a Runtime action ephemerally (Approved in-memory copy) — lets us test
- *  a Pending signal's code WITHOUT tripping the executor's approval gate. */
-const TEST_RUNTIME_ACTION = "Test Runtime Action";
+/** Sonar action that tests a signal over a sample (ephemeral run, gate-bypassed, per-record results in a
+ *  Both Result so they round-trip to the browser). See SonarTestSignalAction. */
+const TEST_SIGNAL_ACTION = "Sonar: Test Signal";
 /** Local labels for in-flight jobs (the run row has no description column). Per-browser; fine for labels. */
 const LABELS_KEY = "sonar-factor-job-labels";
 
@@ -34,14 +34,9 @@ interface ScoreModelRow { ID: string; Name: string; AnchorEntityID: string }
 export interface TestModel { id: string; name: string; anchorEntityID: string; anchorName: string | null }
 
 /** Outcome of a sample test run (factor contract: numeric Value + Explanation). */
-export interface SignalTestResult { value: number | null; explanation: string | null; error?: string }
+export interface SignalTestResult { value: number | null; explanation: string | null; error?: string | null }
 /** One row of a multi-record sample test — the anchor record it ran on plus its outcome. */
 export interface SignalSampleRow extends SignalTestResult { anchorRecordId: string }
-
-/** One case fed to `Test Runtime Action`. */
-interface RuntimeTestCase { name: string; input: Record<string, string> }
-/** One per-case result it returns (keyed back to its case `name`). */
-interface RuntimeTestCaseResult { name: string; success: boolean; message: string | null; output: Record<string, unknown> }
 
 /**
  * Signal Studio engine — the ASYNC factor-authoring backend (plans §5/§12). Commissions jobs (fires
@@ -173,46 +168,27 @@ export class SonarFactorSmithService {
     }
 
     /**
-     * Test a signal across a SAMPLE of anchor records in one round-trip. Routes through `Test Runtime
-     * Action` (which runs an ephemeral Approved copy of the code) so a reviewer can test BEFORE
-     * approving — the normal RunAction path refuses Pending code, which is exactly the case under review.
-     * `TestCases` is an array, so all sample records run in a single call. Cases are keyed by record id
-     * so results map back even if order shifts.
+     * Test a signal across a SAMPLE of anchor records via `Sonar: Test Signal` — which runs the code on
+     * an ephemeral Approved copy (so a still-Pending signal can be tested BEFORE approval) and returns the
+     * per-record results in a Both `Result` that round-trips to the browser. One call covers all samples.
      */
     public async testSignal(actionId: string, anchorRecordIds: string[]): Promise<SignalSampleRow[]> {
         if (!anchorRecordIds.length) return [];
-        const testActionId = await this.resolveActionId(TEST_RUNTIME_ACTION);
+        const id = await this.resolveActionId(TEST_SIGNAL_ACTION);
         const fail = (error: string): SignalSampleRow[] =>
             anchorRecordIds.map((anchorRecordId) => ({ anchorRecordId, value: null, explanation: null, error }));
-        if (!testActionId) return fail("Test Runtime Action isn't available.");
-        const asOf = new Date().toISOString();
-        const cases: RuntimeTestCase[] = anchorRecordIds.map((id) => ({ name: id, input: { AnchorRecordID: id, AsOf: asOf } }));
+        if (!id) return fail("The test action isn't available.");
         const params = [
-            { Name: "ActionID", Value: actionId, Type: "Input" as const },
-            { Name: "TestCases", Value: JSON.stringify(cases), Type: "Input" as const },
+            { Name: "TargetActionID", Value: actionId, Type: "Input" as const },
+            { Name: "AnchorRecordIDs", Value: JSON.stringify(anchorRecordIds), Type: "Input" as const },
         ];
-        const res = await this.actionClient().RunAction(testActionId, params);
+        const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return fail(res.Message || "Test run failed.");
-        // Test Runtime Action sets a dedicated `TestResults` output param (not the aggregate `Result`).
-        const rawResults = extractActionParam(res, "TestResults");
-        const parsed: unknown = typeof rawResults === "string" ? JSON.parse(rawResults) : rawResults;
-        const list: RuntimeTestCaseResult[] = Array.isArray(parsed) ? (parsed as RuntimeTestCaseResult[]) : [];
-        const byId = new Map(list.map((r) => [r.name, r]));
-        return anchorRecordIds.map((anchorRecordId) => this.toSampleRow(anchorRecordId, byId.get(anchorRecordId)));
-    }
-
-    /** Map one Test-Runtime case result onto the factor contract (Value/Explanation). */
-    private toSampleRow(anchorRecordId: string, r: RuntimeTestCaseResult | undefined): SignalSampleRow {
-        if (!r) return { anchorRecordId, value: null, explanation: null, error: "No result returned." };
-        if (!r.success) return { anchorRecordId, value: null, explanation: null, error: r.message || "The signal's code threw." };
-        const raw = r.output?.["Value"];
-        const value = typeof raw === "number" ? raw : raw != null ? Number(raw) : null;
-        const explanation = r.output?.["Explanation"];
-        return {
-            anchorRecordId,
-            value: value != null && !Number.isNaN(value) ? value : null,
-            explanation: typeof explanation === "string" ? explanation : null,
-        };
+        const out = extractActionResult<{ rows?: SignalSampleRow[] }>(res) ?? {};
+        const byId = new Map((out.rows ?? []).map((r) => [r.anchorRecordId, r]));
+        return anchorRecordIds.map(
+            (anchorRecordId) => byId.get(anchorRecordId) ?? { anchorRecordId, value: null, explanation: null, error: "No result returned." },
+        );
     }
 
     /** Approve the code (governance gate) — the engine only scores Approved action-factors. */
