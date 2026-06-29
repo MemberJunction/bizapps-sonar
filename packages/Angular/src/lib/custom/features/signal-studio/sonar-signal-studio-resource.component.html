@@ -110,6 +110,21 @@
                         @else { <span class="sonar-studio__test-err"><i class="fa-solid fa-circle-exclamation"></i> No records found for {{ m.anchorName }}.</span> }
                     </div>
                 }
+                @if (testSummary(); as s) {
+                    <div class="sonar-studio__summary"
+                         [class.sonar-studio__summary--ok]="s.state === 'ok'"
+                         [class.sonar-studio__summary--err]="s.state !== 'ok'">
+                        @if (s.state === 'ok') {
+                            <span><i class="fa-solid fa-circle-check"></i> {{ s.withValue }}/{{ s.total }} records produced a value — ready to approve.</span>
+                        } @else if (s.state === 'errored') {
+                            <span><i class="fa-solid fa-circle-xmark"></i> {{ s.failed }}/{{ s.total }} failed: {{ s.firstError }}</span>
+                            <button class="sonar-btn sonar-studio__fix" (click)="fixWithAI()"><i class="fa-solid fa-wand-magic-sparkles"></i> Fix with AI</button>
+                        } @else {
+                            <span><i class="fa-solid fa-triangle-exclamation"></i> Ran clean but produced no value for any record — check the logic.</span>
+                            <button class="sonar-btn sonar-studio__fix" (click)="fixWithAI()"><i class="fa-solid fa-wand-magic-sparkles"></i> Fix with AI</button>
+                        }
+                    </div>
+                }
                 @if (testRows().length) {
                     <table class="sonar-studio__results">
                         <thead><tr><th>Record</th><th class="sonar-studio__col-val">Value</th><th>Explanation</th></tr></thead>
@@ -133,11 +148,15 @@
                 <!-- Approve gate -->
                 @if (isEditable() && !isApproved() && !editing()) {
                     <div class="sonar-studio__approve">
-                        <button class="sonar-btn sonar-btn--primary" [disabled]="approving()" (click)="approve()">
+                        <button class="sonar-btn sonar-btn--primary" [disabled]="approving() || !canApprove()" (click)="approve()">
                             @if (approving()) { <i class="fa-solid fa-spinner fa-spin"></i> Approving… }
                             @else { <i class="fa-solid fa-circle-check"></i> Approve &amp; add to Library }
                         </button>
-                        <span class="sonar-studio__approve-note">Approving means you've read the code — nothing scores until you do.</span>
+                        @if (canApprove()) {
+                            <span class="sonar-studio__approve-note">You've seen it run clean — approving binds it for scoring.</span>
+                        } @else {
+                            <span class="sonar-studio__approve-note"><i class="fa-solid fa-lock"></i> Run a test that produces values before approving.</span>
+                        }
                     </div>
                 }
             } @else {
@@ -154,10 +173,20 @@
                 <div class="sonar-card__label"><i class="fa-solid fa-wand-magic-sparkles"></i> Commission a signal</div>
                 <p class="sonar-studio__hint">
                     Describe a signal plain aggregations can't express — a streak, a decay curve, sentiment,
-                    a cross-source ratio — and name the data it should read. It runs in the background.
+                    a cross-source ratio. Say <strong>what it measures</strong> and <strong>what data it reads</strong>.
                 </p>
+                <div class="sonar-studio__examples">
+                    <span class="sonar-studio__examples-label">Start from:</span>
+                    @for (ex of examples; track ex.label) {
+                        <button type="button" class="sonar-chip sonar-studio__example" (click)="useExample(ex.text)">{{ ex.label }}</button>
+                    }
+                </div>
                 <textarea class="sonar-input sonar-studio__desc" [(ngModel)]="description" rows="5"
                           placeholder="e.g. the longest streak of consecutive months a member registered for an event (reads Event Registrations on the Members anchor)"></textarea>
+                <p class="sonar-studio__contract">
+                    <i class="fa-solid fa-circle-info"></i> The agent writes code that reads data on a model's anchor and returns
+                    <strong>one number + a short “why”</strong> per record. You review, test, and approve it before it can score.
+                </p>
                 <button class="sonar-btn sonar-btn--primary sonar-studio__commission-go" [disabled]="!description.trim() || commissioning()" (click)="commission()">
                     @if (commissioning()) { <i class="fa-solid fa-spinner fa-spin"></i> Starting… }
                     @else { <i class="fa-solid fa-bolt"></i> Commission signal }

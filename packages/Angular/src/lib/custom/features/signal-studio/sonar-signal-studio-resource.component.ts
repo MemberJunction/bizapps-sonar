@@ -55,6 +55,32 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public readonly isApproved = computed(() => this.selected()?.approvalStatus === "Approved");
     public readonly selectedModel = computed(() => this.models().find((m) => m.id === this.selectedModelId) ?? null);
 
+    /** Roll the per-record test results into a verdict that drives the guardrails + summary banner. */
+    public readonly testSummary = computed(() => {
+        const rows = this.testRows();
+        if (!rows.length) return null;
+        const failed = rows.filter((r) => r.error).length;
+        const withValue = rows.filter((r) => r.value != null).length;
+        const firstError = rows.find((r) => r.error)?.error ?? null;
+        const state: "ok" | "errored" | "empty" = failed > 0 ? "errored" : withValue === 0 ? "empty" : "ok";
+        return { total: rows.length, failed, withValue, firstError, state };
+    });
+
+    /** Guardrail: a Pending signal can only be approved after a test that actually produced values for
+     *  the sample with NO errors — you can't approve code you haven't seen run cleanly. */
+    public readonly canApprove = computed(() => {
+        const s = this.testSummary();
+        return this.isEditable() && !this.isApproved() && !this.editing() && s !== null && s.state === "ok";
+    });
+
+    /** Plain-English commission starters — click to fill the box (prompting is the hardest part). */
+    public readonly examples: ReadonlyArray<{ label: string; text: string }> = [
+        { label: "Activity streak", text: "The longest streak of consecutive months a member registered for an event. Reads Event Registrations on the Members anchor; returns the streak length in months." },
+        { label: "Recency decay", text: "A recency-weighted engagement score where more recent event registrations count for more, using an exponential decay with a 90-day half-life relative to AsOf. Reads Event Registrations." },
+        { label: "Open→send ratio", text: "The ratio of email opens to email sends over the last 90 days (0 when there were no sends). Reads Email Engagements on the Members anchor." },
+    ];
+    public useExample(text: string): void { this.description = text; }
+
     private poll: ReturnType<typeof setInterval> | null = null;
     private refreshing = false;
 
@@ -164,6 +190,19 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         this.refineFeedback = "";
         this.showRefine.update((v) => !v);
         this.editing.set(false);
+    }
+
+    /** Open the refine box pre-seeded with the test failure, so the agent fixes the exact problem. */
+    public fixWithAI(): void {
+        const s = this.testSummary();
+        const seed = s?.firstError
+            ? `The test failed with: "${s.firstError}". Fix the code so it runs and returns a numeric Value (and a short Explanation) for each member.`
+            : s?.state === "empty"
+              ? "The test produced no value for any member. Fix the code so it returns a numeric Value where data exists."
+              : "";
+        this.refineFeedback = seed;
+        this.editing.set(false);
+        this.showRefine.set(true);
     }
 
     /** Reprompt ActionSmith to improve the selected signal in place (rewrites + self-tests → Pending). */

@@ -92,6 +92,34 @@
 .sonar-studio__sample-note { margin-top: 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
 .sonar-studio__test-err { font-size: var(--sonar-font-sm); color: var(--sonar-critical); display: flex; align-items: center; gap: 0.4rem; }
 
+/* Test verdict banner — the guardrail's voice (ready / failed / produced-nothing). */
+.sonar-studio__summary {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    margin-top: 0.625rem; padding: 0.5rem 0.75rem;
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    font-size: var(--sonar-font-sm); line-height: 1.4;
+}
+.sonar-studio__summary i { margin-right: 0.35rem; }
+.sonar-studio__summary--ok {
+    background: color-mix(in srgb, var(--sonar-healthy, #16a34a) 10%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-healthy, #16a34a) 35%, transparent);
+}
+.sonar-studio__summary--ok i { color: var(--sonar-healthy, #16a34a); }
+.sonar-studio__summary--err {
+    background: color-mix(in srgb, var(--sonar-critical, #dc2626) 8%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-critical, #dc2626) 30%, transparent);
+}
+.sonar-studio__summary--err i { color: var(--sonar-critical, #dc2626); }
+.sonar-studio__fix { margin-left: auto; flex-shrink: 0; }
+
+/* Commission examples — clickable starter chips + the inline contract note. */
+.sonar-studio__examples { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.625rem; }
+.sonar-studio__examples-label { font-size: var(--sonar-font-xs); color: var(--sonar-muted); }
+.sonar-studio__example { cursor: pointer; border: 1px dashed var(--sonar-border-strong); background: var(--sonar-surface); }
+.sonar-studio__example:hover { border-style: solid; border-color: var(--sonar-accent); color: var(--sonar-accent); }
+.sonar-studio__contract { margin: 0.625rem 0 0.75rem; font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.5; }
+.sonar-studio__contract i { color: var(--sonar-accent); margin-right: 0.3rem; }
+
 /* Results table — thin dividers, tabular numerics right-aligned (per the data-display rules) */
 .sonar-studio__results { width: 100%; margin-top: 0.625rem; border-collapse: collapse; font-size: var(--sonar-font-sm); }
 .sonar-studio__results th {
