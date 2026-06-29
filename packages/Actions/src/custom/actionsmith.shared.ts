@@ -23,6 +23,16 @@ Include a Sonar FactorActionContract: measures (one sentence), reads (entities),
 max?, higherIsBetter }, cost { deterministic, externalCalls, expensive }.
 Persist as Type='Runtime', CodeApprovalStatus='Pending' — a human reviews the code before it scores.
 
+SANDBOX API — the only data/AI access available to the code is the injected \`utilities\` object:
+- utilities.entity.Load(entityName, id) and utilities.rv.RunView({ EntityName, ExtraFilter, ... }) for data.
+- utilities.ai.ExecutePrompt({ PromptName | PromptID, Variables }) for LLM calls. It returns
+  { Success, Response, ErrorMessage, ModelUsed, TokensUsed }. CRITICAL: \`Response\` is the prompt's
+  PARSED result — an OBJECT when the prompt emits structured output, or a raw STRING otherwise. NEVER
+  assume it's a string. Read the field you expect off the object, or coerce before any string op, e.g.
+  \`const text = typeof Response === 'string' ? Response : JSON.stringify(Response ?? '')\`. (Calling
+  \`.trim()\`/\`.match()\` directly on Response throws "trim is not a function" when it's an object.)
+- Check \`.Success\`/\`.ErrorMessage\` before using a result; on failure, return Value=null with the reason.
+
 The signal to build:
 `;
 
