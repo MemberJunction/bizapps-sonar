@@ -5,10 +5,10 @@
             <p class="sonar-fb__sub">Saves a snapshot you can always go back to.</p>
         </div>
         <div class="sonar-fb__actions">
-            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canPublish() || publishing()" (click)="publish()">
                 {{ publishing() ? "Publishing…" : "Publish version " + nextVersion() }}
             </button>
+            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
         </div>
     </div>
 

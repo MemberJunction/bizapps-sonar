@@ -1,42 +1,35 @@
-/* Floating launcher — sits beside MJ's shell chat bubble (which is at bottom-right ~1.5rem), so we
-   offset left to avoid overlap. */
-.sonar-copilot__fab {
+/* Docked, resizable, collapsible right-side panel — mirrors Component Studio's side-panel docking
+   (not a floating popup). Width is driven inline by [style.width.px] and persisted in the service. */
+.sonar-copilot__rail {
     position: fixed;
-    bottom: 1.5rem;
-    right: 5.5rem;
+    top: 0;
+    right: 0;
+    bottom: 0;
     z-index: 1000;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    border: none;
-    background: var(--sonar-accent);
-    color: var(--sonar-on-accent);
-    font-size: 1.1rem;
-    cursor: pointer;
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--sonar-accent) 45%, transparent);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-.sonar-copilot__fab:hover { transform: translateY(-1px); box-shadow: 0 6px 18px color-mix(in srgb, var(--sonar-accent) 55%, transparent); }
-.sonar-copilot__fab:active { transform: scale(0.96); }
-.sonar-copilot__fab--open { background: var(--sonar-surface); color: var(--sonar-muted); border: 1px solid var(--sonar-border); box-shadow: var(--sonar-shadow-sm); }
-
-/* The overlay panel, anchored above the launcher. */
-.sonar-copilot__panel {
-    position: fixed;
-    bottom: 5.5rem;
-    right: 1.5rem;
-    z-index: 1000;
-    width: 420px;
-    max-width: calc(100vw - 3rem);
-    height: min(70vh, 640px);
+    min-width: 320px;
+    max-width: 760px;
     display: flex;
     flex-direction: column;
     background: var(--sonar-surface);
-    border: 1px solid var(--sonar-border);
-    border-radius: var(--sonar-radius);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-    overflow: hidden;
+    border-left: 1px solid var(--sonar-border);
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.14);
 }
+
+/* Left-edge resize handle — a hairline that thickens + tints on hover. */
+.sonar-copilot__resize {
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 1;
+    background: transparent;
+    transition: background 120ms ease;
+}
+.sonar-copilot__resize:hover,
+.sonar-copilot__resize:active { background: color-mix(in srgb, var(--sonar-accent) 35%, transparent); }
+
 .sonar-copilot__head {
     flex-shrink: 0;
     display: flex;
@@ -49,9 +42,44 @@
 .sonar-copilot__title i { color: var(--sonar-accent); }
 .sonar-copilot__close {
     background: none; border: none; cursor: pointer; color: var(--sonar-faint);
-    font-size: 1rem; padding: 0.25rem; border-radius: var(--sonar-radius-sm);
+    font-size: 1rem; padding: 0.25rem 0.4rem; border-radius: var(--sonar-radius-sm);
 }
 .sonar-copilot__close:hover { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
 .sonar-copilot__sub { flex-shrink: 0; margin: 0; padding: 0.5rem 1rem 0; font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }
 .sonar-copilot__body { flex: 1; min-height: 0; padding: 0.75rem 1rem 1rem; display: flex; }
 .sonar-copilot__body mj-conversation-chat-area { flex: 1; min-height: 0; display: flex; }
+
+/* Collapsed: a thin vertical reopen tab anchored to the right edge. */
+.sonar-copilot__tab {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 0.5rem;
+    border: 1px solid var(--sonar-border);
+    border-right: none;
+    border-radius: var(--sonar-radius) 0 0 var(--sonar-radius);
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+    cursor: pointer;
+    box-shadow: -2px 2px 12px color-mix(in srgb, var(--sonar-accent) 40%, transparent);
+    transition: padding-right 120ms ease;
+}
+.sonar-copilot__tab:hover { padding-right: 0.75rem; }
+.sonar-copilot__tab-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+/* Stack-free on narrow viewports: the rail becomes full-width. */
+@media (max-width: 1075px) {
+    .sonar-copilot__rail { width: 100vw !important; max-width: 100vw; }
+}

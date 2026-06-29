@@ -5,10 +5,10 @@
             <p class="sonar-fb__sub">A model scores one thing — pick what it scores and where its signals come from.</p>
         </div>
         <div class="sonar-fb__actions">
-            <button class="sonar-btn" (click)="close.emit()" [disabled]="saving()">Cancel</button>
             <button class="sonar-btn sonar-btn--primary" (click)="save()" [disabled]="!canSave()">
                 {{ saving() ? 'Creating…' : 'Create model' }}
             </button>
+            <button class="sonar-btn" (click)="close.emit()" [disabled]="saving()">Cancel</button>
         </div>
     </div>
 

@@ -71,13 +71,13 @@
         </div>
 
         <div class="sonar-fb__bar" style="margin-top: 1.75rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--sonar-border); padding-top: 1.25rem;">
-            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
             <button class="sonar-btn" [disabled]="!canRun()" (click)="runPreview()">
                 {{ previewing() ? "Previewing…" : "Preview" }}
             </button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canRun() || !preview()" (click)="launch()">
                 {{ launching() ? "Firing…" : (preview() ? "Confirm & fire " + preview()!.treated : "Preview first") }}
             </button>
+            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
         </div>
     </div>
 </div>

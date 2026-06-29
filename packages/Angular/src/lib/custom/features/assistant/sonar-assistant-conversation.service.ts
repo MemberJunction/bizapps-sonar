@@ -7,6 +7,18 @@ const SONAR_AUTHORING_AGENT_ID = "CF1D58BA-451E-4515-89BD-AC3F16A19534";
 const DEFAULT_ENVIRONMENT_ID = "F51358F3-9447-4176-B313-BF8025FD8D09";
 /** Remembers the active conversation across a full page reload (so the thread resumes). */
 const STORAGE_KEY = "sonar-assistant-conversation-id";
+/** Remembers the docked panel width across reloads. */
+const WIDTH_KEY = "sonar-assistant-panel-width";
+/** Panel width bounds (px) — keep it usable but never more than ~half the viewport. */
+const MIN_WIDTH = 320;
+const MAX_WIDTH = 760;
+const DEFAULT_WIDTH = 440;
+
+/** Clamp a width to the allowed range (and discard NaN). */
+function clampWidth(px: number): number {
+    if (!Number.isFinite(px)) return DEFAULT_WIDTH;
+    return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(px)));
+}
 
 /**
  * App-scoped state for the Sonar copilot. The floating launcher embeds MJ's native
@@ -17,8 +29,21 @@ const STORAGE_KEY = "sonar-assistant-conversation-id";
  */
 @Injectable({ providedIn: "root" })
 export class SonarAssistantConversationService {
-    /** Whether the floating panel is open — kept here so it survives a host-surface re-render. */
+    /** Whether the docked panel is expanded — kept here so it survives a host-surface re-render.
+     *  Collapsed (false) shows just the reopen tab. */
     public readonly open = signal(false);
+
+    /** Docked-panel width (px), restored from localStorage and persisted on resize. */
+    public readonly width = signal<number>(
+        clampWidth(Number(localStorage.getItem(WIDTH_KEY) ?? DEFAULT_WIDTH)),
+    );
+
+    /** Set + persist the panel width (clamped to the usable range). */
+    public setWidth(px: number): void {
+        const w = clampWidth(px);
+        this.width.set(w);
+        try { localStorage.setItem(WIDTH_KEY, String(w)); } catch { /* best-effort */ }
+    }
 
     /** The Sonar Authoring Agent the chat routes the first message to. */
     public readonly agentId = SONAR_AUTHORING_AGENT_ID;

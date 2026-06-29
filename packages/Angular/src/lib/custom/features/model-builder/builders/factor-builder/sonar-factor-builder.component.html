@@ -11,10 +11,10 @@
             <p class="sonar-fb__sub">{{ editing() ? "Editing this signal — changes apply on the next recompute." : "A signal measures one thing about each member." }}</p>
         </div>
         <div class="sonar-fb__actions">
-            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
                 {{ saving() ? (editing() ? "Saving…" : "Adding…") : (editing() ? "Save changes" : "Add to model") }}
             </button>
+            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
         </div>
     </div>
 
