@@ -3013,5 +3013,179 @@
       "lastModified": "2026-06-30T15:11:40.982Z",
       "checksum": "c8c4eaa6212c8348aea1bae07eb3ae1b6c417de08294ee993f29ff74b3b106c5"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Bind Signal To Model",
+      "Description": "Binds an approved custom signal (a Runtime factor-action) into a Draft model's rubric — creates an ActionBacked Factor pointing at the signal + a Model Factor with a weight. Guards: the model must be Draft and the signal's code must be Approved. Powers the Signal Studio's 'Add to a model'.",
+      "DriverClass": "SonarBindSignalToModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-link",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001A-4000-8000-00000000001A"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ActionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The approved signal (Runtime action) to bind."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.542Z",
+            "checksum": "0e941708a4987b02d03c24aabb2cf0b1eac035f5424dd5a0e187c614dff73e0e"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Draft model to bind the signal into."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.575Z",
+            "checksum": "c405fc7828064da97053d740eb1bb950559d021497dd3a0051f8982c17654dc2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Weight",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Rubric weight 0..1 (default 0.25)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.626Z",
+            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Name",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Factor name override (defaults to the signal's name)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A4"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.654Z",
+            "checksum": "e11c6a03be05bcd8ebd1883b7ea31a0cad8b36a23e1c139f209d098665bb7a03"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { factorID, modelFactorID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A5"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.683Z",
+            "checksum": "152f738d05347cbcacfd4599bcc849a96745e1eac2f21206ace4f84a36bf9079"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Signal bound into the model."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.709Z",
+            "checksum": "be51c341b55eab60d2907cdb984a23f011f311dbf829ea77082f455c1031c67b"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ActionID or ModelID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.731Z",
+            "checksum": "b85e2cd548fcc5a0d48549b04c2c8643a8f580bbbbffeeccd956ace0e56d3a80"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Signal or model not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.751Z",
+            "checksum": "6b32891c86f4dcec070131604922365de569e64baf758fa3ddbba810506d4871"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Model not Draft, signal not Approved, or save failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.770Z",
+            "checksum": "f6a7825eea4e442a4d85ca6cf287289998788d6a82b27c27ca089fc99eb0ed33"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-30T15:45:42.445Z",
+      "checksum": "8ea36b7b21dd28f1e383730184682463e0b024e7b3f3cef86afaf06a1cbff70c"
+    }
   }
 ]

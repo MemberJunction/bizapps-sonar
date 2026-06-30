@@ -70,13 +70,16 @@
             </div>
 
             <div class="sonar-group">
-                <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-book"></i> Library <span class="sonar-studio__count">{{ library().length }}</span></div>
-                @for (a of library(); track a.id) {
+                <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-book"></i> Library <span class="sonar-studio__count">{{ filteredLibrary().length }}</span></div>
+                @if (library().length > 5) {
+                    <input class="sonar-input sonar-studio__lib-search" type="search" [(ngModel)]="librarySearch" placeholder="Filter signals…" aria-label="Filter library" />
+                }
+                @for (a of filteredLibrary(); track a.id) {
                     <button type="button" class="sonar-studio__item" [class.sonar-studio__item--active]="selected()?.id === a.id" (click)="select(a)">
                         <span class="sonar-studio__item-name">{{ a.name }}</span>
                         <span class="sonar-chip sonar-chip--healthy"><span class="sonar-dot"></span>Ready</span>
                     </button>
-                } @empty { <div class="sonar-studio__empty-sm">No signals yet.</div> }
+                } @empty { <div class="sonar-studio__empty-sm">{{ librarySearch.trim() ? "No signals match." : "No signals yet." }}</div> }
             </div>
         </aside>
 
@@ -84,13 +87,29 @@
         <section class="sonar-studio__center">
             @if (selected(); as a) {
                 <div class="sonar-studio__detail-head">
-                    <div>
-                        <div class="sonar-studio__detail-name">{{ a.name }}</div>
-                        @if (a.description) { <p class="sonar-studio__hint">{{ a.description }}</p> }
+                    <div class="sonar-studio__detail-id">
+                        @if (renamingId() === a.id) {
+                            <div class="sonar-studio__rename">
+                                <input class="sonar-input" [(ngModel)]="renameName" (keyup.enter)="saveRename()" (keyup.escape)="cancelRename()" aria-label="Signal name" />
+                                <button class="sonar-btn sonar-btn--primary" (click)="saveRename()"><i class="fa-solid fa-check"></i></button>
+                                <button class="sonar-btn" (click)="cancelRename()"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        } @else {
+                            <div class="sonar-studio__detail-name">{{ a.name }}</div>
+                            @if (a.description) { <p class="sonar-studio__hint">{{ a.description }}</p> }
+                        }
                     </div>
-                    <span class="sonar-chip" [class.sonar-chip--healthy]="isApproved()" [class.sonar-chip--watch]="!isApproved()">
-                        <span class="sonar-dot"></span>{{ isApproved() ? "Approved" : "Pending approval" }}
-                    </span>
+                    <div class="sonar-studio__detail-actions">
+                        <span class="sonar-chip" [class.sonar-chip--healthy]="isApproved()" [class.sonar-chip--watch]="!isApproved()">
+                            <span class="sonar-dot"></span>{{ isApproved() ? "Approved" : "Pending approval" }}
+                        </span>
+                        @if (isEditable() && renamingId() !== a.id) {
+                            <button type="button" class="sonar-studio__icon-btn" (click)="startRename()" title="Rename"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="sonar-studio__icon-btn sonar-studio__icon-btn--danger" (click)="archive()" [disabled]="archivingId() === a.id" title="Archive">
+                                @if (archivingId() === a.id) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-box-archive"></i> }
+                            </button>
+                        }
+                    </div>
                 </div>
 
                 <!-- Code: view / edit -->
@@ -99,8 +118,36 @@
                     @if (isEditable() && !editing()) {
                         <button type="button" class="sonar-studio__inline-btn" (click)="toggleRefine()" [class.sonar-studio__inline-btn--on]="showRefine()"><i class="fa-solid fa-wand-magic-sparkles"></i> Refine with AI</button>
                         <button type="button" class="sonar-studio__inline-btn" (click)="startEdit()"><i class="fa-solid fa-pen"></i> Edit</button>
+                        @if (historyEnabled && history().length > 1) {
+                            <button type="button" class="sonar-studio__inline-btn" (click)="toggleHistory()" [class.sonar-studio__inline-btn--on]="showHistory()"><i class="fa-solid fa-clock-rotate-left"></i> History <span class="sonar-studio__count">{{ history().length }}</span></button>
+                        }
                     }
                 </div>
+
+                <!-- Version history + diff vs current — HIDDEN pending a DB-backed store (see historyEnabled). -->
+                @if (isEditable() && historyEnabled && showHistory() && !editing()) {
+                    <div class="sonar-studio__history">
+                        <p class="sonar-studio__history-note"><i class="fa-solid fa-circle-info"></i> Snapshots kept in this browser as you commission, refine, and edit. Pick one to diff against the current code or roll back.</p>
+                        <ul class="sonar-studio__versions">
+                            @for (v of history(); track v.savedAt; let idx = $index) {
+                                <li class="sonar-studio__version" [class.sonar-studio__version--current]="idx === 0">
+                                    <button type="button" class="sonar-studio__version-main" (click)="viewDiff(v)" [class.sonar-studio__version-main--on]="diffVersion() === v">
+                                        <span class="sonar-studio__version-note">{{ v.note }}@if (idx === 0) { · current }</span>
+                                        <span class="sonar-studio__version-time">{{ relativeTime(v.savedAt) }}</span>
+                                    </button>
+                                    @if (idx !== 0) {
+                                        <button type="button" class="sonar-studio__icon-btn" [disabled]="saving()" (click)="rollback(v)" title="Roll back to this version"><i class="fa-solid fa-rotate-left"></i></button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        @if (diffVersion(); as dv) {
+                            <div class="sonar-studio__diff-head">Diff: <strong>{{ dv.note }}</strong> ({{ relativeTime(dv.savedAt) }}) → current</div>
+                            <pre class="sonar-studio__diff"><code>@for (row of diffRows(); track $index) {<span class="sonar-studio__diff-row" [class.sonar-studio__diff-add]="row.type === 'add'" [class.sonar-studio__diff-del]="row.type === 'del'">{{ row.type === 'add' ? '+ ' : row.type === 'del' ? '- ' : '  ' }}{{ row.text }}
+</span>}</code></pre>
+                        }
+                    </div>
+                }
                 @if (isEditable() && showRefine() && !editing()) {
                     <div class="sonar-studio__refine">
                         <textarea class="sonar-input sonar-studio__refine-box" [(ngModel)]="refineFeedback" rows="3"
@@ -242,6 +289,29 @@
                             <span class="sonar-studio__approve-note"><i class="fa-solid fa-lock"></i> Run a test that produces values before approving.</span>
                         }
                     </div>
+                }
+
+                <!-- Bind into a model (approved signals only) -->
+                @if (isApproved()) {
+                    <div class="sonar-studio__label"><i class="fa-solid fa-link"></i> Add to a model</div>
+                    @if (bindableModels().length) {
+                        <div class="sonar-studio__test-row">
+                            <select class="sonar-input sonar-studio__model-select" [(ngModel)]="bindModelId">
+                                <option [ngValue]="null" disabled>Pick a draft model…</option>
+                                @for (m of bindableModels(); track m.id) { <option [ngValue]="m.id">{{ m.name }} · {{ m.anchorName || "anchor" }}</option> }
+                            </select>
+                            <label class="sonar-studio__asof" title="Rubric weight (0–1)">
+                                <span>Weight</span>
+                                <input class="sonar-input sonar-studio__weight" type="number" min="0" max="1" step="0.05" [(ngModel)]="bindWeight" aria-label="Weight" />
+                            </label>
+                            <button class="sonar-btn sonar-btn--primary" [disabled]="!bindModelId || binding()" (click)="bind()">
+                                @if (binding()) { <i class="fa-solid fa-spinner fa-spin"></i> Adding… } @else { <i class="fa-solid fa-plus"></i> Add to model }
+                            </button>
+                        </div>
+                        <div class="sonar-studio__sample-note">Creates an action-backed factor in the model. Tune its weight and normalization in the model builder.</div>
+                    } @else {
+                        <div class="sonar-studio__sample-note"><i class="fa-solid fa-circle-info"></i> No draft models to add to — create or unpublish a model to Draft first.</div>
+                    }
                 }
             } @else {
                 <div class="sonar-empty sonar-studio__detail-empty">

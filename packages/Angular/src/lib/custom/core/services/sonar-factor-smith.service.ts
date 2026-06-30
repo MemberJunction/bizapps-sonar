@@ -16,10 +16,17 @@ const REFINE_ACTION = "Sonar: Refine Factor Action";
 const TEST_SIGNAL_ACTION = "Sonar: Test Signal";
 /** Stops an in-flight ActionSmith run (true abort if this process owns it, else flips the run row). */
 const CANCEL_JOB_ACTION = "Sonar: Cancel Factor Job";
+/** Binds an approved signal into a Draft model (ActionBacked Factor + Model Factor). */
+const BIND_SIGNAL_ACTION = "Sonar: Bind Signal To Model";
 /** How far back a terminal-failed run still counts as "recent" for the failures strip (ms). */
 const RECENT_FAILURE_WINDOW_MS = 20 * 60 * 1000;
 /** Local labels for in-flight jobs (the run row has no description column). Per-browser; fine for labels. */
 const LABELS_KEY = "sonar-factor-job-labels";
+/** Per-browser store of signal code versions (history/diff/rollback). v1 storage: when we add a server
+ *  versions table this whole seam swaps backends; the component only talks to versions()/recordVersion(). */
+const VERSIONS_KEY = "sonar-signal-versions";
+/** Cap versions kept per signal so localStorage can't grow unbounded. */
+const MAX_VERSIONS = 25;
 
 /** A job ActionSmith is still working on, observed by polling its AIAgentRun. */
 export interface InFlightJob {
@@ -50,15 +57,19 @@ interface AgentRunRow { ID: string; Status: string; __mj_CreatedAt: string }
 interface FailedRunRow { ID: string; Status: string; CompletedAt: string | null; __mj_CreatedAt: string; ErrorMessage: string | null }
 interface StepRow { StepName: string }
 interface StepTimelineRow { StepName: string; Status: string; __mj_CreatedAt: string }
-interface ScoreModelRow { ID: string; Name: string; AnchorEntityID: string }
+interface ScoreModelRow { ID: string; Name: string; AnchorEntityID: string; Status: string }
 
-/** A model the user can test a signal against — its anchor supplies the sample record. */
-export interface TestModel { id: string; name: string; anchorEntityID: string; anchorName: string | null }
+/** A model the user can test a signal against — its anchor supplies the sample record. `status` drives
+ *  which models a signal can be BOUND into (only Draft models are editable). */
+export interface TestModel { id: string; name: string; anchorEntityID: string; anchorName: string | null; status: string }
 
 /** Outcome of a sample test run (factor contract: numeric Value + Explanation). */
 export interface SignalTestResult { value: number | null; explanation: string | null; error?: string | null }
 /** One row of a multi-record sample test — the anchor record it ran on plus its outcome. */
 export interface SignalSampleRow extends SignalTestResult { anchorRecordId: string }
+
+/** One captured snapshot of a signal's code (history/diff/rollback). */
+export interface SignalVersion { savedAt: string; code: string; note: string }
 
 /** An anchor record the user can target by name in the record picker. */
 export interface AnchorRecordOption { id: string; name: string }
@@ -212,7 +223,7 @@ export class SonarFactorSmithService {
         const res = await new RunView().RunView<ScoreModelRow>({
             EntityName: "MJ_BizApps_Sonar: Score Models",
             OrderBy: "Name ASC",
-            Fields: ["ID", "Name", "AnchorEntityID"],
+            Fields: ["ID", "Name", "AnchorEntityID", "Status"],
             ResultType: "simple",
         });
         const rows = res.Success ? res.Results ?? [] : [];
@@ -222,7 +233,39 @@ export class SonarFactorSmithService {
             name: r.Name,
             anchorEntityID: r.AnchorEntityID,
             anchorName: md.Entities.find((e) => e.ID === r.AnchorEntityID)?.Name ?? null,
+            status: r.Status,
         }));
+    }
+
+    /** Bind an approved signal into a Draft model's rubric (ActionBacked Factor + Model Factor). */
+    public async bindSignal(actionId: string, modelId: string, weight?: number): Promise<{ ok: boolean; error?: string }> {
+        const id = await this.resolveActionId(BIND_SIGNAL_ACTION);
+        if (!id) return { ok: false, error: "The bind action isn't available." };
+        const params: { Name: string; Value: string; Type: "Input" }[] = [
+            { Name: "ActionID", Value: actionId, Type: "Input" },
+            { Name: "ModelID", Value: modelId, Type: "Input" },
+        ];
+        if (weight != null) params.push({ Name: "Weight", Value: String(weight), Type: "Input" });
+        const res = await this.actionClient().RunAction(id, params);
+        return res.Success ? { ok: true } : { ok: false, error: res.Message || "Couldn't bind the signal." };
+    }
+
+    /** Rename a signal (and optionally its description) — library management. */
+    public async renameSignal(actionId: string, name: string, description?: string): Promise<{ ok: boolean; error?: string }> {
+        const action = await this.loadAction(actionId);
+        if (!action) return { ok: false, error: "Action not found." };
+        action.Name = name;
+        if (description != null) action.Description = description;
+        return (await action.Save()) ? { ok: true } : { ok: false, error: action.LatestResult?.Message || "Rename failed." };
+    }
+
+    /** Archive a signal (Status='Disabled') — it drops out of the catalog without being hard-deleted, so
+     *  any models already bound to it keep their config and it can be revived later. */
+    public async archiveSignal(actionId: string): Promise<{ ok: boolean; error?: string }> {
+        const action = await this.loadAction(actionId);
+        if (!action) return { ok: false, error: "Action not found." };
+        action.Status = "Disabled";
+        return (await action.Save()) ? { ok: true } : { ok: false, error: action.LatestResult?.Message || "Archive failed." };
     }
 
     /** Up to `count` representative anchor-record ids from the entity's population (for a sample test). */
@@ -322,6 +365,27 @@ export class SonarFactorSmithService {
         const action = await new Metadata().GetEntityObject<MJActionEntity>("MJ: Actions");
         await action.Load(actionId);
         return action.IsSaved ? action : null;
+    }
+
+    // ---- signal code versions (history / diff / rollback) ----
+    /** Captured versions for a signal, newest first. */
+    public versions(actionId: string): SignalVersion[] {
+        return this.versionStore()[actionId] ?? [];
+    }
+
+    /** Snapshot the code as a new version IF it differs from the latest one kept. Newest-first; capped. */
+    public recordVersion(actionId: string, code: string, note: string): void {
+        if (!code) return;
+        const store = this.versionStore();
+        const list = store[actionId] ?? [];
+        if (list.length && list[0].code === code) return; // no change since the last snapshot
+        list.unshift({ savedAt: new Date().toISOString(), code, note });
+        store[actionId] = list.slice(0, MAX_VERSIONS);
+        try { localStorage.setItem(VERSIONS_KEY, JSON.stringify(store)); } catch { /* quota — history is best-effort */ }
+    }
+
+    private versionStore(): Record<string, SignalVersion[]> {
+        try { return JSON.parse(localStorage.getItem(VERSIONS_KEY) ?? "{}"); } catch { return {}; }
     }
 
     // ---- local job labels ----

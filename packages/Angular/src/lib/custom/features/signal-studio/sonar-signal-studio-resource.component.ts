@@ -2,7 +2,10 @@ import { Component, OnDestroy, computed, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
-import { SonarFactorSmithService, InFlightJob, TestModel, SignalSampleRow, JobStep, FailedJob, AnchorRecordOption, AnchorField } from "../../core/services/sonar-factor-smith.service";
+import { SonarFactorSmithService, InFlightJob, TestModel, SignalSampleRow, JobStep, FailedJob, AnchorRecordOption, AnchorField, SignalVersion } from "../../core/services/sonar-factor-smith.service";
+
+/** One line of a rendered diff between two code versions. */
+interface DiffRow { type: "ctx" | "add" | "del"; text: string }
 import { ActionCatalogService, FactorAction } from "../../core/services/action-catalog.service";
 
 /**
@@ -32,6 +35,11 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     /** Richer testing: target a random sample OR one named record, optionally as of a past date. */
     public recordQuery = "";
     public asOfDate = "";
+    /** Bind + manage: target model for binding, its weight, the library filter, inline-rename buffer. */
+    public bindModelId: string | null = null;
+    public bindWeight = 0.25;
+    public librarySearch = "";
+    public renameName = "";
 
     public readonly inFlight = signal<InFlightJob[]>([]);
     public readonly failures = signal<FailedJob[]>([]);
@@ -61,6 +69,24 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public readonly cancellingIds = signal<string[]>([]);
     /** Failures the user has dismissed this session (local — they stay gone until the page reloads). */
     private readonly dismissedFailures = new Set<string>();
+
+    public readonly binding = signal(false);
+    public readonly renamingId = signal<string | null>(null);
+    public readonly archivingId = signal<string | null>(null);
+
+    /**
+     * Version history is HIDDEN for now. The UI (panel, LCS diff, rollback) is storage-agnostic and
+     * complete; only the backend needs to move from per-browser localStorage to a DB table so a HOSTED,
+     * multi-user MJ instance shares one history. Flip this to true once the server-side version store
+     * lands (then swap SonarFactorSmithService.versions/recordVersion to hit the DB). Until then we neither
+     * render the panel nor write any localStorage, so nothing half-baked ships.
+     */
+    public readonly historyEnabled = false;
+
+    /** Version history snapshots of this signal's code + the one being diffed vs current. */
+    public readonly history = signal<SignalVersion[]>([]);
+    public readonly showHistory = signal(false);
+    public readonly diffVersion = signal<SignalVersion | null>(null);
 
     public readonly commissioning = signal(false);
     public readonly testing = signal(false);
@@ -94,6 +120,22 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         const s = this.testSummary();
         return this.isEditable() && !this.isApproved() && !this.editing() && s !== null && s.state === "ok";
     });
+
+    /** Unified line diff between the version under inspection and the current code (added/removed/context). */
+    public readonly diffRows = computed<DiffRow[]>(() => {
+        const v = this.diffVersion();
+        if (!v) return [];
+        return this.computeDiff(v.code, this.code());
+    });
+
+    /** Only Draft models can take a new factor (published config is immutable) — the bind targets. */
+    public readonly bindableModels = computed(() => this.models().filter((m) => m.status === "Draft"));
+    /** Library filtered by the search box (name match) — keeps a long catalog navigable. A method, not a
+     *  computed: librarySearch is a plain [(ngModel)] property, so a computed wouldn't invalidate on type. */
+    public filteredLibrary(): FactorAction[] {
+        const q = this.librarySearch.trim().toLowerCase();
+        return q ? this.library().filter((a) => a.name.toLowerCase().includes(q)) : this.library();
+    }
 
     /** Plain-English commission starters — click to fill the box (prompting is the hardest part). */
     public readonly examples: ReadonlyArray<{ label: string; text: string }> = [
@@ -208,8 +250,19 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         this.editing.set(false);
         this.testRows.set([]);
         this.anchorFields.set([]);
+        this.showHistory.set(false);
+        this.diffVersion.set(null);
         this.code.set("");
-        this.code.set(await this.smith.getCode(action.id));
+        const code = await this.smith.getCode(action.id);
+        this.code.set(code);
+        // Snapshot what we're seeing — captures commissions and AI refines (server-side) the first time
+        // they're viewed; recordVersion dedups so re-opening unchanged code is a no-op. Gated off until the
+        // DB-backed store lands (see historyEnabled) so we don't write per-browser history meanwhile.
+        if (this.historyEnabled && action.kind === "runtime" && code) {
+            const note = this.smith.versions(action.id).length ? "Updated (refine/edit)" : "Initial version";
+            this.smith.recordVersion(action.id, code, note);
+        }
+        this.history.set(this.historyEnabled ? this.smith.versions(action.id) : []);
     }
 
     /** Pick a test model → resolve a sample of anchor records, and clear any record-mode selection. */
@@ -353,6 +406,10 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
             const res = await this.smith.saveCode(action.id, this.editCode);
             if (res.ok) {
                 this.code.set(this.editCode);
+                if (this.historyEnabled) {
+                    this.smith.recordVersion(action.id, this.editCode, "Manual edit");
+                    this.history.set(this.smith.versions(action.id));
+                }
                 this.editing.set(false);
                 this.testRows.set([]);
                 this.notice.set(`Saved “${action.name}” — back to Pending for re-review.`);
@@ -380,6 +437,137 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         } finally {
             this.approving.set(false);
         }
+    }
+
+    /** Bind the selected (approved) signal into the chosen Draft model's rubric. */
+    public async bind(): Promise<void> {
+        const action = this.selected();
+        if (!action || !this.bindModelId || this.binding()) return;
+        this.binding.set(true);
+        try {
+            const res = await this.smith.bindSignal(action.id, this.bindModelId, this.bindWeight);
+            if (res.ok) {
+                const model = this.models().find((m) => m.id === this.bindModelId);
+                this.notice.set(`Added “${action.name}” to ${model?.name ?? "the model"} (weight ${this.bindWeight}). Tune it in the model builder.`);
+                this.bindModelId = null;
+            } else {
+                this.notice.set(res.error ?? "Couldn't bind the signal.");
+            }
+        } finally {
+            this.binding.set(false);
+        }
+    }
+
+    /** Begin an inline rename of the selected signal. */
+    public startRename(): void {
+        const action = this.selected();
+        if (!action) return;
+        this.renameName = action.name;
+        this.renamingId.set(action.id);
+    }
+    public cancelRename(): void { this.renamingId.set(null); }
+
+    /** Save the inline rename. */
+    public async saveRename(): Promise<void> {
+        const action = this.selected();
+        const name = this.renameName.trim();
+        if (!action || !name || this.renamingId() !== action.id) return;
+        const res = await this.smith.renameSignal(action.id, name);
+        if (res.ok) {
+            this.renamingId.set(null);
+            this.notice.set(`Renamed to “${name}”.`);
+            await this.refresh();
+        } else {
+            this.notice.set(res.error ?? "Rename failed.");
+        }
+    }
+
+    /** Archive (Disabled) the selected signal — drops it from the catalog without hard-deleting. */
+    public async archive(): Promise<void> {
+        const action = this.selected();
+        if (!action || this.archivingId()) return;
+        this.archivingId.set(action.id);
+        try {
+            const res = await this.smith.archiveSignal(action.id);
+            if (res.ok) {
+                this.notice.set(`Archived “${action.name}”. Models already using it keep their config.`);
+                this.selected.set(null);
+                await this.refresh();
+            } else {
+                this.notice.set(res.error ?? "Archive failed.");
+            }
+        } finally {
+            this.archivingId.set(null);
+        }
+    }
+
+    /** Show/hide the version-history panel. */
+    public toggleHistory(): void {
+        this.showHistory.update((v) => !v);
+        if (!this.showHistory()) this.diffVersion.set(null);
+    }
+
+    /** Diff a chosen version against the current code (toggle off if it's already open). */
+    public viewDiff(version: SignalVersion): void {
+        this.diffVersion.set(this.diffVersion() === version ? null : version);
+    }
+
+    /** Roll the signal back to a chosen version's code — saved like any edit, so it lands Pending. */
+    public async rollback(version: SignalVersion): Promise<void> {
+        const action = this.selected();
+        if (!action || this.saving()) return;
+        this.saving.set(true);
+        try {
+            const res = await this.smith.saveCode(action.id, version.code);
+            if (res.ok) {
+                this.code.set(version.code);
+                this.smith.recordVersion(action.id, version.code, "Rolled back");
+                this.history.set(this.smith.versions(action.id));
+                this.diffVersion.set(null);
+                this.testRows.set([]);
+                this.notice.set(`Rolled “${action.name}” back to the ${this.relativeTime(version.savedAt)} version — back to Pending.`);
+                await this.refresh();
+            } else {
+                this.notice.set(res.error ?? "Rollback failed.");
+            }
+        } finally {
+            this.saving.set(false);
+        }
+    }
+
+    /**
+     * Unified line diff (LCS) between two code snapshots — context/added/removed rows. Small inputs
+     * (a factor's code), so the O(n·m) table is fine; keeps us off a diff dependency.
+     */
+    private computeDiff(oldCode: string, newCode: string): DiffRow[] {
+        const a = oldCode.split("\n");
+        const b = newCode.split("\n");
+        const lcs: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+        for (let i = a.length - 1; i >= 0; i--) {
+            for (let j = b.length - 1; j >= 0; j--) {
+                lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+            }
+        }
+        const rows: DiffRow[] = [];
+        let i = 0, j = 0;
+        while (i < a.length && j < b.length) {
+            if (a[i] === b[j]) { rows.push({ type: "ctx", text: a[i] }); i++; j++; }
+            else if (lcs[i + 1][j] >= lcs[i][j + 1]) { rows.push({ type: "del", text: a[i] }); i++; }
+            else { rows.push({ type: "add", text: b[j] }); j++; }
+        }
+        while (i < a.length) rows.push({ type: "del", text: a[i++] });
+        while (j < b.length) rows.push({ type: "add", text: b[j++] });
+        return rows;
+    }
+
+    /** Coarse "x minutes/hours/days ago" for version labels. */
+    public relativeTime(iso: string): string {
+        const ms = Date.now() - new Date(iso).getTime();
+        const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+        if (d > 0) return `${d}d ago`;
+        if (h > 0) return `${h}h ago`;
+        if (m > 0) return `${m}m ago`;
+        return "just now";
     }
 
     public elapsed(startedAt: string): string {
