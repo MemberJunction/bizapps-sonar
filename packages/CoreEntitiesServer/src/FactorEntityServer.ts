@@ -1,12 +1,14 @@
 import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarFactorEntity } from "@mj-biz-apps/sonar-entities";
-import { appendPublishLockFailure, failPublishLock, isModelConfigLocked } from "./publishLock";
+import { appendPublishLockFailure, failPublishLock, isModelConfigLocked, isModelConfigWriteBlocked } from "./publishLock";
 
 /**
  * Server guard: a model-scoped Factor can't be created, edited, or deleted while its owning
  * model is published (Active or Paused) — see publishLock.ts for why. Shared library factors carry a null
- * ScoreModelID and are never locked (isModelConfigLocked returns false for null).
+ * ScoreModelID and are never locked (isModelConfigLocked returns false for null). The hard Save/Delete
+ * path uses the *WriteBlocked* predicate (fails CLOSED on a query error); ValidateAsync's friendly
+ * message uses the *Locked* predicate (fails OPEN) — see publishLock.ts query-error posture.
  */
 @RegisterClass(BaseEntity, "MJ_BizApps_Sonar: Factors")
 export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
@@ -19,7 +21,7 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
     // Hard invariant: enforce in Save() so it can't be bypassed via SkipAsyncValidation (which would
     // skip ValidateAsync). ValidateAsync stays below purely for the friendly message on the normal path.
     public override async Save(options?: EntitySaveOptions): Promise<boolean> {
-        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+        if (await isModelConfigWriteBlocked(this.ScoreModelID, this.ContextCurrentUser)) {
             return failPublishLock(this, this.IsSaved ? "update" : "create");
         }
         return super.Save(options);
@@ -34,7 +36,7 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
     }
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
-        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+        if (await isModelConfigWriteBlocked(this.ScoreModelID, this.ContextCurrentUser)) {
             return failPublishLock(this, "delete");
         }
         return super.Delete(options);

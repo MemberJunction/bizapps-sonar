@@ -21,12 +21,8 @@ import {
 import {
     appendPublishLockFailure,
     failPublishLock,
-    GUARDED_SCORE_MODEL_FIELDS,
+    isScoringEditBlocked,
 } from "./publishLock";
-
-/** Statuses whose config is frozen — mirrors publishLock.LOCKED_STATUSES (kept local to avoid widening
- *  that module's export surface for one hub-side check). */
-const LOCKED_STATUSES: readonly string[] = ["Active", "Paused"];
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -54,8 +50,9 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
 
         // Hard invariant: editing the published model's OWN scoring fields drifts the live config away
         // from the snapshot. Block it here (in Save, not just ValidateAsync) so SkipAsyncValidation can't
-        // bypass it. The publish path re-snapshots, so it's exempt; unpublishing (→ Draft) clears the lock.
-        if (!publishing && this.isScoringEditLocked()) {
+        // bypass it. isScoringEditLocked() already exempts the publish transition (it re-snapshots) and a
+        // same-save unpublish (→ Draft clears the lock), so the bare check is sufficient.
+        if (this.isScoringEditLocked()) {
             return failPublishLock(this, "update");
         }
 
@@ -67,16 +64,17 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     }
 
     /**
-     * True when this save would mutate a frozen scoring field on a still-published model: current Status
-     * is Active/Paused and at least one GUARDED_SCORE_MODEL_FIELDS field is dirty. Name/Description/owner/
-     * scheduling fields stay editable; changing Status itself (e.g. unpublish → Draft) flips this.Status
-     * out of the locked set, so a same-save unlock-and-edit is allowed.
+     * True when this save would mutate a frozen scoring field on a still-published model. Delegates to
+     * the pure {@link isScoringEditBlocked} rule (publish transition exempt; a same-save unpublish →
+     * Draft is allowed because this.Status has flipped out of the locked set; only fields OUTSIDE the
+     * editable allowlist trip it — safe-by-default). Reads the dirty set straight off the entity fields.
      */
     private isScoringEditLocked(): boolean {
-        if (!LOCKED_STATUSES.includes(this.Status)) {
-            return false;
-        }
-        return GUARDED_SCORE_MODEL_FIELDS.some((f) => this.GetFieldByName(f)?.Dirty === true);
+        return isScoringEditBlocked({
+            status: this.Status,
+            publishing: this.isPublishTransition(),
+            dirtyFields: this.Fields.filter((f) => f.Dirty).map((f) => f.Name),
+        });
     }
 
     /**
@@ -102,8 +100,9 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             await this.validatePublishable(result);
         }
         // Friendly message for the interactive path when editing a frozen scoring field (the Save()
-        // override is the actual enforcement). Skip on the publish transition, which re-snapshots.
-        if (!this.isPublishTransition() && this.isScoringEditLocked()) {
+        // override is the actual enforcement). isScoringEditLocked() already exempts the publish
+        // transition, so no separate guard is needed here.
+        if (this.isScoringEditLocked()) {
             appendPublishLockFailure(result, "Status");
         }
         return result;

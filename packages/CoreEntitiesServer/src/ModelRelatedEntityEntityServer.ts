@@ -1,7 +1,7 @@
 import { BaseEntity, EntityDeleteOptions, EntitySaveOptions } from "@memberjunction/core";
 import { RegisterClass, ValidationResult } from "@memberjunction/global";
 import { mjBizAppsSonarModelRelatedEntityEntity } from "@mj-biz-apps/sonar-entities";
-import { appendPublishLockFailure, failPublishLock, isModelConfigLocked } from "./publishLock";
+import { appendPublishLockFailure, failPublishLock, isModelConfigLocked, isModelConfigWriteBlocked } from "./publishLock";
 
 /**
  * Server guard: a ModelRelatedEntity (a data-source / relationship-path row the model's factors
@@ -15,7 +15,7 @@ export class ModelRelatedEntityEntityServer extends mjBizAppsSonarModelRelatedEn
     }
 
     public override async Save(options?: EntitySaveOptions): Promise<boolean> {
-        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+        if (await isModelConfigWriteBlocked(this.ScoreModelID, this.ContextCurrentUser)) {
             return failPublishLock(this, this.IsSaved ? "update" : "create");
         }
         return super.Save(options);
@@ -30,7 +30,7 @@ export class ModelRelatedEntityEntityServer extends mjBizAppsSonarModelRelatedEn
     }
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
-        if (await isModelConfigLocked(this.ScoreModelID, this.ContextCurrentUser)) {
+        if (await isModelConfigWriteBlocked(this.ScoreModelID, this.ContextCurrentUser)) {
             return failPublishLock(this, "delete");
         }
         return super.Delete(options);
