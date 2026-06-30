@@ -319,6 +319,13 @@ export class RecomputeOrchestrator {
                 // Score the WHOLE population — RunView otherwise caps at the entity's
                 // UserViewMaxRows (1000), which would silently leave most members unscored.
                 // (A future scale path batches/paginates; for now we resolve all anchor IDs.)
+                //
+                // SCALE CEILING: removing this cap makes buildFactorSql's per-factor
+                // WHERE [key] IN ('id1','id2',…) the binding limit (~2100 values before SQL
+                // Server hits statement-size/param limits). A recompute on more than ~2k anchors
+                // will fail at the factor-evaluation step. The fix is the deferred TVP swap in
+                // factorSql.ts — "population-complete" is accurate but capped well below real
+                // association sizes until that lands. Track against the TVP TODO there.
                 IgnoreMaxRows: true,
             },
             contextUser,
@@ -463,7 +470,12 @@ export class RecomputeOrchestrator {
     /** Resolve a factor's missing-data policy. The schema default "ModelDefault" resolves to
      *  "Zero": no data on an engagement signal means genuinely zero activity, so it should pull
      *  the score down — and fully-missing members still surface at the floor rather than
-     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this. */
+     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this.
+     *
+     *  Note: "ModelDefault" is currently an alias for "Zero" — ScoreModel has no
+     *  DefaultMissingDataPolicy field, so there is no per-model default to inherit. The enum
+     *  value is reserved for when that model-level knob is added; until then it always resolves
+     *  to "Zero". */
     private resolveMissingDataPolicy(
         modelFactor: mjBizAppsSonarModelFactorEntity,
     ): EffectiveMissingDataPolicy {

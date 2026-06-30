@@ -154,7 +154,7 @@ export class ScoreWriter {
             row.PercentOfTotal =
                 result.rawScore !== 0 ? c.weightedValue / result.rawScore : null;
             row.HadData = c.hadData;
-            row.MissingDataApplied = false;
+            row.MissingDataApplied = c.missingDataApplied;
             if (!(await row.Save())) {
                 LogError(
                     `ScoreWriter: failed to save contribution (factor ${c.factorId}) for score ${scoreId}.`,
