@@ -1,4 +1,4 @@
-import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
@@ -9,6 +9,7 @@ import {
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
 import { createActionRunner } from "../factors/actionRunner";
+import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
     NormalizationEngine,
     NormalizationSpec,
@@ -351,6 +352,20 @@ export class RecomputeOrchestrator {
             ) {
                 throw new Error(
                     `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
+                );
+            }
+            // ⚠ Cost ceiling (see ACTION_FACTOR_POPULATION_SOFT_CAP). An action factor fires one Action
+            // call per anchor with no cross-run caching/budgeting yet, so make a large fan-out LOUD rather
+            // than let an expensive recompute happen silently.
+            if (
+                factor.FactorType === "ActionBacked" &&
+                anchorIds.length > ACTION_FACTOR_POPULATION_SOFT_CAP
+            ) {
+                LogStatus(
+                    `⚠ Sonar: action-backed factor '${factor.Name}' will make ${anchorIds.length} Action ` +
+                        `calls this recompute (one per anchor; >${ACTION_FACTOR_POPULATION_SOFT_CAP} soft cap). ` +
+                        `Result caching / IsExpensive budgeting / rate limiting are not implemented yet — ` +
+                        `expect proportional cost + latency.`,
                 );
             }
             const evaluator = await this.compiler.compile(factor, contextUser);

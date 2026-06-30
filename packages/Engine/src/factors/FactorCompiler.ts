@@ -137,13 +137,14 @@ export class FactorCompiler {
                 `FactorCompiler: no ActionRunner configured — cannot compile Action-backed factor ${factor.ID}.`,
             );
         }
-        const { anchorParam, outputParam, staticParams } = parseActionParams(
+        const { anchorParam, asOfParam, outputParam, staticParams } = parseActionParams(
             factor.ActionParamsJSON,
         );
         const spec: ActionFactorSpec = {
             factorId: factor.ID,
             actionId: factor.ActionID,
             anchorParam,
+            asOfParam,
             outputParam,
             staticParams,
             maxConcurrency: factor.MaxConcurrency ?? DEFAULT_MAX_CONCURRENCY,

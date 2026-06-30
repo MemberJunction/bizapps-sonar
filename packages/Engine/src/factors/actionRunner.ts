@@ -5,6 +5,7 @@ import {
     ActionFactorSpec,
     ActionRunResult,
     ActionRunner,
+    coerceOutput,
 } from "./ActionFactorEvaluator";
 
 /**
@@ -13,9 +14,10 @@ import {
  * ActionFactorEvaluator so that evaluator's logic stays pure + unit-testable. ActionEngineServer
  * is Config()'d lazily on first call and cached for the run.
  *
- * I/O contract: the anchor id goes in as `spec.anchorParam`; the as-of date as `AsOf`; static
- * params as inputs; the result is read from the `spec.outputParam` output and coerced to a number
- * (non-numeric / absent → null = "no data" for that anchor).
+ * I/O contract: the anchor id goes in as `spec.anchorParam`; the as-of date as `spec.asOfParam`
+ * (default "AsOf" — the bound Action MUST declare this input); static params as inputs; the result is
+ * read from the `spec.outputParam` output and coerced via {@link coerceOutput} (non-numeric / absent /
+ * empty → null = "no data" for that anchor).
  */
 export function createActionRunner(): ActionRunner {
     let configured = false;
@@ -37,7 +39,7 @@ export function createActionRunner(): ActionRunner {
 
         const params: ActionParam[] = [
             { Name: spec.anchorParam, Type: "Input", Value: anchorId },
-            { Name: "AsOf", Type: "Input", Value: asOf },
+            { Name: spec.asOfParam, Type: "Input", Value: asOf },
             ...spec.staticParams.map((p) => ({
                 Name: p.name,
                 Type: "Input" as const,
@@ -60,10 +62,8 @@ export function createActionRunner(): ActionRunner {
         // than updating the pre-passed output slot in place) leaves the original null one first.
         const outs = (result.Params ?? []).filter((p) => p.Name === spec.outputParam);
         const raw: unknown = outs.length > 0 ? outs[outs.length - 1].Value : undefined;
-        const num = typeof raw === "number" ? raw : raw == null ? null : Number(raw);
-        const rawValue = num !== null && Number.isFinite(num) ? num : null;
         return {
-            rawValue,
+            rawValue: coerceOutput(raw),
             explanation: `action '${action.Name}' → ${spec.outputParam}=${String(raw)}`,
         };
     };

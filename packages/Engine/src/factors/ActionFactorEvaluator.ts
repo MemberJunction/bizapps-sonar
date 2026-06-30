@@ -32,6 +32,9 @@ export interface ActionFactorSpec {
     actionId: string;
     /** Input param the engine sets to each anchor's record id. */
     anchorParam: string;
+    /** Input param the engine sets to the recompute's as-of date. Configurable (default "AsOf") so a
+     *  bound Action can name it differently; the Action MUST declare this input. */
+    asOfParam: string;
     /** Output param the engine reads the numeric result from. */
     outputParam: string;
     /** Static inputs passed on every call. */
@@ -56,22 +59,36 @@ export type ActionRunner = (
 ) => Promise<ActionRunResult>;
 
 const DEFAULT_ANCHOR_PARAM = "AnchorRecordID";
+const DEFAULT_ASOF_PARAM = "AsOf";
 const DEFAULT_OUTPUT_PARAM = "Value";
 export const DEFAULT_MAX_CONCURRENCY = 8;
 
 /**
+ * ⚠ SCALE CEILING (deferred mitigations — see the changeset). An Action-backed factor fires ONE Action
+ * call per anchor (PerRecord). Against a full population that's N calls per recompute — 10k members ⇒
+ * 10k calls — and the concurrency cap only bounds *parallelism*, not total cost/latency. Cross-run
+ * result caching (CacheTTLSeconds), IsExpensive budgeting, and rate limiting are NOT implemented yet.
+ * The orchestrator emits a loud LogStatus when a single action factor's population exceeds this soft
+ * cap, so an expensive run can't happen silently. Raise/replace with a real budget guard before running
+ * external-API / LLM action factors against large non-demo populations.
+ */
+export const ACTION_FACTOR_POPULATION_SOFT_CAP = 1000;
+
+/**
  * Parse Factor.ActionParamsJSON into the I/O contract: which input carries the anchor id
- * (`anchorParam`, default "AnchorRecordID"), which output holds the result (`outputParam`,
- * default "Value"), and any static `params`. Empty/`{}`/null → all defaults. Malformed config
- * throws rather than mis-binding. Pure + unit-testable.
+ * (`anchorParam`, default "AnchorRecordID"), which input carries the as-of date (`asOfParam`, default
+ * "AsOf"), which output holds the result (`outputParam`, default "Value"), and any static `params`.
+ * Empty/`{}`/null → all defaults. Malformed config throws rather than mis-binding. Pure + unit-testable.
  */
 export function parseActionParams(json: string | null): {
     anchorParam: string;
+    asOfParam: string;
     outputParam: string;
     staticParams: ActionParamValue[];
 } {
     const defaults = {
         anchorParam: DEFAULT_ANCHOR_PARAM,
+        asOfParam: DEFAULT_ASOF_PARAM,
         outputParam: DEFAULT_OUTPUT_PARAM,
         staticParams: [] as ActionParamValue[],
     };
@@ -92,6 +109,10 @@ export function parseActionParams(json: string | null): {
         typeof rec.anchorParam === "string" && rec.anchorParam.length > 0
             ? rec.anchorParam
             : DEFAULT_ANCHOR_PARAM;
+    const asOfParam =
+        typeof rec.asOfParam === "string" && rec.asOfParam.length > 0
+            ? rec.asOfParam
+            : DEFAULT_ASOF_PARAM;
     const outputParam =
         typeof rec.outputParam === "string" && rec.outputParam.length > 0
             ? rec.outputParam
@@ -109,7 +130,36 @@ export function parseActionParams(json: string | null): {
             staticParams.push({ name, value });
         }
     }
-    return { anchorParam, outputParam, staticParams };
+    return { anchorParam, asOfParam, outputParam, staticParams };
+}
+
+/**
+ * Coerce an Action's raw output param value to a factor's numeric raw value, or null = "no data" for
+ * that anchor (so the model's MissingDataPolicy handles it, same as a declarative factor with no row).
+ * The contract is intentionally explicit because the edge cases differ in MEANING:
+ *   - number            → itself (NaN / Infinity → null).
+ *   - boolean           → 1 / 0 (so an Exists-style action returning true/false scores as a real value).
+ *   - "" or whitespace  → null (NO DATA). An action returning empty means "nothing", which must fall to
+ *                         the missing-data policy — NOT a hard 0 contribution (what `Number("")` gives).
+ *   - other string      → Number(it) if finite, else null.
+ *   - null / undefined / anything else → null.
+ * Pure + unit-tested; lives here (not in actionRunner) so it stays free of the MJ Action I/O imports.
+ */
+export function coerceOutput(raw: unknown): number | null {
+    if (typeof raw === "number") {
+        return Number.isFinite(raw) ? raw : null;
+    }
+    if (typeof raw === "boolean") {
+        return raw ? 1 : 0;
+    }
+    if (typeof raw === "string") {
+        if (raw.trim() === "") {
+            return null; // empty / whitespace = no data, never a hard 0
+        }
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+    }
+    return null;
 }
 
 export class ActionFactorEvaluator implements IFactorEvaluator {
