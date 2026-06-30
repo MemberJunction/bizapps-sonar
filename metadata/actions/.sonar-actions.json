@@ -2908,5 +2908,110 @@
       "lastModified": "2026-06-29T21:33:52.197Z",
       "checksum": "9bc2fcc93c287b14cbcb6d328c45c4199333bba04383659c1d4f171386e39962"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Cancel Factor Job",
+      "Description": "Stops an in-flight ActionSmith run (a commission or refine) from the Signal Studio. Aborts the run's cancellation token when this process owns it (a true cancel — the agent loop stops and a refine never transplants), else flips the AIAgentRun row to Cancelled so it leaves the in-flight feed. Powers the Studio's per-job Cancel button.",
+      "DriverClass": "SonarCancelFactorJob",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-stop",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0019-4000-8000-000000000019"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AgentRunID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The AIAgentRun id of the in-flight job to cancel."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.064Z",
+            "checksum": "886e255b873a55a902ce1552e59b2e5fb5507ca4749e96074fdabd8f9cf7d02d"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { aborted, statusFlipped }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.098Z",
+            "checksum": "5e55eb9448be8e56aba00e29395047273ed92aa0587038d5cfd0d6a2efc820a0"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Job cancelled (or already finished)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.127Z",
+            "checksum": "6ff11e1497c7a10c31b229a354b4b49b703416ac9eadea50119d05e519fc8760"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "AgentRunID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.145Z",
+            "checksum": "20a5dcaafe456166fa206e63196b1d795a0f7ff5a0e43a6f9a9357e6c12ccbd9"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Cancel failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.162Z",
+            "checksum": "7eb0cd023fbf078fd8de2d17641c71e9c4264fdb31894e6661e70ef65f91ab92"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-30T15:11:40.982Z",
+      "checksum": "c8c4eaa6212c8348aea1bae07eb3ae1b6c417de08294ee993f29ff74b3b106c5"
+    }
   }
 ]

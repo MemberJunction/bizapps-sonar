@@ -14,6 +14,10 @@ const REFINE_ACTION = "Sonar: Refine Factor Action";
 /** Sonar action that tests a signal over a sample (ephemeral run, gate-bypassed, per-record results in a
  *  Both Result so they round-trip to the browser). See SonarTestSignalAction. */
 const TEST_SIGNAL_ACTION = "Sonar: Test Signal";
+/** Stops an in-flight ActionSmith run (true abort if this process owns it, else flips the run row). */
+const CANCEL_JOB_ACTION = "Sonar: Cancel Factor Job";
+/** How far back a terminal-failed run still counts as "recent" for the failures strip (ms). */
+const RECENT_FAILURE_WINDOW_MS = 20 * 60 * 1000;
 /** Local labels for in-flight jobs (the run row has no description column). Per-browser; fine for labels. */
 const LABELS_KEY = "sonar-factor-job-labels";
 
@@ -26,8 +30,26 @@ export interface InFlightJob {
     latestStep: string | null;
 }
 
+/** One step in a job's timeline — what the agent did, in order, with how it ended. */
+export interface JobStep {
+    name: string;
+    status: string;
+    startedAt: string;
+}
+
+/** A job that finished badly (Failed/Cancelled) recently — surfaced so a dead run doesn't vanish silently. */
+export interface FailedJob {
+    agentRunId: string;
+    status: string;
+    label: string;
+    finishedAt: string;
+    error: string | null;
+}
+
 interface AgentRunRow { ID: string; Status: string; __mj_CreatedAt: string }
+interface FailedRunRow { ID: string; Status: string; CompletedAt: string | null; __mj_CreatedAt: string; ErrorMessage: string | null }
 interface StepRow { StepName: string }
+interface StepTimelineRow { StepName: string; Status: string; __mj_CreatedAt: string }
 interface ScoreModelRow { ID: string; Name: string; AnchorEntityID: string }
 
 /** A model the user can test a signal against — its anchor supplies the sample record. */
@@ -37,6 +59,11 @@ export interface TestModel { id: string; name: string; anchorEntityID: string; a
 export interface SignalTestResult { value: number | null; explanation: string | null; error?: string | null }
 /** One row of a multi-record sample test — the anchor record it ran on plus its outcome. */
 export interface SignalSampleRow extends SignalTestResult { anchorRecordId: string }
+
+/** An anchor record the user can target by name in the record picker. */
+export interface AnchorRecordOption { id: string; name: string }
+/** One field of the record being scored — the "underlying data" view for a single-record test. */
+export interface AnchorField { name: string; value: string }
 
 /**
  * Signal Studio engine — the ASYNC factor-authoring backend (plans §5/§12). Commissions jobs (fires
@@ -118,6 +145,50 @@ export class SonarFactorSmithService {
         return res.Success && res.Results?.length ? res.Results[0].StepName : null;
     }
 
+    /** The full step timeline for a job (oldest→newest) — the transparency view when a job is expanded. */
+    public async jobSteps(agentRunId: string): Promise<JobStep[]> {
+        const res = await new RunView().RunView<StepTimelineRow>({
+            EntityName: "MJ: AI Agent Run Steps",
+            ExtraFilter: `AgentRunID='${agentRunId}'`,
+            OrderBy: "__mj_CreatedAt ASC",
+            MaxRows: 50,
+            Fields: ["StepName", "Status", "__mj_CreatedAt"],
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        return rows.map((r) => ({ name: r.StepName, status: r.Status, startedAt: r.__mj_CreatedAt }));
+    }
+
+    /** Recently-failed/cancelled jobs (with their error) so a dead run is surfaced, not silently dropped. */
+    public async recentFailures(): Promise<FailedJob[]> {
+        const since = new Date(Date.now() - RECENT_FAILURE_WINDOW_MS).toISOString();
+        const res = await new RunView().RunView<FailedRunRow>({
+            EntityName: "MJ: AI Agent Runs",
+            ExtraFilter: `AgentID='${ACTIONSMITH_AGENT_ID}' AND Status IN ('Failed','Cancelled') AND __mj_CreatedAt>='${since}'`,
+            OrderBy: "__mj_CreatedAt DESC",
+            MaxRows: 10,
+            Fields: ["ID", "Status", "CompletedAt", "__mj_CreatedAt", "ErrorMessage"],
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        const labels = this.labels();
+        return rows.map((r) => ({
+            agentRunId: r.ID,
+            status: r.Status,
+            label: labels[r.ID] ?? "A signal job",
+            finishedAt: r.CompletedAt ?? r.__mj_CreatedAt,
+            error: r.ErrorMessage,
+        }));
+    }
+
+    /** Cancel an in-flight job — true abort if MJAPI owns the run, else marks it Cancelled. */
+    public async cancelJob(agentRunId: string): Promise<{ ok: boolean; error?: string }> {
+        const id = await this.resolveActionId(CANCEL_JOB_ACTION);
+        if (!id) return { ok: false, error: "The cancel action isn't available." };
+        const res = await this.actionClient().RunAction(id, [{ Name: "AgentRunID", Value: agentRunId, Type: "Input" }]);
+        return res.Success ? { ok: true } : { ok: false, error: res.Message || "Couldn't cancel the job." };
+    }
+
     /** The generated JS for the read-only code review. */
     public async getCode(actionId: string): Promise<string> {
         const action = await this.loadAction(actionId);
@@ -167,12 +238,56 @@ export class SonarFactorSmithService {
             .map((v) => String(v));
     }
 
+    /** Search an anchor entity by display name → pickable options, so a test can target a KNOWN record
+     *  (e.g. a specific member) rather than a random sample. Falls back to recent records on a blank query. */
+    public async searchAnchorRecords(anchorEntityID: string, query: string, limit = 15): Promise<AnchorRecordOption[]> {
+        const entity = new Metadata().Entities.find((e) => e.ID === anchorEntityID);
+        if (!entity) return [];
+        const pk = entity.FirstPrimaryKey?.Name ?? "ID";
+        const nameField = entity.NameField?.Name ?? pk;
+        const q = query.trim().replace(/'/g, "''");
+        const res = await new RunView().RunView({
+            EntityName: entity.Name,
+            ExtraFilter: q ? `${nameField} LIKE '%${q}%'` : "",
+            OrderBy: `${nameField} ASC`,
+            MaxRows: limit,
+            Fields: nameField === pk ? [pk] : [pk, nameField],
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        return rows.map((r) => {
+            const rec = r as Record<string, unknown>;
+            return { id: String(rec[pk]), name: rec[nameField] != null ? String(rec[nameField]) : String(rec[pk]) };
+        });
+    }
+
+    /** The fields of the record being scored — the "what data is this signal looking at" view for a single
+     *  record. Returns the record's columns as label/value pairs (the anchor-level underlying data). */
+    public async loadAnchorFields(anchorEntityID: string, recordId: string): Promise<AnchorField[]> {
+        const entity = new Metadata().Entities.find((e) => e.ID === anchorEntityID);
+        if (!entity) return [];
+        const pk = entity.FirstPrimaryKey?.Name ?? "ID";
+        const res = await new RunView().RunView({
+            EntityName: entity.Name,
+            ExtraFilter: `${pk}='${recordId.replace(/'/g, "''")}'`,
+            MaxRows: 1,
+            ResultType: "simple",
+        });
+        const row = res.Success && res.Results?.length ? (res.Results[0] as Record<string, unknown>) : null;
+        if (!row) return [];
+        // Drop MJ housekeeping columns; keep meaningful, non-empty fields the signal might read.
+        return Object.entries(row)
+            .filter(([k, v]) => !k.startsWith("__mj_") && v != null && v !== "")
+            .map(([name, value]) => ({ name, value: String(value).slice(0, 120) }));
+    }
+
     /**
      * Test a signal across a SAMPLE of anchor records via `Sonar: Test Signal` — which runs the code on
      * an ephemeral Approved copy (so a still-Pending signal can be tested BEFORE approval) and returns the
      * per-record results in a Both `Result` that round-trips to the browser. One call covers all samples.
+     * `asOf` (ISO date) tests the signal as of a historical instant; omit for "now".
      */
-    public async testSignal(actionId: string, anchorRecordIds: string[]): Promise<SignalSampleRow[]> {
+    public async testSignal(actionId: string, anchorRecordIds: string[], asOf?: string | null): Promise<SignalSampleRow[]> {
         if (!anchorRecordIds.length) return [];
         const id = await this.resolveActionId(TEST_SIGNAL_ACTION);
         const fail = (error: string): SignalSampleRow[] =>
@@ -182,6 +297,7 @@ export class SonarFactorSmithService {
             { Name: "TargetActionID", Value: actionId, Type: "Input" as const },
             { Name: "AnchorRecordIDs", Value: JSON.stringify(anchorRecordIds), Type: "Input" as const },
         ];
+        if (asOf) params.push({ Name: "AsOf", Value: asOf, Type: "Input" as const });
         const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return fail(res.Message || "Test run failed.");
         const out = extractActionResult<{ rows?: SignalSampleRow[] }>(res) ?? {};

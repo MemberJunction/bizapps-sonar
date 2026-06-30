@@ -33,6 +33,13 @@ SANDBOX API — the only data/AI access available to the code is the injected \`
   \`.trim()\`/\`.match()\` directly on Response throws "trim is not a function" when it's an object.)
 - Check \`.Success\`/\`.ErrorMessage\` before using a result; on failure, return Value=null with the reason.
 
+SELF-TEST EFFICIENTLY (speed matters — these runs are watched):
+- When you self-test the code, run it on a SINGLE representative record. One pass proves it loads,
+  compiles, and returns the right shape; the human tests a full sample in the Studio afterward. Do NOT
+  self-test on many records.
+- If the SAME error recurs twice, STOP iterating — return your best code as-is. Re-running an identical
+  failing approach wastes cycles; a human (or a targeted refine) will resolve it faster.
+
 The signal to build:
 `;
 
@@ -50,11 +57,31 @@ export async function loadActionSmith(contextUser: UserInfo | undefined): Promis
 }
 
 /**
+ * Process-wide registry of in-flight ActionSmith runs → their AbortController, so a cancel request from
+ * the browser (a separate request, no held handle) can stop the right run. Keyed by AgentRunID, which the
+ * caller already has. Entries are added when the run row is created and removed when it settles, so a
+ * stale id simply isn't found (→ the cancel action falls back to flipping the run row). In-process only:
+ * behind a load balancer the cancel must hit the SAME instance that started the run — fine for Sonar's
+ * single MJAPI, and the row-flip fallback covers the rest.
+ */
+const ACTIVE_RUNS = new Map<string, AbortController>();
+
+/** Abort an in-flight run if this process owns it. Returns true if a live controller was found+aborted. */
+export function cancelRun(agentRunId: string): boolean {
+    const controller = ACTIVE_RUNS.get(agentRunId);
+    if (!controller) return false;
+    controller.abort();
+    return true;
+}
+
+/**
  * Fire ActionSmith WITHOUT awaiting completion and resolve with its AgentRunID as soon as the run row
- * exists (the `onAgentRunCreated` hook). The run keeps executing server-side after we return. If
+ * exists (the `onAgentRunCreated` hook). The run keeps executing server-side after we return. A fresh
+ * AbortController is registered under that id (see {@link cancelRun}) so the Studio can cancel it. If
  * `onComplete` is supplied it runs AFTER the agent finishes (post-processing, e.g. the refine transplant)
- * — its errors are swallowed so they can't crash the host process. A 20s safety net unblocks the caller
- * if the hook never fires.
+ * — UNLESS the run was aborted (a cancelled refine must not transplant a half-baked rewrite). Its errors
+ * are swallowed so they can't crash the host process. A 20s safety net unblocks the caller if the hook
+ * never fires.
  */
 export async function fireActionSmithDetached(opts: {
     agent: MJAIAgentEntityExtended;
@@ -65,15 +92,19 @@ export async function fireActionSmithDetached(opts: {
     return new Promise<string | null>((resolve) => {
         let settled = false;
         const done = (id: string | null) => { if (!settled) { settled = true; resolve(id); } };
+        const controller = new AbortController();
+        let runId: string | null = null;
         new AgentRunner()
             .RunAgent({
                 agent: opts.agent,
                 conversationMessages: [{ role: "user", content: opts.content }],
                 contextUser: opts.contextUser,
-                onAgentRunCreated: (id: string) => done(id),
+                cancellationToken: controller.signal,
+                onAgentRunCreated: (id: string) => { runId = id; ACTIVE_RUNS.set(id, controller); done(id); },
             })
-            .then(async () => { if (opts.onComplete) await opts.onComplete(); })
-            .catch(() => { /* run failure surfaces via AIAgentRun.Status='Failed' (polled by the Studio) */ });
+            .then(async () => { if (opts.onComplete && !controller.signal.aborted) await opts.onComplete(); })
+            .catch(() => { /* run failure surfaces via AIAgentRun.Status='Failed' (polled by the Studio) */ })
+            .finally(() => { if (runId) ACTIVE_RUNS.delete(runId); });
         setTimeout(() => done(null), 20000);
     });
 }

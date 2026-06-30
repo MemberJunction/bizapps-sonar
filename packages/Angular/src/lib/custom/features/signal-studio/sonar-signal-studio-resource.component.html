@@ -15,12 +15,49 @@
             <div class="sonar-group">
                 <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-bolt"></i> In flight <span class="sonar-studio__count">{{ inFlight().length }}</span></div>
                 @for (j of inFlight(); track j.agentRunId) {
-                    <div class="sonar-studio__job">
-                        <div class="sonar-studio__job-label">{{ j.label }}</div>
+                    <div class="sonar-studio__job" [class.sonar-studio__job--open]="expandedJobId() === j.agentRunId">
+                        <div class="sonar-studio__job-head">
+                            <button type="button" class="sonar-studio__job-toggle" (click)="toggleJob(j)"
+                                    [attr.aria-expanded]="expandedJobId() === j.agentRunId" title="Show step timeline">
+                                <i class="fa-solid" [class.fa-chevron-right]="expandedJobId() !== j.agentRunId" [class.fa-chevron-down]="expandedJobId() === j.agentRunId"></i>
+                                <span class="sonar-studio__job-label">{{ j.label }}</span>
+                            </button>
+                            <button type="button" class="sonar-studio__job-cancel" (click)="cancel(j)" [disabled]="isCancelling(j.agentRunId)"
+                                    [title]="'Cancel this job'">
+                                @if (isCancelling(j.agentRunId)) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-stop"></i> }
+                            </button>
+                        </div>
                         <div class="sonar-studio__job-meta"><i class="fa-solid fa-spinner fa-spin"></i> {{ j.latestStep || j.status }} · {{ elapsed(j.startedAt) }}</div>
+                        @if (expandedJobId() === j.agentRunId) {
+                            <ol class="sonar-studio__steps">
+                                @for (s of expandedSteps(); track $index) {
+                                    <li class="sonar-studio__step" [class.sonar-studio__step--done]="s.status === 'Completed'" [class.sonar-studio__step--failed]="s.status === 'Failed'">
+                                        <i class="fa-solid" [class.fa-circle-check]="s.status === 'Completed'" [class.fa-circle-xmark]="s.status === 'Failed'" [class.fa-circle-notch]="s.status !== 'Completed' && s.status !== 'Failed'" [class.fa-spin]="s.status === 'Running'"></i>
+                                        <span class="sonar-studio__step-name">{{ s.name }}</span>
+                                    </li>
+                                } @empty {
+                                    <li class="sonar-studio__step sonar-studio__step--muted">{{ loadingSteps() ? "Loading steps…" : "No steps recorded yet." }}</li>
+                                }
+                            </ol>
+                        }
                     </div>
                 } @empty { <div class="sonar-studio__empty-sm">No jobs running.</div> }
             </div>
+
+            @if (failures().length) {
+                <div class="sonar-group">
+                    <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-triangle-exclamation"></i> Didn’t finish <span class="sonar-studio__count">{{ failures().length }}</span></div>
+                    @for (f of failures(); track f.agentRunId) {
+                        <div class="sonar-studio__fail">
+                            <div class="sonar-studio__fail-head">
+                                <span class="sonar-studio__job-label">{{ f.label }}</span>
+                                <button type="button" class="sonar-studio__fail-x" (click)="dismissFailure(f.agentRunId)" title="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="sonar-studio__fail-meta">{{ f.status }}@if (f.error) { · {{ f.error }} }</div>
+                        </div>
+                    }
+                </div>
+            }
 
             <div class="sonar-group">
                 <div class="sonar-group__title sonar-studio__group-title"><i class="fa-solid fa-clipboard-check"></i> For review <span class="sonar-studio__count">{{ review().length }}</span></div>
@@ -90,24 +127,59 @@
                     <pre class="sonar-studio__code"><code>{{ code() || (isEditable() ? "(no code returned)" : "(compiled signal — defined in code, not editable here)") }}</code></pre>
                 }
 
-                <!-- Test on a sample of a model's anchor records -->
-                <div class="sonar-studio__label"><i class="fa-solid fa-flask"></i> Test on a sample of records</div>
+                <!-- Test the signal: a random sample, or one named record, optionally as of a past date -->
+                <div class="sonar-studio__label"><i class="fa-solid fa-flask"></i> Test the signal</div>
                 <div class="sonar-studio__test-row">
                     <select class="sonar-input sonar-studio__model-select" [ngModel]="selectedModelId" (ngModelChange)="onModelChange($event)">
                         <option [ngValue]="null" disabled>Pick a model to test against…</option>
                         @for (m of models(); track m.id) { <option [ngValue]="m.id">{{ m.name }} · {{ m.anchorName || "anchor" }}</option> }
                     </select>
-                    <select class="sonar-input sonar-studio__size-select" [ngModel]="sampleSize" (ngModelChange)="onSampleSizeChange($event)" aria-label="Sample size">
-                        @for (n of sampleSizes; track n) { <option [ngValue]="n">{{ n }} {{ n === 1 ? "record" : "records" }}</option> }
-                    </select>
-                    <button class="sonar-btn" [disabled]="!sampleAnchorIds().length || testing() || editing()" (click)="runTest()">
-                        @if (testing()) { <i class="fa-solid fa-spinner fa-spin"></i> Running… } @else { <i class="fa-solid fa-play"></i> Run test }
-                    </button>
+                    @if (selectedModel()) {
+                        <div class="sonar-studio__seg" role="tablist" aria-label="Test target">
+                            <button type="button" class="sonar-studio__seg-btn" [class.sonar-studio__seg-btn--on]="testMode() === 'sample'" (click)="setTestMode('sample')" role="tab" [attr.aria-selected]="testMode() === 'sample'">Random sample</button>
+                            <button type="button" class="sonar-studio__seg-btn" [class.sonar-studio__seg-btn--on]="testMode() === 'record'" (click)="setTestMode('record')" role="tab" [attr.aria-selected]="testMode() === 'record'">Specific record</button>
+                        </div>
+                    }
                 </div>
+
                 @if (selectedModel(); as m) {
+                    <div class="sonar-studio__test-row sonar-studio__test-row--2">
+                        @if (testMode() === 'sample') {
+                            <select class="sonar-input sonar-studio__size-select" [ngModel]="sampleSize" (ngModelChange)="onSampleSizeChange($event)" aria-label="Sample size">
+                                @for (n of sampleSizes; track n) { <option [ngValue]="n">{{ n }} {{ n === 1 ? "record" : "records" }}</option> }
+                            </select>
+                        } @else {
+                            <div class="sonar-studio__record-pick">
+                                <input class="sonar-input" type="search" [(ngModel)]="recordQuery" (keyup.enter)="searchRecords()"
+                                       [placeholder]="'Search ' + (m.anchorName || 'records') + ' by name…'" aria-label="Search records" />
+                                <button class="sonar-btn" type="button" [disabled]="searchingRecords()" (click)="searchRecords()" title="Search">
+                                    @if (searchingRecords()) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-magnifying-glass"></i> }
+                                </button>
+                                @if (recordOptions().length) {
+                                    <ul class="sonar-studio__record-list">
+                                        @for (o of recordOptions(); track o.id) {
+                                            <li><button type="button" class="sonar-studio__record-opt" (click)="pickRecord(o)">{{ o.name }}</button></li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        }
+                        <label class="sonar-studio__asof" title="Compute the signal as of this date (blank = now)">
+                            <span>As of</span>
+                            <input class="sonar-input" type="date" [(ngModel)]="asOfDate" aria-label="As-of date" />
+                        </label>
+                        <button class="sonar-btn" [disabled]="!canRunTest()" (click)="runTest()">
+                            @if (testing()) { <i class="fa-solid fa-spinner fa-spin"></i> Running… } @else { <i class="fa-solid fa-play"></i> Run test }
+                        </button>
+                    </div>
                     <div class="sonar-studio__sample-note">
-                        @if (sampleAnchorIds().length) { Testing on {{ sampleAnchorIds().length }} sample <strong>{{ m.anchorName }}</strong> {{ sampleAnchorIds().length === 1 ? "record" : "records" }}. }
-                        @else { <span class="sonar-studio__test-err"><i class="fa-solid fa-circle-exclamation"></i> No records found for {{ m.anchorName }}.</span> }
+                        @if (testMode() === 'sample') {
+                            @if (sampleAnchorIds().length) { Testing on {{ sampleAnchorIds().length }} sample <strong>{{ m.anchorName }}</strong> {{ sampleAnchorIds().length === 1 ? "record" : "records" }}@if (asOfDate) { as of <strong>{{ asOfDate }}</strong>}. }
+                            @else { <span class="sonar-studio__test-err"><i class="fa-solid fa-circle-exclamation"></i> No records found for {{ m.anchorName }}.</span> }
+                        } @else {
+                            @if (selectedRecord(); as r) { Testing <strong>{{ r.name }}</strong>@if (asOfDate) { as of <strong>{{ asOfDate }}</strong>}. }
+                            @else { Search and pick a <strong>{{ m.anchorName }}</strong> record to test. }
+                        }
                     </div>
                 }
                 @if (testSummary(); as s) {
@@ -143,6 +215,18 @@
                             }
                         </tbody>
                     </table>
+                }
+
+                <!-- Underlying data: the fields of the single record being scored -->
+                @if (anchorFields().length) {
+                    <details class="sonar-studio__underlying" open>
+                        <summary><i class="fa-solid fa-table-list"></i> Data on the record being scored <span class="sonar-studio__count">{{ anchorFields().length }}</span></summary>
+                        <dl class="sonar-studio__fields">
+                            @for (f of anchorFields(); track f.name) {
+                                <div class="sonar-studio__field"><dt>{{ f.name }}</dt><dd>{{ f.value }}</dd></div>
+                            }
+                        </dl>
+                    </details>
                 }
 
                 <!-- Approve gate -->

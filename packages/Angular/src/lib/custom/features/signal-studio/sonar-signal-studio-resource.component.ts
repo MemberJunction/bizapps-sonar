@@ -2,7 +2,7 @@ import { Component, OnDestroy, computed, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
-import { SonarFactorSmithService, InFlightJob, TestModel, SignalSampleRow } from "../../core/services/sonar-factor-smith.service";
+import { SonarFactorSmithService, InFlightJob, TestModel, SignalSampleRow, JobStep, FailedJob, AnchorRecordOption, AnchorField } from "../../core/services/sonar-factor-smith.service";
 import { ActionCatalogService, FactorAction } from "../../core/services/action-catalog.service";
 
 /**
@@ -29,8 +29,12 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public refineFeedback = "";
     public selectedModelId: string | null = null;
     public sampleSize = 5;
+    /** Richer testing: target a random sample OR one named record, optionally as of a past date. */
+    public recordQuery = "";
+    public asOfDate = "";
 
     public readonly inFlight = signal<InFlightJob[]>([]);
+    public readonly failures = signal<FailedJob[]>([]);
     public readonly review = signal<FactorAction[]>([]);
     public readonly library = signal<FactorAction[]>([]);
     public readonly selected = signal<FactorAction | null>(null);
@@ -39,8 +43,24 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public readonly models = signal<TestModel[]>([]);
     public readonly sampleAnchorIds = signal<string[]>([]);
 
+    /** Richer-testing state: sample vs specific-record mode, the record search + pick, and the picked
+     *  record's fields (the "what data is this signal looking at" view). */
+    public readonly testMode = signal<"sample" | "record">("sample");
+    public readonly recordOptions = signal<AnchorRecordOption[]>([]);
+    public readonly selectedRecord = signal<AnchorRecordOption | null>(null);
+    public readonly searchingRecords = signal(false);
+    public readonly anchorFields = signal<AnchorField[]>([]);
+
     /** Sample-size options for the test run. */
     public readonly sampleSizes = [1, 5, 10, 25];
+
+    /** Job-transparency view: which in-flight job is expanded + its loaded step timeline. */
+    public readonly expandedJobId = signal<string | null>(null);
+    public readonly expandedSteps = signal<JobStep[]>([]);
+    public readonly loadingSteps = signal(false);
+    public readonly cancellingIds = signal<string[]>([]);
+    /** Failures the user has dismissed this session (local — they stay gone until the page reloads). */
+    private readonly dismissedFailures = new Set<string>();
 
     public readonly commissioning = signal(false);
     public readonly testing = signal(false);
@@ -53,7 +73,9 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     /** Only AI-authored Runtime signals can be edited/approved (compiled ones live in code). */
     public readonly isEditable = computed(() => this.selected()?.kind === "runtime");
     public readonly isApproved = computed(() => this.selected()?.approvalStatus === "Approved");
-    public readonly selectedModel = computed(() => this.models().find((m) => m.id === this.selectedModelId) ?? null);
+    /** A method (not a computed): selectedModelId is a plain [ngModel]-bound property, not a signal, so a
+     *  computed would memoise at null and never invalidate. Re-evaluated each change-detection pass. */
+    public selectedModel(): TestModel | null { return this.models().find((m) => m.id === this.selectedModelId) ?? null; }
 
     /** Roll the per-record test results into a verdict that drives the guardrails + summary banner. */
     public readonly testSummary = computed(() => {
@@ -103,16 +125,62 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         if (this.refreshing) return;
         this.refreshing = true;
         try {
-            const [jobs, cat] = await Promise.all([this.smith.inFlight(), this.catalog.listFactorActions(true)]);
+            const [jobs, fails, cat] = await Promise.all([
+                this.smith.inFlight(),
+                this.smith.recentFailures(),
+                this.catalog.listFactorActions(true),
+            ]);
             this.inFlight.set(jobs);
+            this.failures.set(fails.filter((f) => !this.dismissedFailures.has(f.agentRunId)));
             this.review.set(cat.filter((a) => a.kind === "runtime" && a.approvalStatus !== "Approved"));
             this.library.set(cat.filter((a) => !(a.kind === "runtime" && a.approvalStatus !== "Approved")));
+            // If the expanded job is still in flight, keep its step timeline fresh on each poll.
+            const open = this.expandedJobId();
+            if (open && jobs.some((j) => j.agentRunId === open)) this.expandedSteps.set(await this.smith.jobSteps(open));
             // Keep the open signal's metadata fresh (status may have flipped on a poll).
             const sel = this.selected();
             if (sel) this.selected.set(cat.find((a) => a.id === sel.id) ?? sel);
         } finally {
             this.refreshing = false;
         }
+    }
+
+    /** Expand/collapse a job's step timeline (the transparency view into a long-running run). */
+    public async toggleJob(job: InFlightJob): Promise<void> {
+        if (this.expandedJobId() === job.agentRunId) {
+            this.expandedJobId.set(null);
+            this.expandedSteps.set([]);
+            return;
+        }
+        this.expandedJobId.set(job.agentRunId);
+        this.expandedSteps.set([]);
+        this.loadingSteps.set(true);
+        try {
+            this.expandedSteps.set(await this.smith.jobSteps(job.agentRunId));
+        } finally {
+            this.loadingSteps.set(false);
+        }
+    }
+
+    /** Stop an in-flight job (true abort if MJAPI owns it, else marked Cancelled). */
+    public async cancel(job: InFlightJob): Promise<void> {
+        if (this.cancellingIds().includes(job.agentRunId)) return;
+        this.cancellingIds.update((ids) => [...ids, job.agentRunId]);
+        try {
+            const res = await this.smith.cancelJob(job.agentRunId);
+            this.notice.set(res.ok ? `Cancelled “${job.label}”.` : res.error ?? "Couldn't cancel the job.");
+            await this.refresh();
+        } finally {
+            this.cancellingIds.update((ids) => ids.filter((id) => id !== job.agentRunId));
+        }
+    }
+
+    public isCancelling(agentRunId: string): boolean { return this.cancellingIds().includes(agentRunId); }
+
+    /** Dismiss a surfaced failure (local — it won't reappear until the page reloads). */
+    public dismissFailure(agentRunId: string): void {
+        this.dismissedFailures.add(agentRunId);
+        this.failures.update((f) => f.filter((x) => x.agentRunId !== agentRunId));
     }
 
     public async commission(): Promise<void> {
@@ -139,13 +207,18 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         this.selected.set(action);
         this.editing.set(false);
         this.testRows.set([]);
+        this.anchorFields.set([]);
         this.code.set("");
         this.code.set(await this.smith.getCode(action.id));
     }
 
-    /** Pick a test model → resolve a sample of anchor records from its anchor entity. */
+    /** Pick a test model → resolve a sample of anchor records, and clear any record-mode selection. */
     public async onModelChange(modelId: string): Promise<void> {
         this.selectedModelId = modelId;
+        this.selectedRecord.set(null);
+        this.recordOptions.set([]);
+        this.recordQuery = "";
+        this.anchorFields.set([]);
         await this.resolveSample();
     }
 
@@ -162,14 +235,59 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         if (model) this.sampleAnchorIds.set(await this.smith.sampleAnchorRecords(model.anchorEntityID, this.sampleSize));
     }
 
+    /** Switch between testing a random sample and a single named record. */
+    public setTestMode(mode: "sample" | "record"): void {
+        this.testMode.set(mode);
+        this.testRows.set([]);
+        this.anchorFields.set([]);
+    }
+
+    /** Search the selected model's anchor entity by name for the record picker. */
+    public async searchRecords(): Promise<void> {
+        const model = this.models().find((m) => m.id === this.selectedModelId);
+        if (!model) return;
+        this.searchingRecords.set(true);
+        try {
+            this.recordOptions.set(await this.smith.searchAnchorRecords(model.anchorEntityID, this.recordQuery));
+        } finally {
+            this.searchingRecords.set(false);
+        }
+    }
+
+    /** Pick a specific record to test against. */
+    public pickRecord(opt: AnchorRecordOption): void {
+        this.selectedRecord.set(opt);
+        this.recordOptions.set([]);
+        this.recordQuery = opt.name;
+        this.testRows.set([]);
+        this.anchorFields.set([]);
+    }
+
+    /** The record ids the next test run will cover, given the current mode. */
+    private testTargetIds(): string[] {
+        if (this.testMode() === "record") {
+            const rec = this.selectedRecord();
+            return rec ? [rec.id] : [];
+        }
+        return this.sampleAnchorIds();
+    }
+    public readonly canRunTest = computed(() => this.testTargetIds().length > 0 && !this.testing() && !this.editing());
+
     public async runTest(): Promise<void> {
         const action = this.selected();
-        const ids = this.sampleAnchorIds();
+        const ids = this.testTargetIds();
         if (!action || !ids.length || this.testing()) return;
         this.testing.set(true);
         this.testRows.set([]);
+        this.anchorFields.set([]);
+        const asOf = this.asOfDate ? new Date(this.asOfDate).toISOString() : null;
         try {
-            this.testRows.set(await this.smith.testSignal(action.id, ids));
+            this.testRows.set(await this.smith.testSignal(action.id, ids, asOf));
+            // Single named record → also surface the record's fields (the underlying data being scored).
+            const model = this.models().find((m) => m.id === this.selectedModelId);
+            if (this.testMode() === "record" && model && ids.length === 1) {
+                this.anchorFields.set(await this.smith.loadAnchorFields(model.anchorEntityID, ids[0]));
+            }
         } catch (e: unknown) {
             const error = e instanceof Error ? e.message : String(e);
             this.testRows.set(ids.map((anchorRecordId) => ({ anchorRecordId, value: null, explanation: null, error })));

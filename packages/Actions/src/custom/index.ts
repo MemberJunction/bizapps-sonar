@@ -31,3 +31,4 @@ export * from "./SonarUnpublishModelAction";
 export * from "./SonarFindEntitiesAction";
 export * from "./SonarFindModelsAction";
 export * from "./SonarTestSignalAction";
+export * from "./SonarCancelFactorJobAction";

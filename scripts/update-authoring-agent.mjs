@@ -190,9 +190,11 @@ async function main() {
         console.log("✓ ModelSelectionMode already Agent");
     }
 
-    // 5. Cap the loop so a confused run can't spin forever (they were all null = unbounded). An
-    // authoring task finishes well inside these; the caps exist only to terminate a runaway.
-    const CAPS = { MaxIterationsPerRun: 20, MaxExecutionsPerRun: 30 };
+    // 5. Cap the loop so a confused run can't spin forever (they were all null = unbounded). A clean
+    // authoring task lands in 2-4 iterations; the brief tells the agent to stop after an error repeats
+    // twice, so a healthy run never approaches these. Tightened for fail-fast — a stuck run now bails in
+    // ~12 iterations instead of grinding to 20, the bulk of the "why is codesmith so slow" tail.
+    const CAPS = { MaxIterationsPerRun: 12, MaxExecutionsPerRun: 18 };
     const capChanges = Object.entries(CAPS).filter(([k, v]) => agent[k] !== v);
     if (capChanges.length) {
         for (const [k, v] of capChanges) agent[k] = v;
