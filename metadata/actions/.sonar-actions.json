@@ -1,0 +1,2822 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar: Preview Model",
+      "Description": "Computes engagement scores for a Sonar model WITHOUT persisting them and returns a band distribution + a sample-member breakdown. Read-only; safe on a draft model. Backs the Model Builder live preview / Simulate.",
+      "DriverClass": "SonarPreviewModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wave-square",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0001-4000-8000-000000000001"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID to preview."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:17.980Z",
+            "checksum": "881cf7f83ab27ab5811fc6021ae2c9fbe8d728de3992f3ae4705e4de07c278f5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { totalScored, bandDistribution[], sampleMember }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:06.991Z",
+            "checksum": "9202aea40eb79cb66d9ffb30f6716a757b9f3cb995c472299337b5d883c828e8"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Preview computed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.051Z",
+            "checksum": "174a26733e564431ec17ccfcfe38ad1550b0d75ba05beda290519d79935a1da8"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.069Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The engine failed to compute scores."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0001-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.086Z",
+            "checksum": "7c0c74603cc3162771b9622f87d3affe0772c15d1486671467f4d8a11d1fe777"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:55:17.902Z",
+      "checksum": "4184fa546875d690081ddb4e1e7a2be5bd46ee0a625d33aa0ad8068f91e6e58f"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Recompute Model",
+      "Description": "Computes AND persists a full scoring run for a Sonar model (records a ScoreRecomputeRun, upserts Scores + contributions). Requires a published model (a Score must reference the version that produced it).",
+      "DriverClass": "SonarRecomputeModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-rotate",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0002-4000-8000-000000000002"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID to recompute (must be published)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.104Z",
+            "checksum": "a61f19a646b53d370c50ac70d8c5682e416fe63a0dbcc704ec969179e4333416"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { runId, status, recordsScored }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.021Z",
+            "checksum": "e9965270ac58169586d3993a0117c9c9046c6623738ec905f48b38a24e5092a5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Recompute succeeded."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.162Z",
+            "checksum": "168c086e063871dae92726b8bc4b059736f14f9d1ffa46245b5116edd1d4b500"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.180Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The recompute run failed (e.g. model not published)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0002-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-16T21:55:18.197Z",
+            "checksum": "54596202d4335e1f8b6551a7eef508b3f7bb840ee4341e77d1838cd9fced8d4e"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:55:17.922Z",
+      "checksum": "d0b00bee53860060bd52155f7f3b3524398558eed7136eaf2a4735e616609d12"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Validate Factor",
+      "Description": "Evaluates an unsaved draft declarative factor over the live population WITHOUT persisting, returning a representative member's raw value + normalized strength. Backs the Factor Builder live preview; read-only, safe on a draft model.",
+      "DriverClass": "SonarValidateFactor",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-flask",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0003-4000-8000-000000000003"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel ID the draft factor belongs to."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.075Z",
+            "checksum": "5f01e01aa5d82f9d4d033c8b9b3cbf99b452a68da984c7090784bea995468e7a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "DraftJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON of the draft factor: { sourceRelatedEntityID, aggregation, aggregateFieldName?, filterExpression?, timeWindowID?, normalizationMethod, higherIsBetter }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.106Z",
+            "checksum": "d5d84cca85ccb87b5b413c9cebbe2fce7ea0e77ced257ddce0032f91178ea73d"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { membersWithData, sampleAnchorId, sampleRawValue, sampleStrength }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.135Z",
+            "checksum": "edcc32f8c49153c078af3f69042c64e4ce01036be3e69cd384b8e60c75b05a86"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Preview computed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.170Z",
+            "checksum": "174a26733e564431ec17ccfcfe38ad1550b0d75ba05beda290519d79935a1da8"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.191Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The engine failed to evaluate the draft factor."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0003-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-23T16:41:07.209Z",
+            "checksum": "144f66bf6dab695f8167dae107f777fac5008138866ec47d2b5cff7cf0a89c7c"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-23T16:41:06.956Z",
+      "checksum": "9bfc18ed1040cff005ff7b174dadda276f455bb8d743c776c3c249c9238393f6"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: List Factor Actions",
+      "Description": "Returns the catalog of factor-actions (MJ Actions following the Sonar factor contract) with each action's self-described contract — what it measures, the entities it reads, its output meaning, and cost profile — plus its configurable params. Backs the Model Builder 'custom signal' picker. Read-only.",
+      "DriverClass": "SonarListFactorActions",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-list-check",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0005-4000-8000-000000000005"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON array of factor-actions: { actionId, name, description, contract, params[] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.771Z",
+            "checksum": "2ffb1b176b19392a10d4d821ea59e7a79099381ddc0d33e31dfb67106a8a4fec"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Catalog returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.807Z",
+            "checksum": "72c1a8e46e70e7a78763dcc92ca669d43faf6c5fecfa798374f59a01bf68d9a3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to build the factor-action catalog."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0005-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T16:43:49.830Z",
+            "checksum": "9ad94d5306e46b2e9be7ac72f33d1aa90e10d3ffc44ada73fead454d4382f089"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T16:43:49.699Z",
+      "checksum": "a01535b2d9f00ed0df8953cf88d1da023a2824b89f2832c1c7b975fb3ac11147"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Create Factor",
+      "Description": "Creates a declarative factor and binds it into a model's rubric (Model Factor). First write tool of the agentic authoring surface; action-backed factors are authored via Codesmith, not here.",
+      "DriverClass": "SonarCreateFactor",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wave-square",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0008-4000-8000-000000000008"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel to add the factor to."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.381Z",
+            "checksum": "f2daceeeb9726c9e46440f91870a58fd92becb2af68bc62be9a9101d6f90a920"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Spec",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.412Z",
+            "checksum": "ff3064fab4082cbf11796f65cf8024ce55aff9861447f34c6e76614b6c731688"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { factorID, modelFactorID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.440Z",
+            "checksum": "152f738d05347cbcacfd4599bcc849a96745e1eac2f21206ace4f84a36bf9079"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Factor created and bound."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.499Z",
+            "checksum": "1ed32230087a76bd25d764c6709ca0a8f231460ab494ee92effa9a7044b0c50f"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.516Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The model was not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.532Z",
+            "checksum": "516c26d4ebd48f8c98369dbb8cd7d2fe40f5def40dd6bb0dbf011c456c9fe3c9"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Saving the factor or binding failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0008-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.548Z",
+            "checksum": "e19e80fa48e70d3c3da7ee42d3f538b1e686dad5b39c164dcdeb4549ff735359"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T22:10:27.265Z",
+      "checksum": "2d93704a75b515e13b2bdb2e0a07ed842bd12026ec64e18a69415010f1cb80b9"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Add Data Source",
+      "Description": "Wires a related entity into a model as a data source (Model Related Entity, Left join). Agentic authoring tool surface.",
+      "DriverClass": "SonarAddDataSource",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-diagram-project",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0009-4000-8000-000000000009"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel to wire the source into."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.565Z",
+            "checksum": "9f8c8c43f811094a3b938a07dd0af8074ece5487a5888ab30e45468f3df5938a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Spec",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON AddDataSourceSpec: relatedEntityID, alias, relationshipPath (optional explicit FK path)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.594Z",
+            "checksum": "326d818d69eeed6e72e6e5cb587fa30227d45e0059a53261a88dfa68504253f1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { modelRelatedEntityID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.620Z",
+            "checksum": "059c2f5c27fa0b11066fd8eabda727a0f06cadc056c89ee356ebe57aa9ca4345"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Data source wired."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.646Z",
+            "checksum": "144942a465ade9605296d49006a3bc5a7b7172fec87b1a07ac906754a6c917f4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.662Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Saving the data source failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0009-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.678Z",
+            "checksum": "eb3c1e74c71bc218dc277ea00968fb83e3450a93078f0041a677bec82e5b9085"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T22:10:27.286Z",
+      "checksum": "3e5c3f3affbd567e6bd67f784d3206d0f4b8b04ff6d71a7f7c9434b937b2097d"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Create Model",
+      "Description": "Creates a draft ScoreModel (name + anchor entity). Draft by design; publishing is a separate, gated step. Agentic authoring tool surface.",
+      "DriverClass": "SonarCreateModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-sliders",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000A-4000-8000-00000000000A"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Spec",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON CreateModelSpec: name, anchorEntityID."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000A-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.723Z",
+            "checksum": "30ed2b6e8819f09da80d335f5eeb12dbfb004a06bbad549e602131ba5b9fadd0"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { modelID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000A-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.749Z",
+            "checksum": "db3fe26d677b73a97a3053c49cb3357fb13492277d9f04ef69695601721fc7e3"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Draft model created."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000A-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.775Z",
+            "checksum": "3968925889c3f2a1a495cff066e26acdcc862180fdd478ebba25719b1204723f"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000A-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.791Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Saving the model failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000A-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.808Z",
+            "checksum": "56dcb2ce8f90a3f027464c0ef9ee98239a8c1ea06e1b4be56aa2aef0fd53769b"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T22:10:27.303Z",
+      "checksum": "f1b16971008fdc986dcd8dfec21261251a0f0993b9be4f76d83da40cce99eaeb"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Set Band Set",
+      "Description": "Points a model at an existing Score Band Set (ScoreModel.BandSetID) so it becomes scoreable. Agentic authoring tool surface.",
+      "DriverClass": "SonarSetBandSet",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-layer-group",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000B-4000-8000-00000000000B"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreModel to attach the band set to."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.838Z",
+            "checksum": "3e25022d29477d06a2fb7ba17883af1380d8f9537342e9e9e8d016814d2bfc7a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "BandSetID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The ScoreBandSet to attach."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.864Z",
+            "checksum": "cf0d4b2b95a70cbfb415aba297eb11c0f8e5395ba789770fb3b1c186c98e8b88"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { modelID, bandSetID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.891Z",
+            "checksum": "5de7de70dcd6821eb652f4c42f6f22e60d284fb61f73c7eebd644480c00f87d2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Band set attached."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.914Z",
+            "checksum": "e48cb0afceef396cc8c8a0f0f8b6a72fbc1619df7bcaff1086842112298d12dc"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing or invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.928Z",
+            "checksum": "ebbf18841d17d2d714bc43fa63949445635899e4ac84bc736fe89bd4b60d7b10"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The model was not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.948Z",
+            "checksum": "516c26d4ebd48f8c98369dbb8cd7d2fe40f5def40dd6bb0dbf011c456c9fe3c9"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Saving the model failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000B-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T22:10:27.962Z",
+            "checksum": "56dcb2ce8f90a3f027464c0ef9ee98239a8c1ea06e1b4be56aa2aef0fd53769b"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T22:10:27.331Z",
+      "checksum": "52e15aafde5f8d1975d798e83ab5838c0d08b07325311204d3716766b266bd11"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Get Prompt",
+      "Description": "Reads an MJ AIPrompt's editable text (resolved via name → template → active template content) for the factor builder's prompt panel. Returns the text plus the ids the editor needs to save back. Read-only.",
+      "DriverClass": "SonarGetPrompt",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-file-lines",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000C-4000-8000-000000000008"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "PromptName",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The registered AIPrompt Name to read (e.g. a factor-action's contract.promptName)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.301Z",
+            "checksum": "22b0e4db572ee75e4a06d16d1754303e4d83c3dbf402824efee0f969c1f8f33a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { promptId, templateContentId, text } (or { error })."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.330Z",
+            "checksum": "2076066c41142588f3e5acb8a9ef1a14df83ed2c9e75f6698de530589e43e248"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Prompt text returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.358Z",
+            "checksum": "b74b6cf83a6c372210c6989f89b55d4969756c3b77a4bfdf6c2379b18efac576"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "PromptName was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.377Z",
+            "checksum": "4661828b08c3f2e4cc6a50ff478b65ecb8e77e15f0ebd31887591cf94ea4cc37"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to read the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000C-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.394Z",
+            "checksum": "2173d57e58800a9456182575fa52e7b6c341dd8f2b7a687ee95e289724e9fbde"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T23:16:27.219Z",
+      "checksum": "9658f9059804f43c05df91ffb2e918816cdc6771b7ef46a6f27e77e99516af60"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Update Prompt",
+      "Description": "Saves edited LLM prompt text from the factor builder onto the AIPrompt's TemplateContent row (by TemplateContentID from Sonar: Get Prompt). NOTE: an AIPrompt is shared — editing affects every factor/use that references it.",
+      "DriverClass": "SonarUpdatePrompt",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-floppy-disk",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000D-4000-8000-000000000009"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "TemplateContentID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The MJ Template Content row id whose text to overwrite (from Sonar: Get Prompt)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.411Z",
+            "checksum": "7b5f991a3c258eb8887915fd75cfdfd664d903d6511060e1adc1776677a76fff"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Text",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The new prompt text."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.438Z",
+            "checksum": "029fc34091b5bd876434533a1226b464cd04e846fa91c0b7f906389f02c8a442"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { templateContentId, saved }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.463Z",
+            "checksum": "46f15ff95bc6f15226fa6f2a0d7482ff59598d0dbb5388879c8cc4427071eaa0"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Prompt updated."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.497Z",
+            "checksum": "07d200fd4744aa4c8ecb74bd8b1a4be1ed86bb077cc4d3bbfeeaf4a4d5181508"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "TemplateContentID was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.513Z",
+            "checksum": "98aa30e860e4d2dc133bcd4eb87bfc4a3d956cc998e9136ad89a73b9c0750d42"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Template content row not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.528Z",
+            "checksum": "81e9a45f7df0a2a9681a5edadafde19b50392a3dedc072a5722df0112f005163"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Failed to save the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000D-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-25T23:16:27.543Z",
+            "checksum": "faa7946ae395450f09f3fd9de2ad0acdf68a49c24de6b6aa10e347dfdd6f6223"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-25T23:16:27.237Z",
+      "checksum": "9b74b8084faef72b93cff9ba8931f94ae80a9f76c3db28a3c4b75140ee011177"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Run Authoring Agent",
+      "Description": "Runs the Sonar Authoring Agent (Loop) server-side via AgentRunner and returns its reply. The seam the Assistant panel calls so the agent runs in MJAPI (where model/LLM/tools live), bypassing the client-side conversation stack. Produces drafts only.",
+      "DriverClass": "SonarRunAuthoringAgent",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wand-magic-sparkles",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000E-4000-8000-00000000000E"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Prompt",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The natural-language instruction for the authoring agent."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.629Z",
+            "checksum": "feff18047e1fa5af8caa36dbd70a74fcd55df2d71330a2c1965883fcd22d51b4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ContextNote",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional context (e.g. the model the user is viewing), prepended to the prompt."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.664Z",
+            "checksum": "d4352a34b6443c21d9638f7696cc2f1f0973e373543be6b55a0c5c9134cf5013"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Reply",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The agent's human-readable summary of what it built."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.696Z",
+            "checksum": "7f246ae02e1ec3aa8a20d8ee01f2d5cef5359768fa51860cff803c8e50bd3572"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Agent completed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.725Z",
+            "checksum": "9677ebcf9bdeb9e892a2e66cd3011bf8f2515dfdc97e6bc48965d8063c4cd9ee"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "A required input was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.745Z",
+            "checksum": "8aba3e4a213329a2909da09bb4d006c6a4a8de0cb76c0ca4f7d6bd8e94d1e613"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The authoring agent was not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.761Z",
+            "checksum": "68f86d1168cc390cf90cb8397ff3c48d0dc55e7b0cc661015052c76a727ed284"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The agent run failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000E-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T07:12:45.779Z",
+            "checksum": "f661fa3863e123f54f6ff636a5ca54453b8f4d1dfd31f0fd08f8558aff9bd5ae"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T07:12:45.566Z",
+      "checksum": "1e05fc0bcf7cd3d04e8d0243b451a3d3799a82e551812311a78ea475ef03141f"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Build Model",
+      "Description": "Builds a COMPLETE draft model (model + sources + factors + band set) from one spec in a single call — factors reference sources by alias; the action threads the IDs. Use this for building a new model; the granular tools (Create Factor / Add Data Source) are for incremental edits. Draft only.",
+      "DriverClass": "SonarBuildModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-cubes",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-000F-4000-8000-00000000000F"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Spec",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON BuildModelSpec: { name, anchorEntityID, sources:[{relatedEntityID, alias, relationshipPath?}], factors:[{name, sourceAlias, aggregation, aggregateFieldName?, filterExpression?, timeWindowID?, dateField?, normalizationMethod?, higherIsBetter?, weight?, weightMode?}], bandSetId? }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000F-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T08:53:12.910Z",
+            "checksum": "2496df8b9f237495a70924c87c46931449277ed343df8a70097ceb0a423104da"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { modelID, sources:{alias→id}, factors:[id], bandSetAttached }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000F-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T08:53:12.940Z",
+            "checksum": "217cda32fe4546c3e493509b72b270c00df9e269aa4e4ed9a90bcaf3ed2b000d"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Draft model built."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000F-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T08:53:12.968Z",
+            "checksum": "04acdff8c74679f74c5ce138ef6941deb16d328bd2716b19e9b066f761ccf845"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Spec missing required fields."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000F-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T08:53:12.988Z",
+            "checksum": "905dea00b44c47d275925be7febae582884b6882d14dcb9efc54b92293d300b7"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "A step failed; the partial draft is reported."
+          },
+          "primaryKey": {
+            "ID": "5044A100-000F-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T08:53:13.003Z",
+            "checksum": "55688069c171a89ed4952229cb58bdeee22b4ad1b3826ad96f15bca1efe51389"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T08:53:12.844Z",
+      "checksum": "4252e228ce8c9d07c3ab8a99bd2a27535929b4eb2f6a24f289ce3bb6759425ab"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Describe Model",
+      "Description": "Reads an existing Sonar model (by ID or name) and returns its resolved config: anchor entity, data sources (alias + entity name), factors (with source alias, aggregation, normalization, weight), and band set. The authoring agent's READ tool so it can answer questions about / suggest changes to a model it can otherwise only write to.",
+      "DriverClass": "SonarDescribeModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-magnifying-glass",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0010-4000-8000-000000000010"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The ScoreModel ID to describe (preferred). Provide this or Name."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:39.915Z",
+            "checksum": "6262325825dce44bfbd529a2e76365d507dcecf8ea029ae2d41c327baba1b68a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Name",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The exact model name to describe (used when ModelID is absent)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:39.948Z",
+            "checksum": "5fdbcb3f2db92b498a47d008ec84841f946e1f66df19ba859fd721302a3d7766"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON ModelDescription: { modelID, name, status, anchorEntityID, anchorEntityName, bandSet, sources[], factors[] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:39.976Z",
+            "checksum": "079df9ea7268542073312cc687975c1a0083cfc93a2cc99130d145cc87d525d5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Model described."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.003Z",
+            "checksum": "52320a93251b8cbaaf093e6eeb991951cad741a2358427f7c4c52089431555a2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Neither ModelID nor Name was provided."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.041Z",
+            "checksum": "14b343a303c735bae6446e6df97ca1e55271f1881e2b052decc49036a0df5e93"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "No model matched the given ID or name."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.057Z",
+            "checksum": "afa6ad1cfc71ad9d78d49046e6a78a917a3893a15f60204a8d7d492139dcc834"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "An unexpected error occurred while reading the model."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0010-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.073Z",
+            "checksum": "329d9b3d825d4a1cf1aaa69d63d94eee52ca6cbd6da9cbdae05ea1f8dd2e8917"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T15:16:39.839Z",
+      "checksum": "58c12a62154ca165c6a132a898f48caba67388aa844d7c7ec1915b44b1cdeb04"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: List Related Entities",
+      "Description": "Given an anchor entity ID, returns the BUSINESS entities that reference it via a foreign key (the one-to-many data sources Sonar factors aggregate over, e.g. Members <- Event Registrations). Scoped to business schemas (excludes MJ core and the Sonar schema). The authoring agent's READ tool for grounding factor/source suggestions in data that actually exists.",
+      "DriverClass": "SonarListRelatedEntities",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-diagram-project",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0011-4000-8000-000000000011"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorEntityID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The anchor entity ID to find joinable business sources for."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.089Z",
+            "checksum": "ef5dec3fd61d0485185e54f3eefc2a6f2aa726b7d2f5f370113952c916914244"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { anchorEntityID, anchorEntityName, related: [{ entityID, entityName, schemaName, viaField }] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.116Z",
+            "checksum": "07fc9c300647778dadc60f0c753d5887fd1d8b9c43ea678c8ad766bbb05b7d62"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Related business entities listed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.144Z",
+            "checksum": "b055d6f53fbfcb10f8f79d063856295671337f85eb82d99ca6e70e188d53c23f"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "AnchorEntityID was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.159Z",
+            "checksum": "11456af170abea70ff311ff710387de371f0ea2cc31946b569494ff62183f57c"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "No entity matched the given anchor ID."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.175Z",
+            "checksum": "b24f388bf371d0bc5dc2fca309300af991c5f0d54a72ff237aa8f357c14e1d47"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "An unexpected error occurred while walking the entity graph."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0011-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T15:16:40.190Z",
+            "checksum": "69fe2af6d126808141fa9962a70449fec6c81a1da964c4282563f28d7d5a6974"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T15:16:39.856Z",
+      "checksum": "193eed111990328244048266aaae6004527687ead2cd51803b94eeef47157837"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Author Factor Action",
+      "Description": "The §5 escape hatch: when a signal can't be a declarative factor (streaks, decay, sentiment, cross-source ratios), hands a Sonar factor-action brief + the description to the stock ActionSmith agent and returns the Runtime action it authored (CodeApprovalStatus='Pending', a human approves before it scores). ActionSmith is reused untouched.",
+      "DriverClass": "SonarAuthorFactorAction",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-hammer",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0012-4000-8000-000000000012"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Description",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The signal to build, in plain English (e.g. 'longest streak of consecutive months with an event registration')."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.216Z",
+            "checksum": "f9c97988460bbdd29d3adc0172bf803c74d9c3dd4fce300ae1744a3287fc125f"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Context",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional grounding: the anchor entity and available data sources, so the generated code targets real data."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.263Z",
+            "checksum": "b00403690bb65426cdf4e142be1c659d575db0081c2a05dd83edc04fde933dbf"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { actionId, approvalStatus, name, message }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.289Z",
+            "checksum": "9fc81a7f50ef507b8f3f173c67da681641dce3fb4fa503d6b18d066d0b465846"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "ActionSmith authored a Runtime factor-action (Pending approval)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.323Z",
+            "checksum": "eae4d502c2bfedd25e6200d210aaef166c6d56cc83a02b8fe0fab1aff53d837c"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Description was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.339Z",
+            "checksum": "e37df24b97fdc18f50db0d696bf15aa74618403ea87eed80747a2b21b8606263"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The ActionSmith agent is not present in this environment."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.355Z",
+            "checksum": "1bf0075ce5a8128ba05e335b5017ec2bf11d9bcc1c91f3882035c95fc18d27d6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "ActionSmith did not complete (or errored) — message carries the reason."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0012-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T16:49:10.371Z",
+            "checksum": "74888034fd56dc4c58ee0a18e639c4ae6b27790f3588cd2cdb8a73765f3bb975"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T16:49:10.152Z",
+      "checksum": "e7577f3f4f8ce3de9cd2bbc2abe7a4bc5e252058594f4c2230d0eea79920cdd5"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Start Factor Job",
+      "Description": "Async kickoff behind the Signal Studio: fires ActionSmith on the Sonar factor brief WITHOUT awaiting it and returns the AgentRunID immediately (via onAgentRunCreated). The run continues server-side; the Studio observes it by polling AIAgentRun.Status. Enables batched, fire-and-forget factor authoring.",
+      "DriverClass": "SonarStartFactorJob",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-bolt",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0013-4000-8000-000000000013"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Description",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The signal to build, in plain English."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.736Z",
+            "checksum": "80b7a977b7d87b34ebbc7663090c967a2ce155d2945bc6c3a01e24ba18f1303a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Context",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional grounding: the anchor entity and available data sources."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.768Z",
+            "checksum": "c8b46ab01ffa9bd14f68b34a6b2a24f10c226a5029e77281a60e23b6d47b3571"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { agentRunId } — poll AIAgentRun for status/result."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.796Z",
+            "checksum": "911184c5049c648fbcc5f08d52209d704768b2758554522275c08d2b8ef1149b"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Job started; AgentRunID returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.823Z",
+            "checksum": "a6e6da85fa5a445a9daaf0d6ac99e25bb367cc9c5e11aa476dd70e15c8c4c29a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Description was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.850Z",
+            "checksum": "e37df24b97fdc18f50db0d696bf15aa74618403ea87eed80747a2b21b8606263"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "ActionSmith agent not present in this environment."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.866Z",
+            "checksum": "f37a40ef4d13b22e3792c0fb8e3a4f9db2483d3f5622880c22df8f289abfce78"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The job didn't start."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0013-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T18:46:40.882Z",
+            "checksum": "037a523b2634267276ee54cb721614690ed6aaede655bf891acb2c503c8ce90b"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T18:46:40.667Z",
+      "checksum": "80e8fb5793e13ed7f51172a4ccfd4ff23e695b1366717525348f335ed0723cb9"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Refine Factor Action",
+      "Description": "AI 'improve this signal' loop behind the Signal Studio: fires ActionSmith with the current code + the reviewer's feedback (async, like the commission flow), then transplants the improved+self-tested code back onto the ORIGINAL signal (→ Pending for re-review) and disables the agent's scratch row. The approval gate is never bypassed.",
+      "DriverClass": "SonarRefineFactorAction",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wand-magic-sparkles",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0014-4000-8000-000000000014"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "TargetActionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The existing signal (Runtime action) to improve."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.537Z",
+            "checksum": "fc1990aecb1b085ec31e88469a5ae47aca74c4d8bb4beb8c29c9cf0e55b79f45"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Feedback",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "What to change or improve, in plain English."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.566Z",
+            "checksum": "5a304391bb317abb2caabd109c1aa3226464cb30c71d30504db64cbecd0382cb"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { agentRunId } — poll AIAgentRun for status; the signal updates in place when it completes."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.593Z",
+            "checksum": "1dbf17ebcf77ef99de694e13f4245a3041328f8e4962bdb38afeefcb4635dadc"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Refine job started; AgentRunID returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.619Z",
+            "checksum": "a2761dc39ff160fc42c920bfcabf780bc33ac478b8cd1090971670c7a39dc5da"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "TargetActionID or Feedback was missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.636Z",
+            "checksum": "b95d72d100913116327095445d20d5eae839a4921117e3c9b432784867e32955"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Target action or ActionSmith agent not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.653Z",
+            "checksum": "a06027368c983e4a60085c25246eb1286b0785fac6bd5d720dde396e9319c3c8"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The refine job didn't start."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0014-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T19:51:34.669Z",
+            "checksum": "7abb4233930859eeb16ad4bd0ec0457777374e28f4a9052a8ab9ef0fa25f8c4a"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T19:51:34.456Z",
+      "checksum": "037b75765d3f36bc9c5f39445334986611cb5bcf7e13389427f88ae837756d9e"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Unpublish Model",
+      "Description": "Moves a published model (Active/Paused) back to Draft so it can be edited. SAFE direction only — never publishes or activates. Lets the Authoring Agent unlock a model the user asked to edit instead of dead-ending on the lock.",
+      "DriverClass": "SonarUnpublishModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-lock-open",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0015-4000-8000-000000000015"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The model to unpublish (preferred). Provide this or ModelName."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.462Z",
+            "checksum": "65d5694b256dbd1c6e777d791def0e1501cb4e5ed189a3b6f5ac7bd5ceb38e95"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelName",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Exact model name, if the ID isn't known."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.493Z",
+            "checksum": "0317402ff06e47f2256c7fe70c00c2e4fe08971c282417a94942b7fb2140cbcd"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { modelID, name, previousStatus, status }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.521Z",
+            "checksum": "6bf1db3828618598645851e49eb145060cd31a0446e7c7325587807703cc3766"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Model unpublished to Draft (or already Draft)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.557Z",
+            "checksum": "feadfb506a91d0daa63dc9d62b7353b462f16af548858f4e49321a5eb57596f0"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "Neither ModelID nor ModelName was provided."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.574Z",
+            "checksum": "93d8533cf1d1050696258efb04edac73621e3fec41870549ba94ce7f366b6a52"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "No model matched the identifier."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.590Z",
+            "checksum": "49e682cc9dd483ad0191a3ebefdaa0c556b68c2d7d5e3206b856d9aa1a34aa4b"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Unpublish failed or the model is in a non-unpublishable state."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0015-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T21:15:31.607Z",
+            "checksum": "2fcdfb616babac96e9c861d00e775e818ef29c7e1f24a5834da18a1c315926e2"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T21:15:31.374Z",
+      "checksum": "080479c8d52d705b06fbfdd11a9793b0d6b87383afe6c2690fd4bdb2c9edfc75"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Find Entities",
+      "Description": "Resolves a business entity NAME to its ID (and lists candidate anchors), scoped to business schemas (MJ/Sonar system schemas hidden). Lets the Authoring Agent get an anchorEntityID for a new model instead of dead-ending on a raw UUID. Read-only.",
+      "DriverClass": "SonarFindEntities",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-magnifying-glass",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0016-4000-8000-000000000016"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "NameQuery",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Case-insensitive substring of the entity name. Omit to list all business entities."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0016-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T22:20:53.858Z",
+            "checksum": "b9fb09a4bbeaa1bf2c68caac64979f72e398f47603e78a6ef29c5fcb23422b24"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { entities: [{ id, name, schemaName, description }], count, truncated }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0016-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T22:20:53.891Z",
+            "checksum": "f73aa3b6816466732bf80f6ee7e4a16fa552fc4e8b84ae2c488531c296a6f83f"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Returned matching business entities."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0016-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T22:20:53.919Z",
+            "checksum": "3513ff9cedf134edae85479c77c2e69db1eb92c8e829f3ba343d33cdcdba8131"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Lookup failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0016-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-26T22:20:53.940Z",
+            "checksum": "70667dee711a17d124587063039b9874f8eec2070a0d0653545cbeda2a746ffa"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-26T22:20:53.776Z",
+      "checksum": "e8bcadc391831a1a251f02fe5041f82ef076470ae7dd07b413d4855e1b18114b"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Find Models",
+      "Description": "Resolves a score model by PARTIAL name (and lists existing models) → id/name/status/anchor. Lets the Authoring Agent fuzzy-match a vague model reference and enumerate models, instead of needing a near-exact name for Describe Model. Read-only.",
+      "DriverClass": "SonarFindModels",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-layer-group",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0017-4000-8000-000000000017"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "NameQuery",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Case-insensitive substring of the model name. Omit to list all models."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.540Z",
+            "checksum": "69051c76fdbcd107c145d618067cc8596722e102dd56d554da03dda1cbbb66a5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { models: [{ id, name, status, anchorEntityID, anchorName }], count, truncated }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.572Z",
+            "checksum": "604f3b1eccc6e43f6f99d2419544fd9aa6415a6fab5bca434b59b8dd677ef924"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Returned matching models."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.601Z",
+            "checksum": "581b407fff0b5d0833010198d03c4180aaf85362199c5b783b0844fa6b3d09c7"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Lookup failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0017-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-27T01:28:41.618Z",
+            "checksum": "70667dee711a17d124587063039b9874f8eec2070a0d0653545cbeda2a746ffa"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-27T01:28:41.465Z",
+      "checksum": "cb068811abe20a82a88633849c78b6bd563c605056e0399dccabbb13dec0ff3b"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Test Signal",
+      "Description": "Runs a signal's code over a sample of anchor records and returns per-record { value, explanation, error } in a Both Result. Runs through Test Runtime Action's ephemeral path so a Pending signal can be tested before approval; reads its results in-process so they round-trip to the browser (unlike Test Runtime Action's Output-only result). Powers the Signal Studio's Run Test.",
+      "DriverClass": "SonarTestSignal",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-flask",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0018-4000-8000-000000000018"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "TargetActionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The signal (Runtime action) to test."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.281Z",
+            "checksum": "66306380826d7c166437c243249428c524f2d801e5a11e345d3e9d6689f0143a"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordIDs",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON array of sample anchor record ids to test the signal against."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.312Z",
+            "checksum": "484a8f6f1cccc2e91ab93f7188e015e12fcd90df5b920a01d419c8163f397215"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AsOf",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "ISO date to compute the signal as of. Defaults to now."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.341Z",
+            "checksum": "93c0365cc65c5bb3f0ae411deea144b420a8698b2cdef6464142eacba89283a0"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { rows: [{ anchorRecordId, value, explanation, error }] }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000A4"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.371Z",
+            "checksum": "b7be2ae4b50c23da702a4cdcb44bcabbba5d36ff0027663b635bf63c95f36bd5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Returned per-record test results."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.400Z",
+            "checksum": "a5becc9d4ff73584b1ec961a550e80bd0a49d066561487c490b78c355e8f8cc5"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "TargetActionID or AnchorRecordIDs missing/invalid."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.425Z",
+            "checksum": "9c62b65790b1786a26a0f9ccd00fea8d79ba049bed5294269731f51ea55757ea"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Signal or Test Runtime Action not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.443Z",
+            "checksum": "e5b99826c93086f833e5c7d22d74e9e064d19472f6d37372f522e2f9a11e52f7"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Test run failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0018-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-29T21:33:52.461Z",
+            "checksum": "c4d9fd89f43c69790bce94f946475e554af0db6c63f85cdd446a2b6e0336054b"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-29T21:33:52.197Z",
+      "checksum": "9bc2fcc93c287b14cbcb6d328c45c4199333bba04383659c1d4f171386e39962"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Cancel Factor Job",
+      "Description": "Stops an in-flight ActionSmith run (a commission or refine) from the Signal Studio. Aborts the run's cancellation token when this process owns it (a true cancel — the agent loop stops and a refine never transplants), else flips the AIAgentRun row to Cancelled so it leaves the in-flight feed. Powers the Studio's per-job Cancel button.",
+      "DriverClass": "SonarCancelFactorJob",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-stop",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0019-4000-8000-000000000019"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AgentRunID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The AIAgentRun id of the in-flight job to cancel."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.064Z",
+            "checksum": "886e255b873a55a902ce1552e59b2e5fb5507ca4749e96074fdabd8f9cf7d02d"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { aborted, statusFlipped }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.098Z",
+            "checksum": "5e55eb9448be8e56aba00e29395047273ed92aa0587038d5cfd0d6a2efc820a0"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Job cancelled (or already finished)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.127Z",
+            "checksum": "6ff11e1497c7a10c31b229a354b4b49b703416ac9eadea50119d05e519fc8760"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "AgentRunID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.145Z",
+            "checksum": "20a5dcaafe456166fa206e63196b1d795a0f7ff5a0e43a6f9a9357e6c12ccbd9"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Cancel failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0019-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:11:41.162Z",
+            "checksum": "7eb0cd023fbf078fd8de2d17641c71e9c4264fdb31894e6661e70ef65f91ab92"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-30T15:11:40.982Z",
+      "checksum": "c8c4eaa6212c8348aea1bae07eb3ae1b6c417de08294ee993f29ff74b3b106c5"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Bind Signal To Model",
+      "Description": "Binds an approved custom signal (a Runtime factor-action) into a Draft model's rubric — creates an ActionBacked Factor pointing at the signal + a Model Factor with a weight. Guards: the model must be Draft and the signal's code must be Approved. Powers the Signal Studio's 'Add to a model'.",
+      "DriverClass": "SonarBindSignalToModel",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-link",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001A-4000-8000-00000000001A"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ActionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The approved signal (Runtime action) to bind."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.542Z",
+            "checksum": "0e941708a4987b02d03c24aabb2cf0b1eac035f5424dd5a0e187c614dff73e0e"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Draft model to bind the signal into."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.575Z",
+            "checksum": "c405fc7828064da97053d740eb1bb950559d021497dd3a0051f8982c17654dc2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Weight",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Rubric weight 0..1 (default 0.25)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.626Z",
+            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Name",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Factor name override (defaults to the signal's name)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A4"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.654Z",
+            "checksum": "e11c6a03be05bcd8ebd1883b7ea31a0cad8b36a23e1c139f209d098665bb7a03"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { factorID, modelFactorID }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A5"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.683Z",
+            "checksum": "152f738d05347cbcacfd4599bcc849a96745e1eac2f21206ace4f84a36bf9079"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Signal bound into the model."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C1"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.709Z",
+            "checksum": "be51c341b55eab60d2907cdb984a23f011f311dbf829ea77082f455c1031c67b"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ActionID or ModelID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C2"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.731Z",
+            "checksum": "b85e2cd548fcc5a0d48549b04c2c8643a8f580bbbbffeeccd956ace0e56d3a80"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "Signal or model not found."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.751Z",
+            "checksum": "6b32891c86f4dcec070131604922365de569e64baf758fa3ddbba810506d4871"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Model not Draft, signal not Approved, or save failed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000C4"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.770Z",
+            "checksum": "f6a7825eea4e442a4d85ca6cf287289998788d6a82b27c27ca089fc99eb0ed33"
+          }
+        }
+      ]
+    },
+    "sync": {
+      "lastModified": "2026-06-30T15:45:42.445Z",
+      "checksum": "8ea36b7b21dd28f1e383730184682463e0b024e7b3f3cef86afaf06a1cbff70c"
+    }
+  }
+]
