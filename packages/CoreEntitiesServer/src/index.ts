@@ -14,6 +14,11 @@
  */
 
 export * from "./ScoreModelEntityServer";
+export * from "./FactorEntityServer";
+export * from "./ModelFactorEntityServer";
+export * from "./ModelRelatedEntityEntityServer";
+export * from "./ScoreBandEntityServer";
+export * from "./publishLock";
 
 /** Marker export so importers can force-load this module (and its decorators). */
 export const SONAR_CORE_ENTITIES_SERVER_LOADED = true;

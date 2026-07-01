@@ -1,4 +1,8 @@
-import { LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { EntityInfo, LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import {
+    compileFilterInline,
+    CompositeFilterDescriptor,
+} from "../factors/filter";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
@@ -12,9 +16,10 @@ import { createActionRunner } from "../factors/actionRunner";
 import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
     NormalizationEngine,
-    NormalizationSpec,
+    resolveNormalizationSpec,
 } from "../normalization/NormalizationEngine";
 import {
+    EffectiveMissingDataPolicy,
     ScoreBandDef,
     ScoreResult,
     ScoringEngine,
@@ -39,6 +44,8 @@ export interface FactorPreviewDraft {
     filterExpression?: string;
     timeWindowID?: string;
     normalizationMethod: mjBizAppsSonarFactorEntity["NormalizationMethod"];
+    /** NormalizationParamsJSON for parameterized methods (Logistic/Banded/Lookup). */
+    normalizationParamsJSON?: string;
     higherIsBetter: boolean;
 }
 
@@ -102,7 +109,7 @@ export class RecomputeOrchestrator {
         const factor = await this.buildDraftFactor(model, draft, contextUser);
         const evaluator = await this.compiler.compile(factor, contextUser);
         const results = await evaluator.evaluateBatch(anchorIds, asOf, { contextUser });
-        this.normalizer.normalize(this.resolveNormalizationSpec(factor), results);
+        this.normalizer.normalize(resolveNormalizationSpec(factor), results);
         return this.summarizeFactorPreview(results);
     }
 
@@ -128,6 +135,7 @@ export class RecomputeOrchestrator {
         if (draft.filterExpression) factor.FilterExpression = draft.filterExpression;
         if (draft.timeWindowID) factor.TimeWindowID = draft.timeWindowID;
         factor.NormalizationMethod = draft.normalizationMethod;
+        if (draft.normalizationParamsJSON) factor.NormalizationParamsJSON = draft.normalizationParamsJSON;
         factor.OutputMin = 0;
         factor.OutputMax = 1;
         factor.HigherIsBetter = draft.higherIsBetter;
@@ -216,7 +224,7 @@ export class RecomputeOrchestrator {
             requireApprovedActionFactors,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
-        return this.scorer.score(scoringSpec, factors);
+        return this.scorer.score(scoringSpec, factors, anchorIds);
     }
 
     /** Open a ScoreRecomputeRun in the Running state. */
@@ -298,7 +306,6 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
-        // Single-column PK only: the population must be a set of single-column identifiers.
         // Reject composite keys here, where the limitation originates, rather than letting them
         // truncate to PrimaryKeys[0] and surface obscurely later.
         if (anchorEntity.PrimaryKeys.length !== 1) {
@@ -307,16 +314,60 @@ export class RecomputeOrchestrator {
             );
         }
         const pk = anchorEntity.PrimaryKeys[0].Name;
+        const extraFilter = this.compilePopulationFilter(model, anchorEntity);
         const rv = new RunView();
         const result = await rv.RunView<Record<string, string>>(
             {
                 EntityName: anchorEntity.Name,
                 ResultType: "simple",
                 Fields: [pk],
+                ExtraFilter: extraFilter ?? undefined,
+                // Score the WHOLE population — RunView otherwise caps at the entity's
+                // UserViewMaxRows (1000), which would silently leave most members unscored.
+                // (A future scale path batches/paginates; for now we resolve all anchor IDs.)
+                //
+                // SCALE CEILING: removing this cap makes buildFactorSql's per-factor
+                // WHERE [key] IN ('id1','id2',…) the binding limit (~2100 values before SQL
+                // Server hits statement-size/param limits). A recompute on more than ~2k anchors
+                // will fail at the factor-evaluation step. The fix is the deferred TVP swap in
+                // factorSql.ts — "population-complete" is accurate but capped well below real
+                // association sizes until that lands. Track against the TVP TODO there.
+                IgnoreMaxRows: true,
             },
             contextUser,
         );
-        return result.Success ? (result.Results ?? []).map((r) => r[pk]) : [];
+        // Fail loud: a failed population query must NOT silently score nobody (which would read as
+        // "everyone lost their score" on a persisted recompute). Surface it so the run is marked Failed.
+        if (!result.Success) {
+            throw new Error(
+                `RecomputeOrchestrator: population query for '${anchorEntity.Name}' failed: ${result.ErrorMessage ?? "unknown error"}.`,
+            );
+        }
+        return (result.Results ?? []).map((r) => r[pk]);
+    }
+
+    /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
+     *  a RunView ExtraFilter. Reuses compileFilter for field validation + structure, then inlines
+     *  the parameters as escaped literals because RunView's ExtraFilter has no parameter binding.
+     *  Returns null when the model has no population filter (the whole anchor entity is scored). */
+    private compilePopulationFilter(
+        model: mjBizAppsSonarScoreModelEntity,
+        anchorEntity: EntityInfo,
+    ): string | null {
+        const raw = model.PopulationFilter;
+        if (!raw || raw.trim().length === 0) {
+            return null;
+        }
+        let parsed: CompositeFilterDescriptor;
+        try {
+            parsed = JSON.parse(raw) as CompositeFilterDescriptor;
+        } catch {
+            throw new Error(
+                `RecomputeOrchestrator: ScoreModel ${model.ID} has an invalid PopulationFilter (not valid JSON).`,
+            );
+        }
+        const validColumns = anchorEntity.Fields.map((f) => f.Name);
+        return compileFilterInline(parsed, validColumns);
     }
 
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
@@ -371,13 +422,16 @@ export class RecomputeOrchestrator {
             const evaluator = await this.compiler.compile(factor, contextUser);
             const results = await evaluator.evaluateBatch(anchorIds, asOf, ctx);
             this.normalizer.normalize(
-                this.resolveNormalizationSpec(factor),
+                resolveNormalizationSpec(factor),
                 results,
             );
             weighted.push({
                 factorId: factor.ID,
                 modelFactorId: mf.ID,
                 weight: mf.Weight ?? 0,
+                missingDataPolicy: this.resolveMissingDataPolicy(mf),
+                outputMin: factor.OutputMin ?? 0,
+                outputMax: factor.OutputMax ?? 1,
                 results,
             });
         }
@@ -423,24 +477,20 @@ export class RecomputeOrchestrator {
         return byId;
     }
 
-    /** Resolve a factor's normalization config; fail loud on methods we don't support yet. */
-    private resolveNormalizationSpec(
-        factor: mjBizAppsSonarFactorEntity,
-    ): NormalizationSpec {
-        const method = factor.NormalizationMethod ?? "None";
-        // Supported population methods. Parameterized methods (Logistic/Banded/Lookup) read
-        // NormalizationParamsJSON and aren't wired yet — fail loud rather than silently mis-score.
-        if (method !== "None" && method !== "MinMax" && method !== "Percentile" && method !== "ZScore") {
-            throw new Error(
-                `RecomputeOrchestrator: normalization method '${method}' not supported yet (factor ${factor.ID}).`,
-            );
-        }
-        return {
-            method,
-            outputMin: factor.OutputMin ?? 0,
-            outputMax: factor.OutputMax ?? 1,
-            higherIsBetter: factor.HigherIsBetter ?? true,
-        };
+    /** Resolve a factor's missing-data policy. The schema default "ModelDefault" resolves to
+     *  "Zero": no data on an engagement signal means genuinely zero activity, so it should pull
+     *  the score down — and fully-missing members still surface at the floor rather than
+     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this.
+     *
+     *  Note: "ModelDefault" is currently an alias for "Zero" — ScoreModel has no
+     *  DefaultMissingDataPolicy field, so there is no per-model default to inherit. The enum
+     *  value is reserved for when that model-level knob is added; until then it always resolves
+     *  to "Zero". */
+    private resolveMissingDataPolicy(
+        modelFactor: mjBizAppsSonarModelFactorEntity,
+    ): EffectiveMissingDataPolicy {
+        const policy = modelFactor.MissingDataPolicy ?? "ModelDefault";
+        return policy === "ModelDefault" ? "Zero" : policy;
     }
 
     /** Resolve the model's score scale + bands into a ScoringSpec. */
@@ -468,8 +518,6 @@ export class RecomputeOrchestrator {
             {
                 EntityName: "MJ_BizApps_Sonar: Score Bands",
                 ExtraFilter: `BandSetID='${model.BandSetID}'`,
-                // Tidy lowest-first ordering. Boundary determinism is NOT load-bearing here —
-                // it's enforced in ScoringEngine.assignBand (half-open ranges), independent of order.
                 OrderBy: "MinScore ASC",
                 ResultType: "entity_object",
             },

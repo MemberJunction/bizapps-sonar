@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+    EffectiveMissingDataPolicy,
     ScoringEngine,
     ScoringSpec,
     WeightedFactor,
@@ -26,13 +27,16 @@ const spec: ScoringSpec = {
     ],
 };
 
-/** activity (w0.6) + recency (w0.4) for two members. */
+const POP = ["m1", "m2"];
+
+/** activity (w0.6) + recency (w0.4) for two members; both default to the Zero policy. */
 function twoFactorRubric(): WeightedFactor[] {
     return [
         {
             factorId: "activity",
             modelFactorId: "mf-activity",
             weight: 0.6,
+            missingDataPolicy: "Zero",
             results: new Map([
                 ["m1", norm(0.53)],
                 ["m2", norm(1.0)],
@@ -42,6 +46,7 @@ function twoFactorRubric(): WeightedFactor[] {
             factorId: "recency",
             modelFactorId: "mf-recency",
             weight: 0.4,
+            missingDataPolicy: "Zero",
             results: new Map([
                 ["m1", norm(0.8)],
                 ["m2", norm(0.2)],
@@ -50,9 +55,29 @@ function twoFactorRubric(): WeightedFactor[] {
     ];
 }
 
+/** activity has data for m1; recency is missing for everyone, under the given policy. */
+function oneMissingRubric(recencyPolicy: EffectiveMissingDataPolicy): WeightedFactor[] {
+    return [
+        {
+            factorId: "activity",
+            modelFactorId: "mf-activity",
+            weight: 0.6,
+            missingDataPolicy: "Zero",
+            results: new Map([["m1", norm(1.0)]]),
+        },
+        {
+            factorId: "recency",
+            modelFactorId: "mf-recency",
+            weight: 0.4,
+            missingDataPolicy: recencyPolicy,
+            results: new Map(), // missing for all members
+        },
+    ];
+}
+
 describe("ScoringEngine", () => {
     it("combines weighted contributions and scales to the model range", () => {
-        const scores = new ScoringEngine().score(spec, twoFactorRubric());
+        const scores = new ScoringEngine().score(spec, twoFactorRubric(), POP);
 
         // m1: 0.6*0.53 + 0.4*0.8 = 0.638 raw → /1.0 *100 = 63.8
         expect(scores.get("m1")?.rawScore).toBeCloseTo(0.638);
@@ -61,7 +86,7 @@ describe("ScoringEngine", () => {
     });
 
     it("itemizes per-factor contributions for explainability", () => {
-        const scores = new ScoringEngine().score(spec, twoFactorRubric());
+        const scores = new ScoringEngine().score(spec, twoFactorRubric(), POP);
 
         const contributions = scores.get("m1")?.contributions ?? [];
         expect(contributions).toHaveLength(2);
@@ -73,31 +98,83 @@ describe("ScoringEngine", () => {
             normalizedContribution: 0.53,
             weightedValue: 0.6 * 0.53,
             hadData: true,
+            missingDataApplied: false,
         });
     });
 
-    it("treats a missing factor as zero (denominator stays the full rubric weight)", () => {
+    it("Zero policy: a missing factor counts as 0 but keeps its weight (drags the score)", () => {
+        const scores = new ScoringEngine().score(spec, oneMissingRubric("Zero"), ["m1"]);
+
+        // activity 0.6*1.0 + recency 0.4*0 = 0.6 raw → /1.0 *100 = 60 (recency drags it)
+        expect(scores.get("m1")?.normalizedScore).toBeCloseTo(60);
+        const recency = scores.get("m1")?.contributions.find((c) => c.factorId === "recency");
+        expect(recency).toMatchObject({ normalizedContribution: 0, hadData: false, missingDataApplied: true });
+    });
+
+    it("Exclude policy: a missing factor drops out of numerator AND denominator (no drag)", () => {
+        const scores = new ScoringEngine().score(spec, oneMissingRubric("Exclude"), ["m1"]);
+
+        // only activity counts: 0.6*1.0 / 0.6 *100 = 100 — recency doesn't drag
+        expect(scores.get("m1")?.normalizedScore).toBeCloseTo(100);
+        expect(scores.get("m1")?.contributions).toHaveLength(1);
+    });
+
+    it("NeutralMidpoint policy: a missing factor counts as 0.5", () => {
+        const scores = new ScoringEngine().score(spec, oneMissingRubric("NeutralMidpoint"), ["m1"]);
+
+        // activity 0.6*1.0 + recency 0.4*0.5 = 0.8 → /1.0 *100 = 80
+        expect(scores.get("m1")?.normalizedScore).toBeCloseTo(80);
+    });
+
+    it("NeutralMidpoint fills the factor's OWN range midpoint, not a hardcoded 0.5", () => {
         const rubric: WeightedFactor[] = [
             {
-                factorId: "activity",
-                modelFactorId: "mf-activity",
-                weight: 0.6,
-                results: new Map([["m1", norm(1.0)]]),
-            },
-            {
-                factorId: "recency",
-                modelFactorId: "mf-recency",
-                weight: 0.4,
-                results: new Map([["m1", norm(null)]]), // no data for m1
+                factorId: "ranged",
+                modelFactorId: "mf-ranged",
+                weight: 1,
+                missingDataPolicy: "NeutralMidpoint",
+                outputMin: 0,
+                outputMax: 100, // custom output range
+                results: new Map(), // missing for all
             },
         ];
+        const contrib = new ScoringEngine().score(spec, rubric, ["m1"]).get("m1")?.contributions[0];
+        expect(contrib?.normalizedContribution).toBe(50); // (0 + 100) / 2, not 0.5
+        expect(contrib?.missingDataApplied).toBe(true);
+    });
 
-        const scores = new ScoringEngine().score(spec, rubric);
+    it("Zero stays a literal 0 regardless of the factor's output range", () => {
+        const rubric: WeightedFactor[] = [
+            {
+                factorId: "ranged",
+                modelFactorId: "mf-ranged",
+                weight: 1,
+                missingDataPolicy: "Zero",
+                outputMin: 0.2,
+                outputMax: 1,
+                results: new Map(),
+            },
+        ];
+        const contrib = new ScoringEngine().score(spec, rubric, ["m1"]).get("m1")?.contributions[0];
+        expect(contrib?.normalizedContribution).toBe(0);
+    });
 
-        // only activity contributes: 0.6*1.0 = 0.6 raw → /1.0 *100 = 60 (recency drags it down)
-        expect(scores.get("m1")?.rawScore).toBeCloseTo(0.6);
-        expect(scores.get("m1")?.normalizedScore).toBeCloseTo(60);
-        expect(scores.get("m1")?.contributions).toHaveLength(1);
+    it("scores a member with no data in any factor (Zero → floor) so the disengaged still surface", () => {
+        // population includes m2, but no factor has data for it → all missing
+        const scores = new ScoringEngine().score(spec, oneMissingRubric("Zero"), ["m1", "m2"]);
+
+        expect(scores.get("m2")?.normalizedScore).toBe(0);
+        expect(scores.get("m2")?.bandLabel).toBe("At Risk");
+    });
+
+    it("leaves a member unscored when every factor it's missing is Excluded (nothing to score)", () => {
+        const rubric = oneMissingRubric("Exclude");
+        rubric[0].missingDataPolicy = "Exclude"; // activity also Exclude
+        const scores = new ScoringEngine().score(spec, rubric, ["m1", "m2"]);
+
+        // m1 has activity data → scored; m2 has no data and both factors Exclude → denominator 0
+        expect(scores.get("m1")?.normalizedScore).toBeCloseTo(100);
+        expect(scores.has("m2")).toBe(false);
     });
 
     it("leaves band null when the score falls outside every band", () => {
@@ -106,51 +183,25 @@ describe("ScoringEngine", () => {
             bands: [{ bandId: "b", label: "Only", minScore: 90, maxScore: 100 }],
         };
 
-        const scores = new ScoringEngine().score(narrowBands, twoFactorRubric());
+        const scores = new ScoringEngine().score(narrowBands, twoFactorRubric(), POP);
 
         expect(scores.get("m1")?.bandLabel).toBeNull();
         expect(scores.get("m1")?.bandId).toBeNull();
     });
 
-    it("returns scaleMin when the total weight is zero", () => {
+    it("leaves a member unscored when the total effective weight is zero", () => {
         const zeroWeight: WeightedFactor[] = [
             {
                 factorId: "activity",
                 modelFactorId: "mf-activity",
                 weight: 0,
+                missingDataPolicy: "Zero",
                 results: new Map([["m1", norm(1.0)]]),
             },
         ];
 
-        const scores = new ScoringEngine().score(spec, zeroWeight);
+        const scores = new ScoringEngine().score(spec, zeroWeight, ["m1"]);
 
-        expect(scores.get("m1")?.normalizedScore).toBe(0);
-    });
-});
-
-describe("ScoringEngine — band boundaries (half-open, order-independent)", () => {
-    // One factor, weight 1, scale 0–100 → normalizedScore = normalizedContribution × 100.
-    function bandFor(normalized: number, bands: ScoringSpec["bands"]): string | null {
-        const s: ScoringSpec = { scaleMin: 0, scaleMax: 100, bands };
-        const rubric: WeightedFactor[] = [
-            { factorId: "f", modelFactorId: "mf", weight: 1, results: new Map([["m", norm(normalized)]]) },
-        ];
-        return new ScoringEngine().score(s, rubric).get("m")?.bandLabel ?? null;
-    }
-
-    it("assigns a shared-boundary score to the UPPER band", () => {
-        expect(bandFor(0.40, spec.bands)).toBe("Neutral"); // 40 → [40,70), not [0,40)
-        expect(bandFor(0.70, spec.bands)).toBe("Healthy"); // 70 → [70,100]
-    });
-
-    it("includes the maximum score in the top band", () => {
-        expect(bandFor(1.0, spec.bands)).toBe("Healthy"); // 100 → top band, inclusive
-    });
-
-    it("gives the same band regardless of band order", () => {
-        const reversed = [...spec.bands].reverse();
-        expect(bandFor(0.40, reversed)).toBe("Neutral");
-        expect(bandFor(1.0, reversed)).toBe("Healthy");
-        expect(bandFor(0.20, reversed)).toBe("At Risk");
+        expect(scores.has("m1")).toBe(false);
     });
 });

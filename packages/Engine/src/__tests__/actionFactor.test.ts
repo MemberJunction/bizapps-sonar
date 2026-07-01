@@ -167,65 +167,80 @@ describe("ActionFactorEvaluator", () => {
 
 /**
  * Integration: an action factor with no data for some anchors, run through the real
- * evaluate → normalize → score pipeline. Guards the seam PR #6 rewrites (score() signature +
- * missing-data threading on WeightedFactor): a careless conflict resolution that drops the
- * action-factor path's no-data handling would fail here. When #6's MissingDataPolicy lands, extend
- * this to assert the policy (e.g. ExcludeFromDenominator) instead of today's missing-factor-as-zero.
+ * evaluate → normalize → score pipeline, asserting the MissingDataPolicy (#6). This guards the seam
+ * PR #6 rewrote (`score(spec, factors, population)` + missing-data threading on WeightedFactor): a
+ * careless merge that dropped the action-factor path's no-data handling would fail here.
  */
-describe("integration: action factor + missing data → scoring", () => {
-    it("an action factor with no data for an anchor contributes 0, and that anchor is still scored", async () => {
-        // Action factor: m1 produces a value, m2 returns null (no data) → evaluator omits m2.
+describe("integration: action factor + missing-data policy → scoring", () => {
+    // Action factor: m1 produces a value, m2 returns null (no data) → the evaluator omits m2, so the
+    // scorer applies m2's MissingDataPolicy. Normalized like the orchestrator (None passthrough 0..1).
+    async function mixedActionResults() {
         const runner: ActionRunner = async (anchorId) => ({
             rawValue: anchorId === "m1" ? 1 : null,
             explanation: anchorId,
         });
-        const actionResults = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(
+        const results = await new ActionFactorEvaluator(spec(), runner).evaluateBatch(
             ["m1", "m2"],
             asOf,
             ctx,
         );
-        expect(actionResults.has("m2")).toBe(false); // no-data anchor not in the action factor's map
-
-        // Normalize like the orchestrator (None passthrough into 0..1) — m2 stays absent.
+        expect(results.has("m2")).toBe(false);
         new NormalizationEngine().normalize(
             { method: "None", higherIsBetter: true, outputMin: 0, outputMax: 1 },
-            actionResults,
+            results,
         );
+        return results;
+    }
 
-        // A baseline factor that DOES cover m2, so m2 is part of the population.
-        const baseline: WeightedFactor = {
+    const sSpec: ScoringSpec = {
+        scaleMin: 0,
+        scaleMax: 100,
+        bands: [{ bandId: "all", label: "All", minScore: 0, maxScore: 100 }],
+    };
+
+    // A baseline factor with data for both members, so the population is well-defined.
+    function baseline(): WeightedFactor {
+        return {
             factorId: "baseline",
             modelFactorId: "mf-base",
             weight: 1,
+            missingDataPolicy: "Zero",
             results: new Map([
                 ["m1", { rawValue: 1, normalizedContribution: 1, hadData: true, explanation: "" }],
                 ["m2", { rawValue: 1, normalizedContribution: 1, hadData: true, explanation: "" }],
             ]),
         };
+    }
+
+    it("MissingDataPolicy=Zero: fills 0 for the no-data anchor and keeps it in the denominator", async () => {
         const action: WeightedFactor = {
             factorId: "fac-action",
             modelFactorId: "mf-action",
             weight: 1,
-            results: actionResults,
+            missingDataPolicy: "Zero",
+            results: await mixedActionResults(),
         };
-        const sSpec: ScoringSpec = {
-            scaleMin: 0,
-            scaleMax: 100,
-            bands: [{ bandId: "all", label: "All", minScore: 0, maxScore: 100 }],
+        const scores = new ScoringEngine().score(sSpec, [action, baseline()], ["m1", "m2"]);
+        const m2Action = scores.get("m2")?.contributions.find((c) => c.factorId === "fac-action");
+        expect(m2Action?.hadData).toBe(false);
+        expect(m2Action?.weightedValue).toBe(0);
+        // baseline 1 (w1) + action 0 (w1) over denom 2 = 0.5 → 50.
+        expect(scores.get("m2")?.normalizedScore).toBe(50);
+        // m1 (has data) still counts the action factor.
+        expect(scores.get("m1")?.contributions.find((c) => c.factorId === "fac-action")?.hadData).toBe(true);
+    });
+
+    it("MissingDataPolicy=Exclude: drops the no-data action factor from the anchor's denominator", async () => {
+        const action: WeightedFactor = {
+            factorId: "fac-action",
+            modelFactorId: "mf-action",
+            weight: 1,
+            missingDataPolicy: "Exclude",
+            results: await mixedActionResults(),
         };
-        const scores = new ScoringEngine().score(sSpec, [action, baseline]);
-
-        // m2 is scored despite the action factor having no data for it. The no-data factor is OMITTED
-        // from the breakdown, but its weight still counts in the denominator (v1 missing-factor-as-zero),
-        // so the score is dragged down rather than the anchor being dropped.
-        const m2 = scores.get("m2");
-        expect(m2).toBeDefined();
-        expect(m2?.contributions.find((c) => c.factorId === "fac-action")).toBeUndefined();
-        // baseline 1 (w1) + action absent (0, but w1 in the denominator) over total weight 2 = 0.5 → 50.
-        expect(m2?.normalizedScore).toBe(50);
-
-        // ...and m1, which had data, counts the action factor in its breakdown.
-        const m1Action = scores.get("m1")?.contributions.find((c) => c.factorId === "fac-action");
-        expect(m1Action?.hadData).toBe(true);
+        const scores = new ScoringEngine().score(sSpec, [action, baseline()], ["m1", "m2"]);
+        // action excluded for m2 → only baseline counts → 1/1 → 100.
+        expect(scores.get("m2")?.contributions.find((c) => c.factorId === "fac-action")).toBeUndefined();
+        expect(scores.get("m2")?.normalizedScore).toBe(100);
     });
 });
