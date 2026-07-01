@@ -80,11 +80,56 @@ export function compileFilter(
     filter: CompositeFilterDescriptor | null,
     validColumns: string[],
 ): CompiledFilter {
-    if (!filter || filter.filters.length === 0) {
+    if (!filter) {
+        return { clause: null, params: {} };
+    }
+    // Fail loud on a malformed descriptor (valid JSON but wrong shape) instead of crashing with a
+    // cryptic TypeError on `.filters.length` deeper in.
+    if (!Array.isArray(filter.filters)) {
+        throw new Error("compileFilter: filter must have a 'filters' array.");
+    }
+    if (filter.filters.length === 0) {
         return { clause: null, params: {} };
     }
     const ctx: BuildContext = { validColumns, params: {}, counter: { next: 0 } };
     return { clause: buildGroup(filter, ctx), params: ctx.params };
+}
+
+/**
+ * Compile a filter to an INLINE WHERE string (escaped literals, no parameters). Use this only
+ * where parameter binding isn't available — e.g. RunView.ExtraFilter; prefer `compileFilter` +
+ * params for set-based SQL. Field names are still validated by `compileFilter`; values are
+ * escaped here (strings single-quoted with doubled quotes, booleans as 1/0). Returns null when
+ * there is no filter.
+ */
+export function compileFilterInline(
+    filter: CompositeFilterDescriptor | null,
+    validColumns: string[],
+): string | null {
+    const { clause, params } = compileFilter(filter, validColumns);
+    if (!clause) {
+        return null;
+    }
+    return clause.replace(/@f\d+/g, (placeholder) =>
+        sqlLiteral(params[placeholder.slice(1)]),
+    );
+}
+
+/** Render a filter value as an escaped SQL literal for inline use. */
+function sqlLiteral(value: FilterValue | undefined): string {
+    if (value === null || value === undefined) {
+        return "NULL";
+    }
+    if (typeof value === "number") {
+        if (!Number.isFinite(value)) {
+            throw new Error(`compileFilter: numeric filter value must be finite (got ${value}).`);
+        }
+        return String(value);
+    }
+    if (typeof value === "boolean") {
+        return value ? "1" : "0";
+    }
+    return `'${String(value).replace(/'/g, "''")}'`;
 }
 
 function isComposite(
