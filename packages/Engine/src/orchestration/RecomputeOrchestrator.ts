@@ -10,7 +10,7 @@ import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvalu
 import { FactorCompiler } from "../factors/FactorCompiler";
 import {
     NormalizationEngine,
-    NormalizationSpec,
+    resolveNormalizationSpec,
 } from "../normalization/NormalizationEngine";
 import {
     ScoreBandDef,
@@ -99,7 +99,7 @@ export class RecomputeOrchestrator {
         const factor = await this.buildDraftFactor(model, draft, contextUser);
         const evaluator = await this.compiler.compile(factor, contextUser);
         const results = await evaluator.evaluateBatch(anchorIds, asOf, { contextUser });
-        this.normalizer.normalize(this.resolveNormalizationSpec(factor), results);
+        this.normalizer.normalize(resolveNormalizationSpec(factor), results);
         return this.summarizeFactorPreview(results);
     }
 
@@ -338,7 +338,7 @@ export class RecomputeOrchestrator {
             const evaluator = await this.compiler.compile(factor, contextUser);
             const results = await evaluator.evaluateBatch(anchorIds, asOf, ctx);
             this.normalizer.normalize(
-                this.resolveNormalizationSpec(factor),
+                resolveNormalizationSpec(factor),
                 results,
             );
             weighted.push({
@@ -388,26 +388,6 @@ export class RecomputeOrchestrator {
             byId.set(factor.ID, factor);
         }
         return byId;
-    }
-
-    /** Resolve a factor's normalization config; fail loud on methods we don't support yet. */
-    private resolveNormalizationSpec(
-        factor: mjBizAppsSonarFactorEntity,
-    ): NormalizationSpec {
-        const method = factor.NormalizationMethod ?? "None";
-        // Supported population methods. Parameterized methods (Logistic/Banded/Lookup) read
-        // NormalizationParamsJSON and aren't wired yet — fail loud rather than silently mis-score.
-        if (method !== "None" && method !== "MinMax" && method !== "Percentile" && method !== "ZScore") {
-            throw new Error(
-                `RecomputeOrchestrator: normalization method '${method}' not supported yet (factor ${factor.ID}).`,
-            );
-        }
-        return {
-            method,
-            outputMin: factor.OutputMin ?? 0,
-            outputMax: factor.OutputMax ?? 1,
-            higherIsBetter: factor.HigherIsBetter ?? true,
-        };
     }
 
     /** Resolve the model's score scale + bands into a ScoringSpec. */
