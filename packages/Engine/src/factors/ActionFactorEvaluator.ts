@@ -1,8 +1,10 @@
+import { LogStatus } from "@memberjunction/core";
 import {
     FactorEvaluationContext,
     FactorResult,
     IFactorEvaluator,
 } from "../contracts/IFactorEvaluator";
+import type { AnchorKey } from "./anchorKey";
 
 /**
  * Action-backed factors — the escape hatch (plan §5.2, §7.2). When a signal can't be expressed
@@ -18,6 +20,19 @@ import {
  * concurrency cap. Cross-run result caching (CacheTTLSeconds), rate limiting, Batch mode, and
  * IsExpensive budgeting are deferred.
  */
+
+/**
+ * A *configuration* failure from a factor-action (bad/missing params, unresolved source) — as opposed
+ * to a per-anchor data error. Config errors are the same for every anchor, so they FAIL THE WHOLE RUN
+ * loudly (the evaluator re-throws this) instead of silently degrading to no-data for everyone. Raised
+ * by the runner when the action returns ResultCode 'VALIDATION_ERROR'.
+ */
+export class ActionConfigError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ActionConfigError";
+    }
+}
 
 /** A static input bound at config time (from Factor.ActionParamsJSON `params`). */
 export interface ActionParamValue {
@@ -41,6 +56,11 @@ export interface ActionFactorSpec {
     staticParams: ActionParamValue[];
     /** Max Action calls in flight at once. */
     maxConcurrency: number;
+    /** The factor's declared output bounds (Factor.OutputMin/Max). The raw action value is clamped
+     *  into this range before scoring; a value outside it is "contract drift" (the action misbehaving).
+     *  Null = unbounded on that end (no clamp). */
+    outputMin: number | null;
+    outputMax: number | null;
 }
 
 /** One Action invocation's outcome for one anchor. `rawValue` is null when no value was produced. */
@@ -62,6 +82,22 @@ const DEFAULT_ANCHOR_PARAM = "AnchorRecordID";
 const DEFAULT_ASOF_PARAM = "AsOf";
 const DEFAULT_OUTPUT_PARAM = "Value";
 export const DEFAULT_MAX_CONCURRENCY = 8;
+
+/**
+ * Clamp a raw action value into the factor's declared output range. Null bounds = unbounded on that
+ * end (no clamp). Returns the (possibly clamped) value + whether a clamp happened — a clamp means the
+ * action returned out-of-range, i.e. contract drift. Pure + unit-testable.
+ */
+export function clampToRange(
+    value: number,
+    min: number | null,
+    max: number | null,
+): { value: number; clamped: boolean } {
+    let v = value;
+    if (min != null && v < min) v = min;
+    if (max != null && v > max) v = max;
+    return { value: v, clamped: v !== value };
+}
 
 /**
  * ⚠ SCALE CEILING (deferred mitigations — see the changeset). An Action-backed factor fires ONE Action
@@ -169,27 +205,33 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
     ) {}
 
     public async evaluateBatch(
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
     ): Promise<Map<string, FactorResult>> {
         const out = new Map<string, FactorResult>();
-        if (anchorIds.length === 0) {
+        if (anchors.length === 0) {
             return out;
         }
         // Bounded fan-out: a fixed pool of workers pulls anchors off a shared cursor. (next++ is
         // safe — JS is single-threaded and there's no await between read and increment.)
         const limit = Math.max(1, this.spec.maxConcurrency);
         let next = 0;
+        let drift = 0; // count of values the action returned outside the declared output range
         const worker = async (): Promise<void> => {
-            while (next < anchorIds.length) {
-                const anchorId = anchorIds[next++];
+            while (next < anchors.length) {
+                // The Action's anchor param is the canonical id (single-column = the bare value).
+                const anchorId = anchors[next++].id;
                 const result = await this.evaluateOne(anchorId, asOf, ctx);
                 // Only anchors with a value get an entry; an absent anchor = "no data", handled by
                 // the model's MissingDataPolicy — same convention as the declarative evaluator.
+                // (The increments below run with no await between them, so concurrent workers never
+                //  interleave mid-block — same single-threaded safety as next++.)
                 if (result.rawValue !== null) {
+                    const { value, clamped } = clampToRange(result.rawValue, this.spec.outputMin, this.spec.outputMax);
+                    if (clamped) drift++;
                     out.set(anchorId, {
-                        rawValue: result.rawValue,
+                        rawValue: value,
                         normalizedContribution: null,
                         hadData: true,
                         explanation: result.explanation,
@@ -198,8 +240,17 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
             }
         };
         await Promise.all(
-            Array.from({ length: Math.min(limit, anchorIds.length) }, worker),
+            Array.from({ length: Math.min(limit, anchors.length) }, worker),
         );
+        // Drift signal: one summary line per batch (never per-anchor), so a misbehaving action is
+        // visible in logs without spamming. The score itself is already safe — values were clamped.
+        if (drift > 0) {
+            LogStatus(
+                `ActionFactor ${this.spec.factorId}: clamped ${drift}/${out.size} value(s) into the ` +
+                `declared output range [${this.spec.outputMin ?? "-∞"}, ${this.spec.outputMax ?? "∞"}] — ` +
+                `possible contract drift (the action returned out-of-range values).`,
+            );
+        }
         return out;
     }
 
@@ -213,6 +264,9 @@ export class ActionFactorEvaluator implements IFactorEvaluator {
         try {
             return await this.runner(anchorId, asOf, this.spec, ctx);
         } catch (e: unknown) {
+            // A config error is fixed across anchors → fail the whole run loudly, don't paper over it
+            // as no-data for everyone. A per-anchor data error stays graceful (this anchor = no data).
+            if (e instanceof ActionConfigError) throw e;
             return {
                 rawValue: null,
                 explanation: `action error: ${e instanceof Error ? e.message : String(e)}`,

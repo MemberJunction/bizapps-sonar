@@ -142,6 +142,10 @@ export class mjBizAppsSonarFactor_ {
     @Field() 
     _mj__UpdatedAt: Date;
         
+    @Field({nullable: true, description: `The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).`}) 
+    @MaxLength(200)
+    DateField?: string;
+        
     @Field({nullable: true}) 
     @MaxLength(200)
     ScoreModel?: string;
@@ -272,6 +276,9 @@ export class CreatemjBizAppsSonarFactorInput {
     @Field({ nullable: true })
     CreatedByAgent: string | null;
 
+    @Field({ nullable: true })
+    DateField: string | null;
+
     @Field(() => RestoreContextInput, { nullable: true })
     RestoreContext___?: RestoreContextInput;
 }
@@ -374,6 +381,9 @@ export class UpdatemjBizAppsSonarFactorInput {
 
     @Field({ nullable: true })
     CreatedByAgent?: string | null;
+
+    @Field({ nullable: true })
+    DateField?: string | null;
 
     @Field(() => [KeyValuePairInput], { nullable: true })
     OldValues___?: KeyValuePairInput[];

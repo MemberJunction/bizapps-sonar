@@ -12,6 +12,7 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
+import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
 import { createActionRunner } from "../factors/actionRunner";
 import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
@@ -84,8 +85,9 @@ export class RecomputeOrchestrator {
     ): Promise<Map<string, ScoreResult>> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
-        // Preview (no persistence) — un-approved Action-backed drafts are allowed so authors can test.
-        return this.computeForModel(model, asOf, contextUser, false);
+        // Preview is read-only, so a not-yet-Approved Action-backed factor is allowed to run here —
+        // that's the whole point of "Simulate" for a draft factor. The Approved gate still applies on persist.
+        return (await this.computeForModel(model, asOf, contextUser, true)).scores;
     }
 
     /**
@@ -103,12 +105,12 @@ export class RecomputeOrchestrator {
     ): Promise<FactorPreviewResult> {
         const empty: FactorPreviewResult = { membersWithData: 0, sampleAnchorId: null, sampleRawValue: null, sampleStrength: null };
         const model = await this.loadModel(modelId, contextUser);
-        const anchorIds = await this.resolvePopulation(model, contextUser);
-        if (anchorIds.length === 0) return empty;
+        const anchors = await this.resolvePopulation(model, contextUser);
+        if (anchors.length === 0) return empty;
 
         const factor = await this.buildDraftFactor(model, draft, contextUser);
         const evaluator = await this.compiler.compile(factor, contextUser);
-        const results = await evaluator.evaluateBatch(anchorIds, asOf, { contextUser });
+        const results = await evaluator.evaluateBatch(anchors, asOf, { contextUser });
         this.normalizer.normalize(resolveNormalizationSpec(factor), results);
         return this.summarizeFactorPreview(results);
     }
@@ -181,14 +183,16 @@ export class RecomputeOrchestrator {
 
         const run = await this.startRun(model, contextUser);
         try {
-            // Persist path — Action-backed factors must be Approved before they move real scores.
-            const scores = await this.computeForModel(model, asOf, contextUser, true);
+            // Persisting run: an Action-backed factor must be Approved (false = enforce the gate).
+            const { scores, anchorKeys } = await this.computeForModel(model, asOf, contextUser, false);
             const recordsScored = await this.writer.write(
                 model,
                 model.CurrentVersionID,
                 scores,
                 asOf,
                 contextUser,
+                run.ID,
+                anchorKeys,
             );
             await this.finishRun(run, "Succeeded", recordsScored);
             return { runId: run.ID, status: "Succeeded", recordsScored };
@@ -203,28 +207,30 @@ export class RecomputeOrchestrator {
         }
     }
 
-    /** The shared pipeline: population → evaluate + normalize each factor → combine. */
+    /** The shared pipeline: population → evaluate + normalize each factor → combine. Returns the
+     *  scores AND the resolved AnchorKeys (so the writer can persist AnchorRecordKeyJSON). */
     private async computeForModel(
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
         contextUser: UserInfo,
-        requireApprovedActionFactors: boolean,
-    ): Promise<Map<string, ScoreResult>> {
-        const anchorIds = await this.resolvePopulation(model, contextUser);
-        if (anchorIds.length === 0) {
-            return new Map();
+        allowUnapprovedActions: boolean,
+    ): Promise<{ scores: Map<string, ScoreResult>; anchorKeys: AnchorKey[] }> {
+        const anchorKeys = await this.resolvePopulation(model, contextUser);
+        if (anchorKeys.length === 0) {
+            return { scores: new Map(), anchorKeys };
         }
         const ctx: FactorEvaluationContext = { contextUser };
         const factors = await this.buildWeightedFactors(
             model,
-            anchorIds,
+            anchorKeys,
             asOf,
             ctx,
             contextUser,
-            requireApprovedActionFactors,
+            allowUnapprovedActions,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
-        return this.scorer.score(scoringSpec, factors, anchorIds);
+        const scores = this.scorer.score(scoringSpec, factors, anchorKeys.map((a) => a.id));
+        return { scores, anchorKeys };
     }
 
     /** Open a ScoreRecomputeRun in the Running state. */
@@ -294,11 +300,12 @@ export class RecomputeOrchestrator {
         }
     }
 
-    /** The set of anchor record IDs to score (v1: every record of the anchor entity). */
+    /** The population to score (v1: every record of the anchor entity), each as an AnchorKey built
+     *  from the anchor's full primary key — so single- AND composite-PK anchors are both supported. */
     private async resolvePopulation(
         model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
-    ): Promise<string[]> {
+    ): Promise<AnchorKey[]> {
         const md = new Metadata();
         const anchorEntity = md.EntityByID(model.AnchorEntityID);
         if (!anchorEntity) {
@@ -306,32 +313,20 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
-        // Reject composite keys here, where the limitation originates, rather than letting them
-        // truncate to PrimaryKeys[0] and surface obscurely later.
-        if (anchorEntity.PrimaryKeys.length !== 1) {
-            throw new Error(
-                `RecomputeOrchestrator: anchor entity '${anchorEntity.Name}' has a ${anchorEntity.PrimaryKeys.length}-column primary key; only single-column primary keys are supported.`,
-            );
-        }
-        const pk = anchorEntity.PrimaryKeys[0].Name;
+        const pkFields = anchorEntity.PrimaryKeys.map((pk) => pk.Name);
         const extraFilter = this.compilePopulationFilter(model, anchorEntity);
         const rv = new RunView();
-        const result = await rv.RunView<Record<string, string>>(
+        // Record<string, unknown> (not string): an anchor PK can be int/uuid/string, and CompositeKey
+        // preserves each value's type — so the row map must not pre-coerce everything to string.
+        const result = await rv.RunView<Record<string, unknown>>(
             {
                 EntityName: anchorEntity.Name,
                 ResultType: "simple",
-                Fields: [pk],
+                Fields: pkFields,
                 ExtraFilter: extraFilter ?? undefined,
                 // Score the WHOLE population — RunView otherwise caps at the entity's
                 // UserViewMaxRows (1000), which would silently leave most members unscored.
-                // (A future scale path batches/paginates; for now we resolve all anchor IDs.)
-                //
-                // SCALE CEILING: removing this cap makes buildFactorSql's per-factor
-                // WHERE [key] IN ('id1','id2',…) the binding limit (~2100 values before SQL
-                // Server hits statement-size/param limits). A recompute on more than ~2k anchors
-                // will fail at the factor-evaluation step. The fix is the deferred TVP swap in
-                // factorSql.ts — "population-complete" is accurate but capped well below real
-                // association sizes until that lands. Track against the TVP TODO there.
+                // (A future scale path batches/paginates; for now we resolve all anchor keys.)
                 IgnoreMaxRows: true,
             },
             contextUser,
@@ -343,7 +338,9 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: population query for '${anchorEntity.Name}' failed: ${result.ErrorMessage ?? "unknown error"}.`,
             );
         }
-        return (result.Results ?? []).map((r) => r[pk]);
+        return (result.Results ?? []).map((row) =>
+            toAnchorKey(compositeKeyForRow(anchorEntity, row)),
+        );
     }
 
     /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
@@ -373,11 +370,11 @@ export class RecomputeOrchestrator {
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
     private async buildWeightedFactors(
         model: mjBizAppsSonarScoreModelEntity,
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
         contextUser: UserInfo,
-        requireApprovedActionFactors: boolean,
+        allowUnapprovedActions: boolean,
     ): Promise<WeightedFactor[]> {
         const modelFactors = await this.loadRubric(model, contextUser);
         if (modelFactors.length === 0) {
@@ -394,12 +391,12 @@ export class RecomputeOrchestrator {
                 );
             }
             // Governance gate: an Action-backed factor runs arbitrary code, so it must be promoted to
-            // Approved before it can move PERSISTED scores. Only enforced on the persist path (recompute);
-            // a no-persist preview (computeScores) runs un-approved drafts so authors can test first.
+            // Approved before it can move REAL (persisted) scores. A read-only preview/Simulate passes
+            // allowUnapprovedActions=true so a draft factor can be tried before promotion.
             if (
-                requireApprovedActionFactors &&
                 factor.FactorType === "ActionBacked" &&
-                factor.PromotionState !== "Approved"
+                factor.PromotionState !== "Approved" &&
+                !allowUnapprovedActions
             ) {
                 throw new Error(
                     `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
@@ -410,17 +407,17 @@ export class RecomputeOrchestrator {
             // than let an expensive recompute happen silently.
             if (
                 factor.FactorType === "ActionBacked" &&
-                anchorIds.length > ACTION_FACTOR_POPULATION_SOFT_CAP
+                anchors.length > ACTION_FACTOR_POPULATION_SOFT_CAP
             ) {
                 LogStatus(
-                    `⚠ Sonar: action-backed factor '${factor.Name}' will make ${anchorIds.length} Action ` +
+                    `⚠ Sonar: action-backed factor '${factor.Name}' will make ${anchors.length} Action ` +
                         `calls this recompute (one per anchor; >${ACTION_FACTOR_POPULATION_SOFT_CAP} soft cap). ` +
                         `Result caching / IsExpensive budgeting / rate limiting are not implemented yet — ` +
                         `expect proportional cost + latency.`,
                 );
             }
             const evaluator = await this.compiler.compile(factor, contextUser);
-            const results = await evaluator.evaluateBatch(anchorIds, asOf, ctx);
+            const results = await evaluator.evaluateBatch(anchors, asOf, ctx);
             this.normalizer.normalize(
                 resolveNormalizationSpec(factor),
                 results,
@@ -480,12 +477,7 @@ export class RecomputeOrchestrator {
     /** Resolve a factor's missing-data policy. The schema default "ModelDefault" resolves to
      *  "Zero": no data on an engagement signal means genuinely zero activity, so it should pull
      *  the score down — and fully-missing members still surface at the floor rather than
-     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this.
-     *
-     *  Note: "ModelDefault" is currently an alias for "Zero" — ScoreModel has no
-     *  DefaultMissingDataPolicy field, so there is no per-model default to inherit. The enum
-     *  value is reserved for when that model-level knob is added; until then it always resolves
-     *  to "Zero". */
+     *  vanishing from the run. Per-factor "Exclude"/"NeutralMidpoint" override this. */
     private resolveMissingDataPolicy(
         modelFactor: mjBizAppsSonarModelFactorEntity,
     ): EffectiveMissingDataPolicy {

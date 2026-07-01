@@ -8,13 +8,16 @@
  */
 
 export * from "./contracts/IFactorEvaluator";
+export * from "./metadata/entityScope";
 export * from "./factors/filter";
 export * from "./factors/factorSql";
 export * from "./factors/CompiledFactorEvaluator";
 export * from "./factors/ActionFactorEvaluator";
 export * from "./factors/actionRunner";
 export * from "./factors/FactorCompiler";
+export * from "./factors/anchorKey";
 export * from "./normalization/NormalizationEngine";
 export * from "./scoring/ScoringEngine";
+export * from "./scoring/contributionDetail";
 export * from "./orchestration/RecomputeOrchestrator";
 export * from "./orchestration/ScoreWriter";

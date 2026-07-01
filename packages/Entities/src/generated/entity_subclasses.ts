@@ -222,6 +222,11 @@ export const mjBizAppsSonarFactorSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    DateField: z.string().nullable().describe(`
+        * * Field Name: DateField
+        * * Display Name: Date Field
+        * * SQL Data Type: nvarchar(200)
+        * * Description: The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).`),
     ScoreModel: z.string().nullable().describe(`
         * * Field Name: ScoreModel
         * * Display Name: Score Model
@@ -1913,6 +1918,19 @@ export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorE
     */
     get __mj_UpdatedAt(): Date {
         return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: DateField
+    * * Display Name: Date Field
+    * * SQL Data Type: nvarchar(200)
+    * * Description: The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).
+    */
+    get DateField(): string | null {
+        return this.Get('DateField');
+    }
+    set DateField(value: string | null) {
+        this.Set('DateField', value);
     }
 
     /**
