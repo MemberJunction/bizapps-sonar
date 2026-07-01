@@ -164,7 +164,7 @@ pre-publish impact preview, toast notifications, and the Core-Shared-Feature fol
 
 ## Gaps to reach *plan.md Phase-1 "commercial v1"* (large, the real roadmap)
 - **Action layer** (segments → interventions → holdout → measured lift) + Intervention Drafter agent — the headline v1 commitment.
-- **Action-backed factors** runtime + `ActionPromotion` gate (the 20% escape hatch).
+- **Action-backed factors** runtime + `ActionPromotion` gate (the 20% escape hatch) — **plus the cost/scale controls** (result caching, `IsExpensive` budget, rate limiting); see the "Action-factor cost / scale controls" design note. Do NOT run external-API/LLM action factors against real populations until at least caching lands.
 - **Write-back** (`WriteBackTarget/Policy/Log`) to ≥1 target.
 - **AI Model Builder agent** (authoring from a sentence) + **Explainer agent** (`ExplanationSummary`).
 - **Trend & history**: write `ScoreHistory` + `ScoreBandTransition`; compute Delta/TrendDirection/Confidence.
@@ -464,6 +464,29 @@ different shapes.
 Exclude — one-liner behaviors) and `AsOfStrategy` (trivial date selection). The discriminator:
 a seam earns its keep only when variants diverge in *mechanics/config/dependencies*, not just in a
 value — and convert on the **second divergent case**, never speculatively.
+
+### Action-factor cost / scale controls — caching first (decision)
+An Action-backed factor runs **PerRecord: one Action call per anchor** (MJ has no batch RunAction). At
+full population that's N calls per recompute — 10k members ⇒ 10k calls. What's built is only the
+parallelism bound (`MaxConcurrency`) plus a loud `LogStatus` when a single action factor's fan-out
+exceeds a soft cap (`ACTION_FACTOR_POPULATION_SOFT_CAP`, ~1000). That warning is a stopgap, **not** a
+guard. Deferred (designed in `plan.md` §5 schema + §6.1): result caching (`CacheTTLSeconds`), `IsExpensive`
+budgeting + graceful degradation (skip + mark stale), `RateLimitPerMinute`, and Batch mode.
+
+**Decision — caching first, then a budget guard.** Result caching keyed by
+`(AnchorRecordID, AsOfDate, ActionParams hash)` is the cheapest high-leverage guard: it removes the
+per-anchor cost on re-runs (re-scores, incremental runs, retries — the common driver) and is far less
+invasive than a budget/degradation system. The `IsExpensive` budget guard is the safety net for the
+*first uncached* run over a large population; it lands second. Rate limiting rides alongside for
+external-API actions.
+
+**Production gate:** don't run external-API/LLM action factors against real (non-demo) populations
+until at least caching lands.
+
+**Three independent scale clears** before an action-backed model is production-safe — all tracked:
+1. Per-anchor Action fan-out → this note (caching / budget / Batch).
+2. Inline `IN (…)` ~2100-param read ceiling → the TVP swap, [`composite-key-and-tvp.md`](composite-key-and-tvp.md).
+3. Row-by-row score persistence → set-based stage→`MERGE` + change-only diff (`ScoreWriter`, "🟡" in the coverage matrix; the set-based path is the large-population optimization).
 
 ### Penalty / WeightMode — deferred (agreed)
 Penalty would need a deliberate denominator/bounding design, and its intent largely overlaps the
