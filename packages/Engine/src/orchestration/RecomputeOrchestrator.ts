@@ -1,4 +1,4 @@
-import { EntityInfo, LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { EntityInfo, LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
     compileFilterInline,
     CompositeFilterDescriptor,
@@ -12,6 +12,8 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler } from "../factors/FactorCompiler";
+import { createActionRunner } from "../factors/actionRunner";
+import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
     NormalizationEngine,
     resolveNormalizationSpec,
@@ -69,7 +71,7 @@ export interface FactorPreviewResult {
  * PopulationFilter yet); WeightedSum models only. Unsupported config fails loud.
  */
 export class RecomputeOrchestrator {
-    private readonly compiler = new FactorCompiler();
+    private readonly compiler = new FactorCompiler(createActionRunner());
     private readonly normalizer = new NormalizationEngine();
     private readonly scorer = new ScoringEngine();
     private readonly writer = new ScoreWriter();
@@ -82,7 +84,8 @@ export class RecomputeOrchestrator {
     ): Promise<Map<string, ScoreResult>> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
-        return this.computeForModel(model, asOf, contextUser);
+        // Preview (no persistence) — un-approved Action-backed drafts are allowed so authors can test.
+        return this.computeForModel(model, asOf, contextUser, false);
     }
 
     /**
@@ -178,7 +181,8 @@ export class RecomputeOrchestrator {
 
         const run = await this.startRun(model, contextUser);
         try {
-            const scores = await this.computeForModel(model, asOf, contextUser);
+            // Persist path — Action-backed factors must be Approved before they move real scores.
+            const scores = await this.computeForModel(model, asOf, contextUser, true);
             const recordsScored = await this.writer.write(
                 model,
                 model.CurrentVersionID,
@@ -204,6 +208,7 @@ export class RecomputeOrchestrator {
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
         contextUser: UserInfo,
+        requireApprovedActionFactors: boolean,
     ): Promise<Map<string, ScoreResult>> {
         const anchorIds = await this.resolvePopulation(model, contextUser);
         if (anchorIds.length === 0) {
@@ -216,6 +221,7 @@ export class RecomputeOrchestrator {
             asOf,
             ctx,
             contextUser,
+            requireApprovedActionFactors,
         );
         const scoringSpec = await this.resolveScoringSpec(model, contextUser);
         return this.scorer.score(scoringSpec, factors, anchorIds);
@@ -371,6 +377,7 @@ export class RecomputeOrchestrator {
         asOf: Date,
         ctx: FactorEvaluationContext,
         contextUser: UserInfo,
+        requireApprovedActionFactors: boolean,
     ): Promise<WeightedFactor[]> {
         const modelFactors = await this.loadRubric(model, contextUser);
         if (modelFactors.length === 0) {
@@ -384,6 +391,32 @@ export class RecomputeOrchestrator {
             if (!factor) {
                 throw new Error(
                     `RecomputeOrchestrator: Factor ${mf.FactorID} referenced by the rubric was not found.`,
+                );
+            }
+            // Governance gate: an Action-backed factor runs arbitrary code, so it must be promoted to
+            // Approved before it can move PERSISTED scores. Only enforced on the persist path (recompute);
+            // a no-persist preview (computeScores) runs un-approved drafts so authors can test first.
+            if (
+                requireApprovedActionFactors &&
+                factor.FactorType === "ActionBacked" &&
+                factor.PromotionState !== "Approved"
+            ) {
+                throw new Error(
+                    `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
+                );
+            }
+            // ⚠ Cost ceiling (see ACTION_FACTOR_POPULATION_SOFT_CAP). An action factor fires one Action
+            // call per anchor with no cross-run caching/budgeting yet, so make a large fan-out LOUD rather
+            // than let an expensive recompute happen silently.
+            if (
+                factor.FactorType === "ActionBacked" &&
+                anchorIds.length > ACTION_FACTOR_POPULATION_SOFT_CAP
+            ) {
+                LogStatus(
+                    `⚠ Sonar: action-backed factor '${factor.Name}' will make ${anchorIds.length} Action ` +
+                        `calls this recompute (one per anchor; >${ACTION_FACTOR_POPULATION_SOFT_CAP} soft cap). ` +
+                        `Result caching / IsExpensive budgeting / rate limiting are not implemented yet — ` +
+                        `expect proportional cost + latency.`,
                 );
             }
             const evaluator = await this.compiler.compile(factor, contextUser);

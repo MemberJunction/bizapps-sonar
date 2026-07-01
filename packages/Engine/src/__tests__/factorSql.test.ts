@@ -99,10 +99,31 @@ describe("buildAggregateExpression", () => {
         ).toThrow(/not a column/);
     });
 
-    it("throws on a deferred aggregation", () => {
-        expect(() =>
-            buildAggregateExpression("TrendSlope", "Amount", columns),
-        ).toThrow(/unsupported aggregation/);
+    it("maps Exists to a 1/0 presence flag with no field needed", () => {
+        expect(buildAggregateExpression("Exists", null, columns)).toBe(
+            "CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END",
+        );
+    });
+
+    it("maps Recency to days-since-most-recent (at/before @asOf, future rows ignored)", () => {
+        expect(buildAggregateExpression("Recency", "ActivityDate", ["ID", "ActivityDate"])).toBe(
+            "DATEDIFF(day, MAX(CASE WHEN [ActivityDate] <= @asOf THEN [ActivityDate] END), @asOf)",
+        );
+    });
+
+    it("throws when Recency has no date field", () => {
+        expect(() => buildAggregateExpression("Recency", null, columns)).toThrow(
+            /requires an AggregateFieldName/,
+        );
+    });
+
+    it("still throws on the not-yet-supported aggregations", () => {
+        expect(() => buildAggregateExpression("TrendSlope", "Amount", columns)).toThrow(
+            /TrendSlope not yet/,
+        );
+        expect(() => buildAggregateExpression("RatePerPeriod", "Amount", columns)).toThrow(
+            /RatePerPeriod and TrendSlope not yet/,
+        );
     });
 });
 

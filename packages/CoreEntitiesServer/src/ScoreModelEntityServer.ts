@@ -168,6 +168,57 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 "CombineExpression is required when CombineStrategy is 'ExpressionDriven'.",
             );
         }
+        await this.validateActionFactorsApproved(result);
+    }
+
+    /**
+     * Publishability check: every Action-backed factor in the rubric must be `PromotionState='Approved'`.
+     * Closes the governance gap (PR review #2) where a model with a Draft action factor could be published
+     * and then throw on EVERY persisted recompute — the engine's persist path requires Approved action
+     * factors (RecomputeOrchestrator), and that failure would otherwise surface at run time, not publish
+     * time. Enforcing it here keeps the two consistent: if it published, a recompute won't fail the whole
+     * run on an un-promoted action factor.
+     *
+     * All-or-nothing is intentional (matches the engine): silently EXCLUDING an un-approved factor would
+     * change the model's scoring behind the operator's back. The gate is loud, not lossy — approve the
+     * factor or remove it from the rubric.
+     */
+    private async validateActionFactorsApproved(result: ValidationResult): Promise<void> {
+        const rv = new RunView();
+        const rubric = await rv.RunView<{ FactorID: string }>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Model Factors",
+                ExtraFilter: `ScoreModelID='${this.ID}'`,
+                Fields: ["FactorID"],
+                ResultType: "simple",
+            },
+            this.ContextCurrentUser,
+        );
+        const ids = (rubric.Results ?? []).map((r) => r.FactorID).filter(Boolean);
+        if (ids.length === 0) {
+            return; // no rubric → the factor-count check above already blocks the publish
+        }
+        const idList = ids.map((id) => `'${id}'`).join(",");
+        const unapproved = await rv.RunView<{ Name: string }>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Factors",
+                ExtraFilter:
+                    `ID IN (${idList}) AND FactorType='ActionBacked' ` +
+                    `AND (PromotionState IS NULL OR PromotionState <> 'Approved')`,
+                Fields: ["Name"],
+                ResultType: "simple",
+            },
+            this.ContextCurrentUser,
+        );
+        const names = (unapproved.Results ?? []).map((r) => r.Name);
+        if (names.length > 0) {
+            this.addFailure(
+                result,
+                "ModelFactors",
+                `Every action-backed factor must be Approved before publishing — not yet approved: ${names.join(", ")}. ` +
+                    `Approve them (or remove them from the rubric); otherwise a published model would fail every recompute.`,
+            );
+        }
     }
 
     /** True when an existence-check view (MaxRows:1) returned at least one row. */
