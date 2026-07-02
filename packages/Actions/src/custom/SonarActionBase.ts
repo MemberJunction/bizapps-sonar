@@ -1,6 +1,6 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
-import { RunView } from "@memberjunction/core";
+import { Metadata, RunView } from "@memberjunction/core";
 
 const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 
@@ -56,6 +56,33 @@ export abstract class SonarActionBase extends BaseAction {
     /** A uniform failure result (echoes the input params, like the rest of MJ). */
     protected fail(params: RunActionParams, code: string, message: string): ActionResultSimple {
         return { Success: false, ResultCode: code, Message: message, Params: params.Params };
+    }
+
+    /** Authorization gate for a high-impact write whose STORAGE entity is more permissive than the
+     *  thing it conceptually edits. Checks the caller's Update permission on `entityName` (the entity
+     *  the change really affects) and returns a teaching failure when they lack it, else null. Needed
+     *  because MJ enforces permissions on the row you Save() — so an action that saves an incidental,
+     *  broadly-writable storage row (e.g. a shared Template Content) would otherwise let a low-privilege
+     *  caller mutate something they can't touch directly. Runs as the caller (params.ContextUser). */
+    protected requireEntityUpdate(
+        params: RunActionParams,
+        entityName: string,
+        whatItAffects: string,
+    ): ActionResultSimple | null {
+        const user = params.ContextUser;
+        if (!user) {
+            return this.fail(params, "UNAUTHORIZED", "No context user is set; this action cannot be authorized.");
+        }
+        const entity = new Metadata().EntityByName(entityName);
+        if (!entity) {
+            return this.fail(params, "ERROR", `Entity '${entityName}' not found in metadata.`);
+        }
+        if (!entity.GetUserPermisions(user).CanUpdate) {
+            return this.failWithFix(params, "UNAUTHORIZED",
+                `You don't have permission to update ${whatItAffects}.`,
+                `this action edits ${whatItAffects}; ask an administrator for update rights on the '${entityName}' entity. Do NOT retry as the same user.`);
+        }
+        return null;
     }
 
     /** Pull a human-readable save error off a BaseEntity result. Surface this in `fail` instead of a
