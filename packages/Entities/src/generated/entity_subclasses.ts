@@ -222,6 +222,11 @@ export const mjBizAppsSonarFactorSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    DateField: z.string().nullable().describe(`
+        * * Field Name: DateField
+        * * Display Name: Date Field
+        * * SQL Data Type: nvarchar(200)
+        * * Description: The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).`),
     ScoreModel: z.string().nullable().describe(`
         * * Field Name: ScoreModel
         * * Display Name: Score Model
@@ -483,7 +488,7 @@ export const mjBizAppsSonarScoreBandTransitionSchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.`),
     FromBandID: z.string().nullable().describe(`
         * * Field Name: FromBandID
@@ -719,7 +724,7 @@ export const mjBizAppsSonarScoreHistorySchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`),
     NormalizedScore: z.number().nullable().describe(`
         * * Field Name: NormalizedScore
@@ -1239,7 +1244,7 @@ export const mjBizAppsSonarScoreSchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`),
     AnchorRecordKeyJSON: z.string().nullable().describe(`
         * * Field Name: AnchorRecordKeyJSON
@@ -1916,6 +1921,19 @@ export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorE
     }
 
     /**
+    * * Field Name: DateField
+    * * Display Name: Date Field
+    * * SQL Data Type: nvarchar(200)
+    * * Description: The date column on the factor's related (source) entity that a time window filters on — the "when did it happen" column (e.g. RegistrationDate). Used by Rolling/Calendar/SinceEvent windows; null = no date filter (count everything in scope).
+    */
+    get DateField(): string | null {
+        return this.Get('DateField');
+    }
+    set DateField(value: string | null) {
+        this.Set('DateField', value);
+    }
+
+    /**
     * * Field Name: ScoreModel
     * * Display Name: Score Model
     * * SQL Data Type: nvarchar(200)
@@ -2565,7 +2583,7 @@ export class mjBizAppsSonarScoreBandTransitionEntity extends BaseEntity<mjBizApp
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {
@@ -3174,7 +3192,7 @@ export class mjBizAppsSonarScoreHistoryEntity extends BaseEntity<mjBizAppsSonarS
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {
@@ -4442,7 +4460,7 @@ export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEnt
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {

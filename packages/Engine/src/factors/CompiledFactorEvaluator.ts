@@ -8,9 +8,11 @@ import {
 import {
     AggregateRow,
     CompiledFactorSpec,
+    buildAnchorKeysJson,
     buildFactorSql,
     mapAggregateRows,
 } from "./factorSql";
+import type { AnchorKey } from "./anchorKey";
 
 /**
  * Runs a CompiledFactorSpec as one set-based query and returns the per-anchor results.
@@ -21,20 +23,20 @@ export class CompiledFactorEvaluator implements IFactorEvaluator {
     constructor(private readonly spec: CompiledFactorSpec) {}
 
     public async evaluateBatch(
-        anchorIds: string[],
+        anchors: AnchorKey[],
         asOf: Date,
         ctx: FactorEvaluationContext,
     ): Promise<Map<string, FactorResult>> {
-        if (anchorIds.length === 0) {
+        if (anchors.length === 0) {
             return new Map();
         }
 
         const provider = (ctx.provider ??
             Metadata.Provider) as SQLServerDataProvider;
-        const sql = buildFactorSql(this.spec, anchorIds);
+        const sql = buildFactorSql(this.spec);
         const rows = (await provider.ExecuteSQL(
             sql,
-            { asOf, ...(this.spec.filterParams ?? {}) },
+            { asOf, anchorKeys: buildAnchorKeysJson(anchors), ...(this.spec.filterParams ?? {}) },
             undefined,
             ctx.contextUser,
         )) as AggregateRow[];

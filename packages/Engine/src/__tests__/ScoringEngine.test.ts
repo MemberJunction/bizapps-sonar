@@ -99,7 +99,22 @@ describe("ScoringEngine", () => {
             weightedValue: 0.6 * 0.53,
             hadData: true,
             missingDataApplied: false,
+            explanation: null,
         });
+    });
+
+    it("carries the factor's explanation onto the contribution (explainability)", () => {
+        const rubric: WeightedFactor[] = [
+            {
+                factorId: "activity",
+                modelFactorId: "mf-activity",
+                weight: 1,
+                missingDataPolicy: "Zero",
+                results: new Map([["m1", { rawValue: 5, normalizedContribution: 0.8, hadData: true, explanation: "warm, recent reviews" }]]),
+            },
+        ];
+        const c = new ScoringEngine().score(spec, rubric, ["m1"]).get("m1")?.contributions[0];
+        expect(c?.explanation).toBe("warm, recent reviews");
     });
 
     it("Zero policy: a missing factor counts as 0 but keeps its weight (drags the score)", () => {
