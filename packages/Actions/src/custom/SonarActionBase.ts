@@ -18,6 +18,22 @@ export abstract class SonarActionBase extends BaseAction {
         return p?.Value != null && p.Value !== "" ? String(p.Value) : null;
     }
 
+    /** Escape a value for safe interpolation into a single-quoted SQL literal inside a RunView
+     *  ExtraFilter. MJ does NOT parameterize ExtraFilter, and these actions are agent/UI-callable, so
+     *  every id or string spliced into a filter is an injection surface — doubling embedded quotes
+     *  keeps a crafted value from breaking out of the literal. Use for EVERY interpolated value. */
+    protected sqlString(value: string): string {
+        return String(value).replace(/'/g, "''");
+    }
+
+    /** Strict UUID check (canonical 8-4-4-4-12 hex). Sonar ids are GUIDs; use this to REJECT a
+     *  malformed id up front with a teaching error. `sqlString` is what makes interpolation safe
+     *  regardless; this is the validity gate (unlike a loose char-class, it won't pass junk like
+     *  all-dashes). */
+    protected isGuid(v: string): boolean {
+        return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v);
+    }
+
     /** Read a param that may arrive as a JSON STRING (the browser/UI passes that) OR an already-parsed
      *  OBJECT (an LLM agent's tool call passes the object directly — `String(obj)` would mangle it to
      *  "[object Object]" and fail JSON.parse). Tolerates a markdown ```json fence. null when
@@ -72,7 +88,7 @@ export abstract class SonarActionBase extends BaseAction {
      *  the agent exactly what to do instead of letting it loop on a raw "save failed". */
     protected async modelEditableError(params: RunActionParams, modelId: string): Promise<ActionResultSimple | null> {
         const res = await new RunView().RunView(
-            { EntityName: SCORE_MODEL, ExtraFilter: `ID='${modelId}'`, MaxRows: 1, ResultType: "simple", Fields: ["Name", "Status"] },
+            { EntityName: SCORE_MODEL, ExtraFilter: `ID='${this.sqlString(modelId)}'`, MaxRows: 1, ResultType: "simple", Fields: ["Name", "Status"] },
             params.ContextUser,
         );
         const row = res.Success && res.Results.length ? (res.Results[0] as { Name?: string; Status?: string }) : null;

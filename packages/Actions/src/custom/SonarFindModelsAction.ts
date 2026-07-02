@@ -26,7 +26,7 @@ export class SonarFindModelsAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         try {
             const query = (this.getInput(params, "NameQuery") ?? "").trim();
-            const filter = query ? `Name LIKE '%${query.replace(/'/g, "''")}%'` : "";
+            const filter = query ? `Name LIKE '%${this.sqlString(query)}%'` : "";
             const res = await new RunView().RunView<ModelRow>(
                 {
                     EntityName: SCORE_MODEL,

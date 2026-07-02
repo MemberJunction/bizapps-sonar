@@ -26,6 +26,10 @@ export class SonarRefineFactorActionAction extends SonarActionBase {
         const targetActionId = this.getInput(params, "TargetActionID");
         const feedback = this.getInput(params, "Feedback");
         if (!targetActionId) return this.fail(params, "VALIDATION_ERROR", "TargetActionID is required (the signal to improve).");
+        if (!this.isGuid(targetActionId)) {
+            return this.failWithFix(params, "VALIDATION_ERROR", `TargetActionID '${targetActionId}' is not a valid GUID.`,
+                "pass the action's GUID id (from Sonar: List Factor Actions).");
+        }
         if (!feedback) return this.fail(params, "VALIDATION_ERROR", "Feedback is required (what to change).");
 
         try {
@@ -97,7 +101,7 @@ ${currentCode}
         const res = await new RunView().RunView<MJActionEntity>(
             {
                 EntityName: "MJ: Actions",
-                ExtraFilter: `Type='Runtime' AND Status='Active' AND ID<>'${targetActionId}' AND __mj_CreatedAt>='${sinceIso}'`,
+                ExtraFilter: `Type='Runtime' AND Status='Active' AND ID<>'${this.sqlString(targetActionId)}' AND __mj_CreatedAt>='${sinceIso}'`,
                 OrderBy: "__mj_CreatedAt DESC",
                 MaxRows: 1,
                 ResultType: "entity_object",

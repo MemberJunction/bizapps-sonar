@@ -46,7 +46,7 @@ export class SonarGetPromptAction extends SonarActionBase {
     ): Promise<{ promptId: string | null; templateContentId: string | null; text: string; error?: string }> {
         const empty = { promptId: null, templateContentId: null, text: "" };
         const pr = await new RunView().RunView<PromptRow>(
-            { EntityName: AI_PROMPT, ExtraFilter: `Name='${promptName.replace(/'/g, "''")}'`, Fields: ["ID", "TemplateID"], MaxRows: 1, ResultType: "simple" },
+            { EntityName: AI_PROMPT, ExtraFilter: `Name='${this.sqlString(promptName)}'`, Fields: ["ID", "TemplateID"], MaxRows: 1, ResultType: "simple" },
             contextUser,
         );
         const prompt = pr.Success ? pr.Results?.[0] : undefined;
@@ -54,7 +54,7 @@ export class SonarGetPromptAction extends SonarActionBase {
         if (!prompt.TemplateID) return { ...empty, promptId: prompt.ID, error: "Prompt has no template." };
 
         const cr = await new RunView().RunView<ContentRow>(
-            { EntityName: TEMPLATE_CONTENT, ExtraFilter: `TemplateID='${prompt.TemplateID}'`, Fields: ["ID", "TemplateText"], OrderBy: "Priority ASC", MaxRows: 1, ResultType: "simple" },
+            { EntityName: TEMPLATE_CONTENT, ExtraFilter: `TemplateID='${this.sqlString(prompt.TemplateID)}'`, Fields: ["ID", "TemplateText"], OrderBy: "Priority ASC", MaxRows: 1, ResultType: "simple" },
             contextUser,
         );
         const content = cr.Success ? cr.Results?.[0] : undefined;
