@@ -69,16 +69,25 @@ interface BuildContext {
     validColumns: string[];
     params: Record<string, FilterValue>;
     counter: { next: number };
+    /** Leaf-table handle prefixed onto every column (e.g. "[CRM].[Activity]"), or "" for unqualified.
+     *  Set for the set-based join query (where a bare column can be ambiguous); empty for the
+     *  single-entity RunView/inline path. */
+    columnQualifier: string;
 }
 
 /**
  * Compile a Kendo filter tree into a parameterized WHERE fragment. Every field is validated
  * against the related entity's real columns (typo + injection guard) and every value is
  * parameterized. Returns a null clause when there is no filter.
+ *
+ * `columnQualifier` (optional) prefixes each column with the leaf table's handle so the fragment is
+ * safe to splice into a multi-hop join query; omit it for the single-entity path where a bare column
+ * name can't be ambiguous.
  */
 export function compileFilter(
     filter: CompositeFilterDescriptor | null,
     validColumns: string[],
+    columnQualifier: string = "",
 ): CompiledFilter {
     if (!filter) {
         return { clause: null, params: {} };
@@ -91,7 +100,7 @@ export function compileFilter(
     if (filter.filters.length === 0) {
         return { clause: null, params: {} };
     }
-    const ctx: BuildContext = { validColumns, params: {}, counter: { next: 0 } };
+    const ctx: BuildContext = { validColumns, params: {}, counter: { next: 0 }, columnQualifier };
     return { clause: buildGroup(filter, ctx), params: ctx.params };
 }
 
@@ -152,7 +161,8 @@ function buildGroup(group: CompositeFilterDescriptor, ctx: BuildContext): string
 
 /** Translate one leaf condition into a SQL predicate, registering any parameter it needs. */
 function buildLeaf(leaf: FilterDescriptor, ctx: BuildContext): string {
-    const column = `[${requireColumn(leaf.field, ctx.validColumns)}]`;
+    const name = requireColumn(leaf.field, ctx.validColumns);
+    const column = ctx.columnQualifier ? `${ctx.columnQualifier}.[${name}]` : `[${name}]`;
 
     if (NULL_OPERATORS.has(leaf.operator)) {
         const negated =

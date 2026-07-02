@@ -1178,7 +1178,7 @@ export class mjBizAppsSonarScoreBandTransition_ {
     ScoreModelID: string;
         
     @Field({description: `Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.`}) 
-    @MaxLength(100)
+    @MaxLength(450)
     AnchorRecordID: string;
         
     @Field({nullable: true}) 
@@ -1911,7 +1911,7 @@ export class mjBizAppsSonarScoreHistory_ {
     AnchorEntityID: string;
         
     @Field({description: `Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`}) 
-    @MaxLength(100)
+    @MaxLength(450)
     AnchorRecordID: string;
         
     @Field(() => Float, {nullable: true, description: `The headline normalized score at this point in time.`}) 
@@ -3379,7 +3379,7 @@ export class mjBizAppsSonarScore_ {
     AnchorEntityID: string;
         
     @Field({description: `Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`}) 
-    @MaxLength(100)
+    @MaxLength(450)
     AnchorRecordID: string;
         
     @Field({nullable: true, description: `Optional JSON representation of a composite anchor key.`}) 

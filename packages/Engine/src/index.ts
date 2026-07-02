@@ -19,5 +19,6 @@ export * from "./factors/anchorKey";
 export * from "./normalization/NormalizationEngine";
 export * from "./scoring/ScoringEngine";
 export * from "./scoring/contributionDetail";
+export * from "./scoring/scoreTrend";
 export * from "./orchestration/RecomputeOrchestrator";
 export * from "./orchestration/ScoreWriter";
