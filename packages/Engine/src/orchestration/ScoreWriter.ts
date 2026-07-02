@@ -9,6 +9,15 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
 import { encodeContributionDetail } from "../scoring/contributionDetail";
+import {
+    BandTransition,
+    TrendBaseline,
+    computeDelta,
+    dataCompleteness,
+    detectBandTransition,
+    latestBaselinePerAnchor,
+    trendDirection,
+} from "../scoring/scoreTrend";
 import type { AnchorKey } from "../factors/anchorKey";
 
 /**
@@ -75,9 +84,10 @@ export class ScoreWriter {
             await this.writeHistory(score, result, contextUser);
             // A band change is a transition measured run-over-run (vs the immediately-prior band),
             // independent of the trend window; its Direction comes from the run-over-run move.
-            if (prior && priorBand !== result.bandId) {
-                const lastRunDelta = prior.NormalizedScore != null ? result.normalizedScore - prior.NormalizedScore : null;
-                await this.writeBandTransition(model, anchorRecordId, priorBand, result, lastRunDelta, runId, contextUser);
+            const lastRunDelta = prior ? computeDelta(result.normalizedScore, prior.NormalizedScore) : null;
+            const transition = detectBandTransition(priorBand, result.bandId, !!prior, lastRunDelta);
+            if (transition) {
+                await this.writeBandTransition(model, anchorRecordId, transition, runId, contextUser);
             }
             recordsScored++;
         }
@@ -100,7 +110,7 @@ export class ScoreWriter {
         model: mjBizAppsSonarScoreModelEntity,
         cutoff: Date,
         contextUser: UserInfo,
-    ): Promise<Map<string, { score: number | null; band: string | null }>> {
+    ): Promise<Map<string, TrendBaseline>> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Histories",
@@ -111,14 +121,8 @@ export class ScoreWriter {
             },
             contextUser,
         );
-        const byAnchor = new Map<string, { score: number | null; band: string | null }>();
-        for (const h of result.Success ? (result.Results ?? []) : []) {
-            // Ordered AsOfDate DESC → the first row seen per anchor is the most recent pre-cutoff one.
-            if (!byAnchor.has(h.AnchorRecordID)) {
-                byAnchor.set(h.AnchorRecordID, { score: h.NormalizedScore, band: h.BandID });
-            }
-        }
-        return byAnchor;
+        // Ordered AsOfDate DESC → the first row seen per anchor is the most recent pre-cutoff one.
+        return latestBaselinePerAnchor(result.Success ? (result.Results ?? []) : []);
     }
 
     /** Current Score rows for this model, keyed by AnchorRecordID (for find-or-create). */
@@ -204,27 +208,12 @@ export class ScoreWriter {
         score.BandID = result.bandId;
         score.PreviousNormalizedScore = prevScore;
         score.PreviousBandID = prevBand;
-        score.Delta = prevScore !== null ? result.normalizedScore - prevScore : null;
-        score.TrendDirection = this.trendDirection(score.Delta);
-        score.DataCompleteness = this.dataCompleteness(result);
+        score.Delta = computeDelta(result.normalizedScore, prevScore);
+        score.TrendDirection = trendDirection(score.Delta);
+        score.DataCompleteness = dataCompleteness(result.contributions);
         score.ComputedAt = new Date();
         score.AsOfDate = asOf;
         score.IsStale = false;
-    }
-
-    /** Up / Flat / Down from the score delta (null when there's no prior score to compare).
-     *  ±0.5 deadband so float noise on a 0–100 scale doesn't read as movement. */
-    private trendDirection(delta: number | null): "Up" | "Flat" | "Down" | null {
-        if (delta === null) return null;
-        if (delta > 0.5) return "Up";
-        if (delta < -0.5) return "Down";
-        return "Flat";
-    }
-
-    /** Fraction (0–1) of the counted factors that had real data for this anchor. */
-    private dataCompleteness(result: ScoreResult): number | null {
-        if (result.contributions.length === 0) return null;
-        return result.contributions.filter((c) => c.hadData).length / result.contributions.length;
     }
 
     /** Insert the fresh contribution breakdown for one score. */
@@ -297,15 +286,13 @@ export class ScoreWriter {
 
     /**
      * Record a band crossing (e.g. Healthy → At-Risk) so the action layer has a queue to react to.
-     * Handled=false marks it un-actioned; Direction is the human read of the move. Only called
-     * when the band actually changed on an already-scored anchor.
+     * Handled=false marks it un-actioned; Direction is the human read of the move. Only called with
+     * a real transition (detectBandTransition already gated it on an actual band change).
      */
     private async writeBandTransition(
         model: mjBizAppsSonarScoreModelEntity,
         anchorRecordId: string,
-        fromBandId: string | null,
-        result: ScoreResult,
-        delta: number | null,
+        transition: BandTransition,
         runId: string | undefined,
         contextUser: UserInfo,
     ): Promise<void> {
@@ -317,10 +304,9 @@ export class ScoreWriter {
         tr.NewRecord();
         tr.ScoreModelID = model.ID;
         tr.AnchorRecordID = anchorRecordId;
-        tr.FromBandID = fromBandId;
-        tr.ToBandID = result.bandId;
-        // delta>=0 means the normalized score rose — moving toward a better band.
-        tr.Direction = (delta ?? 0) >= 0 ? "Improving" : "Worsening";
+        tr.FromBandID = transition.fromBandId;
+        tr.ToBandID = transition.toBandId;
+        tr.Direction = transition.direction;
         tr.OccurredAt = new Date();
         if (runId) tr.RecomputeRunID = runId;
         tr.Handled = false;

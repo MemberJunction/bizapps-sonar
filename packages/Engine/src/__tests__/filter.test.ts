@@ -96,6 +96,22 @@ describe("compileFilter", () => {
         expect(clause).toBe("([Amount] > @f0)");
     });
 
+    it("prefixes columns with the leaf-table qualifier when one is given (multi-hop safety)", () => {
+        const { clause, params } = compileFilter(
+            group(
+                "and",
+                { field: "ActivityType", operator: "eq", value: "EmailOpen" },
+                { field: "Amount", operator: "gt", value: 0 },
+            ),
+            columns,
+            "[CRM].[Activity]",
+        );
+        expect(clause).toBe(
+            "([CRM].[Activity].[ActivityType] = @f0 AND [CRM].[Activity].[Amount] > @f1)",
+        );
+        expect(params).toEqual({ f0: "EmailOpen", f1: 0 });
+    });
+
     it("throws on an unknown field (typo / injection guard)", () => {
         expect(() =>
             compileFilter(

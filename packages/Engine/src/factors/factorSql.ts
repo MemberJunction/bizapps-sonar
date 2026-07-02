@@ -105,9 +105,17 @@ export function buildFactorSql(spec: CompiledFactorSpec): string {
     // Single-hop is qualified by the related table's full name (no alias) so the multi-hop leftRefs
     // — which reference that full name on hop 1 — keep resolving.
     const keyQualifier = joins.length ? joins[joins.length - 1].alias : spec.relatedTable;
+    // Every leaf-table column (window date column here; aggregate + filter columns were qualified at
+    // compile time) rides the leaf's full table name as its qualifier — the same handle the FROM +
+    // hop-1 leftRefs use. Without this a multi-hop query (leaf JOIN h1 JOIN … + maybe anchor `a`)
+    // throws "Ambiguous column name" the moment a leaf column shares a name with any joined table's.
 
     const withCols = [
-        "id NVARCHAR(100) '$.id'",
+        // 450 matches the persisted Score.AnchorRecordID width (MJ's indexed record-key standard):
+        // a composite canonical id (escaped join of several key columns) can run past 100 chars, and
+        // a narrower shred here would truncate it — silently mismatching the caller's full id (anchor
+        // scored as no-data) or colliding two anchors that share a 100-char prefix.
+        "id NVARCHAR(450) '$.id'",
         ...spec.anchorKeyColumns.map((c, i) => `v${i} ${c.sqlType} '$.v${i}'`),
     ].join(", ");
     const keyJoinOn = spec.anchorKeyColumns
@@ -130,7 +138,7 @@ export function buildFactorSql(spec: CompiledFactorSpec): string {
         );
     }
 
-    const where = [...windowClause(spec.window)];
+    const where = [...windowClause(spec.window, spec.relatedTable)];
     if (spec.filterClause) {
         where.push(spec.filterClause);
     }
@@ -161,12 +169,14 @@ export function buildAnchorKeysJson(anchors: AnchorKey[]): string {
     );
 }
 
-/** The date predicate(s) for a window (per kind), or nothing when there is no window. */
-function windowClause(window: CompiledWindow | null): string[] {
+/** The date predicate(s) for a window (per kind), or nothing when there is no window. `leafQualifier`
+ *  is the leaf table's handle, prefixed onto the activity-date column so it's unambiguous under joins.
+ *  The per-anchor kinds' boundary date lives on the anchor row, so it stays qualified by `a`. */
+function windowClause(window: CompiledWindow | null, leafQualifier: string): string[] {
     if (!window) {
         return [];
     }
-    const col = `[${window.dateColumn}]`;
+    const col = `${leafQualifier}.[${window.dateColumn}]`;
     switch (window.kind) {
         case "Rolling": {
             // Months take precedence when set (DATEADD month handles variable month lengths).
@@ -269,15 +279,24 @@ const FIELD_AGGREGATE_FUNCTIONS: Record<string, string> = {
  * Supported: Count, Sum, Avg, Min, Max, DistinctCount, **Exists**, **Recency**. RatePerPeriod and
  * TrendSlope are NOT here — they need extra query context (window length / a per-period CTE) and
  * are handled (or deferred) by the compiler, not this single-expression builder.
+ *
+ * `leafQualifier` is the leaf (measure) table's handle (its full bracket-quoted name — the same one
+ * used in the FROM); every column reference is prefixed with it so multi-hop queries don't hit
+ * ambiguous-column errors.
  */
 export function buildAggregateExpression(
     aggregation: string | null,
     aggregateFieldName: string | null,
     validColumns: string[],
+    leafQualifier: string,
 ): string {
     if (!aggregation) {
         throw new Error("buildAggregateExpression: factor has no Aggregation set.");
     }
+    // Aggregate columns live on the leaf (measure) table — qualify them so a multi-hop query with a
+    // colliding column name on a joined table doesn't throw "Ambiguous column name". Count/Exists
+    // are COUNT(*) (no column), so they need no qualifier.
+    const q = (col: string) => `${leafQualifier}.[${col}]`;
     switch (aggregation) {
         case "Count":
             return "COUNT(*)";
@@ -291,18 +310,18 @@ export function buildAggregateExpression(
         // → NULL rawValue → no data. Lower = more recent, so factors usually set HigherIsBetter=false.
         case "Recency": {
             const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
-            return `DATEDIFF(day, MAX(CASE WHEN [${col}] <= @asOf THEN [${col}] END), @asOf)`;
+            return `DATEDIFF(day, MAX(CASE WHEN ${q(col)} <= @asOf THEN ${q(col)} END), @asOf)`;
         }
         case "DistinctCount": {
             const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
-            return `COUNT(DISTINCT [${col}])`;
+            return `COUNT(DISTINCT ${q(col)})`;
         }
         case "Sum":
         case "Avg":
         case "Min":
         case "Max": {
             const col = requireValidColumn(aggregation, aggregateFieldName, validColumns);
-            return `${FIELD_AGGREGATE_FUNCTIONS[aggregation]}([${col}])`;
+            return `${FIELD_AGGREGATE_FUNCTIONS[aggregation]}(${q(col)})`;
         }
         default:
             throw new Error(

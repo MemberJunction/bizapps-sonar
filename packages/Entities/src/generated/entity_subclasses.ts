@@ -488,7 +488,7 @@ export const mjBizAppsSonarScoreBandTransitionSchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.`),
     FromBandID: z.string().nullable().describe(`
         * * Field Name: FromBandID
@@ -724,7 +724,7 @@ export const mjBizAppsSonarScoreHistorySchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`),
     NormalizedScore: z.number().nullable().describe(`
         * * Field Name: NormalizedScore
@@ -1244,7 +1244,7 @@ export const mjBizAppsSonarScoreSchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.`),
     AnchorRecordKeyJSON: z.string().nullable().describe(`
         * * Field Name: AnchorRecordKeyJSON
@@ -2583,7 +2583,7 @@ export class mjBizAppsSonarScoreBandTransitionEntity extends BaseEntity<mjBizApp
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the anchor record that crossed bands, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {
@@ -3192,7 +3192,7 @@ export class mjBizAppsSonarScoreHistoryEntity extends BaseEntity<mjBizAppsSonarS
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {
@@ -4460,7 +4460,7 @@ export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEnt
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Primary-key value of the scored anchor record, stored as a string to stay entity-agnostic.
     */
     get AnchorRecordID(): string {

@@ -207,8 +207,11 @@ export class FactorCompiler {
             factor.AnchorEntityID,
         );
         const validColumns = leafEntity.Fields.map((f) => f.Name);
+        // The leaf table's handle — every leaf column (aggregate/window/filter) is qualified with it
+        // so a multi-hop join never hits an ambiguous-column error on a shared column name.
+        const leafTable = `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`;
         const window = await this.resolveWindow(factor, validColumns, contextUser);
-        const filter = this.resolveFilter(factor, validColumns);
+        const filter = this.resolveFilter(factor, validColumns, leafTable);
         const anchorJoin = windowNeedsAnchorJoin(window)
             ? this.resolveAnchorTable(factor.AnchorEntityID)
             : { table: null, pkColumn: null };
@@ -224,7 +227,7 @@ export class FactorCompiler {
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
-            relatedTable: `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`,
+            relatedTable: leafTable,
             anchorKeyColumns,
             joins,
             window,
@@ -236,6 +239,7 @@ export class FactorCompiler {
                 factor.Aggregation,
                 factor.AggregateFieldName,
                 validColumns,
+                leafTable,
             ),
             filterClause: filter.clause,
             filterParams: filter.params,
@@ -264,6 +268,7 @@ export class FactorCompiler {
     private resolveFilter(
         factor: mjBizAppsSonarFactorEntity,
         validColumns: string[],
+        leafQualifier: string,
     ): CompiledFilter {
         if (!factor.FilterExpression) {
             return { clause: null, params: {} };
@@ -278,7 +283,8 @@ export class FactorCompiler {
                 `FactorCompiler: factor ${factor.ID} has invalid FilterExpression JSON.`,
             );
         }
-        return compileFilter(parsed, validColumns);
+        // Qualify filter columns with the leaf table so the fragment survives multi-hop joins.
+        return compileFilter(parsed, validColumns, leafQualifier);
     }
 
     /** Fail loud on factor kinds outside the v1 slice (aggregation support is enforced in buildAggregateExpression). */
