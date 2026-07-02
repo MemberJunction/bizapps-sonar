@@ -27,7 +27,9 @@
     "class-validator": "^0.14.3"
   },
   "peerDependencies": {
+    "@memberjunction/action-runtime-host": "^5.40.2",
     "@memberjunction/core": "^5.40.2",
+    "@memberjunction/core-actions": "^5.40.2",
     "@memberjunction/global": "^5.40.2",
     "@memberjunction/server": "^5.40.2",
     "@memberjunction/sqlserver-dataprovider": "^5.40.2"

@@ -14,7 +14,7 @@
   "scripts": {
     "start": "ts-node-dev src/index.ts",
     "build": "tsc && tsc-alias -f",
-    "test": "echo \"No tests configured yet\""
+    "test": "vitest run"
   },
   "author": "MemberJunction.com",
   "license": "ISC",
@@ -23,6 +23,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@mj-biz-apps/sonar-engine": "0.1.0",
+    "@mj-biz-apps/sonar-entities": "0.1.0",
     "zod": "~3.24.4"
   },
   "peerDependencies": {
