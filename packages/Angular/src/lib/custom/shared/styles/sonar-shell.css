@@ -1,0 +1,886 @@
+/*
+ * Sonar design system — shared by every custom Sonar resource surface.
+ *
+ * Strategy (hybrid, MJ-native + Sonar-branded): we DON'T hardcode a palette. Every color,
+ * space, radius, and font resolves from MemberJunction's global design tokens (the `--mj-*`
+ * CSS variables defined by @memberjunction/ng-shared-generic). That gets us automatic
+ * light/dark theming and visual consistency with the Explorer shell for free. On top of
+ * that base we add a thin "Sonar accent" layer — the brand gradient and the four band
+ * colors — which is what makes a Sonar surface recognizably Sonar.
+ *
+ * Each component references this file first in its styleUrls, then its own component css.
+ * Angular re-scopes these classes per component (Emulated encapsulation), so every surface
+ * gets its own copy while the look stays identical. var() fallbacks keep things sane if a
+ * token is ever missing (e.g. the isolated package build).
+ */
+
+:host {
+    /* --- map MJ tokens into short Sonar-local names --- */
+    --sonar-bg: var(--mj-bg-page, #F9FAFB);
+    --sonar-surface: var(--mj-bg-surface-card, #FFFFFF);
+    --sonar-surface-sunken: var(--mj-bg-surface-sunken, #F3F4F6);
+    --sonar-ink: var(--mj-text-primary, #111827);
+    --sonar-muted: var(--mj-text-secondary, #4B5563);
+    --sonar-faint: var(--mj-text-muted, #6B7280);
+    --sonar-border: var(--mj-border-default, #E5E7EB);
+    --sonar-border-strong: var(--mj-border-strong, #D1D5DB);
+    --sonar-brand: var(--mj-brand-primary, #6366f1);
+    /* Interactive + brand accent — focus rings, hover borders, selected/active states, the hero
+       fill, primary actions. A DELIBERATE off-MJ identity: violet. The neutral foundation stays
+       anchored to MJ's theme (bg/surface/ink/border), but the accent + splash colors are ours
+       (§2 sanctioned deviation; documented + verified both modes). Violet sits distinctly on
+       MJ's navy base and stays clear of the amber/emerald DATA colors. Light value here; the
+       dark override below lifts it brighter for the darker surface. */
+    --sonar-accent: #6d5fe0;
+    /* Text/icons sitting ON the accent fill (primary buttons, hero). White reads cleanly on the
+       violet in both modes. */
+    --sonar-on-accent: #ffffff;
+    --sonar-radius: 6px;
+    --sonar-radius-sm: 4px;
+    --sonar-gap: var(--mj-space-4, 1rem);
+    --sonar-mono: var(--mj-font-family-mono, 'JetBrains Mono', Menlo, monospace);
+    /* Fixed near-black for text sitting on saturated band fills (healthy/watch/atrisk/critical),
+       which stay bright in both themes — so this must NOT follow --sonar-ink. */
+    --sonar-on-band: #04121f;
+    /* Content column: surfaces center to this width so boxes align instead of sprawling. */
+    --sonar-content-max: 1200px;
+    /* Shadows stripped — hairline borders carry separation. Keep token for components that need an escape hatch. */
+    --sonar-shadow-sm: none;
+
+    /* --- typographic scale variables --- */
+    /* 12px / 13px / 14px / 14px — dense, precise. Metadata always 12px; primary text caps at 14px. */
+    --sonar-font-xs: 0.75rem;
+    --sonar-font-sm: 0.8125rem;
+    --sonar-font-base: 0.875rem;
+    --sonar-font-md: 0.875rem;
+    --sonar-font-lg: 0.9375rem;
+    --sonar-font-xl: 1rem;
+    --sonar-font-2xl: 1.25rem;
+    --sonar-font-3xl: 1.875rem;
+
+    /* --- Sonar accent layer --- */
+    /* Signature gradient (indigo -> cyan -> teal); used for hero text, AI panels, logos. */
+    --sonar-grad: linear-gradient(135deg, #818cf8 0%, #22d3ee 50%, #2dd4bf 100%);
+    /* Band colors — a deliberately REFINED status palette (light-mode values here; dark-mode
+       overrides below). We no longer inherit MJ's raw status-500s (#f59e0b/#22c55e/…): on a
+       large fill or a dark surface those saturated hues "vibrate" and read as a generic
+       Bootstrap warning set. These are slightly muted jewel tones — enough saturation to signal
+       status on a small chip/dot/number, calm enough to sit on a big chart area. A §2 deliberate
+       deviation: documented tokens, both modes verified, distinct from the brand accent.
+       The -bg tints derive from the base via color-mix, so they auto-follow the per-theme base. */
+    --sonar-healthy: #10b981;
+    --sonar-watch: #3b82f6;
+    --sonar-atrisk: #f97316;
+    --sonar-critical: #ef4444;
+    --sonar-healthy-bg:  color-mix(in srgb, var(--sonar-healthy)  12%, var(--sonar-surface));
+    --sonar-watch-bg:    color-mix(in srgb, var(--sonar-watch)    12%, var(--sonar-surface));
+    --sonar-atrisk-bg:   color-mix(in srgb, var(--sonar-atrisk)   12%, var(--sonar-surface));
+    --sonar-critical-bg: color-mix(in srgb, var(--sonar-critical) 12%, var(--sonar-surface));
+
+    /* The Explorer tab host gives a resource a definite height (100%) with overflow:hidden
+       and provides NO scroll itself — each surface must own its own scrolling. So :host
+       fills that height and .sonar-page becomes the internal scroll container. */
+    display: block;
+    height: 100%;
+    color: var(--sonar-ink);
+    /* Anchor every surface to the app font so typography is identical everywhere. */
+    font-family: var(--mj-font-family, "Inter", system-ui, -apple-system, sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Dark mode: NEUTRALS stay anchored to MJ's dark tokens (the :host block above already maps
+   --sonar-bg/surface/ink/border → --mj-*, and MJ re-resolves those in dark mode automatically).
+   We do NOT hard-code the canvas here — that's the documented rule (CLAUDE.md §0): anchor neutrals
+   to MJ so light/dark + Explorer-shell consistency come for free. Only the SANCTIONED Sonar accent
+   layer overrides per-mode: the violet accent lifts brighter, and the band bases shift to lighter,
+   desaturated pastels (saturated hues vibrate on a dark surface). */
+:host-context([data-theme="dark"]) {
+    /* Brighter violet for the dark surface (the light base would muddy on navy). */
+    --sonar-accent: #8b5cf6;
+    /* Band overrides — pastel tones for dark-surface legibility. */
+    --sonar-healthy: #3ddc97;
+    --sonar-watch: #6aa6f5;
+    --sonar-atrisk: #e6ab52;
+    --sonar-critical: #ef7d74;
+}
+
+/* Form controls + buttons default to the browser's UA font/size — force them to inherit
+   so dropdowns, inputs, and buttons match the surrounding text on every surface. */
+button, input, select, textarea {
+    font-family: inherit;
+}
+
+/* ============================================================ Page frame */
+
+/* Every surface is a padded column: a header, then a body region. Children center to a
+   fixed content width (--sonar-content-max) so the header and all boxes share one edge
+   and the page stays focused instead of sprawling across wide screens.
+   SINGLE SCREEN VIEW: outer container has overflow: hidden to lock viewport height. */
+.sonar-page {
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+    overflow: hidden;
+    /* Scroll floor (hybrid responsive): reflow down to ~768, then scroll horizontally rather than
+       crushing further — a workstation tool shouldn't reflow to a phone. min-width is on the
+       header+body below. */
+    overflow-x: auto;
+    box-sizing: border-box;
+    background: var(--sonar-bg);
+}
+
+.sonar-page__header, .sonar-page__body { min-width: 768px; }
+.sonar-page__header {
+    width: 100%;
+    max-width: var(--sonar-content-max);
+    margin-inline: auto;     /* center the header within the page padding */
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--sonar-gap);
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 1rem;
+    flex: 0 0 auto;
+}
+.sonar-page__heading { display: flex; align-items: center; gap: 0.75rem; }
+.sonar-page__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--sonar-radius);
+    background: color-mix(in srgb, var(--sonar-accent) 10%, var(--sonar-surface));
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 20%, var(--sonar-border));
+    color: var(--sonar-accent);
+    font-size: var(--sonar-font-lg);
+    flex-shrink: 0;
+}
+.sonar-page__title { margin: 0; font-size: var(--sonar-font-2xl); font-weight: 700; color: var(--sonar-ink); }
+.sonar-page__subtitle { margin: 0.25rem 0 0; color: var(--sonar-muted); font-size: var(--sonar-font-sm); }
+.sonar-page__actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+/* The page body scrolls internally by default, keeping header fixed. */
+.sonar-page__body {
+    width: 100%;
+    max-width: var(--sonar-content-max);
+    margin-inline: auto;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+/* Railed page body layout overrides scroll to let sidebar + main view scroll independently. */
+.sonar-page__body.sonar-with-rail {
+    overflow: hidden;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+/* ============================================================ Layout helpers */
+
+/* A "natural grouping" of related boxes under one quiet heading — the parent div that
+   chunks a surface into focused sections instead of one flat stack of cards. */
+.sonar-group { display: flex; flex-direction: column; gap: 1rem; }
+.sonar-group__title {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+    margin: 0;
+}
+
+/* Main content + fixed right rail (e.g. Model Builder preview, Manager drill-down). */
+.sonar-split { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+/* Grid items default to min-width:auto, so a wide child (e.g. the filter builder's button row)
+   can push a track past the container and cause horizontal overflow. min-width:0 lets the tracks
+   shrink and the content wrap/scroll within its column instead. */
+.sonar-split > *, .sonar-cols-2 > * { min-width: 0; }
+.sonar-cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+.sonar-stack { display: flex; flex-direction: column; gap: 1rem; }
+@media (max-width: 1100px) {
+    .sonar-split, .sonar-cols-2 { grid-template-columns: 1fr; }
+}
+
+/* Railed layout helper styling - stretches column heights and scopes scrolls */
+.sonar-with-rail {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    align-items: stretch;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+.sonar-with-rail__main {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+@media (max-width: 860px) {
+    .sonar-with-rail { flex-direction: column; overflow-y: auto; }
+    .sonar-with-rail__main { height: auto; overflow: visible; }
+}
+
+/* ============================================================ Cards & Spacing spacing variables */
+
+.sonar-card {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    padding: 1.25rem 1.5rem;
+}
+.sonar-card:hover {
+    border-color: color-mix(in srgb, var(--sonar-accent) 15%, var(--sonar-border));
+}
+.sonar-card__label {
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+    margin-bottom: 1rem; /* Standardized card label margin-bottom */
+}
+/* Card header row — a label (left) + action(s) (right) on one baseline. Promoted to the shell so
+   every card with a title+action aligns identically (was redefined ad-hoc per component; some
+   surfaces had no definition and the action wrapped to its own line). */
+.sonar-card__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+.sonar-card__head .sonar-card__label { margin-bottom: 0; }
+/* A small footnote under a card's content (caveats, units, source notes). */
+.sonar-note { margin: 0.75rem 0 0; font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.5; }
+.sonar-note .sonar-mono { color: var(--sonar-muted); }
+
+/* AI / agent panel — a quiet bordered surface (gradient ring retired). The "agent" signal comes
+   from its accent chip, not chrome. Wrap content in .sonar-ai__inner. */
+.sonar-ai {
+    border: 1px solid color-mix(in srgb, var(--sonar-brand) 20%, var(--sonar-border));
+    background: color-mix(in srgb, var(--sonar-brand) 3%, var(--sonar-surface));
+    border-radius: var(--sonar-radius);
+}
+.sonar-ai__inner { padding: 1.5rem; }
+
+/* ============================================================ Empty state */
+
+.sonar-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
+    padding: 3rem 1rem;
+    border: 1px dashed var(--sonar-border-strong);
+    border-radius: var(--sonar-radius);
+    background: var(--sonar-surface);
+    color: var(--sonar-muted);
+}
+.sonar-empty i { font-size: 2rem; color: var(--sonar-accent); }
+.sonar-empty h2 { margin: 0.5rem 0 0; font-size: 1.125rem; color: var(--sonar-ink); }
+.sonar-empty p { margin: 0; max-width: 28rem; font-size: 0.9rem; }
+/* Inline (inside a card, e.g. "no matches") — tighter, muted icon (the gradient is reserved for
+   the true zero-state). Error — same frame with a warning-toned icon + a retry action. */
+.sonar-empty--inline { padding: 2rem 1rem; border: none; }
+.sonar-empty--inline i { background: none; -webkit-text-fill-color: var(--sonar-faint); color: var(--sonar-faint); }
+.sonar-empty--error i { background: none; -webkit-text-fill-color: var(--sonar-critical); color: var(--sonar-critical); }
+
+/* ============================================================ Stat tiles */
+
+.sonar-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.sonar-stat {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    padding: 1rem 1.5rem;
+}
+.sonar-stat__label { font-size: var(--sonar-font-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sonar-faint); }
+.sonar-stat__value { font-size: 1.9rem; font-weight: 700; margin-top: 0.25rem; line-height: 1; font-variant-numeric: tabular-nums; font-family: var(--sonar-mono); }
+.sonar-stat__delta { font-size: 0.75rem; color: var(--sonar-muted); margin-top: 0.5rem; }
+
+/* ============================================================ Chips / bands */
+
+.sonar-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--sonar-border);
+    color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken);
+}
+/* Band variants — color text + tinted fill + matching border. */
+.sonar-chip--healthy  { color: var(--sonar-healthy);  background: var(--sonar-healthy-bg);  border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent); }
+.sonar-chip--watch    { color: var(--sonar-watch);    background: var(--sonar-watch-bg);    border-color: color-mix(in srgb, var(--sonar-watch) 30%, transparent); }
+.sonar-chip--atrisk   { color: var(--sonar-atrisk);   background: var(--sonar-atrisk-bg);   border-color: color-mix(in srgb, var(--sonar-atrisk) 30%, transparent); }
+.sonar-chip--critical { color: var(--sonar-critical); background: var(--sonar-critical-bg); border-color: color-mix(in srgb, var(--sonar-critical) 30%, transparent); }
+
+/* "Phase 2+" marker for aspirational, not-yet-functional UI. */
+.sonar-chip--phase2 { color: var(--sonar-brand); background: transparent; border-style: dashed; }
+
+/* The pulsing status dot from the mockups. */
+.sonar-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; display: inline-block; animation: sonar-pulse 2s infinite; }
+@keyframes sonar-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ============================================================ Typography accents */
+
+/* Hero title — solid confident ink (gradient text retired). Hierarchy carries it, not color. */
+.sonar-grad-text { color: var(--sonar-ink); }
+.sonar-mono { font-family: var(--sonar-mono); font-variant-numeric: tabular-nums; }
+.sonar-pos { color: var(--sonar-healthy); }
+.sonar-neg { color: var(--sonar-critical); }
+
+/* ============================================================ Buttons (chrome) */
+/* For surface header actions. Prefer <mj-button> inside forms; these are for the
+   branded chrome where we want the gradient/ghost look. */
+.sonar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--sonar-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--sonar-border);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    cursor: pointer;
+}
+.sonar-btn:hover { background: var(--sonar-surface-sunken); border-color: var(--sonar-border-strong); }
+/* Primary action — the ONE filled accent surface per view (the focal CTA). Solid violet fill with
+   near-white ink; this is the single sanctioned big-accent spot, so every other accent use stays
+   thin (focus rings, indicators) to keep the ration tight. */
+.sonar-btn--primary {
+    border: 1px solid var(--sonar-accent);
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+}
+.sonar-btn--primary:hover {
+    background: color-mix(in srgb, var(--sonar-accent) 88%, #000);
+    border-color: color-mix(in srgb, var(--sonar-accent) 88%, #000);
+}
+/* Ghost: no chrome until interacted with — for low-emphasis actions (pager, inline controls). */
+.sonar-btn--ghost { border-color: transparent; background: transparent; }
+.sonar-btn--ghost:hover { background: var(--sonar-surface-sunken); }
+.sonar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Segmented control — a compact 2+-way mode switch (e.g. the factor builder's data/action fork).
+   Options sit on a sunken track; the --active one lifts to the surface color. One sanctioned spot
+   for a "tabs without a panel border" pattern, shared so every mode switch looks identical. */
+.sonar-segmented {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+}
+.sonar-segmented__opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--sonar-muted);
+    border-radius: var(--sonar-radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sonar-segmented__opt:hover { color: var(--sonar-ink); }
+.sonar-segmented__opt--active {
+    background: var(--sonar-surface);
+    border-color: var(--sonar-border);
+    color: var(--sonar-ink);
+}
+
+/* Form-control base — ONE input look everywhere (height, border, radius, focus ring). Every
+   field primitive (search, range, select) uses this so inputs are identical across surfaces. */
+.sonar-input,
+.sonar-field {
+    font: inherit;
+    height: 2.25rem;
+    box-sizing: border-box;
+    padding: 0 0.75rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.sonar-input:hover,
+.sonar-field:hover {
+    border-color: color-mix(in srgb, var(--sonar-accent) 40%, var(--sonar-border));
+}
+.sonar-input:focus,
+.sonar-field:focus {
+    outline: none;
+    background: var(--sonar-surface);
+    border-color: var(--sonar-accent);
+    box-shadow: 0 0 0 1px var(--sonar-accent), 0 0 0 4px color-mix(in srgb, var(--sonar-accent) 15%, transparent);
+}
+.sonar-input:disabled,
+.sonar-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Custom slider / range inputs */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--sonar-surface-sunken);
+    outline: none;
+    border: 1px solid var(--sonar-border);
+    margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: transparent;
+    border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--sonar-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    margin-top: -5px;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    border-color: color-mix(in srgb, var(--sonar-accent) 85%, #fff);
+}
+input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: var(--sonar-surface-sunken);
+    border-radius: 999px;
+    border: 1px solid var(--sonar-border);
+}
+input[type="range"]::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--sonar-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+}
+
+/* ============================================================ Builder Dialogs shared layout */
+.sonar-fb__bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.sonar-fb__title {
+    flex: 1;
+    min-width: 0;
+}
+.sonar-fb__sub {
+    margin: 0.2rem 0 0;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-muted);
+}
+.sonar-fb__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.sonar-fb__hint {
+    font-size: 0.76rem;
+    color: var(--sonar-muted);
+    margin-top: 0.4rem;
+}
+
+/* ============================================================ Explainability waterfall */
+/* A "why this score" row: signed value, a proportional bar, a label. */
+.sonar-wf { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+.sonar-wf__val { width: 3.25rem; text-align: right; font-family: var(--sonar-mono); }
+.sonar-wf__track { flex: 1; height: 1.25rem; border-radius: var(--sonar-radius-sm); background: var(--sonar-surface-sunken); overflow: hidden; }
+.sonar-wf__bar { display: block; height: 100%; border-radius: var(--sonar-radius-sm); }
+.sonar-wf__bar--pos { background: var(--sonar-healthy); }
+.sonar-wf__bar--neg { background: var(--sonar-critical); }
+.sonar-wf__label { width: 8rem; color: var(--sonar-muted); font-size: 0.78rem; }
+/* One waterfall entry = the bar row plus an optional "why" line beneath it. */
+.sonar-wf-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-wf__why {
+    margin: 0 0 0 4rem; /* align under the bar track, past the value column (3.25rem + 0.75rem gap) */
+    font-size: 0.72rem; line-height: 1.35; color: var(--sonar-muted); font-style: italic;
+}
+
+/* ============================================================ Band distribution bars */
+.sonar-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 9rem; }
+.sonar-bars__col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; justify-content: flex-end; }
+.sonar-bars__fill { width: 100%; border-radius: var(--sonar-radius-sm) var(--sonar-radius-sm) 0 0; }
+.sonar-bars__fill--healthy  { background: color-mix(in srgb, var(--sonar-healthy) 70%, transparent); }
+.sonar-bars__fill--watch    { background: color-mix(in srgb, var(--sonar-watch) 70%, transparent); }
+.sonar-bars__fill--atrisk   { background: color-mix(in srgb, var(--sonar-atrisk) 70%, transparent); }
+.sonar-bars__fill--critical { background: color-mix(in srgb, var(--sonar-critical) 70%, transparent); }
+
+/* Band text colors (for stat-tile values, labels). */
+.sonar-text--healthy  { color: var(--sonar-healthy); }
+.sonar-text--watch    { color: var(--sonar-watch); }
+.sonar-text--atrisk   { color: var(--sonar-atrisk); }
+.sonar-text--critical { color: var(--sonar-critical); }
+
+/* ============================================================ Surface rail layout */
+/* Primary navigation rail (model sidebar) + working area, shared across surfaces.
+   flex-direction:row is explicit so it overrides .sonar-page__body's column when both
+   classes sit on the same element (equal specificity → later source wins). */
+.sonar-with-rail { display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; }
+.sonar-with-rail__main { flex: 1 1 0; min-width: 0; }
+@media (max-width: 860px) { .sonar-with-rail { flex-direction: column; } }
+
+/* Railed surfaces drop the centered max-width so the rail anchors to the page's left edge
+   (a real app-shell nav) and the working area uses the full width beside it. The header
+   spans full width too so it lines up with the rail + content below. */
+.sonar-page--railed .sonar-page__header,
+.sonar-page--railed .sonar-page__body { max-width: none; margin-inline: 0; }
+
+/* ============================================================ Band distribution donut */
+/* SVG donut: stroke-dasharray arcs on a circumference-100 ring (r=15.915). Shared by the
+   Model Builder live preview and the Overview persisted distribution. */
+.sonar-donut-wrap { display: flex; align-items: center; gap: 1.5rem; }
+.sonar-donut { width: 116px; height: 116px; flex: none; }
+.sonar-donut__track { stroke: var(--sonar-border); }
+.sonar-donut__seg { stroke-linecap: butt; transition: stroke-dasharray 0.4s ease; }
+.sonar-donut__seg--healthy { stroke: var(--sonar-healthy); }
+.sonar-donut__seg--watch { stroke: var(--sonar-watch); }
+.sonar-donut__seg--atrisk { stroke: var(--sonar-atrisk); }
+.sonar-donut__seg--critical { stroke: var(--sonar-critical); }
+.sonar-donut__total { font-size: 8px; font-weight: 700; fill: var(--sonar-ink); text-anchor: middle; }
+.sonar-donut__total-label { font-size: 3px; fill: var(--sonar-faint); text-anchor: middle; text-transform: uppercase; letter-spacing: 0.08em; }
+.sonar-donut__legend { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+.sonar-donut__legend-row { display: flex; align-items: center; gap: 0.5rem; font-size: var(--sonar-font-sm); }
+.sonar-donut__legend-label { flex: 1; color: var(--sonar-ink); }
+.sonar-donut__dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.sonar-donut__dot--healthy { background: var(--sonar-healthy); }
+.sonar-donut__dot--watch { background: var(--sonar-watch); }
+.sonar-donut__dot--atrisk { background: var(--sonar-atrisk); }
+.sonar-donut__dot--critical { background: var(--sonar-critical); }
+
+/* ============================================================ Trend / delta pill
+   A compact signed-change pill — "+12", "−3", arrow + value — colored by direction.
+   ONLY rendered when a real delta backs it (never a fabricated trend). Neutral when flat.
+   Shared so movers, stat cards, and drill-downs all show change identically. */
+.sonar-delta {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.25rem 0.5rem; border-radius: 999px;
+    font-size: var(--sonar-font-xs); font-weight: 700; font-variant-numeric: tabular-nums;
+    line-height: 1.4; white-space: nowrap;
+}
+.sonar-delta--up   { color: var(--sonar-healthy);  background: var(--sonar-healthy-bg); }
+.sonar-delta--down { color: var(--sonar-critical); background: var(--sonar-critical-bg); }
+.sonar-delta--flat { color: var(--sonar-muted);    background: var(--sonar-surface-sunken); }
+
+/* ============================================================ Insight / movers feed
+   A right-rail list of "what changed" rows — the §8 insight-feed pattern. Two stacked groups
+   (gains / drops) of name + score + delta. Shared by the Manager drill-down and the Overview. */
+.sonar-movers { padding: 0; overflow: hidden; }
+.sonar-movers__head {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%;
+    padding: 0.75rem 1rem; border: 0; background: transparent; cursor: pointer; font: inherit; text-align: left;
+}
+.sonar-movers__head .sonar-card__label { flex: 1; margin-bottom: 0; }
+.sonar-movers__head i { color: var(--sonar-muted); font-size: 0.75rem; }
+.sonar-movers__cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 0 1rem 1rem; }
+@media (max-width: 560px) { .sonar-movers__cols { grid-template-columns: 1fr; } }
+.sonar-movers__col { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-movers__col-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.sonar-mover {
+    display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left; font: inherit; cursor: pointer;
+    padding: 0.5rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); background: var(--sonar-surface);
+}
+.sonar-mover:hover { border-color: var(--sonar-accent); }
+.sonar-mover__name { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sonar-mover__score { font-size: 0.8rem; color: var(--sonar-muted); font-variant-numeric: tabular-nums; }
+.sonar-mover__empty { font-size: 0.78rem; padding: 0.3rem 0.1rem; color: var(--sonar-faint); }
+
+/* ============================================================ Score-history sparkline
+   A tiny inline trajectory line (newest on the right), scaled to its own min/max so small
+   moves still read. Colored by band when a band key is set. Shared everywhere a series shows. */
+.sonar-spark { display: block; width: 120px; height: 28px; overflow: visible; }
+.sonar-spark__area { fill: color-mix(in srgb, var(--sonar-accent) 12%, transparent); stroke: none; }
+.sonar-spark__line { fill: none; stroke: var(--sonar-accent); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.sonar-spark__line--healthy  { stroke: var(--sonar-healthy); }
+.sonar-spark__line--watch    { stroke: var(--sonar-watch); }
+.sonar-spark__line--atrisk   { stroke: var(--sonar-atrisk); }
+.sonar-spark__line--critical { stroke: var(--sonar-critical); }
+.sonar-spark__dot { fill: var(--sonar-accent); }
+.sonar-spark__dot--healthy  { fill: var(--sonar-healthy); }
+.sonar-spark__dot--watch    { fill: var(--sonar-watch); }
+.sonar-spark__dot--atrisk   { fill: var(--sonar-atrisk); }
+.sonar-spark__dot--critical { fill: var(--sonar-critical); }
+.sonar-spark__hint { font-size: 0.7rem; margin-top: 0.4rem; max-width: 9rem; }
+
+/* ============================================================ Trend line chart
+   ONE emphasized series — a band's share over time — drawn as a line + soft gradient fade on a
+   neutral card (per "color only the main point"). `color` is set per band by a modifier, and the
+   stroke/fill/dot all inherit it via currentColor, so one gradient def serves every band. Faint
+   dashed gridlines give scale without chartjunk. The consuming component builds the geometry. */
+.sonar-trendline { display: block; width: 100%; height: auto; }
+.sonar-trendline--healthy  { color: var(--sonar-healthy); }
+.sonar-trendline--watch    { color: var(--sonar-watch); }
+.sonar-trendline--atrisk   { color: var(--sonar-atrisk); }
+.sonar-trendline--critical { color: var(--sonar-critical); }
+.sonar-trendline__line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.sonar-trendline__area { stroke: none; }
+.sonar-trendline__dot { fill: currentColor; stroke: var(--sonar-surface); stroke-width: 2; }
+.sonar-trendline__grid { stroke: var(--sonar-border); stroke-width: 1; stroke-dasharray: 2 4; }
+.sonar-trendline__axis { fill: var(--sonar-faint); font-size: 9px; }
+.sonar-trendline__axis--y { text-anchor: start; }
+.sonar-trendline__axis--end { text-anchor: end; }
+
+/* ============================================================ Modal / dialog
+   Shared overlay primitive: a full-viewport dimmed scrim + a centered surface panel. Any surface
+   that needs a focused task (the playbook enroller, confirmations) uses this so dialogs look and
+   behave identically everywhere. Toggle by wrapping in @if(open()); the scrim click closes. */
+.sonar-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.sonar-modal__scrim { position: absolute; inset: 0; background: color-mix(in srgb, #04060c 55%, transparent); backdrop-filter: blur(4px); }
+.sonar-modal__panel {
+    position: relative; z-index: 1; width: 100%; max-width: 520px;
+    max-height: calc(100vh - 3rem); overflow-y: auto;
+    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius); box-shadow: var(--mj-shadow-lg, 0 24px 60px -12px rgba(4, 6, 12, 0.5));
+    padding: 1.75rem; animation: sonar-modal-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sonar-modal__panel--lg {
+    max-width: 1040px;
+    max-height: 88vh;
+    padding: 1.5rem;
+}
+/* Wider still — for the workstation-style builders (e.g. the 3-pane factor builder) that need
+   room for steps + config + a persistent preview rail. Degrades within the viewport on narrow screens. */
+.sonar-modal__panel--xl {
+    max-width: 1320px;
+    /* Stable height: the dialog doesn't resize as you switch steps. Inner content (the middle config
+       pane) owns its own scroll, so the panel itself never scrolls or grows. */
+    height: min(82vh, 800px);
+    overflow: hidden;
+    box-sizing: border-box;
+    padding: 1.5rem;
+}
+.sonar-modal__close-btn { line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--sonar-radius-sm); }
+.sonar-modal__close-btn:hover { background: var(--sonar-surface-sunken); }
+@keyframes sonar-modal-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sonar-modal__panel { animation: none; } }
+
+:host-context([data-theme="light"]) .sonar-modal__panel {
+    box-shadow: 0 24px 64px -16px color-mix(in srgb, var(--sonar-ink, black) 18%, transparent);
+}
+
+/* ============================================================ Embedded MJ components */
+/* Wrap reused MJ components (mj-entity-data-grid, app-time-series-chart) so they sit on a
+   clean surface inside our branded frame. These components render to the global DOM and
+   follow the MJ theme themselves; we just give them a tidy container. */
+.sonar-embed {
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius);
+    overflow: hidden;
+    min-height: 320px;
+}
+
+/* ============================================================ Interaction polish */
+/* Consistent motion, hover/active feedback, and focus rings across the surfaces. Kept
+   in one place so every primitive feels the same. Honors reduced-motion preferences. */
+
+.sonar-btn,
+.sonar-card,
+.sonar-models__item,
+.sonar-dropper,
+.sonar-persona,
+.sonar-factor,
+.sonar-rel,
+.sonar-stat,
+.sonar-sidebar__item {
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+                box-shadow 0.18s ease,
+                border-color 0.18s ease,
+                background 0.18s ease;
+}
+
+/* Buttons: clean press, no shadow lift. */
+.sonar-btn:not(:disabled):active { transform: translateY(0); }
+
+/* Persona / model / dropper rows: brand-tinted border on hover, no box-shadow. */
+.sonar-persona:hover,
+.sonar-models__item:not(:disabled):hover,
+.sonar-dropper:hover,
+.sonar-stat:hover,
+.sonar-sidebar__item:hover {
+    border-color: color-mix(in srgb, var(--sonar-brand) 35%, var(--sonar-border));
+}
+.sonar-persona { cursor: default; }
+
+/* Visible keyboard focus for every interactive element (buttons, controls, custom widgets).
+   One consistent ring in the accent color — keyboard users always see where they are. */
+.sonar-btn:focus-visible,
+.sonar-segmented__opt:focus-visible,
+.sonar-models__item:focus-visible,
+.sonar-dropper:focus-visible,
+.sonar-stat--clickable:focus-visible,
+.sonar-chip:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--sonar-accent);
+    outline-offset: 2px;
+}
+
+/* MJ filter-builder, on-brand. It themes off --mj-* tokens and its accent is --mj-brand-primary
+   (a blue), which fights Sonar's violet. Remap that one token to --sonar-accent wherever a filter
+   builder appears (factor filter, population filter) so every instance matches the design system.
+   Neutrals/surfaces already inherit MJ theme tokens, so light/dark stay correct. */
+mj-filter-builder {
+    --mj-brand-primary: var(--sonar-accent);
+    --mj-brand-primary-hover: color-mix(in srgb, var(--sonar-accent) 82%, black);
+}
+
+/* ============================================================ Loading skeleton
+   A neutral shimmering placeholder. Compose these into a layout that MIRRORS the real
+   content (same rows/heights) so loading doesn't shift the page. Shapes via modifiers. */
+.sonar-skeleton {
+    background: linear-gradient(90deg, var(--sonar-surface-sunken) 25%, var(--sonar-border) 37%, var(--sonar-surface-sunken) 63%);
+    background-size: 400% 100%;
+    border-radius: var(--sonar-radius-sm);
+    animation: sonar-shimmer 1.4s ease infinite;
+}
+.sonar-skeleton--text { height: 0.7rem; border-radius: 999px; }
+.sonar-skeleton--line { height: 1rem; }
+.sonar-skeleton--block { height: 100%; }
+.sonar-skeleton--circle { border-radius: 999px; }
+@keyframes sonar-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* ============================================================ Release Timeline utilities */
+.sonar-timeline {
+    position: relative;
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+.sonar-timeline::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    left: 4px;
+    width: 2px;
+    background: var(--sonar-border);
+}
+.sonar-timeline__item {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+.sonar-timeline__item:last-child {
+    margin-bottom: 0;
+}
+.sonar-timeline__node {
+    position: absolute;
+    left: -1.5rem;
+    top: 0.25rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sonar-surface);
+    border: 2px solid var(--sonar-border-strong);
+    box-sizing: border-box;
+    z-index: 1;
+}
+.sonar-timeline__item--active .sonar-timeline__node {
+    border-color: var(--sonar-accent);
+    background: var(--sonar-accent);
+}
+.sonar-timeline__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.sonar-timeline__title {
+    font-size: var(--sonar-font-base);
+    font-weight: 600;
+    color: var(--sonar-ink);
+}
+.sonar-timeline__meta {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+}
+
+/* Standardized interactive timeline items (hover + selected highlights) */
+.sonar-timeline--interactive .sonar-timeline__item {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    border-radius: var(--sonar-radius-sm);
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sonar-timeline--interactive .sonar-timeline__item:hover {
+    background: var(--sonar-surface-sunken);
+}
+.sonar-timeline--interactive .sonar-timeline__item--selected {
+    background: color-mix(in srgb, var(--sonar-accent) 6%, var(--sonar-surface-sunken));
+    border-color: color-mix(in srgb, var(--sonar-accent) 20%, var(--sonar-border));
+    box-shadow: var(--mj-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+}
+.sonar-timeline--interactive .sonar-timeline__item--selected .sonar-timeline__node {
+    border-color: var(--sonar-accent);
+    background: var(--sonar-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent) 25%, transparent);
+}
+.sonar-timeline--interactive .sonar-timeline__item .sonar-timeline__node {
+    left: -0.75rem;
+    top: 0.75rem;
+}
+
+/* General Typography & Utility Helper Classes */
+.sonar-faint { color: var(--sonar-faint) !important; }
+.sonar-ink { color: var(--sonar-ink) !important; }
+.sonar-muted { color: var(--sonar-muted) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .sonar-btn, .sonar-card, .sonar-models__item, .sonar-dropper, .sonar-persona, .sonar-factor, .sonar-rel, .sonar-stat, .sonar-sidebar__item { transition: none; }
+    .sonar-btn:hover, .sonar-persona:hover, .sonar-models__item:hover, .sonar-dropper:hover, .sonar-stat:hover, .sonar-sidebar__item:hover { transform: none; }
+    .sonar-skeleton { animation: none; }
+}
+
+/* Force MemberJunction's dynamic tab wrapper to contain layout heights instead of showing an outer page scrollbar */
+::ng-deep .tab-body {
+    overflow: hidden !important;
+}
+

@@ -1,0 +1,69 @@
+/* Score-Band Builder surface-specific styles. Shared primitives live in sonar-shell.css.
+   (Reuses .sonar-fb__bar/.sonar-fb__name/.sonar-fb__hint from the factor-builder family via
+   identical local definitions — kept here so this component is self-contained.) */
+
+.sonar-faint { color: var(--sonar-faint); }
+.sonar-ink { color: var(--sonar-ink); }
+.sonar-sb { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.sonar-fb__bar { display: flex; align-items: center; gap: 1rem; }
+.sonar-fb__title { flex: 1; min-width: 0; }
+.sonar-fb__sub { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--sonar-muted); }
+.sonar-fb__name {
+    font-size: 1.15rem; font-weight: 700; background: transparent; border: none;
+    border-bottom: 1px dashed var(--sonar-border-strong); color: var(--sonar-ink);
+    padding: 0.15rem 0.25rem; min-width: 16rem;
+}
+.sonar-fb__name:focus { outline: none; border-bottom-color: var(--sonar-brand); }
+.sonar-fb__actions { display: flex; gap: 0.5rem; }
+.sonar-fb__hint { font-size: 0.74rem; }
+.sonar-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+
+/* band-set picker row: pick a set to edit/use, or start a new one */
+.sonar-sb__setbar {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--sonar-border);
+}
+.sonar-sb__setpick { width: auto; min-width: 14rem; max-width: 22rem; cursor: pointer; }
+.sonar-sb__setbar .sonar-fb__hint { margin-left: auto; }
+@media (max-width: 720px) {
+    .sonar-sb__setbar .sonar-fb__hint { margin-left: 0; }
+    .sonar-sb__setpick { flex: 1; max-width: none; }
+}
+
+/* generic field input */
+.sonar-field {
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.35rem 0.55rem;
+    color: var(--sonar-ink);
+    font-size: 0.85rem;
+    width: 100%;
+}
+.sonar-field:focus { outline: none; border-color: var(--sonar-brand); }
+
+/* number line */
+.sonar-sb__line { display: flex; height: 3rem; border-radius: var(--sonar-radius-sm); overflow: hidden; }
+.sonar-sb__seg { display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 600; color: var(--sonar-on-band); min-width: 0; overflow: hidden; white-space: nowrap; }
+.sonar-sb__marker-track { position: relative; height: 1.5rem; }
+.sonar-sb__marker { position: absolute; top: 0.25rem; transform: translateX(-50%); white-space: nowrap; }
+.sonar-sb__try { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+.sonar-sb__try input[type="range"] { flex: 1; accent-color: var(--sonar-brand); }
+
+/* band rows grid */
+.sonar-sb__grid {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 0.8fr 1.2fr 0.7fr 1.75rem;
+    gap: 0.6rem;
+    align-items: center;
+}
+.sonar-sb__grid--head { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sonar-faint); padding: 0 0.25rem 0.5rem; }
+.sonar-sb__row { border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); padding: 0.5rem; }
+.sonar-sb__color { display: flex; align-items: center; gap: 0.4rem; }
+.sonar-sb__color input[type="color"] { width: 1.75rem; height: 1.75rem; border: none; background: none; padding: 0; cursor: pointer; }
+.sonar-sb__color .sonar-mono { font-size: 0.7rem; }
+.sonar-sb__term { display: flex; justify-content: center; }
+.sonar-sb__term input { accent-color: var(--sonar-brand); }
+.sonar-sb__del { color: var(--sonar-faint); background: none; border: none; cursor: pointer; }
+.sonar-sb__del:hover { color: var(--sonar-critical); }

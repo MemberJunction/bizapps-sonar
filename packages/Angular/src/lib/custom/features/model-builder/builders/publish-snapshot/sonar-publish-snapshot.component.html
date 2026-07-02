@@ -1,0 +1,127 @@
+<div class="sonar-ps">
+    <div class="sonar-fb__bar">
+        <div class="sonar-fb__title">
+            <span class="sonar-ps__title">Publish {{ modelName() }}</span>
+            <p class="sonar-fb__sub">Saves a snapshot you can always go back to.</p>
+        </div>
+        <div class="sonar-fb__actions">
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!canPublish() || publishing()" (click)="publish()">
+                {{ publishing() ? "Publishing…" : "Publish version " + nextVersion() }}
+            </button>
+            <button class="sonar-btn" (click)="close.emit()">Cancel</button>
+        </div>
+    </div>
+
+    <div class="sonar-split">
+        <div class="sonar-stack">
+            <!-- validation gate -->
+            <section class="sonar-card">
+                <div class="sonar-card__label">Before publishing</div>
+                <div class="sonar-stack sonar-ps__checks">
+                    @for (c of checks(); track c.label) {
+                        <div class="sonar-ps__check">
+                            <span class="sonar-ps__icon" [ngClass]="'sonar-ps__icon--' + c.status">{{ c.status === 'pass' ? '✓' : (c.status === 'fail' ? '✕' : '—') }}</span>
+                            <div>
+                                <div class="sonar-ps__check-label" [class.sonar-faint]="c.status === 'na'">{{ c.label }}</div>
+                                <div class="sonar-faint sonar-ps__check-detail">{{ c.detail }}</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="sonar-ps__verdict">
+                    <span class="sonar-chip" [ngClass]="canPublish() ? 'sonar-chip--healthy' : 'sonar-chip--critical'">
+                        {{ canPublish() ? 'Ready to publish' : 'Not ready' }}
+                    </span>
+                    <span class="sonar-faint sonar-fb__hint">These are re-checked automatically when you publish.</span>
+                </div>
+
+                @if (error()) {
+                    <div class="sonar-chip sonar-chip--critical" style="margin-top:0.75rem; white-space:normal; height:auto; padding:0.5rem 0.75rem">
+                        ⚠ {{ error() }}
+                    </div>
+                }
+
+                <div class="sonar-ps__summary">
+                    <div class="sonar-card__label">What changed <span class="sonar-faint">(optional note)</span></div>
+                    <input class="sonar-field" [ngModel]="changeSummary()" (ngModelChange)="changeSummary.set($event)" />
+                </div>
+            </section>
+
+            <!-- what gets saved -->
+            <section class="sonar-card">
+                <div class="sonar-card__label">What gets saved in this version</div>
+                <div class="sonar-ps__parts">
+                    @for (p of snapshotParts(); track p.title) {
+                        <div class="sonar-ps__part">
+                            <div class="sonar-ink">{{ p.title }}</div>
+                            <div class="sonar-faint sonar-ps__check-detail">{{ p.detail }}</div>
+                        </div>
+                    }
+                </div>
+                <p class="sonar-note">Everything above is frozen as version {{ nextVersion() }}. You can always go back to an earlier version.</p>
+            </section>
+
+            <!-- pre-publish impact preview -->
+            <section class="sonar-card">
+                <div class="sonar-card__label">Impact preview <span class="sonar-faint">(how a recompute would shift bands)</span></div>
+                @if (impactLoading()) {
+                    <p class="sonar-faint" style="font-size:0.85rem; margin-top:0.5rem">Projecting on the live population…</p>
+                } @else if (impact(); as imp) {
+                    @if (imp.error) {
+                        <div class="sonar-chip sonar-chip--critical" style="margin-top:0.5rem; white-space:normal; height:auto; padding:0.5rem 0.75rem">⚠ {{ imp.error }}</div>
+                    } @else if (imp.rows.length === 0) {
+                        <p class="sonar-faint" style="font-size:0.85rem; margin-top:0.5rem">No scoreable members — add signals to see a projection.</p>
+                    } @else {
+                        <p class="sonar-note" style="margin-top:0.4rem">
+                            @if (imp.firstScoring) {
+                                First scoring run — <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> members would be scored on publish.
+                            } @else {
+                                Projected for <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> members vs. the scores live now.
+                            }
+                        </p>
+                        <div class="sonar-stack sonar-impact">
+                            @for (r of imp.rows; track r.label) {
+                                <div class="sonar-impact__row">
+                                    <span class="sonar-donut__dot sonar-donut__dot--{{ r.key }}"></span>
+                                    <span class="sonar-impact__label">{{ r.label }}</span>
+                                    @if (!imp.firstScoring) { <span class="sonar-mono sonar-faint">{{ r.beforePct }}%</span> <span class="sonar-faint">→</span> }
+                                    <span class="sonar-mono sonar-text--{{ r.key }}">{{ r.afterPct }}%</span>
+                                    @if (!imp.firstScoring && r.delta !== 0) {
+                                        <span class="sonar-mono sonar-impact__delta" [ngClass]="r.delta < 0 ? 'sonar-neg' : 'sonar-pos'">{{ r.delta > 0 ? '▲' : '▼' }}{{ abs(r.delta) }}</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </section>
+        </div>
+
+        <!-- version history -->
+        <div class="sonar-stack">
+            <section class="sonar-card">
+                <div class="sonar-card__label">Version history</div>
+                <div class="sonar-stack sonar-ps__versions">
+                    @for (v of versions(); track v.number) {
+                        <div class="sonar-ps__version" [class.sonar-ps__version--current]="v.isCurrent">
+                            <div class="sonar-ps__version-head">
+                                <span class="sonar-ink sonar-ps__version-name">v{{ v.number }} — {{ v.label }}</span>
+                                @if (v.isCurrent) { <span class="sonar-chip sonar-chip--watch">live now</span> }
+                            </div>
+                            <div class="sonar-faint sonar-ps__check-detail">{{ v.when }}</div>
+                            @if (v.summary) { <div class="sonar-faint sonar-ps__version-summary">{{ v.summary }}</div> }
+                        </div>
+                    }
+                    @if (versions().length === 0) {
+                        <p class="sonar-faint" style="font-size:0.85rem">No versions yet — publishing creates version 1.</p>
+                    }
+                </div>
+            </section>
+
+            <section class="sonar-card sonar-note">
+                <strong class="sonar-ink">Why versions?</strong>
+                Each score remembers which version produced it — so results stay reproducible, and you can see exactly what changed between versions.
+            </section>
+        </div>
+    </div>
+</div>
