@@ -1,0 +1,34 @@
+@if (open()) {
+    <aside class="sonar-copilot__rail" [style.width.px]="width()">
+        <!-- drag the left edge to resize -->
+        <div class="sonar-copilot__resize" (mousedown)="onResizeStart($event)" title="Drag to resize"></div>
+        <div class="sonar-copilot__head">
+            <span class="sonar-copilot__title"><i class="fa-solid fa-wand-magic-sparkles"></i> Sonar Assistant</span>
+            <button class="sonar-copilot__close" (click)="close()" title="Collapse"><i class="fa-solid fa-angles-right"></i></button>
+        </div>
+        <p class="sonar-copilot__sub">Describe a model or factor — I draft it for review and show each step. Nothing is published.</p>
+        <div class="sonar-copilot__body">
+            <mj-conversation-chat-area
+                [overlayMode]="true"
+                [conversationId]="conversationId()"
+                [defaultAgentId]="agentId"
+                [environmentId]="environmentId"
+                [currentUser]="currentUser"
+                [allowMentions]="false"
+                [allowAttachments]="false"
+                [showExportButton]="false"
+                [showShareButton]="false"
+                [showArtifactIndicator]="false"
+                [showAgentPicker]="false"
+                [showSidebarToggle]="false"
+                emptyStateGreeting="Describe a model or factor and I'll draft it for review."
+                (conversationCreated)="onConversationCreated($event)">
+            </mj-conversation-chat-area>
+        </div>
+    </aside>
+} @else {
+    <button class="sonar-copilot__tab" (click)="toggle()" title="Open Sonar Assistant">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span class="sonar-copilot__tab-label">Assistant</span>
+    </button>
+}

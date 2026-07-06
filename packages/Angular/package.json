@@ -31,6 +31,7 @@
     "@memberjunction/actions-base": "^5.40.2",
     "@memberjunction/graphql-dataprovider": "^5.40.2",
     "@memberjunction/ng-base-forms": "^5.40.2",
+    "@memberjunction/ng-conversations": "^5.40.2",
     "@memberjunction/ng-entity-viewer": "^5.40.2",
     "@memberjunction/ng-filter-builder": "^5.40.2",
     "@memberjunction/ng-link-directives": "^5.40.2",
