@@ -8,22 +8,28 @@
         </div>
         <p class="sonar-copilot__sub">Describe a model or factor — I draft it for review and show each step. Nothing is published.</p>
         <div class="sonar-copilot__body">
-            <mj-conversation-chat-area
-                [overlayMode]="true"
-                [conversationId]="conversationId()"
-                [defaultAgentId]="agentId"
-                [environmentId]="environmentId"
-                [currentUser]="currentUser"
-                [allowMentions]="false"
-                [allowAttachments]="false"
-                [showExportButton]="false"
-                [showShareButton]="false"
-                [showArtifactIndicator]="false"
-                [showAgentPicker]="false"
-                [showSidebarToggle]="false"
-                emptyStateGreeting="Describe a model or factor and I'll draft it for review."
-                (conversationCreated)="onConversationCreated($event)">
-            </mj-conversation-chat-area>
+            <!-- Wait for the runtime-resolved Default environment (the chat needs a real id, and it
+                 resolves at app init — well before the panel is opened, so this is momentary). -->
+            @if (environmentId(); as envId) {
+                <mj-conversation-chat-area
+                    [overlayMode]="true"
+                    [conversationId]="conversationId()"
+                    [defaultAgentId]="agentId"
+                    [environmentId]="envId"
+                    [currentUser]="currentUser"
+                    [allowMentions]="false"
+                    [allowAttachments]="false"
+                    [showExportButton]="false"
+                    [showShareButton]="false"
+                    [showArtifactIndicator]="false"
+                    [showAgentPicker]="false"
+                    [showSidebarToggle]="false"
+                    emptyStateGreeting="Describe a model or factor and I'll draft it for review."
+                    (conversationCreated)="onConversationCreated($event)">
+                </mj-conversation-chat-area>
+            } @else {
+                <p class="sonar-copilot__sub">Loading assistant…</p>
+            }
         </div>
     </aside>
 } @else {
