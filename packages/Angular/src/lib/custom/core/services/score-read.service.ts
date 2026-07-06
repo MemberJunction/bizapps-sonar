@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import {
     mjBizAppsSonarScoreEntity,
     mjBizAppsSonarScoreBandEntity,
@@ -144,7 +145,7 @@ export class ScoreReadService {
     public async distributionTrendForModel(modelId: string, maxPoints = 12): Promise<BandTrendPoint[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
             EntityName: SCORE_HISTORY,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             Fields: ["AsOfDate", "ComputedAt", "BandID"],
             OrderBy: "AsOfDate ASC, ComputedAt ASC",
             ResultType: "simple",
@@ -257,7 +258,7 @@ export class ScoreReadService {
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
             OrderBy: `Delta ${dir === "desc" ? "DESC" : "ASC"}`,
             MaxRows: limit,
             ResultType: "entity_object",
@@ -274,7 +275,7 @@ export class ScoreReadService {
     public async historyForMember(modelId: string, anchorRecordId: string): Promise<ScoreHistoryPoint[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
             EntityName: SCORE_HISTORY,
-            ExtraFilter: `ScoreModelID='${modelId}' AND AnchorRecordID='${anchorRecordId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID='${sqlString(anchorRecordId)}'`,
             // Order by the business "as of" date (the trajectory's time axis), then ComputedAt to
             // break ties — a backfill writes several rows at the same wall-clock but distinct AsOf.
             OrderBy: "AsOfDate ASC, ComputedAt ASC",
@@ -325,7 +326,7 @@ export class ScoreReadService {
         if (!versionId) return null;
         const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
             EntityName: SCORE_MODEL_VERSION,
-            ExtraFilter: `ID='${versionId}'`,
+            ExtraFilter: `ID='${sqlString(versionId)}'`,
             ResultType: "entity_object",
         });
         const v = result.Success ? result.Results?.[0] : null;
@@ -339,7 +340,7 @@ export class ScoreReadService {
         if (ids.length === 0) return new Map();
         const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
             EntityName: SCORE_MODEL_VERSION,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${id}'`).join(",")})`,
+            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
             ResultType: "entity_object",
         });
         return new Map((result.Results ?? []).map((v) => [v.ID, v.VersionNumber]));
@@ -362,7 +363,7 @@ export class ScoreReadService {
         const CHUNK = 200; // keep the IN(...) list well under SQL limits on large cohorts
         const rows: mjBizAppsSonarScoreFactorContributionEntity[] = [];
         for (let i = 0; i < scoreIds.length; i += CHUNK) {
-            const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${id}'`).join(",");
+            const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${sqlString(id)}'`).join(",");
             const res = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
                 EntityName: CONTRIBUTION,
                 ExtraFilter: `ScoreID IN (${ids})`,
@@ -373,7 +374,7 @@ export class ScoreReadService {
         }
         if (rows.length === 0) return byScore;
 
-        const factorIds = [...new Set(rows.map((r) => `'${r.FactorID}'`))].join(",");
+        const factorIds = [...new Set(rows.map((r) => `'${sqlString(r.FactorID)}'`))].join(",");
         const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
             EntityName: FACTOR,
             ExtraFilter: `ID IN (${factorIds})`,
@@ -419,7 +420,7 @@ export class ScoreReadService {
     private async loadAllScores(modelId: string): Promise<mjBizAppsSonarScoreEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             ResultType: "entity_object",
             IgnoreMaxRows: true,
         });
@@ -433,12 +434,12 @@ export class ScoreReadService {
         modelId: string,
         opts: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; anchorIds?: string[]; anchorRecordId?: string },
     ): string {
-        const parts = [`ScoreModelID='${modelId}'`];
-        if (opts.anchorRecordId) parts.push(`AnchorRecordID='${opts.anchorRecordId}'`);
-        if (opts.bandId !== undefined) parts.push(opts.bandId === null || opts.bandId === "" ? "BandID IS NULL" : `BandID='${opts.bandId}'`);
+        const parts = [`ScoreModelID='${sqlString(modelId)}'`];
+        if (opts.anchorRecordId) parts.push(`AnchorRecordID='${sqlString(opts.anchorRecordId)}'`);
+        if (opts.bandId !== undefined) parts.push(opts.bandId === null || opts.bandId === "" ? "BandID IS NULL" : `BandID='${sqlString(opts.bandId)}'`);
         if (opts.minScore != null) parts.push(`NormalizedScore >= ${opts.minScore}`);
         if (opts.maxScore != null) parts.push(`NormalizedScore <= ${opts.maxScore}`);
-        if (opts.anchorIds) parts.push(opts.anchorIds.length ? `AnchorRecordID IN (${opts.anchorIds.map((id) => `'${id}'`).join(",")})` : "1=0");
+        if (opts.anchorIds) parts.push(opts.anchorIds.length ? `AnchorRecordID IN (${opts.anchorIds.map((id) => `'${sqlString(id)}'`).join(",")})` : "1=0");
         return parts.join(" AND ");
     }
 
@@ -468,7 +469,7 @@ export class ScoreReadService {
      *  multi-word query like "Eric Smith" matches FirstName='Eric' + LastName='Smith' (a single
      *  `col LIKE '%Eric Smith%'` never would). Quotes are escaped. */
     private buildNameWhere(cols: string[], query: string): string {
-        const tokens = query.split(/\s+/).filter(Boolean).map((t) => t.replace(/'/g, "''"));
+        const tokens = query.split(/\s+/).filter(Boolean).map((t) => sqlString(t));
         if (tokens.length === 0) return "1=1";
         return tokens.map((tok) => `(${cols.map((c) => `${c} LIKE '%${tok}%'`).join(" OR ")})`).join(" AND ");
     }
@@ -484,7 +485,7 @@ export class ScoreReadService {
         if (ids.length === 0) return new Map();
         const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
             EntityName: SCORE_BAND,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${id}'`).join(",")})`,
+            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
             ResultType: "entity_object",
         });
         return new Map((result.Results ?? []).map((b) => [b.ID, b]));
@@ -497,7 +498,7 @@ export class ScoreReadService {
         if (!ent) return new Map();
 
         const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
-        const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${id}'`).join(",");
+        const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${sqlString(id)}'`).join(",");
         const result = await new RunView().RunView<Record<string, unknown>>({
             EntityName: ent.Name,
             ExtraFilter: `${pk} IN (${ids})`,
@@ -548,10 +549,10 @@ export class ScoreReadService {
         }]));
 
         // 2) Their persisted scores for this model (worst-first, limited).
-        const ids = [...byId.keys()].map((id) => `'${id}'`).join(",");
+        const ids = [...byId.keys()].map((id) => `'${sqlString(id)}'`).join(",");
         const scoreRes = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}' AND AnchorRecordID IN (${ids})`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID IN (${ids})`,
             OrderBy: "NormalizedScore ASC",
             MaxRows: limit,
             ResultType: "entity_object",

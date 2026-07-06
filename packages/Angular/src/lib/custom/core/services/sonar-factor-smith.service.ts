@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
@@ -147,7 +148,7 @@ export class SonarFactorSmithService {
     private async latestStep(agentRunId: string): Promise<string | null> {
         const res = await new RunView().RunView<StepRow>({
             EntityName: "MJ: AI Agent Run Steps",
-            ExtraFilter: `AgentRunID='${agentRunId}'`,
+            ExtraFilter: `AgentRunID='${sqlString(agentRunId)}'`,
             OrderBy: "__mj_CreatedAt DESC",
             MaxRows: 1,
             Fields: ["StepName"],
@@ -160,7 +161,7 @@ export class SonarFactorSmithService {
     public async jobSteps(agentRunId: string): Promise<JobStep[]> {
         const res = await new RunView().RunView<StepTimelineRow>({
             EntityName: "MJ: AI Agent Run Steps",
-            ExtraFilter: `AgentRunID='${agentRunId}'`,
+            ExtraFilter: `AgentRunID='${sqlString(agentRunId)}'`,
             OrderBy: "__mj_CreatedAt ASC",
             MaxRows: 50,
             Fields: ["StepName", "Status", "__mj_CreatedAt"],
@@ -291,7 +292,7 @@ export class SonarFactorSmithService {
         const q = query.trim().replace(/'/g, "''");
         const res = await new RunView().RunView({
             EntityName: entity.Name,
-            ExtraFilter: q ? `${nameField} LIKE '%${q}%'` : "",
+            ExtraFilter: q ? `${nameField} LIKE '%${sqlString(q)}%'` : "",
             OrderBy: `${nameField} ASC`,
             MaxRows: limit,
             Fields: nameField === pk ? [pk] : [pk, nameField],
@@ -312,7 +313,7 @@ export class SonarFactorSmithService {
         const pk = entity.FirstPrimaryKey?.Name ?? "ID";
         const res = await new RunView().RunView({
             EntityName: entity.Name,
-            ExtraFilter: `${pk}='${recordId.replace(/'/g, "''")}'`,
+            ExtraFilter: `${pk}='${sqlString(recordId)}'`,
             MaxRows: 1,
             ResultType: "simple",
         });

@@ -1,4 +1,5 @@
 import { Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 
 /**
  * Resolve a friendly display name for a scored anchor record — the engine returns only its ID, so
@@ -12,7 +13,7 @@ export async function resolveAnchorName(anchorEntityId: string | null, recordId:
     const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
     const res = await new RunView().RunView<Record<string, unknown>>({
         EntityName: ent.Name,
-        ExtraFilter: `${pk}='${recordId}'`,
+        ExtraFilter: `${pk}='${sqlString(recordId)}'`,
         ResultType: "simple",
     });
     const row = res.Success ? res.Results?.[0] : undefined;

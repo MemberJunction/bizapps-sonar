@@ -7,10 +7,17 @@
 /** Cell value a CSV accepts; null/undefined render as an empty field. */
 type CsvCell = string | number | null | undefined;
 
-/** Quote/escape one field per RFC 4180. */
+/** Quote/escape one field per RFC 4180, and neutralize CSV formula injection.
+ *  A TEXT cell whose first char is = + - @ (or tab/CR) is executed as a formula when the file opens
+ *  in Excel/Sheets — since cells carry member names + LLM-generated explanations, we prefix such a
+ *  value with a single quote so it's read as literal text. Numbers pass through untouched (they're
+ *  never formulas, and guarding them would mangle legitimate negatives). RFC-4180-correct ≠ safe. */
 function escapeField(value: CsvCell): string {
     if (value == null) return "";
-    const s = String(value);
+    let s = String(value);
+    if (typeof value === "string" && /^[=+\-@\t\r]/.test(s)) {
+        s = `'${s}`;
+    }
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
