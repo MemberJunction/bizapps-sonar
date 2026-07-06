@@ -123,7 +123,7 @@ Tiered on the two cost/value drivers that actually scale: **anchor population si
 
 Sonar ships as a single **OpenApp** (MJ's application packaging substrate). One build, two legs (§3.1). The OpenApp bundles:
 
-- **Entities + migrations** for the `__sonar` schema (§5), registered through MJ CodeGen.
+- **Entities + migrations** for the `__mj_BizAppsSonar` schema (§5), registered through MJ CodeGen.
 - **Starter factor library** and **model templates** (`ModelTemplate`, §5.8) — Renewal Risk, Community Engagement, Learning Engagement, Donor Propensity, Chapter Health.
 - **AI agents** (§8) — the Model Builder agent, the Explainer, the Dashboard Builder, the Recompute orchestrator.
 - **Angular surfaces** running inside the MJ Explorer shell (§9).
@@ -144,7 +144,7 @@ Persona resolved at login from MJ role assignments; multi-persona users get the 
 
 ### 4.3 The core conceptual model (read this before §5)
 
-Five first-class objects. Each is a table (or set of tables) in `__sonar`. **Everything here is data.**
+Five first-class objects. Each is a table (or set of tables) in `__mj_BizAppsSonar`. **Everything here is data.**
 
 ```
                      ┌─────────────────────────────────────────────────────────┐
@@ -171,7 +171,7 @@ Five first-class objects. Each is a table (or set of tables) in `__sonar`. **Eve
 
 ### 4.4 Schema & conventions
 
-- New schema: **`__sonar`**. Cross-cutting MJ metadata in `__mj`; tenant/billing in `__BCSaaS`; person/org in `bizapps`.
+- New schema: **`__mj_BizAppsSonar`**. Cross-cutting MJ metadata in `__mj`; tenant/billing in `__BCSaaS`; person/org in `bizapps`.
 - UUID PKs per MJ conventions. `__mj_CreatedAt` / `__mj_UpdatedAt` are owned by CodeGen and **never** inserted in migrations.
 - Migrations follow the repo convention `V{timestamp}__v{ver}.x_{desc}.sql`.
 - All entities registered via MJ CodeGen so generated entity classes, the GraphQL API, and MJ Explorer pick them up automatically.
@@ -216,7 +216,7 @@ engagement-scoring/                       # → graduates to bluecypress/sonar
 
 ## 5. Data Model (detailed)
 
-All tables in `__sonar`. UUID PKs. `__mj_CreatedAt`/`__mj_UpdatedAt` owned by CodeGen. Below, "→" denotes an FK. JSON columns are `NVARCHAR(MAX)` with documented shapes; consider extracting hot keys into columns once query patterns settle.
+All tables in `__mj_BizAppsSonar`. UUID PKs. `__mj_CreatedAt`/`__mj_UpdatedAt` owned by CodeGen. Below, "→" denotes an FK. JSON columns are `NVARCHAR(MAX)` with documented shapes; consider extracting hot keys into columns once query patterns settle.
 
 The model splits into seven groups:
 **(5.1)** configuration · **(5.2)** factors & windows · **(5.3)** runtime output · **(5.4)** recompute/audit · **(5.5)** Action governance & write-back · **(5.6)** action layer (v1) · **(5.7)** calibration network (BC SaaS) · **(5.8)** templates & misc.
@@ -630,7 +630,7 @@ FactorArchetype ──1─N BenchmarkDistribution / BenchmarkContribution       
 
 > **Superseded in part — see [`platform-alignment-refactor.md`](./platform-alignment-refactor.md).** The pipeline below remains the correct *logical* specification, but steps 2–3 (factor evaluation) are implemented on Predictive Studio feature assembly + a Record Set Processing work type, steps 7–8 ride the RSP tracker (`ProcessRunID`), §6.2's orchestration rides RSP + MJ Scheduling, and the on-demand API is a Remote Operation. Do not hand-build the batching/concurrency/rate-limit/budget machinery described in step 3.
 
-`sonar-engine`. Stateless services over the `__sonar` data, invoked by the recompute orchestrator and the on-demand API.
+`sonar-engine`. Stateless services over the `__mj_BizAppsSonar` data, invoked by the recompute orchestrator and the on-demand API.
 
 ### 6.1 Recompute pipeline (per model, per run)
 
@@ -745,7 +745,7 @@ Phases are **sequence and scope, not calendar.** With AI-assisted build, the bin
 
 **Phase 1 — Engine + Actions + the action layer + one template**
 The whole single-tenant product, *including acting on scores.* Deliberately broad — the action layer is a v1 commitment, not a follow-on.
-- `__sonar` schema + migrations + CodeGen + GraphQL (full schema incl. action-layer + write-back tables).
+- `__mj_BizAppsSonar` schema + migrations + CodeGen + GraphQL (full schema incl. action-layer + write-back tables).
 - `sonar-engine`: FactorCompiler (declarative → SQL), **Action-backed factor runtime** (batch/cache/budget) + `ActionPromotion` gate, NormalizationEngine, RecomputeOrchestrator (scheduled + event + on-demand), band/trend, `Score` + `ScoreFactorContribution` + `ScoreHistory` + `ScoreBandTransition`.
 - Model Builder surface (visual editor) + AI authoring agent.
 - Engagement Manager surface (briefing + explainability drill-down + **segments + interventions**).

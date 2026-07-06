@@ -1,0 +1,15 @@
+[
+  {
+    "fields": {
+      "Name": "Default Health Bands",
+      "Description": "Starter three-band rubric on a 0–100 scale: At Risk / Neutral / Healthy. A generic default operators can clone and tune per model."
+    },
+    "primaryKey": {
+      "ID": "7E3B9C42-0A1D-4E58-9B6F-2C4D8A1F0B30"
+    },
+    "sync": {
+      "lastModified": "2026-06-16T21:23:04.881Z",
+      "checksum": "252248e306c861ff2b963c2dafbefaef3f2610aec3f7d0040ef8721b49a0bfd2"
+    }
+  }
+]

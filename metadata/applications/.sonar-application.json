@@ -1,0 +1,47 @@
+{
+  "fields": {
+    "Name": "BizAppSonar",
+    "Description": "Configurable engagement scoring — models, factors, and explainable scores.",
+    "Icon": "fa-solid fa-wave-square",
+    "DefaultForNewUser": false,
+    "Color": "#6366F1",
+    "DefaultSequence": 2000,
+    "DefaultNavItems": [
+      {
+        "Label": "Overview",
+        "Icon": "fa-solid fa-wave-square",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarOverviewResource",
+        "isDefault": true
+      },
+      {
+        "Label": "Model Builder",
+        "Icon": "fa-solid fa-sliders",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarModelBuilderResource",
+        "isDefault": false
+      },
+      {
+        "Label": "Engagement Manager",
+        "Icon": "fa-solid fa-chart-line",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarEngagementManagerResource",
+        "isDefault": false
+      },
+      {
+        "Label": "Admin & Ops",
+        "Icon": "fa-solid fa-gauge-high",
+        "ResourceType": "Custom",
+        "DriverClass": "SonarAdminOpsResource",
+        "isDefault": false
+      }
+    ]
+  },
+  "primaryKey": {
+    "ID": "4F9477FB-BC8B-4CA9-A4FE-C0FB45496285"
+  },
+  "sync": {
+    "lastModified": "2026-06-16T16:19:24.429Z",
+    "checksum": "ddc0762120ee654100faabd3f28e7add0ed429f23bfa5e10600f2b61a1f1326d"
+  }
+}

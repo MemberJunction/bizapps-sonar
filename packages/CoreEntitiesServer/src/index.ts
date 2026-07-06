@@ -11,11 +11,14 @@
  * to ensure @RegisterClass decorators fire at startup — it must load AFTER
  * @mj-biz-apps/sonar-entities so the server subclasses win @RegisterClass
  * priority.
- *
- * No server-side subclasses exist yet — they will be added once the initial
- * __sonar schema migration has run and CodeGen has produced the base entity
- * classes.
  */
 
-/** Marker export so this module is non-empty until subclasses are added. */
+export * from "./ScoreModelEntityServer";
+export * from "./FactorEntityServer";
+export * from "./ModelFactorEntityServer";
+export * from "./ModelRelatedEntityEntityServer";
+export * from "./ScoreBandEntityServer";
+export * from "./publishLock";
+
+/** Marker export so importers can force-load this module (and its decorators). */
 export const SONAR_CORE_ENTITIES_SERVER_LOADED = true;

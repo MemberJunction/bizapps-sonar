@@ -1,25 +1,76 @@
 /**********************************************************************************
-* PLACEHOLDER — This file is owned by the MJ CodeGen tool.
-*
-* Once the initial __sonar schema migration has been applied and
-* `npm run mj:codegen` has run, this file will be replaced with the
-* generated form components module for all Sonar entities.
-*
-* DO NOT MODIFY THIS FILE — any changes will be wiped out the next time
-* the file is generated.
+* GENERATED FILE - This file is automatically managed by the MJ CodeGen tool, 
+* 
+* DO NOT MODIFY THIS FILE - any changes you make will be wiped out the next time the file is
+* generated
+* 
 **********************************************************************************/
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+// MemberJunction Imports
+import { BaseFormsModule } from '@memberjunction/ng-base-forms';
+import { EntityViewerModule } from '@memberjunction/ng-entity-viewer';
+import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
+
+// Import Generated Components
+import { mjBizAppsSonarFactorFormComponent } from "./Entities/mjBizAppsSonarFactor/mjbizappssonarfactor.form.component";
+import { mjBizAppsSonarModelFactorFormComponent } from "./Entities/mjBizAppsSonarModelFactor/mjbizappssonarmodelfactor.form.component";
+import { mjBizAppsSonarModelRelatedEntityFormComponent } from "./Entities/mjBizAppsSonarModelRelatedEntity/mjbizappssonarmodelrelatedentity.form.component";
+import { mjBizAppsSonarScoreBandSetFormComponent } from "./Entities/mjBizAppsSonarScoreBandSet/mjbizappssonarscorebandset.form.component";
+import { mjBizAppsSonarScoreBandTransitionFormComponent } from "./Entities/mjBizAppsSonarScoreBandTransition/mjbizappssonarscorebandtransition.form.component";
+import { mjBizAppsSonarScoreBandFormComponent } from "./Entities/mjBizAppsSonarScoreBand/mjbizappssonarscoreband.form.component";
+import { mjBizAppsSonarScoreFactorContributionFormComponent } from "./Entities/mjBizAppsSonarScoreFactorContribution/mjbizappssonarscorefactorcontribution.form.component";
+import { mjBizAppsSonarScoreHistoryFormComponent } from "./Entities/mjBizAppsSonarScoreHistory/mjbizappssonarscorehistory.form.component";
+import { mjBizAppsSonarScoreModelAuditEventFormComponent } from "./Entities/mjBizAppsSonarScoreModelAuditEvent/mjbizappssonarscoremodelauditevent.form.component";
+import { mjBizAppsSonarScoreModelVersionFormComponent } from "./Entities/mjBizAppsSonarScoreModelVersion/mjbizappssonarscoremodelversion.form.component";
+import { mjBizAppsSonarScoreModelFormComponent } from "./Entities/mjBizAppsSonarScoreModel/mjbizappssonarscoremodel.form.component";
+import { mjBizAppsSonarScoreRecomputeRunFormComponent } from "./Entities/mjBizAppsSonarScoreRecomputeRun/mjbizappssonarscorerecomputerun.form.component";
+import { mjBizAppsSonarScoreFormComponent } from "./Entities/mjBizAppsSonarScore/mjbizappssonarscore.form.component";
+import { mjBizAppsSonarTimeWindowFormComponent } from "./Entities/mjBizAppsSonarTimeWindow/mjbizappssonartimewindow.form.component";
+   
+
 @NgModule({
 declarations: [
-],
+    mjBizAppsSonarFactorFormComponent,
+    mjBizAppsSonarModelFactorFormComponent,
+    mjBizAppsSonarModelRelatedEntityFormComponent,
+    mjBizAppsSonarScoreBandSetFormComponent,
+    mjBizAppsSonarScoreBandTransitionFormComponent,
+    mjBizAppsSonarScoreBandFormComponent,
+    mjBizAppsSonarScoreFactorContributionFormComponent,
+    mjBizAppsSonarScoreHistoryFormComponent,
+    mjBizAppsSonarScoreModelAuditEventFormComponent,
+    mjBizAppsSonarScoreModelVersionFormComponent,
+    mjBizAppsSonarScoreModelFormComponent,
+    mjBizAppsSonarScoreRecomputeRunFormComponent,
+    mjBizAppsSonarScoreFormComponent,
+    mjBizAppsSonarTimeWindowFormComponent],
 imports: [
     CommonModule,
-    FormsModule
+    FormsModule,
+    BaseFormsModule,
+    EntityViewerModule,
+    LinkDirectivesModule
 ],
 exports: [
 ]
 })
+export class GeneratedForms_SubModule_0 { }
+    
+
+
+@NgModule({
+declarations: [
+],
+imports: [
+    GeneratedForms_SubModule_0
+]
+})
 export class GeneratedFormsModule { }
+    
+// Note: LoadXXXGeneratedForms() functions have been removed. Tree-shaking prevention
+// is now handled by the pre-built class registration manifest system.
+// See packages/CodeGenLib/CLASS_MANIFEST_GUIDE.md for details.
+    
