@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Factor Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(129,140,248,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .ai-halo{background:linear-gradient(135deg,#818cf8,#22d3ee,#2dd4bf);padding:1px;border-radius:1rem}
+  .ai-halo-inner{background:#0b0f1a;border-radius:.95rem}
+  .sonar-dot{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  /* "mad-libs" inline token: looks like an editable chip inside a sentence */
+  .token{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:.5rem;background:rgba(34,211,238,0.10);border:1px solid rgba(34,211,238,0.25);color:#a5f3fc;font-weight:500;cursor:pointer}
+  .token--entity{background:rgba(45,212,191,0.10);border-color:rgba(45,212,191,0.25);color:#99f6e4}
+  .token--muted{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.10);color:#cbd5e1}
+  .caret{font-size:.6rem;opacity:.7}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <!-- sidebar -->
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Factor Builder</div></div>
+    </a>
+    <div class="glass rounded-xl p-3">
+      <div class="text-xs text-slate-400">In model</div>
+      <div class="font-semibold text-sm mt-0.5">Renewal Risk</div>
+      <div class="text-xs text-indigo-300 mt-0.5">Draft v3 · anchor: Member</div>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm">
+      <div class="text-xs uppercase tracking-wider text-slate-500 px-3 mb-1">Builder spikes</div>
+      <a href="model.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Model Builder</a>
+      <a href="factor.html" class="flex px-3 py-2 rounded-lg bg-white/5 text-white">Factor Builder</a>
+      <a href="scoreband.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Score-Band Builder</a>
+      <a href="snapshot.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Publish &amp; Snapshot</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">Declarative factor · compiles to one set-based SQL query</div>
+        <h1 class="text-xl font-semibold">Newsletter engagement <span class="text-slate-500 font-normal text-sm ml-2">unsaved</span></h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-3 py-2 rounded-lg border border-white/10 text-sm">Validate</button>
+        <button class="px-3 py-2 rounded-lg bg-cyan-400 text-black font-medium text-sm">Save factor</button>
+      </div>
+    </div>
+
+    <div class="p-8 grid xl:grid-cols-[1fr,380px] gap-6">
+      <!-- LEFT: sentence / mad-libs composer -->
+      <div class="space-y-6">
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-4">Define the signal</div>
+
+          <!-- the editable sentence -->
+          <div class="text-lg leading-loose">
+            <span class="token"><span>Count</span><span class="caret">▼</span></span>
+            records in
+            <span class="token token--entity"><span>crm_activity</span><span class="text-slate-500">(Activities)</span><span class="caret">▼</span></span>
+            <br/>
+            where
+            <span class="token token--muted"><span>⛭</span><span class="mono text-xs">Type in (Open, Click)</span><span class="caret">▼</span></span>
+            <br/>
+            over
+            <span class="token"><span>Last 90 days</span><span class="caret">▼</span></span>
+            ,
+            normalized by
+            <span class="token"><span>MinMax</span><span class="caret">▼</span></span>
+            <br/>
+            — higher is
+            <span class="token"><span>better</span><span class="caret">▼</span></span>.
+          </div>
+
+          <!-- field picker note: hidden for Count -->
+          <div class="mt-4 text-xs text-slate-500 mono">
+            field picker hidden — <span class="text-slate-400">Count</span> uses <span class="text-cyan-300">COUNT(*)</span>; selectivity comes from the filter.
+          </div>
+
+          <!-- aggregation allow-list, made explicit -->
+          <div class="mt-5 pt-4 border-t border-white/5">
+            <div class="text-[11px] uppercase tracking-wider text-slate-500 mb-2">Aggregation (v1 engine)</div>
+            <div class="flex flex-wrap gap-1.5 text-xs">
+              <span class="chip bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">Count ✓</span>
+              <span class="chip bg-white/5 text-slate-300 border border-white/10">Sum</span>
+              <span class="chip bg-white/5 text-slate-300 border border-white/10">Avg</span>
+              <span class="chip bg-white/5 text-slate-300 border border-white/10">Min</span>
+              <span class="chip bg-white/5 text-slate-300 border border-white/10">Max</span>
+              <span class="chip bg-white/5 text-slate-300 border border-white/10">DistinctCount</span>
+              <span class="chip bg-white/5 text-slate-600 border border-white/10 line-through">Exists</span>
+              <span class="chip bg-white/5 text-slate-600 border border-white/10 line-through">Recency</span>
+              <span class="chip bg-white/5 text-slate-600 border border-white/10 line-through">TrendSlope</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">Greyed = in the schema enum but not implemented by the v1 compiler → Phase 2+. Sum/Avg/Min/Max/DistinctCount reveal a <span class="text-slate-400">field picker</span>.</div>
+          </div>
+        </section>
+
+        <!-- Filter sub-builder (mj-filter-builder representation) -->
+        <section class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-xs uppercase tracking-wider text-slate-500">Filter <span class="text-slate-600">· &lt;mj-filter-builder&gt; → CompositeFilterDescriptor</span></div>
+            <span class="chip bg-white/5 text-slate-400 border border-white/10">de-Kendo'd</span>
+          </div>
+          <div class="rounded-xl border border-white/10 p-4 space-y-2">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="chip bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">AND</span>
+              <span class="text-slate-500 text-xs">match all of</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm pl-6">
+              <span class="token token--muted mono text-xs">Type</span>
+              <span class="text-slate-400">is in</span>
+              <span class="token token--muted mono text-xs">Open, Click</span>
+              <button class="ml-auto text-slate-600 hover:text-slate-300 text-xs">✕</button>
+            </div>
+            <div class="flex items-center gap-2 text-sm pl-6">
+              <span class="token token--muted mono text-xs">Channel</span>
+              <span class="text-slate-400">equals</span>
+              <span class="token token--muted mono text-xs">Email</span>
+              <button class="ml-auto text-slate-600 hover:text-slate-300 text-xs">✕</button>
+            </div>
+            <button class="pl-6 text-xs text-cyan-300 hover:text-cyan-200">+ add condition · + add group</button>
+          </div>
+          <div class="mt-3 mono text-[11px] text-slate-500 bg-black/30 rounded-lg p-3 border border-white/5">
+            { "logic": "and", "filters": [<br/>
+            &nbsp;&nbsp;{ "field": "Type", "operator": "in", "value": ["Open","Click"] },<br/>
+            &nbsp;&nbsp;{ "field": "Channel", "operator": "eq", "value": "Email" } ] }
+          </div>
+        </section>
+
+        <!-- Advanced disclosure -->
+        <section class="glass rounded-2xl p-6">
+          <button class="w-full flex items-center justify-between text-left">
+            <span class="text-xs uppercase tracking-wider text-slate-500">▸ Advanced fields</span>
+            <span class="text-xs text-slate-600">RawDataType · NormalizationParamsJSON · OutputMin/Max · Slug</span>
+          </button>
+        </section>
+      </div>
+
+      <!-- RIGHT: live preview -->
+      <div class="space-y-6">
+        <section class="ai-halo">
+          <div class="ai-halo-inner p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="chip bg-cyan-500/15 text-cyan-300 border border-cyan-500/20"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 sonar-dot"></span> Live preview</span>
+              <span class="text-[11px] text-slate-500">via "Sonar: Validate Factor" Action</span>
+            </div>
+            <div class="text-sm font-medium">Sample member · Maria Chen</div>
+            <div class="mt-3 space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-400">Raw value</span><span class="mono">14 records</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Normalized (MinMax)</span><span class="mono text-cyan-300">0.62</span></div>
+              <div class="flex justify-between"><span class="text-slate-400">Contribution</span><span class="mono text-emerald-300">+0.62</span></div>
+            </div>
+            <div class="mt-4 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-3">
+              <span class="text-slate-300">Explanation:</span> 14 Open/Click activities in the last 90 days — 0.62 of the population's min–max range.
+            </div>
+            <div class="mt-4 flex items-center gap-2">
+              <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">✓ compiles</span>
+              <span class="text-[11px] text-slate-500">FactorCompiler: single-hop FK ok · Rolling window ok</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass rounded-2xl p-5 text-xs text-slate-400">
+          <div class="text-slate-300 font-medium mb-1">This is one <span class="mono text-cyan-300">Factor</span> row.</div>
+          The weight + mode (additive/penalty) aren't set here — those live on the <span class="mono">ModelFactor</span> binding when you add this factor to a rubric. Keep the <em>definition</em> (Factor) separate from the <em>binding</em> (ModelFactor).
+        </section>
+
+        <section class="glass rounded-2xl p-5 text-xs text-slate-500">
+          <span class="text-slate-300 font-medium">v1 engine caps:</span> Declarative factors · single-hop related entity · Rolling windows · None/MinMax normalization. Anything outside that is greyed out, not hidden — so the path forward is visible.
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
