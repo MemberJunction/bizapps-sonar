@@ -1,0 +1,454 @@
+/* Factor Builder surface-specific styles. Shared primitives live in sonar-shell.css. */
+
+.sonar-faint { color: var(--sonar-faint); }
+.sonar-ink { color: var(--sonar-ink); }
+
+/* Root matches the other builders: a column with a consistent 1.5rem rhythm. */
+.sonar-fb { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.sonar-fb__name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sonar-fb__name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--sonar-border-strong);
+    color: var(--sonar-ink);
+    padding: 0.15rem 0.25rem;
+    min-width: 14rem;
+    transition: border-bottom-color 0.15s ease;
+}
+.sonar-fb__name:focus { outline: none; border-bottom-color: var(--sonar-accent); }
+
+.sonar-fb__name--auto {
+    color: var(--sonar-accent);
+}
+
+.sonar-fb__auto-tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 25%, transparent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+/* ============================================================ Core Presets Card */
+.sonar-presets-card {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border);
+}
+
+.sonar-presets-label {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+    color: var(--sonar-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.sonar-presets-label i {
+    color: var(--sonar-accent);
+}
+
+.sonar-presets-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sonar-preset-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--sonar-border);
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-ink);
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--sonar-radius-sm);
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sonar-preset-btn:hover {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 6%, var(--sonar-surface-sunken));
+    color: var(--sonar-accent);
+    transform: translateY(-0.5px);
+}
+.sonar-preset-btn:active {
+    transform: scale(0.98);
+}
+
+/* ============================================================ The mad-libs sentence */
+.sonar-sentence { font-size: 1.05rem; line-height: 2.5; color: var(--sonar-ink); }
+.sonar-token {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-block;
+    padding: 0.2rem 1.4rem 0.2rem 0.6rem;
+    border-radius: 0.5rem;
+    background: var(--sonar-watch-bg) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%233b82f6' fill='none' stroke-width='1.5'/></svg>") no-repeat right 0.5rem center;
+    border: 1px solid color-mix(in srgb, var(--sonar-watch) 30%, transparent);
+    color: var(--sonar-watch);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.sonar-token:hover {
+    background-color: color-mix(in srgb, var(--sonar-watch) 18%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-watch) 50%, transparent);
+}
+.sonar-token--entity {
+    background-color: var(--sonar-healthy-bg);
+    border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent);
+    color: var(--sonar-healthy);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2310b981' fill='none' stroke-width='1.5'/></svg>");
+}
+.sonar-token--entity:hover {
+    background-color: color-mix(in srgb, var(--sonar-healthy) 18%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-healthy) 50%, transparent);
+}
+.sonar-token:active {
+    transform: scale(0.98);
+}
+.sonar-token:focus {
+    outline: none;
+    border-color: var(--sonar-watch);
+    box-shadow: 0 0 0 1px var(--sonar-watch), 0 0 0 4px color-mix(in srgb, var(--sonar-watch) 18%, transparent);
+}
+.sonar-token--entity:focus {
+    border-color: var(--sonar-healthy);
+    box-shadow: 0 0 0 1px var(--sonar-healthy), 0 0 0 4px color-mix(in srgb, var(--sonar-healthy) 18%, transparent);
+}
+
+.sonar-fb__hint { font-size: 0.74rem; margin-top: 0.5rem; color: var(--sonar-muted); }
+.sonar-sentence__word { font-weight: 600; color: var(--sonar-muted); }
+
+/* The data-vs-action fork, horizontal at the top of the Signal step. */
+.sonar-fb__mode { margin-bottom: 1rem; }
+/* (Filter-builder accent is remapped to --sonar-accent centrally in sonar-shell.css, so the
+   factor filter and the cockpit population filter stay consistent.) */
+
+/* Structured "what to measure" rows — a parameter grid: a fixed label column on the left and a
+   control column on the right, so every dropdown's left edge lines up vertically as the eye scans
+   (replaces the old inline madlib; matches the Scale step's structured feel). */
+.sonar-fb__fields { display: flex; flex-direction: column; gap: 0.75rem; }
+.sonar-fb__field {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 240px);
+    align-items: center;
+    gap: 1rem;
+}
+.sonar-fb__field-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
+.sonar-fb__field .sonar-input { width: 100%; }
+
+/* Conditional child row (e.g. "Of value", which only appears for Sum/Average): indent + a connector
+   glyph mark it as a consequence of the Measure choice, so it doesn't read as a field that randomly
+   blinked in. Control stays in the same column → alignment holds. */
+.sonar-fb__field-label--child {
+    padding-left: 1rem;
+    font-weight: 500;
+    color: var(--sonar-muted);
+}
+.sonar-fb__field-label--child::before {
+    content: "↳";
+    margin-left: -1rem;
+    margin-right: 0.4rem;
+    color: var(--sonar-faint);
+}
+
+/* Narrow fallback: stack label over a full-width control so targets don't jam. */
+@media (max-width: 560px) {
+    .sonar-fb__field { grid-template-columns: 1fr; gap: 0.25rem; }
+    .sonar-fb__field-label--child { padding-left: 0; }
+    .sonar-fb__field-label--child::before { margin-left: 0; }
+}
+
+/* ============================================================ Normalization Cards Grid */
+.sonar-norm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.sonar-norm-card {
+    display: flex;
+    gap: 0.75rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.75rem;
+    cursor: pointer;
+    background: var(--sonar-surface);
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.sonar-norm-card:hover {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 2%, var(--sonar-surface));
+    transform: translateY(-0.5px);
+}
+
+.sonar-norm-card--active {
+    border-color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--sonar-accent) 10%, transparent);
+}
+
+.sonar-norm-card__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sonar-muted);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sonar-norm-card--active .sonar-norm-card__icon {
+    background: var(--sonar-accent);
+    color: var(--sonar-on-accent);
+}
+
+.sonar-norm-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sonar-norm-card__title {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+    color: var(--sonar-ink);
+}
+
+.sonar-norm-card__desc {
+    font-size: 0.74rem;
+    color: var(--sonar-muted);
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Weight section alignment */
+.sonar-fb__weight {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+.sonar-fb__weight input[type="range"] {
+    flex: 1;
+}
+
+/* Preview pane. */
+.sonar-fb__preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.sonar-fb__rows { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.sonar-fb__row { display: flex; justify-content: space-between; font-size: 0.88rem; }
+.sonar-fb__explain { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--sonar-border); font-size: 0.8rem; color: var(--sonar-muted); line-height: 1.5; }
+.sonar-fb__verdict { margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+/* ============================================================ Action (custom signal) mode */
+/* The action picker dropdown spans the card; spacing matches the declarative composer. */
+.sonar-fb__action-select { width: 100%; margin-top: 0.25rem; }
+
+/* Generated param form — one labeled field per configurable action input. */
+.sonar-fb__params {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.sonar-fb__param { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-fb__param-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
+.sonar-fb__param-help { font-size: 0.76rem; color: var(--sonar-muted); line-height: 1.45; }
+.sonar-fb__req { color: var(--sonar-critical); margin-left: 0.15rem; }
+/* source-fields-ref multi-select + boolean: a compact checkbox list. */
+.sonar-fb__fields { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; padding: 0.15rem 0; }
+.sonar-fb__field-opt { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--sonar-ink); cursor: pointer; }
+.sonar-fb__field-opt input { accent-color: var(--sonar-accent); }
+
+/* Governance block — promotion-state select sits below the params with a hairline divider. */
+.sonar-fb__promo {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sonar-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.sonar-fb__promo-label {
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+}
+.sonar-fb__promo select { width: 100%; }
+
+/* "What this signal does" — the action contract panel (label/value rows on a sunken surface). */
+.sonar-fb__contract {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sonar-fb__contract-row { display: grid; grid-template-columns: 5rem 1fr; gap: 0.75rem; align-items: baseline; }
+.sonar-fb__contract-label {
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+}
+.sonar-fb__contract-val { font-size: var(--sonar-font-sm); color: var(--sonar-ink); line-height: 1.45; }
+.sonar-fb__contract-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+
+/* ============================================================ Tier-B normalization params */
+/* Sub-group label above each normalization grid (Relative to the group / Fixed shape). */
+.sonar-fb__norm-group-label {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+    margin: 1.25rem 0 0.5rem;
+}
+.sonar-fb__norm-group-label:first-of-type { margin-top: 0.5rem; }
+
+/* Param panel — revealed below the grid when a fixed-shape method is selected. */
+.sonar-fb__norm-params {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sonar-border);
+}
+.sonar-fb__param-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 560px) { .sonar-fb__param-grid2 { grid-template-columns: 1fr; } }
+
+/* Repeatable row editor for Banded / Lookup tables. */
+.sonar-fb__param-table { display: flex; flex-direction: column; gap: 0.5rem; }
+.sonar-fb__param-thead,
+.sonar-fb__param-trow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2.25rem;
+    gap: 0.5rem;
+    align-items: center;
+}
+.sonar-fb__param-thead {
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+}
+.sonar-fb__param-del { padding: 0; width: 2.25rem; justify-content: center; color: var(--sonar-faint); }
+.sonar-fb__param-del:hover:not(:disabled) { color: var(--sonar-critical); }
+.sonar-fb__param-add { align-self: flex-start; margin-top: 0.25rem; }
+.sonar-fb__param--fallback {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--sonar-border);
+    max-width: 240px;
+}
+
+/* In-context tie chooser — inline under the measure sentence (accent-tinted, draws the eye). */
+.sonar-fb__tie {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--sonar-accent) 35%, var(--sonar-border));
+    background: color-mix(in srgb, var(--sonar-accent) 5%, var(--sonar-surface));
+    border-radius: var(--sonar-radius-sm);
+}
+.sonar-fb__tie-head { margin: 0 0 0.5rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.45; }
+.sonar-fb__tie-head i { color: var(--sonar-accent); margin-right: 0.35rem; }
+.sonar-fb__tie-options { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-tie__option { width: 100%; justify-content: flex-start; text-align: left; font-weight: 500; }
+.sonar-tie__option:hover { border-color: var(--sonar-accent); }
+
+/* ============================================================ Stepped 3-pane layout */
+/* Header is full-width above; below it: steps · config · persistent summary+preview. Sidebar and
+   rail are sticky so the steps + preview stay put while the middle config scrolls. Collapses to a
+   single stacked column (sidebar → horizontal chips) under 1100px (the §6 1075 acceptance gate). */
+/* Fill the fixed-height panel: header pinned on top, the panes take the rest. */
+.sonar-fb--stepped { height: 100%; display: flex; flex-direction: column; }
+.sonar-fb--stepped .sonar-fb__bar { flex: 0 0 auto; margin-bottom: 0; }
+
+.sonar-fb__panes {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) 320px;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+}
+
+/* LEFT — mode toggle + jumpable steps */
+.sonar-fb__steps { display: flex; flex-direction: column; gap: 1rem; align-self: start; }
+.sonar-segmented--vert { flex-direction: column; }
+.sonar-segmented--vert .sonar-segmented__opt { width: 100%; justify-content: flex-start; }
+.sonar-fb__steplist { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-step {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid transparent; border-radius: var(--sonar-radius-sm);
+    background: transparent; color: var(--sonar-muted);
+    font: inherit; font-weight: 600; font-size: var(--sonar-font-sm);
+    cursor: pointer; text-align: left;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.sonar-step:hover { background: var(--sonar-surface-sunken); color: var(--sonar-ink); }
+.sonar-step--active {
+    background: color-mix(in srgb, var(--sonar-accent) 10%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-accent) 30%, var(--sonar-border));
+    color: var(--sonar-ink);
+}
+.sonar-step__icon { width: 1.1rem; text-align: center; color: var(--sonar-faint); }
+.sonar-step--active .sonar-step__icon { color: var(--sonar-accent); }
+.sonar-step__label { flex: 1; }
+.sonar-step__check { color: var(--sonar-healthy); font-size: 0.78rem; }
+
+/* MIDDLE — the active step's config (min-width:0 lets the filter builder shrink/wrap, not overflow). */
+.sonar-fb__config { min-width: 0; min-height: 0; overflow-y: auto; padding-right: 0.25rem; display: flex; flex-direction: column; gap: 1rem; }
+
+/* RIGHT — persistent summary + live preview */
+.sonar-fb__rail { display: flex; flex-direction: column; gap: 1rem; align-self: start; }
+.sonar-fb__summary-name { margin: 0 0 0.5rem; font-size: var(--sonar-font-lg); font-weight: 700; color: var(--sonar-ink); }
+.sonar-fb__summary-rows { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-fb__sum-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: var(--sonar-font-sm); }
+.sonar-fb__sum-val { color: var(--sonar-ink); text-align: right; }
+.sonar-fb__sum-detail { margin: 0.15rem 0 0.35rem; font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.45; }
+
+@media (max-width: 1100px) {
+    .sonar-fb__panes { grid-template-columns: 1fr; overflow-y: auto; }
+    /* stacked: the whole column scrolls, so the middle pane shouldn't scroll on its own */
+    .sonar-fb__config { overflow: visible; }
+    .sonar-fb__steps, .sonar-fb__rail { position: static; }
+    .sonar-segmented--vert { flex-direction: row; }
+    .sonar-fb__steplist { flex-direction: row; flex-wrap: wrap; }
+    .sonar-step { flex: 0 0 auto; }
+}

@@ -1,0 +1,67 @@
+.sonar-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 248px;
+    flex: none;
+    /* No card chrome — only a slim right gutter so rows don't kiss the scrollbar. */
+    padding: 0 0.25rem 0.5rem 0;
+    align-self: stretch;
+    overflow-y: auto;
+    height: 100%;
+}
+.sonar-sidebar--collapsed {
+    display: none !important;
+}
+.sonar-sidebar__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-sidebar__title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sonar-faint); }
+.sonar-sidebar__head-right { display: flex; align-items: center; gap: 0.4rem; }
+.sonar-sidebar__count {
+    font-size: 0.7rem; font-weight: 700; color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken); border-radius: 999px; padding: 0.05rem 0.45rem; min-width: 1.2rem; text-align: center;
+}
+.sonar-sidebar__new {
+    border: 1px solid var(--sonar-border); background: transparent; cursor: pointer;
+    color: var(--sonar-muted); font-size: 0.75rem; font-weight: 600;
+    padding: 0.2rem 0.55rem; border-radius: 999px;
+}
+.sonar-sidebar__new:hover { color: var(--sonar-ink); border-color: var(--sonar-brand); }
+.sonar-sidebar__search {
+    width: 100%; box-sizing: border-box; font-size: 0.8rem;
+    padding: 0.4rem 0.6rem; border-radius: var(--sonar-radius-sm);
+    border: 1px solid var(--sonar-border); background: var(--sonar-bg); color: var(--sonar-ink);
+}
+.sonar-sidebar__empty { font-size: 0.8rem; color: var(--sonar-faint); line-height: 1.5; margin: 0.25rem 0 0; list-style: none; }
+.sonar-sidebar__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+/* Dense IDE-style switcher row: [status dot] [name / type] … [signal-weight badge]. */
+.sonar-sidebar__item {
+    display: flex; flex-direction: row; align-items: center; gap: 0.55rem; width: 100%;
+    padding: 0.4rem 0.55rem; border-radius: var(--sonar-radius-sm);
+    border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left;
+    transition: background 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+.sonar-sidebar__item:hover { background: var(--sonar-surface-sunken); }
+.sonar-sidebar__item--active,
+.sonar-sidebar__item--active:hover {
+    border-color: color-mix(in srgb, var(--sonar-accent) 30%, transparent);
+    background: color-mix(in srgb, var(--sonar-accent) 9%, var(--sonar-surface-sunken));
+}
+/* Status dot — color-coded so the operator scans state at a glance (IDE git-status feel). */
+.sonar-sidebar__dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999px; }
+.sonar-sidebar__dot--healthy { background: var(--sonar-healthy); }
+.sonar-sidebar__dot--watch { background: var(--sonar-watch); }
+.sonar-sidebar__dot--atrisk { background: var(--sonar-atrisk); }
+.sonar-sidebar__item--active .sonar-sidebar__dot { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent); }
+.sonar-sidebar__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.05rem; }
+.sonar-sidebar__name { font-size: 0.82rem; font-weight: 600; color: var(--sonar-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+.sonar-sidebar__item--active .sonar-sidebar__name { color: var(--sonar-accent); }
+.sonar-sidebar__meta { font-size: 0.68rem; color: var(--sonar-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+.sonar-sidebar__meta i { font-size: 0.6rem; margin-right: 0.1rem; opacity: 0.8; }
+/* Signal-count "weight" badge on the right — the model's heft at a glance. */
+.sonar-sidebar__weight {
+    flex: none; display: inline-flex; align-items: center; gap: 0.2rem;
+    font-family: var(--sonar-mono); font-size: 0.65rem; font-weight: 700; color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken); border-radius: 999px; padding: 0.1rem 0.4rem;
+}
+.sonar-sidebar__weight i { font-size: 0.55rem; opacity: 0.7; }
+
