@@ -24,11 +24,11 @@ import { SonarRangeFilterComponent } from './shared/filter-bar/sonar-range-filte
 import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-filter.component';
 
 // Feature surfaces (each reachable via a nav DriverClass, except the floating Copilot launcher).
-// Signal Studio is its own follow-up PR.
 import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
 import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
 import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
 import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin-ops-resource.component';
+import { SonarSignalStudioResourceComponent } from './features/signal-studio/sonar-signal-studio-resource.component';
 // Floating assistant — embedded on every surface (its conversation state service is providedIn:'root').
 import { SonarCopilotLauncherComponent } from './features/assistant/sonar-copilot-launcher.component';
 // Model Builder's hosted builders — opened via view switching inside the feature (not nav-reachable).
@@ -45,9 +45,8 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
  *   - core/services  — singleton, app-wide data services (injected providedIn:'root'; no declarations)
  *   - shared/        — reusable, business-agnostic UI (model rail, multiselect, filter bar) + the
  *                      shared stylesheet (sonar-shell.css)
- *   - features/      — self-contained surfaces reachable via a nav DriverClass, plus the floating
- *                      Copilot launcher. Overview, Model Builder, Engagement, and Admin ship now;
- *                      Signal Studio is a follow-up PR.
+ *   - features/      — self-contained surfaces reachable via a nav DriverClass (Overview, Model
+ *                      Builder, Signal Studio, Engagement, Admin), plus the floating Copilot launcher.
  *
  * The package follows a module-declared pattern (components are `standalone: false`). Imported after
  * the generated forms module in public-api.ts so custom `@RegisterClass` surfaces win on priority.
@@ -70,6 +69,7 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarVersionHistoryComponent,
         SonarEngagementManagerResourceComponent,
         SonarAdminOpsResourceComponent,
+        SonarSignalStudioResourceComponent,
         SonarCopilotLauncherComponent
     ],
     imports: [
@@ -89,7 +89,8 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarOverviewResourceComponent,
         SonarModelBuilderResourceComponent,
         SonarEngagementManagerResourceComponent,
-        SonarAdminOpsResourceComponent
+        SonarAdminOpsResourceComponent,
+        SonarSignalStudioResourceComponent
     ]
 })
 export class CustomFormsModule { }
