@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { CompositeKey, Metadata, RunView } from "@memberjunction/core";
 import { mjBizAppsSonarScoreBandSetEntity, mjBizAppsSonarScoreBandEntity } from "@mj-biz-apps/sonar-entities";
+import { sqlString } from "./sql.util";
 
 const SCORE_BAND_SET = "MJ_BizApps_Sonar: Score Band Sets";
 const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
@@ -52,7 +53,7 @@ export class ScoreBandService {
     public async getBands(bandSetID: string): Promise<mjBizAppsSonarScoreBandEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
             EntityName: SCORE_BAND,
-            ExtraFilter: `BandSetID='${bandSetID}'`,
+            ExtraFilter: `BandSetID='${sqlString(bandSetID)}'`,
             OrderBy: "MinScore ASC",
             ResultType: "entity_object",
         });

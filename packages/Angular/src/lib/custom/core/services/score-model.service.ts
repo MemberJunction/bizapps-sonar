@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { BaseEntity, CompositeKey, Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelRelatedEntityEntity,
@@ -265,7 +266,7 @@ export class ScoreModelService {
     public async dataSources(modelId: string): Promise<mjBizAppsSonarModelRelatedEntityEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>({
             EntityName: MODEL_RELATED_ENTITY,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             OrderBy: "Alias ASC",
             ResultType: "entity_object",
         });
