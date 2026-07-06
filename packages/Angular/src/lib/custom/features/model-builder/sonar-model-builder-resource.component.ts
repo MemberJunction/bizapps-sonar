@@ -14,6 +14,7 @@ import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath 
 import { ToastService } from "../../core/services/toast.service";
 import { bandKey, BandKey } from "../../core/services/score-read.service";
 import { resolveAnchorName } from "../../core/services/anchor-name.util";
+import { sqlString } from "../../core/services/sql.util";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
 
@@ -1015,7 +1016,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (model.CurrentVersionID) {
             const res = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",
-                ExtraFilter: `ID='${model.CurrentVersionID}'`,
+                ExtraFilter: `ID='${sqlString(model.CurrentVersionID)}'`,
                 ResultType: "entity_object",
             });
             const v = res.Success ? res.Results?.[0] : null;
