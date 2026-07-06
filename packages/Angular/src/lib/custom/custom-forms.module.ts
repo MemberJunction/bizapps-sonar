@@ -7,6 +7,11 @@ import { MJComboboxComponent } from '@memberjunction/ng-ui-components';
 // Visual filter builder (the de-Kendo'd MJ component that replaces the deprecated Kendo expression
 // UI). Provides <mj-filter-builder>; used by the Model Builder population filter + Factor Builder.
 import { FilterBuilderModule } from '@memberjunction/ng-filter-builder';
+// MJ's native conversation/chat UI. The floating Copilot launcher embeds <mj-conversation-chat-area>
+// (overlay mode) instead of a bespoke panel — token streaming, message rendering, persistence, and
+// multi-turn come for free. Its services are providedIn:'root', so importing the module for the
+// component declaration is all the wiring needed.
+import { ConversationsModule } from '@memberjunction/ng-conversations';
 
 // Shared UI — reusable, business-agnostic primitives used across every feature surface
 // (see custom/README.md). This module is the single coordination point; each UI PR adds only its
@@ -18,10 +23,14 @@ import { SonarSearchFieldComponent } from './shared/filter-bar/sonar-search-fiel
 import { SonarRangeFilterComponent } from './shared/filter-bar/sonar-range-filter.component';
 import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-filter.component';
 
-// Feature surfaces (each reachable via a nav DriverClass). This PR ships Overview + Model Builder;
-// Engagement, Admin, Signal Studio, and Copilot land in the next UI PR.
+// Feature surfaces (each reachable via a nav DriverClass, except the floating Copilot launcher).
+// Signal Studio is its own follow-up PR.
 import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
 import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
+import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
+import { SonarAdminOpsResourceComponent } from './features/admin-ops/sonar-admin-ops-resource.component';
+// Floating assistant — embedded on every surface (its conversation state service is providedIn:'root').
+import { SonarCopilotLauncherComponent } from './features/assistant/sonar-copilot-launcher.component';
 // Model Builder's hosted builders — opened via view switching inside the feature (not nav-reachable).
 import { SonarModelSetupComponent } from './features/model-builder/builders/model-setup/sonar-model-setup.component';
 import { SonarFactorBuilderComponent } from './features/model-builder/builders/factor-builder/sonar-factor-builder.component';
@@ -36,8 +45,9 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
  *   - core/services  — singleton, app-wide data services (injected providedIn:'root'; no declarations)
  *   - shared/        — reusable, business-agnostic UI (model rail, multiselect, filter bar) + the
  *                      shared stylesheet (sonar-shell.css)
- *   - features/      — self-contained surfaces reachable via a nav DriverClass. Overview + Model
- *                      Builder (with its hosted builders) ship here; the rest follow in later PRs.
+ *   - features/      — self-contained surfaces reachable via a nav DriverClass, plus the floating
+ *                      Copilot launcher. Overview, Model Builder, Engagement, and Admin ship now;
+ *                      Signal Studio is a follow-up PR.
  *
  * The package follows a module-declared pattern (components are `standalone: false`). Imported after
  * the generated forms module in public-api.ts so custom `@RegisterClass` surfaces win on priority.
@@ -57,13 +67,17 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarPromptEditorComponent,
         SonarScoreBandBuilderComponent,
         SonarPublishSnapshotComponent,
-        SonarVersionHistoryComponent
+        SonarVersionHistoryComponent,
+        SonarEngagementManagerResourceComponent,
+        SonarAdminOpsResourceComponent,
+        SonarCopilotLauncherComponent
     ],
     imports: [
         CommonModule,
         FormsModule,
         MJComboboxComponent,
-        FilterBuilderModule
+        FilterBuilderModule,
+        ConversationsModule
     ],
     exports: [
         SonarMultiselectComponent,
@@ -73,7 +87,9 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarRangeFilterComponent,
         SonarToggleFilterComponent,
         SonarOverviewResourceComponent,
-        SonarModelBuilderResourceComponent
+        SonarModelBuilderResourceComponent,
+        SonarEngagementManagerResourceComponent,
+        SonarAdminOpsResourceComponent
     ]
 })
 export class CustomFormsModule { }
