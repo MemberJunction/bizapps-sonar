@@ -8,11 +8,18 @@
             <div>
                 <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
                     {{ model() ? model()!.Name : 'Sonar' }}
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.45em; margin-left: 0.35rem; vertical-align: middle; color: var(--sonar-faint);"></i>
                 </h1>
                 <p class="sonar-page__subtitle">
                     @if (model()) {
-                        Anchor: {{ anchorName() }} · {{ population() === null ? '—' : (population() | number) }} in population
+                        <!-- The old stat-tile grid, collapsed to one metadata line (population, coverage,
+                             config counts, recency). Low coverage is an operational warning, so it gets
+                             band-colored emphasis instead of whispering in muted text. -->
+                        Anchor: {{ anchorName() }}
+                        · <span class="sonar-mono">{{ population() === null ? '—' : (population() | number) }}</span> in population
+                        · <span class="sonar-mono">{{ scoredCount() | number }}</span> scored@if (coveragePct() !== null) {&nbsp;(<span [class.sonar-home__coverage-low]="coveragePct()! < 100">{{ coveragePct() }}%</span>)}
+                        · {{ signalCount() }} signals
+                        · {{ bandCount() }} bands
+                        @if (lastRecomputeLabel()) { · recomputed {{ lastRecomputeLabel() }} }
                     } @else {
                         Your engagement-scoring models at a glance.
                     }
@@ -34,31 +41,12 @@
                 <div class="sonar-stack">
                     <section class="sonar-home__hero sonar-home__hero--skeleton">
                         <div class="sonar-skeleton sonar-skeleton--text" style="width:12rem"></div>
-                        <div class="sonar-home__hero-body">
-                            <div class="sonar-skeleton sonar-skeleton--circle" style="width:160px;height:160px"></div>
-                            <div class="sonar-home__hero-detail">
-                                <div class="sonar-skeleton sonar-skeleton--block" style="width:9rem;height:3rem"></div>
-                                <div class="sonar-skeleton sonar-skeleton--text" style="width:14rem"></div>
-                            </div>
-                        </div>
+                        <div class="sonar-skeleton sonar-skeleton--text" style="width:26rem;height:1.25rem;margin-top:1rem"></div>
+                        <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:11rem;margin-top:1.5rem"></div>
                     </section>
-                    <section class="sonar-split sonar-home__insights">
-                        <div class="sonar-card">
-                            <div class="sonar-skeleton sonar-skeleton--text" style="width:14rem"></div>
-                            <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:9rem;margin-top:1rem"></div>
-                        </div>
-                        <div class="sonar-card">
-                            <div class="sonar-skeleton sonar-skeleton--text" style="width:9rem"></div>
-                            <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:9rem;margin-top:1rem"></div>
-                        </div>
-                    </section>
-                    <section class="sonar-stats sonar-stats--quad">
-                        @for (n of [0,1,2,3]; track n) {
-                            <div class="sonar-stat">
-                                <div class="sonar-skeleton sonar-skeleton--text" style="width:5rem"></div>
-                                <div class="sonar-skeleton sonar-skeleton--block" style="width:3.5rem;height:1.6rem;margin-top:0.5rem"></div>
-                            </div>
-                        }
+                    <section class="sonar-card">
+                        <div class="sonar-skeleton sonar-skeleton--text" style="width:14rem"></div>
+                        <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:7rem;margin-top:1rem"></div>
                     </section>
                 </div>
             } @else if (loaded() && !model()) {
@@ -69,195 +57,254 @@
                 </div>
             } @else if (model()) {
                 <div class="sonar-stack">
-                    <!-- Hero anchor: the one bold focal card; everything else on the page stays quiet. -->
-                    <!-- Hero anchor: Sandbox & Migration Flow -->
+                    <!-- Hero anchor: one plain-language headline over ONE switchable visualization.
+                         Three lenses on the same population; the toggle persists as a preference. -->
                     <section class="sonar-home__hero">
-                        <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-line"></i>Engagement Migration &amp; Opportunity Sandbox</div>
+                        <div class="sonar-home__hero-head">
+                            <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-line"></i>{{ heroEyebrow() }}</div>
+                            @if (distribution().length > 0) {
+                                <div class="sonar-segmented sonar-home__hero-tabs" role="tablist" aria-label="Hero visualization">
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'insight'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'insight'" (click)="setHeroView('insight')">
+                                        <i class="fa-solid fa-table-list"></i> Insight table
+                                    </button>
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'flow'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'flow'" (click)="setHeroView('flow')">
+                                        <i class="fa-solid fa-arrows-left-right"></i> Migration flow
+                                    </button>
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'mix'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'mix'" (click)="setHeroView('mix')">
+                                        <i class="fa-solid fa-chart-column"></i> Band mix
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
                         @if (distribution().length === 0) {
                             <p class="sonar-home__hero-empty">
                                 No persisted scores yet. Publish the model, then run <strong>Recompute</strong> in Model Builder to populate this.
                             </p>
                         } @else {
-                            <div class="sonar-home__hero-grid">
-                                <!-- Col 1: Cohort Migration Flow (Sankey Diagram) -->
+                            <!-- Plain language first: what changed, in one sentence. -->
+                            @if (headline(); as h) {
+                                @switch (h.kind) {
+                                    @case ('moved') {
+                                        <div class="sonar-home__headline">
+                                            Since {{ h.prevDate }}: <span class="sonar-home__headline-bad">{{ h.declined | number }} members</span> slipped toward {{ h.worstLabel }},
+                                            <span class="sonar-home__headline-good">{{ h.improved | number }} improved</span>.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">
+                                            {{ h.movedPct }}% of the scored population moved
+                                            @if (h.topFlow) { · biggest shift: {{ h.topFlow.fromLabel }} → {{ h.topFlow.toLabel }} ({{ h.topFlow.count | number }} members) }
+                                        </div>
+                                    }
+                                    @case ('steady') {
+                                        <div class="sonar-home__headline">
+                                            Scores held steady since {{ h.prevDate }} — no band changes across {{ scoredCount() | number }} members.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">Recomputed {{ h.currDate }} · distribution unchanged below</div>
+                                    }
+                                    @case ('first') {
+                                        <div class="sonar-home__headline">
+                                            First recompute complete — {{ scoredCount() | number }} members scored across {{ bandCount() }} bands.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">Movement and trends appear after the next recompute</div>
+                                    }
+                                }
+                            }
+
+                            <!-- Lens 1: insight table — one row per band; absorbs the old trajectory card
+                                 via per-band share sparklines (all on ONE shared y-scale). -->
+                            @if (heroView() === 'insight') {
+                                <div class="sonar-home__itable">
+                                    @for (r of insightRows(); track r.key) {
+                                        <div class="sonar-home__irow">
+                                            <div class="sonar-home__irow-id">
+                                                <span class="sonar-donut__dot sonar-donut__dot--{{ r.key }}"></span>
+                                                <span class="sonar-home__irow-label">{{ r.label }}</span>
+                                            </div>
+                                            <div class="sonar-home__irow-share">
+                                                <div class="sonar-home__irow-track">
+                                                    <div class="sonar-home__irow-fill sonar-home__irow-fill--{{ r.key }}" [style.width.%]="r.pct"></div>
+                                                </div>
+                                                <span class="sonar-mono sonar-home__irow-pct">{{ r.pct }}%</span>
+                                            </div>
+                                            @if (r.spark) {
+                                                <svg class="sonar-home__irow-spark" viewBox="0 0 120 28" title="Share of population over recent recomputes (all bands share one scale)">
+                                                    <path class="sonar-home__spark-area sonar-home__spark-area--{{ r.key }}" [attr.d]="r.spark.area"></path>
+                                                    <path class="sonar-home__spark-line sonar-home__spark-line--{{ r.key }}" [attr.d]="r.spark.line"></path>
+                                                    <circle class="sonar-home__spark-dot sonar-home__spark-dot--{{ r.key }}" [attr.cx]="r.spark.endX" [attr.cy]="r.spark.endY" r="2.5"></circle>
+                                                </svg>
+                                            } @else { <span class="sonar-home__irow-nospark">—</span> }
+                                            <div class="sonar-mono sonar-home__irow-counts">
+                                                @if (r.prev !== null) { {{ r.prev | number }} <span class="sonar-home__irow-arrow">→</span> }
+                                                <b>{{ r.count | number }}</b>
+                                            </div>
+                                            <span class="sonar-mono sonar-home__irow-delta sonar-home__irow-delta--{{ r.tone }}">
+                                                {{ r.delta === null ? 'new' : deltaText(r.delta) }}
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="sonar-home__hero-caption">Bar = current share of population · sparkline = share over recent recomputes (shared scale)</div>
+                            }
+
+                            <!-- Lens 2: migration flow — REAL band changes between the last two recomputes. -->
+                            @if (heroView() === 'flow') {
                                 <div class="sonar-home__hero-sankey">
                                     <div class="sonar-sankey__header">
-                                        <span>30 Days Ago</span>
-                                        <span>Current Status</span>
+                                        <span>{{ headline()?.prevDate }}</span>
+                                        <span>{{ headline()?.currDate }}</span>
                                     </div>
                                     <div class="sonar-sankey__container">
-                                        <!-- Left Columns -->
                                         <div class="sonar-sankey__nodes">
-                                            <div class="sonar-sankey__node sonar-sankey__node--healthy">Healthy</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--watch">Watch</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--atrisk">At-Risk</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--critical">Critical</div>
+                                            @for (nd of flowLeftNodes(); track nd.key) {
+                                                <div class="sonar-sankey__node sonar-sankey__node--{{ nd.key }}">
+                                                    {{ nd.label }}
+                                                    <span class="sonar-mono sonar-sankey__node-count">{{ nd.count | number }}</span>
+                                                </div>
+                                            }
                                         </div>
-                                        
-                                        <!-- Flow Canvas -->
                                         <div class="sonar-sankey__canvas">
                                             <svg viewBox="0 0 200 240" preserveAspectRatio="none">
-                                                @for (link of migrationLinks(); track $index) {
-                                                    <path [attr.d]="link.d"
-                                                          [attr.stroke-width]="link.width"
-                                                          [class]="'sonar-sankey__link sonar-sankey__link--' + link.from"
-                                                          [attr.title]="link.label"></path>
+                                                @for (link of flowLinks(); track $index) {
+                                                    <path [attr.d]="link.d" [attr.stroke-width]="link.width"
+                                                          class="sonar-sankey__link"
+                                                          [class.sonar-sankey__link--worse]="link.worse"
+                                                          [class.sonar-sankey__link--better]="!link.worse"></path>
+                                                }
+                                                @for (link of flowLinks(); track $index) {
+                                                    <text class="sonar-sankey__link-label"
+                                                          [class.sonar-sankey__link-label--worse]="link.worse"
+                                                          [attr.x]="link.labelX" [attr.y]="link.labelY" text-anchor="middle">{{ link.count }}</text>
                                                 }
                                             </svg>
-                                        </div>
-                                        
-                                        <!-- Right Columns -->
-                                        <div class="sonar-sankey__nodes">
-                                            <div class="sonar-sankey__node sonar-sankey__node--healthy">Healthy</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--watch">Watch</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--atrisk">At-Risk</div>
-                                            <div class="sonar-sankey__node sonar-sankey__node--critical">Critical</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Col 3: Distribution Stats -->
-                                <div class="sonar-home__hero-distribution">
-                                    <div class="sonar-home__hero-donut-wrap">
-                                        <svg class="sonar-donut sonar-home__hero-donut" viewBox="0 0 42 42" style="width: 70px; height: 70px; flex-shrink: 0;">
-                                            <circle class="sonar-donut__track" cx="21" cy="21" r="15.915" fill="none" stroke-width="3.5"></circle>
-                                            @for (s of donutSegments(); track s.label) {
-                                                <circle class="sonar-donut__seg sonar-donut__seg--{{ s.key }}" cx="21" cy="21" r="15.915"
-                                                    fill="none" stroke-width="3.5" transform="rotate(-90 21 21)"
-                                                    [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"></circle>
+                                            @if (flowLinks().length === 0) {
+                                                <div class="sonar-home__flow-steady">
+                                                    @if (headline()?.kind === 'first') { Movement appears after the next recompute. }
+                                                    @else { No band movement — every member held their band. }
+                                                </div>
                                             }
-                                            <text x="21" y="22.5" class="sonar-donut__total" style="font-size: 8px;">{{ scoredCount() }}</text>
-                                        </svg>
-                                        <div class="sonar-home__hero-donut-info">
-                                            <span class="sonar-home__hero-donut-total">{{ scoredCount() | number }} scored</span>
-                                            <span class="sonar-faint">last recompute</span>
+                                        </div>
+                                        <div class="sonar-sankey__nodes">
+                                            @for (nd of flowRightNodes(); track nd.key) {
+                                                <div class="sonar-sankey__node sonar-sankey__node--{{ nd.key }}">
+                                                    {{ nd.label }}
+                                                    <span class="sonar-mono sonar-sankey__node-count">{{ nd.count | number }}</span>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
-                                    <div class="sonar-home__hero-legend" style="margin-top: 0.75rem;">
-                                        @for (b of distribution(); track b.label) {
-                                            <div class="sonar-home__hero-legrow">
-                                                <span class="sonar-donut__dot sonar-donut__dot--{{ b.key }}"></span>
-                                                <span class="sonar-home__hero-legname" style="font-size: 11px;">{{ b.label }}</span>
-                                                <span class="sonar-mono sonar-home__hero-legval" style="font-size: 11px; margin-left: auto;">{{ b.count | number }} ({{ b.pct }}%)</span>
-                                            </div>
-                                        }
-                                    </div>
                                 </div>
-                            </div>
-                        }
+                                <div class="sonar-home__hero-caption">Ribbons = members who changed band, labeled with counts · amber = decline, green = recovery</div>
+                            }
 
+                            <!-- Lens 3: band mix — DISCRETE stacked columns, one per recompute. Scores step
+                                 at recomputes (they don't drift between them), so no continuous curves. -->
+                            @if (heroView() === 'mix') {
+                                @if (mixColumns().length >= 2) {
+                                    <div class="sonar-home__mix">
+                                        <div class="sonar-home__mix-cols">
+                                            @for (col of mixColumns(); track $index) {
+                                                <div class="sonar-home__mix-colwrap">
+                                                    <div class="sonar-home__mix-col">
+                                                        @for (seg of col.segments; track seg.key) {
+                                                            <div class="sonar-home__mix-seg sonar-home__mix-seg--{{ seg.key }}" [style.height.%]="seg.pct"></div>
+                                                        }
+                                                    </div>
+                                                    <span class="sonar-mono sonar-home__mix-date">{{ col.dateLabel }}</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="sonar-home__mix-legend">
+                                            @for (l of mixLegend(); track l.key) {
+                                                <div class="sonar-home__hero-legrow">
+                                                    <span class="sonar-donut__dot sonar-donut__dot--{{ l.key }}"></span>
+                                                    <span class="sonar-home__hero-legname">{{ l.label }}</span>
+                                                    <span class="sonar-mono sonar-home__hero-legval">{{ l.count | number }} ({{ l.pct }}%)</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="sonar-home__hero-caption">Each column is one recompute, segments show the band mix · current counts on the right</div>
+                                } @else {
+                                    <div class="sonar-empty sonar-empty--inline">
+                                        <i class="fa-solid fa-chart-column"></i>
+                                        <p>Not enough history yet — the band mix appears after a second recompute.</p>
+                                    </div>
+                                }
+                            }
+                        }
                     </section>
 
-                    <!-- Insights row: how the mix is trending (left) + who moved most (right).
-                         Both are real-data viz; the row only renders once a population is scored. -->
+                    <!-- Who needs action: full-width so the cohort list has room to grow.
+                         Cohort chips first (band movements), then the biggest individual movers. -->
                     @if (scoredCount() > 0) {
-                        <section class="sonar-split sonar-home__insights">
-                            <div class="sonar-card sonar-home__trend">
-                                @if (trendGeometry(); as g) {
-                                    <div class="sonar-home__trend-head">
-                                        <div class="sonar-card__label">{{ g.bandLabel }} trajectory · share of population over time</div>
-                                        <span class="sonar-home__trend-now sonar-text--{{ g.bandKey }}">{{ g.endPct }}%<span>now</span></span>
-                                    </div>
-                                    <svg class="sonar-trendline sonar-trendline--{{ g.bandKey }}" [attr.viewBox]="'0 0 ' + g.width + ' ' + g.height"
-                                        role="img" [attr.aria-label]="g.bandLabel + ' share over time'">
-                                        <defs>
-                                            <linearGradient id="sonarTrendFill" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stop-color="currentColor" stop-opacity="0.22"></stop>
-                                                <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
-                                            </linearGradient>
-                                        </defs>
-                                        @for (gl of g.gridlines; track gl.label) {
-                                            <line class="sonar-trendline__grid" [attr.x1]="4" [attr.y1]="gl.y" [attr.x2]="g.width - 32" [attr.y2]="gl.y"></line>
-                                            <text class="sonar-trendline__axis sonar-trendline__axis--y" [attr.x]="g.width - 28" [attr.y]="gl.y + 3">{{ gl.label }}</text>
+                        <section class="sonar-card sonar-home__action">
+                            <div class="sonar-home__action-head">
+                                <div class="sonar-card__label">
+                                    Who needs action
+                                    @if (actionBaselineLabel(); as bl) {
+                                        · vs {{ bl }}@if (actionBaseline()?.clamped) { <span class="sonar-home__action-clamp">&nbsp;(oldest snapshot available)</span> }
+                                    }
+                                </div>
+                                @if (actionBaseline()) {
+                                    <div class="sonar-segmented sonar-home__seg-compact" role="tablist" aria-label="Comparison timeframe">
+                                        @for (opt of windowOptions; track opt.id) {
+                                            <button type="button" class="sonar-segmented__opt" role="tab"
+                                                    [attr.aria-selected]="actionWindow() === opt.id"
+                                                    [class.sonar-segmented__opt--active]="actionWindow() === opt.id"
+                                                    (click)="actionWindow.set(opt.id)">{{ opt.label }}</button>
                                         }
-                                        <path class="sonar-trendline__area" [attr.d]="g.area" fill="url(#sonarTrendFill)"></path>
-                                        <path class="sonar-trendline__line" [attr.d]="g.line"></path>
-                                        <circle class="sonar-trendline__dot" [attr.cx]="g.endX" [attr.cy]="g.endY" r="3.5"></circle>
-                                        @for (lbl of g.labels; track lbl.x; let i = $index) {
-                                            <text class="sonar-trendline__axis" [class.sonar-trendline__axis--end]="i > 0"
-                                                [attr.x]="lbl.x" [attr.y]="g.height - 6">{{ lbl.text }}</text>
-                                        }
-                                    </svg>
-                                } @else {
-                                    <div class="sonar-card__label">Engagement trend</div>
-                                    <div class="sonar-empty sonar-empty--inline">
-                                        <i class="fa-solid fa-chart-line"></i>
-                                        <p>Not enough history yet — the trajectory appears after a second recompute.</p>
                                     </div>
                                 }
                             </div>
-
-                            <section class="sonar-card sonar-movers sonar-home__movers">
-                                <div class="sonar-movers__head" style="cursor:default">
-                                    <span class="sonar-card__label">Biggest movers · since last recompute</span>
+                            @if (actionFlows().length > 0) {
+                                <div class="sonar-home__cohorts">
+                                    @for (f of actionFlows(); track f.fromLabel + f.toLabel) {
+                                        <span class="sonar-chip" [ngClass]="f.worse ? 'sonar-chip--atrisk' : 'sonar-chip--healthy'">
+                                            {{ f.count | number }} {{ f.worse ? 'slipped' : 'recovered' }} {{ f.fromLabel }} → {{ f.toLabel }}
+                                        </span>
+                                    }
                                 </div>
-                                @if (hasMovers()) {
-                                    <div class="sonar-movers__cols">
-                                        <div class="sonar-movers__col">
-                                            <div class="sonar-movers__col-label sonar-neg">Biggest drops</div>
-                                            @for (m of movers().fallers; track m.scoreId) {
-                                                <div class="sonar-mover sonar-mover--static">
-                                                    <span class="sonar-mover__name">{{ m.name }}</span>
-                                                    <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
-                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                                </div>
-                                            } @empty { <span class="sonar-mover__empty">No drops</span> }
-                                        </div>
-                                        <div class="sonar-movers__col">
-                                            <div class="sonar-movers__col-label sonar-pos">Biggest gains</div>
-                                            @for (m of movers().risers; track m.scoreId) {
-                                                <div class="sonar-mover sonar-mover--static">
-                                                    <span class="sonar-mover__name">{{ m.name }}</span>
-                                                    <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
-                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                                </div>
-                                            } @empty { <span class="sonar-mover__empty">No gains</span> }
-                                        </div>
+                            } @else {
+                                <div class="sonar-home__action-steady">
+                                    @if (headline()?.kind === 'first') {
+                                        <span>First recompute — nobody has moved yet. The standing cohort is still worth working:</span>
+                                    } @else {
+                                        <span>No band changes in this window — nobody newly needs action. The standing cohort is still worth working:</span>
+                                    }
+                                    @if (worstSlice(); as w) {
+                                        <span class="sonar-chip sonar-chip--{{ w.key }}">{{ w.count | number }} currently {{ w.label }}</span>
+                                    }
+                                </div>
+                            }
+                            @if (hasMovers()) {
+                                <div class="sonar-movers__cols sonar-home__action-movers">
+                                    <div class="sonar-movers__col">
+                                        <div class="sonar-movers__col-label sonar-neg">Biggest drops</div>
+                                        @for (m of actionMovers().fallers; track m.anchorRecordId) {
+                                            <div class="sonar-mover sonar-mover--static">
+                                                <span class="sonar-mover__name">{{ moverName(m.anchorRecordId) }}</span>
+                                                <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
+                                                <span class="sonar-mono sonar-mover__score">{{ m.score }}</span>
+                                            </div>
+                                        } @empty { <span class="sonar-mover__empty">No drops</span> }
                                     </div>
-                                } @else {
-                                    <div class="sonar-home__movers-empty">
-                                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                                        <span>No movement since the last recompute — scores held steady. Risers and fallers appear here once members change bands.</span>
+                                    <div class="sonar-movers__col">
+                                        <div class="sonar-movers__col-label sonar-pos">Biggest gains</div>
+                                        @for (m of actionMovers().risers; track m.anchorRecordId) {
+                                            <div class="sonar-mover sonar-mover--static">
+                                                <span class="sonar-mover__name">{{ moverName(m.anchorRecordId) }}</span>
+                                                <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
+                                                <span class="sonar-mono sonar-mover__score">{{ m.score }}</span>
+                                            </div>
+                                        } @empty { <span class="sonar-mover__empty">No gains</span> }
                                     </div>
-                                }
-                            </section>
+                                </div>
+                            }
                         </section>
                     }
-
-                    <!-- Supporting config context — icon-chipped, balanced quad grid. -->
-                    <section class="sonar-stats sonar-stats--quad">
-                        <div class="sonar-stat sonar-stat--iconed">
-                            <div class="sonar-stat__text">
-                                <div class="sonar-stat__label">In population</div>
-                                <div class="sonar-stat__value">{{ population() === null ? '—' : (population() | number) }}</div>
-                            </div>
-                            <span class="sonar-stat__icon"><i class="fa-solid fa-users"></i></span>
-                        </div>
-                        <div class="sonar-stat sonar-stat--iconed">
-                            <div class="sonar-stat__text">
-                                <div class="sonar-stat__label">Signals</div>
-                                <div class="sonar-stat__value">{{ signalCount() }}</div>
-                            </div>
-                            <span class="sonar-stat__icon"><i class="fa-solid fa-wave-square"></i></span>
-                        </div>
-                        <div class="sonar-stat sonar-stat--iconed">
-                            <div class="sonar-stat__text">
-                                <div class="sonar-stat__label">Bands</div>
-                                <div class="sonar-stat__value">{{ bandCount() }}</div>
-                            </div>
-                            <span class="sonar-stat__icon"><i class="fa-solid fa-layer-group"></i></span>
-                        </div>
-                        <div class="sonar-stat sonar-stat--iconed">
-                            <div class="sonar-stat__text">
-                                <div class="sonar-stat__label">Members scored</div>
-                                <div class="sonar-stat__value">{{ scoredCount() | number }}</div>
-                                @if (coveragePct() !== null) {
-                                    <div class="sonar-stat__delta">{{ coveragePct() }}% of population</div>
-                                }
-                            </div>
-                            <span class="sonar-stat__icon"><i class="fa-solid fa-circle-check"></i></span>
-                        </div>
-                    </section>
 
                     <!-- Needs attention -->
                     @if (attention().length > 0) {

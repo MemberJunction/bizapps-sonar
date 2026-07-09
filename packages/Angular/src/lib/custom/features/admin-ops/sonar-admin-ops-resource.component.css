@@ -23,10 +23,10 @@
     letter-spacing: 0.05em;
     color: var(--sonar-faint);
     font-weight: 600;
-    padding: 0.6rem 0.85rem;
+    padding: 0.4rem 0.75rem;
     border-bottom: 1px solid var(--sonar-border-strong);
 }
-.sonar-table td { padding: 0.75rem 0.85rem; border-bottom: 1px solid var(--sonar-border); }
+.sonar-table td { padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--sonar-border); }
 
 /* Row hover: faint accent wash + a hairline accent top/bottom to lift the active row.
    Overrides zebra so the hovered row reads as one band regardless of its stripe. */
@@ -34,7 +34,7 @@
     transition: background 0.15s ease;
 }
 .sonar-table tbody tr:hover td {
-    background: color-mix(in srgb, var(--sonar-accent) 4%, var(--sonar-surface));
+    background: color-mix(in srgb, var(--sonar-brand) 4%, var(--sonar-surface));
 }
 
 /* Numeric columns: right-aligned. Pair with .sonar-mono on cells for tabular figures
@@ -49,18 +49,39 @@
 /* Empty-state row: centered, on-scale padding (replaces an inline style). */
 .sonar-table__empty { text-align: center; padding: 1rem; }
 
-/* Stats Dashboard inside Run Health card */
-.sonar-ops__stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+/* Stat pills row — compact inline summary bar above the runs table */
+.sonar-ops__stat-pills {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 0.75rem;
 }
-@media (max-width: 768px) {
-    .sonar-ops__stats-grid {
-        grid-template-columns: 1fr;
-    }
+.sonar-ops__stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 1rem;
+    border-right: 1px solid var(--sonar-border);
+    font-size: var(--sonar-font-sm);
 }
+.sonar-ops__stat-pill:first-child { padding-left: 0; }
+.sonar-ops__stat-pill:last-child { border-right: none; }
+.sonar-ops__stat-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--sonar-ink);
+    font-variant-numeric: tabular-nums;
+}
+.sonar-ops__stat-lbl {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+}
+.sonar-ops__stat-ico--ok   { color: var(--sonar-healthy); font-size: 0.8rem; }
+.sonar-ops__stat-ico--brand { color: var(--sonar-brand);  font-size: 0.8rem; }
+.sonar-ops__stat-ico--muted { color: var(--sonar-muted);  font-size: 0.8rem; }
 
 /* Table layout details */
 .sonar-ops__model-cell {
@@ -72,7 +93,7 @@
     color: var(--sonar-ink);
 }
 .sonar-ops__model-icon {
-    color: var(--sonar-accent);
+    color: var(--sonar-brand);
     font-size: 0.85rem;
 }
 
@@ -192,9 +213,9 @@
 
 /* Git Header line (diff meta, hunk headers): muted indigo text */
 .sonar-ops__diff-line--header {
-    color: var(--sonar-accent);
+    color: var(--sonar-brand);
     font-weight: 600;
-    background-color: color-mix(in srgb, var(--sonar-accent) 6%, transparent);
+    background-color: color-mix(in srgb, var(--sonar-brand) 6%, transparent);
 }
 
 /* Git Normal line: default body text */
@@ -259,9 +280,9 @@
     color: var(--sonar-ink);
 }
 .sonar-ops-sidebar__item--active {
-    background: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface-sunken));
-    border-color: color-mix(in srgb, var(--sonar-accent) 20%, var(--sonar-border));
-    color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-brand) 8%, var(--sonar-surface-sunken));
+    border-color: color-mix(in srgb, var(--sonar-brand) 20%, var(--sonar-border));
+    color: var(--sonar-brand);
 }
 .sonar-ops-sidebar__item i {
     font-size: 1.15rem;
@@ -286,7 +307,7 @@
     text-overflow: ellipsis;
 }
 .sonar-ops-sidebar__item--active .sonar-ops-sidebar__item-subtitle {
-    color: color-mix(in srgb, var(--sonar-accent) 70%, var(--sonar-faint));
+    color: color-mix(in srgb, var(--sonar-brand) 70%, var(--sonar-faint));
 }
 
 /* Scroll containment for Admin & Ops tabs content */

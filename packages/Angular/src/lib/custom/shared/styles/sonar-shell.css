@@ -25,13 +25,9 @@
     --sonar-border: var(--mj-border-default, #E5E7EB);
     --sonar-border-strong: var(--mj-border-strong, #D1D5DB);
     --sonar-brand: var(--mj-brand-primary, #6366f1);
-    /* Interactive + brand accent — focus rings, hover borders, selected/active states, the hero
-       fill, primary actions. A DELIBERATE off-MJ identity: violet. The neutral foundation stays
-       anchored to MJ's theme (bg/surface/ink/border), but the accent + splash colors are ours
-       (§2 sanctioned deviation; documented + verified both modes). Violet sits distinctly on
-       MJ's navy base and stays clear of the amber/emerald DATA colors. Light value here; the
-       dark override below lifts it brighter for the darker surface. */
-    --sonar-accent: #6d5fe0;
+    /* Accent aliases to MJ brand — focus rings, hover borders, selected/active states, primary
+       actions. Aligns Sonar chrome with MJ's native brand color system. */
+    --sonar-accent: var(--sonar-brand);
     /* Text/icons sitting ON the accent fill (primary buttons, hero). White reads cleanly on the
        violet in both modes. */
     --sonar-on-accent: #ffffff;
@@ -96,8 +92,7 @@
    layer overrides per-mode: the violet accent lifts brighter, and the band bases shift to lighter,
    desaturated pastels (saturated hues vibrate on a dark surface). */
 :host-context([data-theme="dark"]) {
-    /* Brighter violet for the dark surface (the light base would muddy on navy). */
-    --sonar-accent: #8b5cf6;
+    /* Dark-mode brand override passes through to --sonar-accent automatically. */
     /* Band overrides — pastel tones for dark-surface legibility. */
     --sonar-healthy: #3ddc97;
     --sonar-watch: #6aa6f5;
@@ -372,6 +367,16 @@ button, input, select, textarea {
 /* Ghost: no chrome until interacted with — for low-emphasis actions (pager, inline controls). */
 .sonar-btn--ghost { border-color: transparent; background: transparent; }
 .sonar-btn--ghost:hover { background: var(--sonar-surface-sunken); }
+/* Run/Simulate — blue-tinted "execute a preview" style; distinct from violet primary (commitment) and ghost (passive). */
+.sonar-btn--run {
+    border: 1px solid color-mix(in srgb, var(--sonar-watch) 35%, var(--sonar-border));
+    background: color-mix(in srgb, var(--sonar-watch) 10%, var(--sonar-surface));
+    color: var(--sonar-watch);
+}
+.sonar-btn--run:hover {
+    background: color-mix(in srgb, var(--sonar-watch) 18%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-watch) 50%, var(--sonar-border));
+}
 .sonar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Segmented control — a compact 2+-way mode switch (e.g. the factor builder's data/action fork).

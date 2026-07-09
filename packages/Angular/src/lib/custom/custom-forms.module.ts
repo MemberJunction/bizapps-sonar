@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 // Searchable single-select (filter-as-you-type). Standalone MJ UI component — the multiselect
 // primitive builds its chips-over-a-picker on top of <mj-combobox>.
-import { MJComboboxComponent } from '@memberjunction/ng-ui-components';
+import { MJAlertComponent, MJButtonDirective, MJComboboxComponent, MJTabNavComponent } from '@memberjunction/ng-ui-components';
 // Visual filter builder (the de-Kendo'd MJ component that replaces the deprecated Kendo expression
 // UI). Provides <mj-filter-builder>; used by the Model Builder population filter + Factor Builder.
 import { FilterBuilderModule } from '@memberjunction/ng-filter-builder';
@@ -76,6 +76,9 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         CommonModule,
         FormsModule,
         MJComboboxComponent,
+        MJButtonDirective,
+        MJTabNavComponent,
+        MJAlertComponent,
         FilterBuilderModule,
         ConversationsModule
     ],

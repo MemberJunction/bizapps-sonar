@@ -305,6 +305,31 @@ export class SonarFactorSmithService {
         });
     }
 
+    /** Resolve a batch of anchor record IDs to display names in one query. Used to humanize test results
+     *  which come back as raw UUIDs. Falls back to the raw ID for any record that can't be resolved. */
+    public async resolveAnchorNames(anchorEntityID: string, ids: string[]): Promise<Map<string, string>> {
+        const map = new Map<string, string>();
+        if (!ids.length) return map;
+        const entity = new Metadata().Entities.find((e) => e.ID === anchorEntityID);
+        if (!entity) return map;
+        const pk = entity.FirstPrimaryKey?.Name ?? "ID";
+        const nameField = entity.NameField?.Name ?? pk;
+        const inList = ids.map((id) => `'${sqlString(id)}'`).join(",");
+        const res = await new RunView().RunView({
+            EntityName: entity.Name,
+            ExtraFilter: `${pk} IN (${inList})`,
+            Fields: nameField === pk ? [pk] : [pk, nameField],
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        for (const r of rows) {
+            const rec = r as Record<string, unknown>;
+            const id = String(rec[pk]);
+            map.set(id, rec[nameField] != null ? String(rec[nameField]) : id);
+        }
+        return map;
+    }
+
     /** The fields of the record being scored — the "what data is this signal looking at" view for a single
      *  record. Returns the record's columns as label/value pairs (the anchor-level underlying data). */
     public async loadAnchorFields(anchorEntityID: string, recordId: string): Promise<AnchorField[]> {

@@ -310,6 +310,12 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         await this.loadMembers();
     }
 
+    /** Flip the score sort from the Score column header (replaces the standalone sort toggle,
+     *  so the filter bar stays a single line). asc = worst (lowest) first. */
+    public async toggleScoreSort(): Promise<void> {
+        await this.onSortChange(this.sortDir() === "asc" ? "desc" : "asc");
+    }
+
     /** Debounced search query from the FilterBar — reload the page and refresh typeahead suggestions. */
     public async onFilterSearch(query: string): Promise<void> {
         this.page.set(0);

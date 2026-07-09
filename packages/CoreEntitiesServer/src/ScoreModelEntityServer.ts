@@ -56,6 +56,12 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             return failPublishLock(this, "update");
         }
 
+        // Hard invariant: only Draft models may be archived. Enforce in Save() so callers
+        // that pass SkipAsyncValidation=true (e.g. bulk operations) can't bypass the gate.
+        if (this.isInvalidArchiveTransition()) {
+            return this.rejectArchiveTransition();
+        }
+
         if (!publishing) {
             return await super.Save(options);
         } else {
@@ -104,6 +110,16 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         // transition, so no separate guard is needed here.
         if (this.isScoringEditLocked()) {
             appendPublishLockFailure(result, "Status");
+        }
+        // Archive gate: only Draft models may be archived. The Save() override is the hard block;
+        // this surfaces a clear error message through the normal validation path.
+        if (this.isInvalidArchiveTransition()) {
+            const from = String(this.GetFieldByName("Status")?.OldValue ?? "unknown");
+            this.addFailure(
+                result,
+                "Status",
+                `Cannot archive a model that is currently '${from}'. Unpublish it to Draft first.`,
+            );
         }
         return result;
     }
@@ -247,6 +263,23 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     private isPublishTransition(): boolean {
         const statusDirty = this.GetFieldByName("Status")?.Dirty === true;
         return statusDirty && this.Status === "Active";
+    }
+
+    /** True when this save transitions Status to 'Archived' from a non-Draft state.
+     *  Only Draft → Archived is permitted; Active → Archived must go via Draft first. */
+    private isInvalidArchiveTransition(): boolean {
+        const statusField = this.GetFieldByName("Status");
+        if (!statusField?.Dirty || this.Status !== "Archived") return false;
+        const previousStatus = String(statusField.OldValue ?? "");
+        return previousStatus !== "Draft";
+    }
+
+    /** Populate LatestResult with a rejection message and return false — same contract as failPublishLock(). */
+    private rejectArchiveTransition(): boolean {
+        const from = String(this.GetFieldByName("Status")?.OldValue ?? "unknown");
+        const message = `Cannot archive a model that is currently '${from}'. Unpublish it to Draft first, then archive.`;
+        LogError(`ScoreModelEntityServer: rejected invalid archive transition for ${this.ID}: ${message}`);
+        return false;
     }
 
     /**
