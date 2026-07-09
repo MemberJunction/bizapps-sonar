@@ -45,6 +45,7 @@
     transition: background 120ms ease;
     margin-bottom: 0.75rem;
 }
+.sonar-studio__new-btn i { color: #fff; }
 .sonar-studio__new-btn:hover { background: color-mix(in srgb, var(--sonar-brand) 85%, #000); }
 .sonar-studio__new-btn:focus-visible { outline: 2px solid var(--sonar-brand); outline-offset: 2px; }
 
