@@ -547,7 +547,7 @@ details[open] .sonar-studio__code-caret { transform: rotate(90deg); }
 }
 .sonar-studio__empty-ico { font-size: 1.75rem; color: var(--sonar-faint); }
 /* .sonar-empty i rule in sonar-shell would color this accent — override for the primary CTA */
-.sonar-studio__empty-state button i { color: var(--sonar-on-accent) !important; }
+.sonar-studio__empty-state button i { color: var(--sonar-on-accent) !important; font-size: inherit !important; }
 
 /* ── Narrow viewport fallback ────────────────────────────────────────────── */
 @media (max-width: 1075px) {
