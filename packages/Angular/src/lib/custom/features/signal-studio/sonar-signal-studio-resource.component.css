@@ -45,7 +45,7 @@
     transition: background 120ms ease;
     margin-bottom: 0.75rem;
 }
-.sonar-studio__new-btn i { color: #fff; }
+.sonar-studio__new-btn i { color: #fff !important; }
 .sonar-studio__new-btn:hover { background: color-mix(in srgb, var(--sonar-brand) 85%, #000); }
 .sonar-studio__new-btn:focus-visible { outline: 2px solid var(--sonar-brand); outline-offset: 2px; }
 
@@ -546,6 +546,8 @@ details[open] .sonar-studio__code-caret { transform: rotate(90deg); }
     color: var(--sonar-muted);
 }
 .sonar-studio__empty-ico { font-size: 1.75rem; color: var(--sonar-faint); }
+/* .sonar-empty i rule in sonar-shell would color this accent — override for the primary CTA */
+.sonar-studio__empty-state button i { color: var(--sonar-on-accent) !important; }
 
 /* ── Narrow viewport fallback ────────────────────────────────────────────── */
 @media (max-width: 1075px) {
