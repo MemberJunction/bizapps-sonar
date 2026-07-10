@@ -22,6 +22,7 @@ import {
     appendPublishLockFailure,
     failPublishLock,
     isScoringEditBlocked,
+    isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
 } from "./publishLock";
 
 /**
@@ -269,9 +270,11 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
      *  Only Draft → Archived is permitted; Active → Archived must go via Draft first. */
     private isInvalidArchiveTransition(): boolean {
         const statusField = this.GetFieldByName("Status");
-        if (!statusField?.Dirty || this.Status !== "Archived") return false;
-        const previousStatus = String(statusField.OldValue ?? "");
-        return previousStatus !== "Draft";
+        return isInvalidArchiveTransitionPure({
+            newStatus: this.Status,
+            previousStatus: String(statusField?.OldValue ?? ""),
+            statusDirty: statusField?.Dirty === true,
+        });
     }
 
     /** Populate LatestResult with a rejection message and return false — same contract as failPublishLock(). */

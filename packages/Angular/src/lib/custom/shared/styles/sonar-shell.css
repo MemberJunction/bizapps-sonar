@@ -278,14 +278,14 @@ button, input, select, textarea {
     background: var(--sonar-surface);
     color: var(--sonar-muted);
 }
-.sonar-empty i { font-size: 2rem; color: var(--sonar-accent); }
+.sonar-empty > i { font-size: 2rem; color: var(--sonar-accent); }
 .sonar-empty h2 { margin: 0.5rem 0 0; font-size: 1.125rem; color: var(--sonar-ink); }
 .sonar-empty p { margin: 0; max-width: 28rem; font-size: 0.9rem; }
 /* Inline (inside a card, e.g. "no matches") — tighter, muted icon (the gradient is reserved for
    the true zero-state). Error — same frame with a warning-toned icon + a retry action. */
 .sonar-empty--inline { padding: 2rem 1rem; border: none; }
-.sonar-empty--inline i { background: none; -webkit-text-fill-color: var(--sonar-faint); color: var(--sonar-faint); }
-.sonar-empty--error i { background: none; -webkit-text-fill-color: var(--sonar-critical); color: var(--sonar-critical); }
+.sonar-empty--inline > i { background: none; -webkit-text-fill-color: var(--sonar-faint); color: var(--sonar-faint); }
+.sonar-empty--error > i { background: none; -webkit-text-fill-color: var(--sonar-critical); color: var(--sonar-critical); }
 
 /* ============================================================ Stat tiles */
 
