@@ -166,7 +166,7 @@
                                             }
                                         </div>
                                         <div class="sonar-sankey__canvas">
-                                            <svg viewBox="0 0 200 240" preserveAspectRatio="none">
+                                            <svg viewBox="0 0 640 240" preserveAspectRatio="none">
                                                 @for (link of flowLinks(); track $index) {
                                                     <path [attr.d]="link.d" [attr.stroke-width]="link.width"
                                                           class="sonar-sankey__link"
@@ -279,30 +279,7 @@
                                     }
                                 </div>
                             }
-                            @if (hasMovers()) {
-                                <div class="sonar-movers__cols sonar-home__action-movers">
-                                    <div class="sonar-movers__col">
-                                        <div class="sonar-movers__col-label sonar-neg">Biggest drops</div>
-                                        @for (m of actionMovers().fallers; track m.anchorRecordId) {
-                                            <div class="sonar-mover sonar-mover--static">
-                                                <span class="sonar-mover__name">{{ moverName(m.anchorRecordId) }}</span>
-                                                <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
-                                                <span class="sonar-mono sonar-mover__score">{{ m.score }}</span>
-                                            </div>
-                                        } @empty { <span class="sonar-mover__empty">No drops</span> }
-                                    </div>
-                                    <div class="sonar-movers__col">
-                                        <div class="sonar-movers__col-label sonar-pos">Biggest gains</div>
-                                        @for (m of actionMovers().risers; track m.anchorRecordId) {
-                                            <div class="sonar-mover sonar-mover--static">
-                                                <span class="sonar-mover__name">{{ moverName(m.anchorRecordId) }}</span>
-                                                <span class="sonar-delta" [ngClass]="deltaClass(m.delta)">{{ deltaText(m.delta) }}</span>
-                                                <span class="sonar-mono sonar-mover__score">{{ m.score }}</span>
-                                            </div>
-                                        } @empty { <span class="sonar-mover__empty">No gains</span> }
-                                    </div>
-                                </div>
-                            }
+                            <!-- Score Movers hidden: data pipeline temporarily disabled -->
                         </section>
                     }
 

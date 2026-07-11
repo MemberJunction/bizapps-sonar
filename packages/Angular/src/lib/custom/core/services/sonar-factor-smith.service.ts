@@ -313,19 +313,27 @@ export class SonarFactorSmithService {
         const entity = new Metadata().Entities.find((e) => e.ID === anchorEntityID);
         if (!entity) return map;
         const pk = entity.FirstPrimaryKey?.Name ?? "ID";
-        const nameField = entity.NameField?.Name ?? pk;
+        const nameField = entity.NameField?.Name ?? null;
+        const entityCols = new Set(entity.Fields.map((f) => f.Name));
+        const fields = [...new Set([pk, nameField, "FirstName", "LastName", "Name", "Email"].filter((f): f is string => !!f && entityCols.has(f)))];
         const inList = ids.map((id) => `'${sqlString(id)}'`).join(",");
         const res = await new RunView().RunView({
             EntityName: entity.Name,
             ExtraFilter: `${pk} IN (${inList})`,
-            Fields: nameField === pk ? [pk] : [pk, nameField],
+            Fields: fields,
             ResultType: "simple",
         });
         const rows = res.Success ? res.Results ?? [] : [];
         for (const r of rows) {
             const rec = r as Record<string, unknown>;
             const id = String(rec[pk]);
-            map.set(id, rec[nameField] != null ? String(rec[nameField]) : id);
+            const pick = (k: string): string | null => { const v = rec[k]; return v != null && v !== "" ? String(v) : null; };
+            const firstName = pick("FirstName");
+            const lastName = pick("LastName");
+            let name: string;
+            if (firstName && lastName) name = `${firstName} ${lastName}`;
+            else name = (nameField ? pick(nameField) : null) || firstName || lastName || pick("Name") || pick("Email") || `Record ${id.slice(0, 8)}`;
+            map.set(id, name);
         }
         return map;
     }
@@ -356,7 +364,7 @@ export class SonarFactorSmithService {
      * per-record results in a Both `Result` that round-trips to the browser. One call covers all samples.
      * `asOf` (ISO date) tests the signal as of a historical instant; omit for "now".
      */
-    public async testSignal(actionId: string, anchorRecordIds: string[], asOf?: string | null): Promise<SignalSampleRow[]> {
+    public async testSignal(actionId: string, anchorRecordIds: string[], asOf?: string | null, anchorEntityId?: string | null): Promise<SignalSampleRow[]> {
         if (!anchorRecordIds.length) return [];
         const id = await this.resolveActionId(TEST_SIGNAL_ACTION);
         const fail = (error: string): SignalSampleRow[] =>
@@ -367,6 +375,7 @@ export class SonarFactorSmithService {
             { Name: "AnchorRecordIDs", Value: JSON.stringify(anchorRecordIds), Type: "Input" as const },
         ];
         if (asOf) params.push({ Name: "AsOf", Value: asOf, Type: "Input" as const });
+        if (anchorEntityId) params.push({ Name: "AnchorEntityID", Value: anchorEntityId, Type: "Input" as const });
         const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return fail(res.Message || "Test run failed.");
         const out = extractActionResult<{ rows?: SignalSampleRow[] }>(res) ?? {};

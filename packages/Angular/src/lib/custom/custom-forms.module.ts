@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NgApexchartsModule } from 'ng-apexcharts';
 // Searchable single-select (filter-as-you-type). Standalone MJ UI component — the multiselect
 // primitive builds its chips-over-a-picker on top of <mj-combobox>.
 import { MJAlertComponent, MJButtonDirective, MJComboboxComponent, MJTabNavComponent } from '@memberjunction/ng-ui-components';
@@ -24,6 +25,7 @@ import { SonarRangeFilterComponent } from './shared/filter-bar/sonar-range-filte
 import { SonarToggleFilterComponent } from './shared/filter-bar/sonar-toggle-filter.component';
 
 // Feature surfaces (each reachable via a nav DriverClass, except the floating Copilot launcher).
+import { SonarPortfolioResourceComponent } from './features/portfolio/sonar-portfolio-resource.component';
 import { SonarOverviewResourceComponent } from './features/overview/sonar-overview-resource.component';
 import { SonarModelBuilderResourceComponent } from './features/model-builder/sonar-model-builder-resource.component';
 import { SonarEngagementManagerResourceComponent } from './features/engagement-manager/sonar-engagement-manager-resource.component';
@@ -59,6 +61,7 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarSearchFieldComponent,
         SonarRangeFilterComponent,
         SonarToggleFilterComponent,
+        SonarPortfolioResourceComponent,
         SonarOverviewResourceComponent,
         SonarModelBuilderResourceComponent,
         SonarModelSetupComponent,
@@ -80,7 +83,8 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         MJTabNavComponent,
         MJAlertComponent,
         FilterBuilderModule,
-        ConversationsModule
+        ConversationsModule,
+        NgApexchartsModule
     ],
     exports: [
         SonarMultiselectComponent,
@@ -89,6 +93,7 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         SonarSearchFieldComponent,
         SonarRangeFilterComponent,
         SonarToggleFilterComponent,
+        SonarPortfolioResourceComponent,
         SonarOverviewResourceComponent,
         SonarModelBuilderResourceComponent,
         SonarEngagementManagerResourceComponent,

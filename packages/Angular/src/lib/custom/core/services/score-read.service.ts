@@ -623,11 +623,14 @@ export class ScoreReadService {
         return names;
     }
 
-    /** Best display name for an anchor row: its name field, else FirstName+LastName, else Name/Email/PK. */
+    /** Best display name for an anchor row: FirstName+LastName when both present, else nameField, else Name/Email/PK. */
     private composeName(row: Record<string, unknown>, nameField: string | null, pk: string): string {
         const pick = (k: string): string | null => { const v = row[k]; return v != null && v !== "" ? String(v) : null; };
-        const composed = [pick("FirstName"), pick("LastName")].filter(Boolean).join(" ");
-        return (nameField ? pick(nameField) : null) || composed || pick("Name") || pick("Email") || String(row[pk]);
+        const firstName = pick("FirstName");
+        const lastName = pick("LastName");
+        if (firstName && lastName) return `${firstName} ${lastName}`;
+        const named = nameField ? pick(nameField) : null;
+        return named || firstName || lastName || pick("Name") || pick("Email") || String(row[pk]);
     }
 
     /** Up to `limit` SCORED members matching `query`, each with name + score + band so same-named

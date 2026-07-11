@@ -1,0 +1,296 @@
+<div class="sonar-page">
+
+  <!-- ── Header ── -->
+  <header class="sonar-page__header">
+    <div class="sonar-page__heading">
+      <div class="sonar-page__icon"><i class="fa-solid fa-layer-group"></i></div>
+      <div>
+        <h1 class="sonar-page__title">Portfolio</h1>
+        <p class="sonar-page__subtitle">All active scoring models at a glance</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Body ── -->
+  <div class="sonar-page__body">
+
+    <!-- KPI strip -->
+    <div class="sonar-stats sonar-pf-kpi-strip">
+      <div class="sonar-stat">
+        <div class="sonar-stat__label">Active models</div>
+        <div class="sonar-stat__value">{{ kpiActiveCount() }}</div>
+        <div class="sonar-stat__sub">{{ slots().length - kpiActiveCount() }} inactive</div>
+      </div>
+      <div class="sonar-stat">
+        <div class="sonar-stat__label">Members scored</div>
+        <div class="sonar-stat__value">{{ fmtNum(kpiTotalScored()) }}</div>
+        <div class="sonar-stat__sub">across active models</div>
+      </div>
+      <div class="sonar-stat sonar-stat--warn">
+        <div class="sonar-stat__label">At risk + critical</div>
+        <div class="sonar-stat__value">{{ fmtNum(kpiAtRisk()) }}</div>
+        <div class="sonar-stat__sub">{{ kpiAtRiskPct() }}% of scored pool</div>
+      </div>
+      <div class="sonar-stat"
+           [class.sonar-stat--neg]="kpiNet() < 0"
+           [class.sonar-stat--pos]="kpiNet() > 0">
+        <div class="sonar-stat__label">Net movement</div>
+        <div class="sonar-stat__value">{{ kpiNet() > 0 ? '+' : '' }}{{ fmtNum(kpiNet()) }}</div>
+        <div class="sonar-stat__sub">
+          @if (kpiNet() < 0) { portfolio worsening }
+          @else if (kpiNet() > 0) { portfolio improving }
+          @else { no net change }
+        </div>
+      </div>
+    </div>
+
+    <!-- Main 2-column layout -->
+    <div class="sonar-pf-dash">
+
+      <!-- Left: chart card (3-way lens) + movement table -->
+      <div class="sonar-stack">
+
+        <!-- ── Chart card: 3-way lens (Overview / Distribution / History) ── -->
+        <div class="sonar-card sonar-pf-chart-card">
+          <div class="sonar-card__head">
+            <span class="sonar-card__label">
+              @if (lensView() === 'marimekko') { Band distribution }
+              @else if (lensView() === 'distribution') {
+                @if (focusedSlot(); as s) { {{ s.model.Name }} — Distribution }
+                @else { Distribution }
+              }
+              @else {
+                @if (focusedSlot(); as s) { {{ s.model.Name }} — History }
+                @else { History }
+              }
+            </span>
+            <div class="sonar-pf-view-toggle">
+              <button class="sonar-pf-view-toggle__btn"
+                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'marimekko'"
+                      (click)="setLensView('marimekko')">
+                Overview
+              </button>
+              <button class="sonar-pf-view-toggle__btn"
+                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'distribution'"
+                      (click)="setLensView('distribution')">
+                Distribution
+              </button>
+              <button class="sonar-pf-view-toggle__btn"
+                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'history'"
+                      (click)="setLensView('history')">
+                History
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Overview lens: stacked bar chart ── -->
+          @if (lensView() === 'marimekko') {
+            @if (!loaded()) {
+              <div class="sonar-pf-mek-placeholder sonar-skeleton"></div>
+            } @else if (mekSlots().length === 0) {
+              <div class="sonar-empty sonar-empty--inline">
+                <i class="fa-solid fa-chart-column"></i>
+                <p>No active models with scored members yet.</p>
+              </div>
+            } @else {
+              <apx-chart
+                [series]="overviewChart().series"
+                [chart]="overviewChart().chart"
+                [plotOptions]="overviewChart().plotOptions"
+                [xaxis]="overviewChart().xaxis"
+                [colors]="overviewChart().colors"
+                [dataLabels]="overviewChart().dataLabels"
+                [legend]="overviewChart().legend"
+                [grid]="overviewChart().grid"
+                [tooltip]="overviewChart().tooltip"
+                [fill]="overviewChart().fill">
+              </apx-chart>
+            }
+          }
+
+          <!-- ── Distribution lens: donut chart ── -->
+          @if (lensView() === 'distribution') {
+            @if (!loaded() || focusedSlot()?.loading) {
+              <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
+            } @else {
+              <apx-chart
+                [series]="distributionChart().series"
+                [chart]="distributionChart().chart"
+                [labels]="distributionChart().labels"
+                [colors]="distributionChart().colors"
+                [plotOptions]="distributionChart().plotOptions"
+                [dataLabels]="distributionChart().dataLabels"
+                [legend]="distributionChart().legend"
+                [stroke]="distributionChart().stroke"
+                [tooltip]="distributionChart().tooltip">
+              </apx-chart>
+            }
+          }
+
+          <!-- ── History lens: smooth stacked area chart ── -->
+          @if (lensView() === 'history') {
+            @if (!loaded() || focusedSlot()?.loading) {
+              <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
+            } @else if (mixCols(focusedSlot()!).length === 0) {
+              <div class="sonar-empty sonar-empty--inline">
+                <i class="fa-solid fa-chart-area"></i>
+                <p>Not enough history yet for {{ focusedSlot()?.model?.Name }}.</p>
+              </div>
+            } @else {
+              <apx-chart
+                [series]="historyChart().series"
+                [chart]="historyChart().chart"
+                [xaxis]="historyChart().xaxis"
+                [colors]="historyChart().colors"
+                [stroke]="historyChart().stroke"
+                [fill]="historyChart().fill"
+                [dataLabels]="historyChart().dataLabels"
+                [legend]="historyChart().legend"
+                [grid]="historyChart().grid"
+                [tooltip]="historyChart().tooltip">
+              </apx-chart>
+            }
+          }
+        </div>
+
+        <!-- Movement table — shown in Overview and Distribution lenses -->
+        @if (lensView() !== 'history') {
+          <div class="sonar-card">
+            <div class="sonar-card__head">
+              <span class="sonar-card__label">Movement this cycle</span>
+            </div>
+            @if (!loaded()) {
+              <div class="sonar-skeleton" style="height: 120px; border-radius: 4px;"></div>
+            } @else if (tableSlots().length === 0) {
+              <div class="sonar-empty sonar-empty--inline">
+                <i class="fa-solid fa-table"></i>
+                <p>No scored models to compare yet.</p>
+              </div>
+            } @else {
+              <div class="sonar-pf-table-wrap">
+                <table class="sonar-pf-table">
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      <th class="sonar-pf-table__r">Scored</th>
+                      <th class="sonar-pf-table__r">Recovered ▲</th>
+                      <th class="sonar-pf-table__r">Slipped ▼</th>
+                      <th class="sonar-pf-table__r">Net</th>
+                      <th class="sonar-pf-table__r">At Risk</th>
+                      <th class="sonar-pf-table__r">Last run</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (slot of tableSlots(); track slot.model.ID) {
+                      <tr class="sonar-pf-table__row">
+                        <td>
+                          <div class="sonar-pf-table__name">
+                            <span class="sonar-pf-table__dot"
+                                  [style.background]="indicatorColor(slot)"></span>
+                            {{ slot.model.Name }}
+                          </div>
+                          <div class="sonar-pf-table__anchor">{{ anchorName(slot.model) }}</div>
+                        </td>
+                        <td class="sonar-pf-table__r">{{ fmtNum(slot.scoredCount) }}</td>
+                        <td class="sonar-pf-table__r"
+                            [class.sonar-pf-table__good]="slot.recovered > 0">
+                          {{ slot.recovered > 0 ? '+' + fmtNum(slot.recovered) : '—' }}
+                        </td>
+                        <td class="sonar-pf-table__r"
+                            [class.sonar-pf-table__bad]="slot.slipped > 0">
+                          {{ slot.slipped > 0 ? '−' + fmtNum(slot.slipped) : '—' }}
+                        </td>
+                        <td class="sonar-pf-table__r"
+                            [class.sonar-pf-table__good]="slot.net > 0"
+                            [class.sonar-pf-table__bad]="slot.net < 0">
+                          @if (slot.net > 0) { +{{ fmtNum(slot.net) }} }
+                          @else if (slot.net < 0) { −{{ fmtNum(-slot.net) }} }
+                          @else { — }
+                        </td>
+                        <td class="sonar-pf-table__r"
+                            [class.sonar-pf-table__bad]="atRiskCount(slot) > 0">
+                          {{ fmtNum(atRiskCount(slot)) }}
+                        </td>
+                        <td class="sonar-pf-table__r sonar-pf-table__muted">
+                          {{ fmtDay(slot.lastDay) }}
+                          @if (slot.staleDays !== null && slot.staleDays > 7) {
+                            <span class="sonar-pf-stale">{{ slot.staleDays }}d stale</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+      </div><!-- /left -->
+
+      <!-- Right: sidebar model list -->
+      <div class="sonar-card sonar-pf-sidebar">
+        <div class="sonar-card__head">
+          <span class="sonar-card__label">All models</span>
+        </div>
+
+        @if (!loaded()) {
+          @for (i of [1, 2, 3]; track i) {
+            <div class="sonar-pf-slot sonar-pf-slot--skeleton">
+              <div class="sonar-pf-slot__indicator sonar-skeleton"></div>
+              <div class="sonar-pf-slot__body">
+                <div class="sonar-skeleton" style="height: 13px; width: 70%; border-radius: 3px;"></div>
+                <div class="sonar-skeleton" style="height: 10px; width: 45%; border-radius: 3px; margin-top: 4px;"></div>
+              </div>
+            </div>
+          }
+        } @else {
+          @for (slot of sortedSlots(); track slot.model.ID) {
+            <div class="sonar-pf-slot"
+                 [class.sonar-pf-slot--paused]="slot.model.Status === 'Paused'"
+                 [class.sonar-pf-slot--draft]="slot.model.Status === 'Draft'"
+                 [class.sonar-pf-slot--selected]="selectedSlotId() === slot.model.ID"
+                 [style.border-left-color]="indicatorColor(slot)"
+                 (click)="pickSlot(slot.model.ID)">
+              <div class="sonar-pf-slot__body">
+                <div class="sonar-pf-slot__name">{{ slot.model.Name }}</div>
+                <div class="sonar-pf-slot__meta">
+                  {{ anchorName(slot.model) }}
+                  @if (slot.model.Status !== 'Active') {
+                    <span class="sonar-chip sonar-chip--muted">{{ slot.model.Status }}</span>
+                  }
+                </div>
+                @if (slot.scoredCount > 0) {
+                  <div class="sonar-pf-slot__band-bar">
+                    @for (band of slot.distribution; track band.key) {
+                      @if (band.count > 0) {
+                        <div class="sonar-pf-slot__band-seg"
+                             [style.flex]="band.count"
+                             [style.background]="bandColor(band.key)"></div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (sidebarCount(slot); as sc) {
+                <div class="sonar-pf-slot__num">
+                  <div class="sonar-pf-slot__num-val"
+                       [class.sonar-pf-slot__num-val--warn]="sc.tone === 'warn'"
+                       [class.sonar-pf-slot__num-val--crit]="sc.tone === 'crit'"
+                       [class.sonar-pf-slot__num-val--good]="sc.tone === 'good'"
+                       [class.sonar-pf-slot__num-val--mute]="sc.tone === 'mute'">
+                    {{ fmtNum(sc.value) }}
+                  </div>
+                  <div class="sonar-pf-slot__num-label">{{ sc.label }}</div>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div><!-- /sidebar -->
+
+    </div><!-- /dash -->
+
+  </div><!-- /body -->
+</div>

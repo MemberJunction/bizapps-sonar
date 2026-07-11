@@ -64,7 +64,7 @@ interface Headline {
  * table / migration flow / band mix), then a full-width "who needs action" card. Reached via the
  * nav item whose DriverClass = 'SonarOverviewResource'.
  */
-@RegisterClass(BaseResourceComponent, "SonarOverviewResource")
+@RegisterClass(BaseResourceComponent, "SonarModelDetailResource")
 @Component({
     standalone: false,
     selector: "sonar-overview-resource",
@@ -350,20 +350,19 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
         const keys = this.flowKeys();
         const total = this.prevPoint()?.total ?? this.scoredCount() ?? 1;
         if (keys.length === 0 || total === 0) return [];
-        // The SVG canvas is 200×240; nodes are vertically centered per slot (space-around in CSS).
+        // SVG canvas is 640×240 (viewBox); node columns are in HTML, canvas draws ribbons only.
+        // Wide viewBox matches typical rendered width so preserveAspectRatio="none" barely distorts text.
         const yFor = (k: BandKey): number => (240 / keys.length) * (keys.indexOf(k) + 0.5);
         return this.flows().map((f) => {
             const y1 = yFor(f.fromKey), y2 = yFor(f.toKey);
             const width = Math.max(2, Math.min(20, (f.count / total) * 60));
-            // Labels sit at the curve's t=0.75 point (near the destination), so two crossing
-            // ribbons don't stack their labels at the shared midpoint. Bézier at t=0.75 with
-            // both control points at x=100: x ≈ 141, y ≈ 0.156·y1 + 0.844·y2.
+            // Labels at t=0.75 on the cubic (CPs at x=320, endpoint x=640): x ≈ 450, y ≈ 0.156·y1 + 0.844·y2.
             return {
-                d: `M 0,${y1} C 100,${y1} 100,${y2} 200,${y2}`,
+                d: `M 0,${y1} C 320,${y1} 320,${y2} 640,${y2}`,
                 width,
                 worse: f.worse,
                 count: f.count,
-                labelX: 141,
+                labelX: 450,
                 labelY: 0.156 * y1 + 0.844 * y2 - width / 2 - 4,
             };
         });

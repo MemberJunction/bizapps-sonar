@@ -347,9 +347,9 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         this.anchorFields.set([]);
         const asOf = this.asOfDate ? new Date(this.asOfDate).toISOString() : null;
         try {
-            const rows = await this.smith.testSignal(action.id, ids, asOf);
-            this.testRows.set(rows);
             const model = this.models().find((m) => m.id === this.selectedModelId);
+            const rows = await this.smith.testSignal(action.id, ids, asOf, model?.anchorEntityID);
+            this.testRows.set(rows);
             if (model) {
                 this.recordNameMap.set(await this.smith.resolveAnchorNames(model.anchorEntityID, rows.map((r) => r.anchorRecordId)));
                 if (this.testMode() === "record" && ids.length === 1) {
