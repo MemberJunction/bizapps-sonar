@@ -274,6 +274,11 @@ export class RecomputeOrchestrator {
     ): Promise<void> {
         const completedAt = new Date();
         run.Status = status;
+        // Re-stamp StartedAt from the authoritative in-memory instant. It was written once at INSERT
+        // (startRun); left alone, this UPDATE would re-persist the value the entity reloaded from the
+        // datetime2 column, which comes back tz-shifted — so StartedAt would drift out of sync with
+        // CompletedAt. Writing both from fresh in-memory Dates in this one UPDATE keeps them consistent.
+        run.StartedAt = startedAt;
         run.CompletedAt = completedAt;
         run.RecordsScored = recordsScored;
         run.DurationMs = completedAt.getTime() - startedAt.getTime();
