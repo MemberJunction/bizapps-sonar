@@ -590,16 +590,27 @@ export class ScoreReadService {
         return this.loadBandsByIds(scores.map((s) => s.BandID));
     }
 
-    /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID. */
+    /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID.
+     *  Expands to the full band set for each resolved band so rank-based color
+     *  mapping always has the complete context (not just the bands present on the
+     *  current page of scores). */
     private async loadBandsByIds(rawIds: (string | null)[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
         const ids = [...new Set(rawIds.filter((id): id is string => !!id))];
         if (ids.length === 0) return new Map();
-        const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
+        const seedResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
             EntityName: SCORE_BAND,
             ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
             ResultType: "entity_object",
         });
-        return new Map((result.Results ?? []).map((b) => [b.ID, b]));
+        const seedBands = seedResult.Results ?? [];
+        const bandSetIds = [...new Set(seedBands.map((b) => b.BandSetID).filter(Boolean))];
+        if (bandSetIds.length === 0) return new Map(seedBands.map((b) => [b.ID, b]));
+        const fullResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
+            EntityName: SCORE_BAND,
+            ExtraFilter: `BandSetID IN (${bandSetIds.map((id) => `'${sqlString(id)}'`).join(",")})`,
+            ResultType: "entity_object",
+        });
+        return new Map((fullResult.Results ?? []).map((b) => [b.ID, b]));
     }
 
     /** Batch-resolve anchor display names for a set of scores (single RunView, IN clause). */
