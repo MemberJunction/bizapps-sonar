@@ -1005,6 +1005,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKeyFromSeverity(b.Severity, allSeverities) })));
         this.editingBandKey.set(null);
 
+        // A recompute in flight belongs to the model we just left — clear the busy flag so the
+        // new model's button isn't stuck dim. The old run keeps going server-side; its completion
+        // handler self-guards on the model ID (see recompute()), so it won't touch this model's UI.
+        this.recomputing.set(false);
+
         // Auto-run the live preview so the sandbox populates without a manual "Simulate" click —
         // the right rail is a LIVE sandbox now. Reset first; only preview when there's a rubric to
         // score (and bands to map into). Fire-and-forget so model switching stays snappy.
@@ -1167,17 +1172,27 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public async recompute(): Promise<void> {
         const id = this.selectedModelId();
         if (!id || this.recomputing()) return;
+        // Capture the name now: the toast lands when the run finishes, which may be after the
+        // user has switched models — so it must name the model it's actually reporting on.
+        const modelName = this.selectedModel()?.Name ?? "Model";
         this.recomputing.set(true);
         try {
             const res = await this.engine.recompute(id);
+            // Did the user switch models while this ran? The notification fires either way (the run
+            // really did finish), but we only touch this model's UI if it's still the active one.
+            const stillActive = this.selectedModelId() === id;
             if (res.errors.length > 0 || res.status === "Failed") {
-                this.toast.error(res.errors[0] || "Recompute failed.");
+                this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
-                this.toast.success(`Recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
-                await this.simulate();
+                this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
+                // Only refresh the right rail if we're still on the model we recomputed — otherwise
+                // simulate() would re-score whatever model the user switched TO.
+                if (stillActive) await this.simulate();
             }
         } finally {
-            this.recomputing.set(false);
+            // Only clear the busy flag if we're still on this model. A model switch already reset it
+            // (and may have kicked off its own work) — don't stomp that.
+            if (this.selectedModelId() === id) this.recomputing.set(false);
         }
     }
 }
