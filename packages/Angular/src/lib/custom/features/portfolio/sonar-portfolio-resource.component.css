@@ -6,6 +6,17 @@
     grid-template-columns: repeat(4, 1fr);
 }
 
+/* Scope caption above the KPI strip — makes it unambiguous the tiles are one model, not a
+   cross-model total (which would double-count members shared between models). */
+.sonar-pf-focus-label {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sonar-muted);
+    margin: 1rem 0 0.5rem;
+}
+
 .sonar-stat__sub {
     font-size: var(--sonar-font-xs);
     color: var(--sonar-faint);
@@ -13,6 +24,17 @@
 }
 
 .sonar-stat--warn .sonar-stat__value {
+    color: var(--sonar-atrisk);
+}
+
+/* Primary tile — the one KPI that should read first (At risk). Subtle atrisk tint + a larger,
+   atrisk-toned value so it carries visual weight without a loud accent rail. */
+.sonar-stat--primary {
+    background: color-mix(in srgb, var(--sonar-atrisk) 5%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-atrisk) 28%, var(--sonar-border));
+}
+.sonar-stat--primary .sonar-stat__value {
+    font-size: 2.3rem;
     color: var(--sonar-atrisk);
 }
 

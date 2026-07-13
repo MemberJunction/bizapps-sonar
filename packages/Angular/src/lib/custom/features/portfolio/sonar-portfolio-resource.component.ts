@@ -5,6 +5,7 @@ import { ResourceData } from "@memberjunction/core-entities";
 import { Metadata } from "@memberjunction/core";
 import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
+import { CurrentModelService } from "../../core/services/current-model.service";
 import { BandKey, BandSlice, OverviewTrend, ScoreReadService } from "../../core/services/score-read.service";
 import type {
     ApexAxisChartSeries, ApexChart, ApexXAxis, ApexDataLabels,
@@ -88,6 +89,8 @@ function daysSince(day: string): number {
 export class SonarPortfolioResourceComponent extends BaseResourceComponent implements OnInit, OnDestroy {
     private readonly modelService = inject(ScoreModelService);
     private readonly scoreRead = inject(ScoreReadService);
+    /** Shared cross-surface model selection — set before opening triage so Engagement lands scoped. */
+    private readonly current = inject(CurrentModelService);
 
     /** Tracks the MJ dark-mode flag so charts re-render with correct colors on theme switch. */
     private readonly darkMode = signal(
@@ -265,10 +268,26 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         this.activeSlots().reduce((n, s) => n + s.net, 0)
     );
 
+    // NOTE: the top-fold metrics (action bar + primary KPI strip) are scoped to the single
+    // most-urgent model via focusedSlot(), NOT summed across models. Summing double-counts members
+    // that are scored by more than one model on the same anchor entity (e.g. two lenses over the
+    // same 2,000 members would read as ~4,000). Per-model counts are read straight off the slot.
+
     // ── BaseResourceComponent contract ─────────────────────────────────────────
 
     public async GetResourceDisplayName(_data: ResourceData): Promise<string> { return "Portfolio"; }
     public async GetResourceIconClass(_data: ResourceData): Promise<string> { return "fa-solid fa-layer-group"; }
+
+    /** Triage action bar CTA → open the Engagement surface, pre-scoped to the focused (most-urgent)
+     *  model so the triage list lands on exactly the members the header is calling out. */
+    public async navigateToTriage(): Promise<void> {
+        const focus = this.focusedSlot();
+        if (focus) this.current.select(focus.model.ID);
+        const tabId = await this.navigationService.OpenNavItemByName("Engagement");
+        if (!tabId) {
+            console.warn("Sonar Portfolio: could not open the 'Engagement' nav item for triage.");
+        }
+    }
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -407,6 +426,11 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         const ar = slot.distribution.find(d => d.key === "atrisk")?.count ?? 0;
         const cr = slot.distribution.find(d => d.key === "critical")?.count ?? 0;
         return ar + cr;
+    }
+
+    /** At-risk share of one model's scored members (0–100), for the scoped primary KPI sub-line. */
+    public atRiskPct(slot: PortfolioSlot): number {
+        return slot.scoredCount > 0 ? Math.round((this.atRiskCount(slot) / slot.scoredCount) * 100) : 0;
     }
 
     /** Left-border color for sidebar rows and table dots — encodes urgency at a glance. */
