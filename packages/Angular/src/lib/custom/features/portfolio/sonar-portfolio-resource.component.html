@@ -22,7 +22,7 @@
       <div class="sonar-actionbar">
         <span class="sonar-actionbar__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
         <span class="sonar-actionbar__text">
-          <strong>{{ fs.model.Name }}</strong> needs attention &mdash;
+          <strong>{{ fs.model.Name }}</strong> needs attention.
           <strong>{{ fmtNum(atRiskCount(fs)) }}</strong> members at risk
           <span class="sonar-actionbar__sep">&middot;</span>
           <span class="sonar-actionbar__dim"><strong>{{ fmtNum(fs.slipped) }}</strong> slipped this cycle</span>
@@ -76,11 +76,11 @@
             <span class="sonar-card__label">
               @if (lensView() === 'marimekko') { Band distribution }
               @else if (lensView() === 'distribution') {
-                @if (focusedSlot(); as s) { {{ s.model.Name }} — Distribution }
+                @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; Distribution }
                 @else { Distribution }
               }
               @else {
-                @if (focusedSlot(); as s) { {{ s.model.Name }} — History }
+                @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; History }
                 @else { History }
               }
             </span>
