@@ -1,16 +1,14 @@
+import { uuidv4 } from "@memberjunction/global";
 import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import { SQLServerDataProvider } from "@memberjunction/sqlserver-dataprovider";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarScoreEntity,
-    mjBizAppsSonarScoreFactorContributionEntity,
     mjBizAppsSonarScoreHistoryEntity,
-    mjBizAppsSonarScoreBandTransitionEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { ScoreResult } from "../scoring/ScoringEngine";
 import { encodeContributionDetail } from "../scoring/contributionDetail";
 import {
-    BandTransition,
     TrendBaseline,
     computeDelta,
     dataCompleteness,
@@ -20,23 +18,45 @@ import {
 } from "../scoring/scoreTrend";
 import type { AnchorKey } from "../factors/anchorKey";
 
+/** A SQL value we inline as a literal (no parameter binding — a bulk write has far more values than
+ *  the ~2100 parameter cap allows, so we encode literals, escaping strictly). */
+type SqlValue = string | number | boolean | Date | null | undefined;
+
+/** Rows to persist for one run, pre-encoded as SQL VALUES tuples (built in memory, flushed set-based). */
+interface StagedRows {
+    /** Score tuples — DATA columns only (SCORE_COLS); the MERGE adds the __mj_ timestamps. */
+    scores: string[];
+    contributions: string[];
+    history: string[];
+    transitions: string[];
+}
+
+// Column orders for the bulk writes. Score is the MERGE's #stage shape (no __mj_ cols — the MERGE
+// stamps those); the append tables carry __mj_CreatedAt/UpdatedAt in each tuple as SYSDATETIMEOFFSET().
+const SCORE_COLS = "ID, ScoreModelID, ScoreModelVersionID, AnchorEntityID, AnchorRecordID, AnchorRecordKeyJSON, RawScore, NormalizedScore, BandID, PreviousNormalizedScore, PreviousBandID, Delta, TrendDirection, DataCompleteness, ComputedAt, AsOfDate, IsStale";
+const CONTRIB_COLS = "ID, ScoreID, ModelFactorID, FactorID, RawValue, NormalizedValue, WeightedContribution, PercentOfTotal, HadData, MissingDataApplied, DetailJSON, __mj_CreatedAt, __mj_UpdatedAt";
+const HISTORY_COLS = "ID, ScoreModelID, ScoreModelVersionID, AnchorEntityID, AnchorRecordID, NormalizedScore, BandID, AsOfDate, ComputedAt, DataCompleteness, ContributionsJSON, __mj_CreatedAt, __mj_UpdatedAt";
+const TRANSITION_COLS = "ID, ScoreModelID, AnchorRecordID, FromBandID, ToBandID, Direction, OccurredAt, RecomputeRunID, Handled, __mj_CreatedAt, __mj_UpdatedAt";
+
+/** Max VALUES tuples per INSERT — SQL Server caps the row-value constructor at 1000; stay well under. */
+const INSERT_CHUNK = 500;
+
 /** Progress sink for a persist pass: called with (members persisted so far, total to persist).
  *  Throttled by the writer — see PROGRESS_EVERY. Optional; the persist path is unaffected when omitted. */
 export type ScoreWriteProgress = (processed: number, total: number) => void;
-
-/** Emit a progress tick every N members (plus the final one) so a big run streams a handful of
- *  updates instead of one per row — keeps the LongRunning progress channel from flooding. */
-const PROGRESS_EVERY = 25;
 
 /**
  * Persists a run's computed scores. Each anchor's Score is upserted (one current row per
  * model+anchor, keyed by UQ_Score_ModelAnchorRecord), and its ScoreFactorContribution rows
  * are replaced.
  *
- * v1 writes row-by-row via the MJ entity layer (clean, but one round-trip per row). The
- * scale path is NOT more workers — it is set-based writes (stage into a temp table → MERGE)
- * and, bigger still, only writing the anchors whose score actually CHANGED (diffing). Both
- * are deferred; this version is correct and readable for modest populations.
+ * Set-based: the trend/delta/band-transition math runs in memory (fast), then the whole run is
+ * flushed in a handful of statements — one MERGE for Scores (via a session #stage temp table) and
+ * one batched INSERT each for contributions / history / transitions — instead of ~4 stored-proc
+ * round-trips per member. That turns a 2k-member run from thousands of round-trips into a few.
+ * Bypassing BaseEntity.Save() means no per-row Record-Changes versioning, which is fine for these
+ * derived outputs (ScoreHistory is the audit trail). Deferred next step: diff-only writes (only
+ * persist anchors whose score actually changed).
  */
 export class ScoreWriter {
     public async write(
@@ -67,7 +87,34 @@ export class ScoreWriter {
                 ? await this.loadTrendBaselines(model, this.subtractDays(asOf, trendDays), contextUser)
                 : null;
 
-        let recordsScored = 0;
+        // Phase 1 — build every row in memory (no DB). Fast; this is where the scoring math lives.
+        const staged = this.buildStagedRows(model, versionId, scores, asOf, existing, baselines, keyJsonById, runId);
+
+        // Phase 2 — flush set-based. Scores MERGE first (the "scored" milestone), then the append tables.
+        const provider = Metadata.Provider as SQLServerDataProvider;
+        await this.flushScores(provider, staged.scores, contextUser);
+        onProgress?.(scores.size, scores.size);
+        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Factor Contributions", CONTRIB_COLS, staged.contributions, contextUser);
+        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Histories", HISTORY_COLS, staged.history, contextUser);
+        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Band Transitions", TRANSITION_COLS, staged.transitions, contextUser);
+        return scores.size;
+    }
+
+    /** Build the SQL VALUES tuples for every table from the computed scores — the scoring math
+     *  (delta/trend/band-transition) lives here, then everything is flushed set-based. */
+    private buildStagedRows(
+        model: mjBizAppsSonarScoreModelEntity,
+        versionId: string,
+        scores: Map<string, ScoreResult>,
+        asOf: Date,
+        existing: Map<string, mjBizAppsSonarScoreEntity>,
+        baselines: Map<string, TrendBaseline> | null,
+        keyJsonById: Map<string, string>,
+        runId?: string,
+    ): StagedRows {
+        const computedAt = new Date();
+        const staged: StagedRows = { scores: [], contributions: [], history: [], transitions: [] };
+
         for (const [anchorRecordId, result] of scores) {
             const prior = existing.get(anchorRecordId);
             const priorBand = prior?.BandID ?? null; // immediately-prior band — for run-over-run transitions
@@ -80,33 +127,44 @@ export class ScoreWriter {
             const prevScore = baseline?.score ?? null;
             const prevBand = baseline?.band ?? null;
 
-            const score = prior ?? (await this.newScore(contextUser));
+            // Reuse the existing row's ID on re-score (MERGE matches on the unique key and keeps it),
+            // or mint one for a new anchor so its contributions can reference it before the flush.
+            const scoreId = prior?.ID ?? uuidv4();
             const keyJson = keyJsonById.get(anchorRecordId) ?? null;
-            this.applyScore(score, model, versionId, anchorRecordId, keyJson, asOf, result, prevScore, prevBand);
-            if (!(await score.Save())) {
-                LogError(
-                    `ScoreWriter: failed to save Score for anchor ${anchorRecordId}: ${score.LatestResult?.CompleteMessage ?? "unknown"}`,
-                );
-                continue;
+            const delta = computeDelta(result.normalizedScore, prevScore);
+            const completeness = dataCompleteness(result.contributions);
+
+            staged.scores.push(this.tuple([
+                scoreId, model.ID, versionId, model.AnchorEntityID, anchorRecordId, keyJson,
+                result.rawScore, result.normalizedScore, result.bandId, prevScore, prevBand, delta,
+                trendDirection(delta), completeness, computedAt, asOf, false,
+            ]));
+
+            for (const c of result.contributions) {
+                const pct = result.rawScore !== 0 ? c.weightedValue / result.rawScore : null;
+                staged.contributions.push(this.tuple([
+                    uuidv4(), scoreId, c.modelFactorId, c.factorId, c.rawValue, c.normalizedContribution,
+                    c.weightedValue, pct, c.hadData, c.missingDataApplied, encodeContributionDetail(c.explanation),
+                ], true));
             }
-            await this.insertContributions(score.ID, result, contextUser);
-            await this.writeHistory(score, result, contextUser);
+
+            staged.history.push(this.tuple([
+                uuidv4(), model.ID, versionId, model.AnchorEntityID, anchorRecordId, result.normalizedScore,
+                result.bandId, asOf, computedAt, completeness, JSON.stringify(result.contributions),
+            ], true));
+
             // A band change is a transition measured run-over-run (vs the immediately-prior band),
             // independent of the trend window; its Direction comes from the run-over-run move.
             const lastRunDelta = prior ? computeDelta(result.normalizedScore, prior.NormalizedScore) : null;
             const transition = detectBandTransition(priorBand, result.bandId, !!prior, lastRunDelta);
             if (transition) {
-                await this.writeBandTransition(model, anchorRecordId, transition, runId, contextUser);
-            }
-            recordsScored++;
-            // Throttled progress: every Nth member. The final tick is emitted after the loop so the
-            // bar always lands on 100% even when the count isn't a clean multiple of PROGRESS_EVERY.
-            if (onProgress && recordsScored % PROGRESS_EVERY === 0) {
-                onProgress(recordsScored, scores.size);
+                staged.transitions.push(this.tuple([
+                    uuidv4(), model.ID, anchorRecordId, transition.fromBandId, transition.toBandId,
+                    transition.direction, computedAt, runId ?? null, false,
+                ], true));
             }
         }
-        onProgress?.(recordsScored, scores.size);
-        return recordsScored;
+        return staged;
     }
 
     /** `asOf` minus N days — the trend-window cutoff date. */
@@ -190,145 +248,88 @@ export class ScoreWriter {
         await provider.ExecuteSQL(sql, { modelId: model.ID }, undefined, contextUser);
     }
 
-    private async newScore(contextUser: UserInfo): Promise<mjBizAppsSonarScoreEntity> {
-        const md = new Metadata();
-        const score = await md.GetEntityObject<mjBizAppsSonarScoreEntity>(
-            "MJ_BizApps_Sonar: Scores",
-            contextUser,
-        );
-        score.NewRecord();
-        return score;
+    /** Encode one row as a `(v1, v2, …)` SQL VALUES tuple. With `appendTimestamps`, adds the two
+     *  __mj_ audit columns as SYSDATETIMEOFFSET() — the append tables carry them per row; the Score
+     *  MERGE stamps its own, so its tuples pass appendTimestamps=false. */
+    private tuple(values: SqlValue[], appendTimestamps = false): string {
+        const cells = values.map((v) => this.lit(v));
+        if (appendTimestamps) cells.push("SYSDATETIMEOFFSET()", "SYSDATETIMEOFFSET()");
+        return `(${cells.join(", ")})`;
     }
 
-    /** Set the score's fields from the computed result, plus trend vs. the prior score.
-     *  TrendSlope + Confidence stay null (deferred — need a history series / a calibrated model). */
-    private applyScore(
-        score: mjBizAppsSonarScoreEntity,
-        model: mjBizAppsSonarScoreModelEntity,
-        versionId: string,
-        anchorRecordId: string,
-        anchorRecordKeyJSON: string | null,
-        asOf: Date,
-        result: ScoreResult,
-        prevScore: number | null,
-        prevBand: string | null,
-    ): void {
-        score.ScoreModelID = model.ID;
-        score.ScoreModelVersionID = versionId;
-        score.AnchorEntityID = model.AnchorEntityID;
-        score.AnchorRecordID = anchorRecordId;
-        score.AnchorRecordKeyJSON = anchorRecordKeyJSON;
-        score.RawScore = result.rawScore;
-        score.NormalizedScore = result.normalizedScore;
-        score.BandID = result.bandId;
-        score.PreviousNormalizedScore = prevScore;
-        score.PreviousBandID = prevBand;
-        score.Delta = computeDelta(result.normalizedScore, prevScore);
-        score.TrendDirection = trendDirection(score.Delta);
-        score.DataCompleteness = dataCompleteness(result.contributions);
-        score.ComputedAt = new Date();
-        score.AsOfDate = asOf;
-        score.IsStale = false;
+    /** Encode a value as a SQL literal: strings escaped + N-prefixed, dates as datetime2, booleans as
+     *  bit, non-finite/nullish as NULL. Inline literals (not params) — a bulk write far exceeds the
+     *  ~2100 parameter cap, so we escape strictly instead. */
+    private lit(v: SqlValue): string {
+        if (v === null || v === undefined) return "NULL";
+        if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
+        if (typeof v === "boolean") return v ? "1" : "0";
+        if (v instanceof Date) return `'${v.toISOString().slice(0, 23)}'`; // 'YYYY-MM-DDTHH:mm:ss.SSS' — datetime2, no tz
+        return `N'${v.replace(/'/g, "''")}'`;
     }
 
-    /** Insert the fresh contribution breakdown for one score. */
-    private async insertContributions(
-        scoreId: string,
-        result: ScoreResult,
+    /** Upsert every Score in one MERGE: stage into a session #tmp (chunked INSERTs, same batch so the
+     *  temp survives), then MERGE on the model+anchor unique key — matched rows update in place (ID
+     *  preserved), new ones insert. */
+    private async flushScores(provider: SQLServerDataProvider, tuples: string[], contextUser: UserInfo): Promise<void> {
+        if (tuples.length === 0) return;
+        const target = this.tableRef("MJ_BizApps_Sonar: Scores");
+        const inserts = this.chunk(tuples, INSERT_CHUNK)
+            .map((c) => `INSERT INTO #stage (${SCORE_COLS}) VALUES ${c.join(",")};`)
+            .join("\n");
+        const sql = `
+CREATE TABLE #stage (
+    ID uniqueidentifier, ScoreModelID uniqueidentifier, ScoreModelVersionID uniqueidentifier,
+    AnchorEntityID uniqueidentifier, AnchorRecordID nvarchar(4000), AnchorRecordKeyJSON nvarchar(max),
+    RawScore decimal(38,10), NormalizedScore decimal(38,10), BandID uniqueidentifier,
+    PreviousNormalizedScore decimal(38,10), PreviousBandID uniqueidentifier, Delta decimal(38,10),
+    TrendDirection nvarchar(50), DataCompleteness decimal(38,10), ComputedAt datetime2, AsOfDate datetime2, IsStale bit
+);
+${inserts}
+MERGE ${target} AS t
+USING #stage AS s ON t.ScoreModelID = s.ScoreModelID AND t.AnchorRecordID = s.AnchorRecordID
+WHEN MATCHED THEN UPDATE SET
+    t.ScoreModelVersionID = s.ScoreModelVersionID, t.AnchorEntityID = s.AnchorEntityID,
+    t.AnchorRecordKeyJSON = s.AnchorRecordKeyJSON, t.RawScore = s.RawScore, t.NormalizedScore = s.NormalizedScore,
+    t.BandID = s.BandID, t.PreviousNormalizedScore = s.PreviousNormalizedScore, t.PreviousBandID = s.PreviousBandID,
+    t.Delta = s.Delta, t.TrendDirection = s.TrendDirection, t.DataCompleteness = s.DataCompleteness,
+    t.ComputedAt = s.ComputedAt, t.AsOfDate = s.AsOfDate, t.IsStale = s.IsStale, t.__mj_UpdatedAt = SYSDATETIMEOFFSET()
+WHEN NOT MATCHED THEN INSERT (${SCORE_COLS}, __mj_CreatedAt, __mj_UpdatedAt)
+    VALUES (s.ID, s.ScoreModelID, s.ScoreModelVersionID, s.AnchorEntityID, s.AnchorRecordID, s.AnchorRecordKeyJSON,
+        s.RawScore, s.NormalizedScore, s.BandID, s.PreviousNormalizedScore, s.PreviousBandID, s.Delta,
+        s.TrendDirection, s.DataCompleteness, s.ComputedAt, s.AsOfDate, s.IsStale, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET());
+DROP TABLE #stage;`;
+        await provider.ExecuteSQL(sql, {}, undefined, contextUser);
+    }
+
+    /** Bulk-insert append-only rows (contributions / history / transitions): chunked multi-row
+     *  INSERTs in one batch. No-op on empty. */
+    private async flushInserts(
+        provider: SQLServerDataProvider,
+        entityName: string,
+        cols: string,
+        tuples: string[],
         contextUser: UserInfo,
     ): Promise<void> {
-        const md = new Metadata();
-        for (const c of result.contributions) {
-            const row =
-                await md.GetEntityObject<mjBizAppsSonarScoreFactorContributionEntity>(
-                    "MJ_BizApps_Sonar: Score Factor Contributions",
-                    contextUser,
-                );
-            row.NewRecord();
-            row.ScoreID = scoreId;
-            row.ModelFactorID = c.modelFactorId;
-            row.FactorID = c.factorId;
-            row.RawValue = c.rawValue;
-            row.NormalizedValue = c.normalizedContribution;
-            row.WeightedContribution = c.weightedValue;
-            row.PercentOfTotal =
-                result.rawScore !== 0 ? c.weightedValue / result.rawScore : null;
-            row.HadData = c.hadData;
-            row.MissingDataApplied = c.missingDataApplied;
-            // Freeze the factor's "why" alongside the math so a persisted score stays explainable.
-            row.DetailJSON = encodeContributionDetail(c.explanation);
-            if (!(await row.Save())) {
-                LogError(
-                    `ScoreWriter: failed to save contribution (factor ${c.factorId}) for score ${scoreId}.`,
-                );
-            }
-        }
+        if (tuples.length === 0) return;
+        const target = this.tableRef(entityName);
+        const sql = this.chunk(tuples, INSERT_CHUNK)
+            .map((c) => `INSERT INTO ${target} (${cols}) VALUES ${c.join(",")};`)
+            .join("\n");
+        await provider.ExecuteSQL(sql, {}, undefined, contextUser);
     }
 
-    /**
-     * Append an immutable ScoreHistory snapshot for this anchor on this recompute. The current
-     * Score row is overwritten in place each run, so history is what gives us a time series
-     * (sparklines, movers, "was X, now Y"). ContributionsJSON freezes the breakdown at this point
-     * so a snapshot stays explainable even after the rubric changes.
-     */
-    private async writeHistory(
-        score: mjBizAppsSonarScoreEntity,
-        result: ScoreResult,
-        contextUser: UserInfo,
-    ): Promise<void> {
-        const md = new Metadata();
-        const hist = await md.GetEntityObject<mjBizAppsSonarScoreHistoryEntity>(
-            "MJ_BizApps_Sonar: Score Histories",
-            contextUser,
-        );
-        hist.NewRecord();
-        hist.ScoreModelID = score.ScoreModelID;
-        hist.ScoreModelVersionID = score.ScoreModelVersionID;
-        hist.AnchorEntityID = score.AnchorEntityID;
-        hist.AnchorRecordID = score.AnchorRecordID;
-        hist.NormalizedScore = result.normalizedScore;
-        hist.BandID = result.bandId;
-        hist.DataCompleteness = score.DataCompleteness;
-        hist.AsOfDate = score.AsOfDate;
-        hist.ComputedAt = score.ComputedAt;
-        hist.ContributionsJSON = JSON.stringify(result.contributions);
-        if (!(await hist.Save())) {
-            LogError(
-                `ScoreWriter: failed to save ScoreHistory for anchor ${score.AnchorRecordID}: ${hist.LatestResult?.CompleteMessage ?? "unknown"}`,
-            );
-        }
+    /** `[schema].[table]` for an entity, resolved from MJ metadata (no hardcoded schema). */
+    private tableRef(entityName: string): string {
+        const e = new Metadata().Entities.find((x) => x.Name === entityName);
+        if (!e) throw new Error(`ScoreWriter: entity '${entityName}' not found in metadata.`);
+        return `[${e.SchemaName}].[${e.BaseTable}]`;
     }
 
-    /**
-     * Record a band crossing (e.g. Healthy → At-Risk) so the action layer has a queue to react to.
-     * Handled=false marks it un-actioned; Direction is the human read of the move. Only called with
-     * a real transition (detectBandTransition already gated it on an actual band change).
-     */
-    private async writeBandTransition(
-        model: mjBizAppsSonarScoreModelEntity,
-        anchorRecordId: string,
-        transition: BandTransition,
-        runId: string | undefined,
-        contextUser: UserInfo,
-    ): Promise<void> {
-        const md = new Metadata();
-        const tr = await md.GetEntityObject<mjBizAppsSonarScoreBandTransitionEntity>(
-            "MJ_BizApps_Sonar: Score Band Transitions",
-            contextUser,
-        );
-        tr.NewRecord();
-        tr.ScoreModelID = model.ID;
-        tr.AnchorRecordID = anchorRecordId;
-        tr.FromBandID = transition.fromBandId;
-        tr.ToBandID = transition.toBandId;
-        tr.Direction = transition.direction;
-        tr.OccurredAt = new Date();
-        if (runId) tr.RecomputeRunID = runId;
-        tr.Handled = false;
-        if (!(await tr.Save())) {
-            LogError(
-                `ScoreWriter: failed to save ScoreBandTransition for anchor ${anchorRecordId}: ${tr.LatestResult?.CompleteMessage ?? "unknown"}`,
-            );
-        }
+    /** Split an array into fixed-size chunks. */
+    private chunk<T>(items: T[], size: number): T[][] {
+        const out: T[][] = [];
+        for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+        return out;
     }
 }
