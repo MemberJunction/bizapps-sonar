@@ -20,6 +20,14 @@ import {
 } from "../scoring/scoreTrend";
 import type { AnchorKey } from "../factors/anchorKey";
 
+/** Progress sink for a persist pass: called with (members persisted so far, total to persist).
+ *  Throttled by the writer — see PROGRESS_EVERY. Optional; the persist path is unaffected when omitted. */
+export type ScoreWriteProgress = (processed: number, total: number) => void;
+
+/** Emit a progress tick every N members (plus the final one) so a big run streams a handful of
+ *  updates instead of one per row — keeps the LongRunning progress channel from flooding. */
+const PROGRESS_EVERY = 25;
+
 /**
  * Persists a run's computed scores. Each anchor's Score is upserted (one current row per
  * model+anchor, keyed by UQ_Score_ModelAnchorRecord), and its ScoreFactorContribution rows
@@ -39,6 +47,7 @@ export class ScoreWriter {
         contextUser: UserInfo,
         runId?: string,
         anchorKeys?: AnchorKey[],
+        onProgress?: ScoreWriteProgress,
     ): Promise<number> {
         if (scores.size === 0) {
             return 0;
@@ -90,7 +99,13 @@ export class ScoreWriter {
                 await this.writeBandTransition(model, anchorRecordId, transition, runId, contextUser);
             }
             recordsScored++;
+            // Throttled progress: every Nth member. The final tick is emitted after the loop so the
+            // bar always lands on 100% even when the count isn't a clean multiple of PROGRESS_EVERY.
+            if (onProgress && recordsScored % PROGRESS_EVERY === 0) {
+                onProgress(recordsScored, scores.size);
+            }
         }
+        onProgress?.(recordsScored, scores.size);
         return recordsScored;
     }
 

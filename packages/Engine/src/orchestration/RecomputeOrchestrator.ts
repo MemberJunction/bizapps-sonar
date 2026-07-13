@@ -27,7 +27,7 @@ import {
     ScoringSpec,
     WeightedFactor,
 } from "../scoring/ScoringEngine";
-import { ScoreWriter } from "./ScoreWriter";
+import { ScoreWriter, ScoreWriteProgress } from "./ScoreWriter";
 
 /** Summary of a persisted recompute run. */
 export interface RecomputeRunResult {
@@ -172,6 +172,7 @@ export class RecomputeOrchestrator {
         modelId: string,
         asOf: Date,
         contextUser: UserInfo,
+        onProgress?: ScoreWriteProgress,
     ): Promise<RecomputeRunResult> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
@@ -193,6 +194,7 @@ export class RecomputeOrchestrator {
                 contextUser,
                 run.ID,
                 anchorKeys,
+                onProgress,
             );
             await this.finishRun(run, "Succeeded", recordsScored);
             return { runId: run.ID, status: "Succeeded", recordsScored };
