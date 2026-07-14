@@ -31,7 +31,7 @@
                 <i class="fa-solid fa-bolt"></i> {{ simulating() ? "Simulating&hellip;" : "Simulate" }} <kbd class="sonar-kbd">&#x2318;S</kbd>
             </button>
             @if (canRecompute()) {
-                <button class="sonar-btn" [disabled]="recomputing()" (click)="recompute()">{{ recomputing() ? "Recomputing&hellip;" : "Recompute" }}</button>
+                <button class="sonar-btn" [disabled]="recomputing()" (click)="recompute()">{{ recomputeLabel() }}</button>
             }
             <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('publish')">Publish version</button>
         </div>

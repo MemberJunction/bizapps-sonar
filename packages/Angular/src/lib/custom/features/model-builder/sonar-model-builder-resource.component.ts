@@ -221,7 +221,27 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     private reorderTimer: ReturnType<typeof setTimeout> | null = null;
 
     // --- recompute (persist scores) — only for a published model ---
-    public readonly recomputing = signal(false);
+    // Run state is keyed BY MODEL ID, not a single global flag: a recompute is a minutes-long
+    // server run, and the user can freely switch models while one is in flight. A per-model map
+    // means switching away from a running model — then back — reconnects to its live progress
+    // instead of showing a stale/blank button. Presence in the map == that model is recomputing.
+    private readonly recomputeRuns = signal<Map<string, { processed: number; total: number }>>(new Map());
+    /** True when the CURRENTLY-SELECTED model has a recompute in flight. */
+    public readonly recomputing = computed(() => this.recomputeRuns().has(this.selectedModelId() ?? ""));
+    /** Button label: the selected model's live "Scored N of M", else a plain state. */
+    public readonly recomputeLabel = computed(() => {
+        const p = this.recomputeRuns().get(this.selectedModelId() ?? "");
+        if (!p) return "Recompute";
+        return p.total ? `Scored ${p.processed} of ${p.total}…` : "Recomputing…";
+    });
+
+    /** Immutably set/clear a model's run entry so the Map signal fires change detection. */
+    private setRecomputeRun(modelId: string, progress: { processed: number; total: number } | null): void {
+        const next = new Map(this.recomputeRuns());
+        if (progress) next.set(modelId, progress);
+        else next.delete(modelId);
+        this.recomputeRuns.set(next);
+    }
 
     /** Band distribution as donut arc segments (SVG stroke-dasharray on a circumference-100 ring). */
     public readonly donutSegments = computed(() => {
@@ -1005,10 +1025,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKeyFromSeverity(b.Severity, allSeverities) })));
         this.editingBandKey.set(null);
 
-        // A recompute in flight belongs to the model we just left — clear the busy flag so the
-        // new model's button isn't stuck dim. The old run keeps going server-side; its completion
-        // handler self-guards on the model ID (see recompute()), so it won't touch this model's UI.
-        this.recomputing.set(false);
+        // Recompute busy/progress state is keyed by model ID (see recomputeRuns), so switching
+        // models needs no reset here — the button's computed label simply reflects whichever
+        // model is now selected, and a run still in flight for another model keeps streaming.
 
         // Auto-run the live preview so the sandbox populates without a manual "Simulate" click —
         // the right rail is a LIVE sandbox now. Reset first; only preview when there's a rubric to
@@ -1171,28 +1190,29 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      */
     public async recompute(): Promise<void> {
         const id = this.selectedModelId();
-        if (!id || this.recomputing()) return;
+        if (!id || this.recomputeRuns().has(id)) return;
         // Capture the name now: the toast lands when the run finishes, which may be after the
         // user has switched models — so it must name the model it's actually reporting on.
         const modelName = this.selectedModel()?.Name ?? "Model";
-        this.recomputing.set(true);
+        // Seed the run entry with total 0 (no progress yet) so the button flips to "Recomputing…"
+        // for THIS model immediately, keyed by id so a model switch can't clobber it.
+        this.setRecomputeRun(id, { processed: 0, total: 0 });
         try {
-            const res = await this.engine.recompute(id);
-            // Did the user switch models while this ran? The notification fires either way (the run
-            // really did finish), but we only touch this model's UI if it's still the active one.
-            const stillActive = this.selectedModelId() === id;
+            const res = await this.engine.recompute(id, (processed, total) => {
+                // Keyed by id, so it survives model switches — the label computed only surfaces it
+                // when this model is the selected one; switching back reconnects to live progress.
+                this.setRecomputeRun(id, { processed, total });
+            });
             if (res.errors.length > 0 || res.status === "Failed") {
                 this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
                 this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
                 // Only refresh the right rail if we're still on the model we recomputed — otherwise
                 // simulate() would re-score whatever model the user switched TO.
-                if (stillActive) await this.simulate();
+                if (this.selectedModelId() === id) await this.simulate();
             }
         } finally {
-            // Only clear the busy flag if we're still on this model. A model switch already reset it
-            // (and may have kicked off its own work) — don't stomp that.
-            if (this.selectedModelId() === id) this.recomputing.set(false);
+            this.setRecomputeRun(id, null);
         }
     }
 }

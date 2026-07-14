@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Metadata } from "@memberjunction/core";
+import { BaseRemotableOperation, Metadata, RemoteOpExecMode } from "@memberjunction/core";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 import { extractActionResult, extractActionParam } from "./action-result.util";
@@ -7,7 +7,6 @@ import { extractActionResult, extractActionParam } from "./action-result.util";
 /** Actions are invoked by their registered Name — the engine resolves the ID at runtime
  *  (RunAction needs the ID, but we key on the stable name, not a hardcoded UUID). */
 const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
-const ACTION_RECOMPUTE_MODEL = "Sonar: Recompute Model";
 const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
 const ACTION_GET_PROMPT = "Sonar: Get Prompt";
 const ACTION_UPDATE_PROMPT = "Sonar: Update Prompt";
@@ -25,8 +24,28 @@ export interface PreviewModelResult {
     sampleMember: PreviewSample | null;
     errors: string[];
 }
-/** Result of a full recompute ("Sonar: Recompute Model"). */
+/** Result of a full recompute (the `Sonar.RecomputeModel` Remote Operation). */
 export interface RecomputeResult { runId: string; status: string; recordsScored: number; errors: string[]; }
+/** Progress sink for a running recompute: (members scored so far, total to score). */
+export type RecomputeProgress = (processed: number, total: number) => void;
+
+/** Stable key of the LongRunning Remote Operation (matches its `MJ: Remote Operations` row). */
+const REMOTE_OP_RECOMPUTE = "Sonar.RecomputeModel";
+interface SonarRecomputeModelInput { modelID: string; }
+interface SonarRecomputeModelOutput { runID: string; status: string; recordsScored: number; errorMessage?: string; }
+
+/**
+ * Client-safe contract for the `Sonar.RecomputeModel` Remote Operation: OperationKey + types only,
+ * no server body (the real implementation — SonarRecomputeModelServerOperation — lives in
+ * sonar-actions and pulls in the engine, which can't run in the browser). Calling Execute() routes
+ * the request through the active GraphQL provider by key; `attached` mode streams progress back
+ * over the provider's subscription. Extending BaseRemotableOperation directly is the sanctioned
+ * lightweight path (the alternative is a CodeGen-emitted base — see the server op's docs).
+ */
+class SonarRecomputeModelClientOperation extends BaseRemotableOperation<SonarRecomputeModelInput, SonarRecomputeModelOutput> {
+    public readonly OperationKey = REMOTE_OP_RECOMPUTE;
+    public readonly ExecutionMode: RemoteOpExecMode = "LongRunning";
+}
 
 /** Result of validating/previewing a single draft factor ("Sonar: Validate Factor"). */
 export interface ValidateFactorResult { valid: boolean; errors: string[]; matching: number; strength: number; explanation: string; anchorId: string | null; membersWithData: number; }
@@ -106,18 +125,30 @@ export class SonarEngineService {
         return payload ? { ...payload, errors: [] } : empty;
     }
 
-    /** Recompute a model: compute AND persist a full run (requires a published model). */
-    public async recompute(modelId: string): Promise<RecomputeResult> {
-        const actionId = await this.resolveActionId(ACTION_RECOMPUTE_MODEL);
-        if (!actionId) return { runId: "", status: "Failed", recordsScored: 0, errors: [`Action '${ACTION_RECOMPUTE_MODEL}' not found.`] };
-        const result = await this.actionClient().RunAction(actionId, [
-            { Name: "ModelID", Value: modelId, Type: "Input" },
-        ]);
-        if (!result.Success) {
-            return { runId: "", status: "Failed", recordsScored: 0, errors: [result.Message || "Recompute failed."] };
+    /**
+     * Recompute a model: compute AND persist a full run (requires a published model). Invokes the
+     * `Sonar.RecomputeModel` LongRunning Remote Operation in `attached` mode, streaming per-member
+     * progress to `onProgress`. Unlike the old RunAction path, this returns a result object even
+     * when the API dies mid-run (Success:false) instead of hanging forever.
+     */
+    public async recompute(modelId: string, onProgress?: RecomputeProgress): Promise<RecomputeResult> {
+        const op = new SonarRecomputeModelClientOperation();
+        const res = await op.Execute(
+            { modelID: modelId },
+            {
+                mode: "attached",
+                onProgress: (p) => {
+                    if (onProgress && p.Processed != null && p.Total != null) onProgress(p.Processed, p.Total);
+                },
+            },
+        );
+        if (!res.Success) {
+            return { runId: "", status: "Failed", recordsScored: 0, errors: [res.ErrorMessage || "Recompute failed."] };
         }
-        const payload = this.extractResult<{ runId: string; status: string; recordsScored: number }>(result);
-        return payload ? { ...payload, errors: [] } : { runId: "", status: "Unknown", recordsScored: 0, errors: [] };
+        const out = res.Output;
+        return out
+            ? { runId: out.runID, status: out.status, recordsScored: out.recordsScored, errors: out.errorMessage ? [out.errorMessage] : [] }
+            : { runId: "", status: "Unknown", recordsScored: 0, errors: [] };
     }
 
     /**
