@@ -6,7 +6,7 @@
       <div class="sonar-page__icon"><i class="fa-solid fa-layer-group"></i></div>
       <div>
         <h1 class="sonar-page__title">Portfolio</h1>
-        <p class="sonar-page__subtitle">All active scoring models at a glance</p>
+        <p class="sonar-page__subtitle">Monitoring {{ kpiActiveCount() }} active scoring model{{ kpiActiveCount() === 1 ? '' : 's' }} across your membership</p>
       </div>
     </div>
   </header>
@@ -14,35 +14,55 @@
   <!-- ── Body ── -->
   <div class="sonar-page__body">
 
-    <!-- KPI strip -->
-    <div class="sonar-stats sonar-pf-kpi-strip">
-      <div class="sonar-stat">
-        <div class="sonar-stat__label">Active models</div>
-        <div class="sonar-stat__value">{{ kpiActiveCount() }}</div>
-        <div class="sonar-stat__sub">{{ slots().length - kpiActiveCount() }} inactive</div>
+    <!-- Top fold — scoped to the single most-urgent model (focusedSlot), NOT summed across models
+         (summing double-counts members scored by more than one model on the same anchor entity). -->
+    @if (loaded() && focusedSlot(); as fs) {
+
+      <!-- Triage action bar — the single action that matters, above the data layout -->
+      <div class="sonar-actionbar">
+        <span class="sonar-actionbar__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+        <span class="sonar-actionbar__text">
+          <strong>{{ fs.model.Name }}</strong> needs attention.
+          <strong>{{ fmtNum(atRiskCount(fs)) }}</strong> members at risk
+          <span class="sonar-actionbar__sep">&middot;</span>
+          <span class="sonar-actionbar__dim"><strong>{{ fmtNum(fs.slipped) }}</strong> slipped this cycle</span>
+        </span>
+        <button class="sonar-btn sonar-btn--primary sonar-actionbar__cta" (click)="navigateToTriage()">
+          Review triage list <i class="fa-solid fa-arrow-right"></i>
+        </button>
       </div>
-      <div class="sonar-stat">
-        <div class="sonar-stat__label">Members scored</div>
-        <div class="sonar-stat__value">{{ fmtNum(kpiTotalScored()) }}</div>
-        <div class="sonar-stat__sub">across active models</div>
-      </div>
-      <div class="sonar-stat sonar-stat--warn">
-        <div class="sonar-stat__label">At risk + critical</div>
-        <div class="sonar-stat__value">{{ fmtNum(kpiAtRisk()) }}</div>
-        <div class="sonar-stat__sub">{{ kpiAtRiskPct() }}% of scored pool</div>
-      </div>
-      <div class="sonar-stat"
-           [class.sonar-stat--neg]="kpiNet() < 0"
-           [class.sonar-stat--pos]="kpiNet() > 0">
-        <div class="sonar-stat__label">Net movement</div>
-        <div class="sonar-stat__value">{{ kpiNet() > 0 ? '+' : '' }}{{ fmtNum(kpiNet()) }}</div>
-        <div class="sonar-stat__sub">
-          @if (kpiNet() < 0) { portfolio worsening }
-          @else if (kpiNet() > 0) { portfolio improving }
-          @else { no net change }
+
+      <!-- KPI strip — scoped to that model; At risk weighted as the primary tile -->
+      <div class="sonar-pf-focus-label">Most urgent &middot; {{ fs.model.Name }}</div>
+      <div class="sonar-stats sonar-pf-kpi-strip">
+        <div class="sonar-stat sonar-stat--primary">
+          <div class="sonar-stat__label">At risk now</div>
+          <div class="sonar-stat__value">{{ fmtNum(atRiskCount(fs)) }}</div>
+          <div class="sonar-stat__sub">{{ atRiskPct(fs) }}% of {{ fmtNum(fs.scoredCount) }} scored</div>
+        </div>
+        <div class="sonar-stat">
+          <div class="sonar-stat__label">Slipped this cycle</div>
+          <div class="sonar-stat__value">{{ fmtNum(fs.slipped) }}</div>
+          <div class="sonar-stat__sub">toward a worse band</div>
+        </div>
+        <div class="sonar-stat">
+          <div class="sonar-stat__label">Recovered</div>
+          <div class="sonar-stat__value">{{ fmtNum(fs.recovered) }}</div>
+          <div class="sonar-stat__sub">toward a better band</div>
+        </div>
+        <div class="sonar-stat"
+             [class.sonar-stat--neg]="fs.net < 0"
+             [class.sonar-stat--pos]="fs.net > 0">
+          <div class="sonar-stat__label">Net movement</div>
+          <div class="sonar-stat__value">{{ fs.net > 0 ? '+' : '' }}{{ fmtNum(fs.net) }}</div>
+          <div class="sonar-stat__sub">
+            @if (fs.net < 0) { worsening }
+            @else if (fs.net > 0) { improving }
+            @else { no net change }
+          </div>
         </div>
       </div>
-    </div>
+    }
 
     <!-- Main 2-column layout -->
     <div class="sonar-pf-dash">
@@ -56,11 +76,11 @@
             <span class="sonar-card__label">
               @if (lensView() === 'marimekko') { Band distribution }
               @else if (lensView() === 'distribution') {
-                @if (focusedSlot(); as s) { {{ s.model.Name }} — Distribution }
+                @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; Distribution }
                 @else { Distribution }
               }
               @else {
-                @if (focusedSlot(); as s) { {{ s.model.Name }} — History }
+                @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; History }
                 @else { History }
               }
             </span>

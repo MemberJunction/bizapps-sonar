@@ -300,6 +300,28 @@ button, input, select, textarea {
 .sonar-stat__value { font-size: 1.9rem; font-weight: 700; margin-top: 0.25rem; line-height: 1; font-variant-numeric: tabular-nums; font-family: var(--sonar-mono); }
 .sonar-stat__delta { font-size: 0.75rem; color: var(--sonar-muted); margin-top: 0.5rem; }
 
+/* ── Action bar ── a slim utility strip (status text + one primary CTA) that sits above a data
+   layout to point the user at the single action that matters. Flat + hairline, matching .sonar-card. */
+.sonar-actionbar {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius); padding: 0.6rem 0.6rem 0.6rem 1rem;
+}
+.sonar-actionbar__icon {
+    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none;
+    border-radius: var(--sonar-radius-sm); font-size: 0.85rem;
+    background: color-mix(in srgb, var(--sonar-atrisk) 14%, var(--sonar-surface)); color: var(--sonar-atrisk);
+}
+.sonar-actionbar__text { font-size: 0.95rem; color: var(--sonar-ink); }
+.sonar-actionbar__text strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sonar-actionbar__sep { color: var(--sonar-border-strong); margin: 0 0.5rem; }
+.sonar-actionbar__dim { color: var(--sonar-muted); }
+.sonar-actionbar__cta { margin-left: auto; flex: none; }
+@media (max-width: 640px) {
+    .sonar-actionbar { flex-wrap: wrap; }
+    .sonar-actionbar__cta { margin-left: 0; width: 100%; justify-content: center; }
+}
+
 /* ============================================================ Chips / bands */
 
 .sonar-chip {
