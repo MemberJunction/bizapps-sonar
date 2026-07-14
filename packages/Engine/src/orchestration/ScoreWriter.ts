@@ -1,5 +1,5 @@
 import { uuidv4 } from "@memberjunction/global";
-import { LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { Metadata, RunView, UserInfo } from "@memberjunction/core";
 import { SQLServerDataProvider } from "@memberjunction/sqlserver-dataprovider";
 import {
     mjBizAppsSonarScoreModelEntity,
@@ -21,6 +21,19 @@ import type { AnchorKey } from "../factors/anchorKey";
 /** A SQL value we inline as a literal (no parameter binding — a bulk write has far more values than
  *  the ~2100 parameter cap allows, so we encode literals, escaping strictly). */
 type SqlValue = string | number | boolean | Date | null | undefined;
+
+/** Encode a value as an inline SQL literal. Strings are escaped (single quotes doubled) and
+ *  N-prefixed for unicode safety; dates render as a datetime2 literal; booleans as bit; non-finite
+ *  numbers and null/undefined as NULL. This is the ONLY injection guard on the bulk-write path (a
+ *  bulk write far exceeds the ~2100 parameter cap, so values are inlined rather than bound), which
+ *  makes it security-critical. Exported and unit-tested in __tests__/scoreWriterSql.test.ts. */
+export function sqlLiteral(v: SqlValue): string {
+    if (v === null || v === undefined) return "NULL";
+    if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
+    if (typeof v === "boolean") return v ? "1" : "0";
+    if (v instanceof Date) return `'${v.toISOString().slice(0, 23)}'`; // 'YYYY-MM-DDTHH:mm:ss.SSS' datetime2, no tz suffix
+    return `N'${v.replace(/'/g, "''")}'`;
+}
 
 /** Rows to persist for one run, pre-encoded as SQL VALUES tuples (built in memory, flushed set-based). */
 interface StagedRows {
@@ -76,7 +89,6 @@ export class ScoreWriter {
         // anchor key in AnchorRecordKeyJSON (type- + order-faithful round-trip).
         const keyJsonById = new Map((anchorKeys ?? []).map((k) => [k.id, k.json]));
         const existing = await this.loadExistingScores(model, contextUser);
-        await this.clearOldContributions(model, contextUser);
 
         // Trend baseline: Delta/Trend compare the new score to the snapshot ~TrendWindowDays ago
         // (a real "change over N days", not just "since last run"). When the model has no
@@ -90,13 +102,28 @@ export class ScoreWriter {
         // Phase 1 — build every row in memory (no DB). Fast; this is where the scoring math lives.
         const staged = this.buildStagedRows(model, versionId, scores, asOf, existing, baselines, keyJsonById, runId);
 
-        // Phase 2 — flush set-based. Scores MERGE first (the "scored" milestone), then the append tables.
+        // Phase 2 — flush the whole run in ONE transaction. The DELETE of old contributions, the
+        // Score MERGE, and the three appends must be atomic. Without a transaction, a failure after
+        // the DELETE but before the re-insert would wipe every scored member's explainability
+        // breakdown with no rollback (blast radius = the whole population, not one row). SET
+        // XACT_ABORT ON + TRY/CATCH rolls back cleanly and re-raises so the orchestrator marks the
+        // run Failed with the database left untouched. All statements run in one batch (one pooled
+        // connection), so the #stage temp table also survives across the statements within it.
+        const body = [
+            this.buildClearContributionsSql(),
+            this.buildScoresSql(staged.scores),
+            this.buildInsertsSql("MJ_BizApps_Sonar: Score Factor Contributions", CONTRIB_COLS, staged.contributions),
+            this.buildInsertsSql("MJ_BizApps_Sonar: Score Histories", HISTORY_COLS, staged.history),
+            this.buildInsertsSql("MJ_BizApps_Sonar: Score Band Transitions", TRANSITION_COLS, staged.transitions),
+        ].filter((s) => s.length > 0).join("\n\n");
+
+        const sql =
+            "SET XACT_ABORT ON;\nBEGIN TRY\nBEGIN TRAN;\n\n" +
+            body +
+            "\n\nCOMMIT TRAN;\nEND TRY\nBEGIN CATCH\nIF @@TRANCOUNT > 0 ROLLBACK TRAN;\nTHROW;\nEND CATCH;";
         const provider = Metadata.Provider as SQLServerDataProvider;
-        await this.flushScores(provider, staged.scores, contextUser);
+        await provider.ExecuteSQL(sql, { modelId: model.ID }, undefined, contextUser);
         onProgress?.(scores.size, scores.size);
-        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Factor Contributions", CONTRIB_COLS, staged.contributions, contextUser);
-        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Histories", HISTORY_COLS, staged.history, contextUser);
-        await this.flushInserts(provider, "MJ_BizApps_Sonar: Score Band Transitions", TRANSITION_COLS, staged.transitions, contextUser);
         return scores.size;
     }
 
@@ -223,61 +250,44 @@ export class ScoreWriter {
     }
 
     /**
-     * Delete the existing contribution rows for this model's scores (the "replace" half of
-     * replace-contributions). Set-based: ONE `DELETE … JOIN Score` instead of loading N×factor
-     * rows and deleting each — a recomputed model has one contribution per scored member per
-     * factor, so the per-row path cost a round trip apiece. The subquery scales to any population
-     * (no inlined ID list). Runs raw SQL via the SQL Server provider (engine is server-side).
+     * SQL fragment that deletes this model's existing contribution rows (the "replace" half of
+     * replace-contributions), keyed on @modelId (bound by write() at execution). Set-based: ONE
+     * DELETE…JOIN that scales to any population. Emitted INSIDE the write transaction, so a later
+     * failure rolls it back rather than leaving scores stripped of their contribution breakdown.
      */
-    private async clearOldContributions(
-        model: mjBizAppsSonarScoreModelEntity,
-        contextUser: UserInfo,
-    ): Promise<void> {
+    private buildClearContributionsSql(): string {
         const md = new Metadata();
         const contrib = md.Entities.find((e) => e.Name === "MJ_BizApps_Sonar: Score Factor Contributions");
         const score = md.Entities.find((e) => e.Name === "MJ_BizApps_Sonar: Scores");
         if (!contrib || !score) {
-            LogError("ScoreWriter: could not resolve Score/Contribution entities for set-based delete.");
-            return;
+            throw new Error("ScoreWriter: could not resolve Score/Contribution entities for the contribution clear.");
         }
-        const sql =
+        return (
             `DELETE c FROM [${contrib.SchemaName}].[${contrib.BaseTable}] c ` +
             `INNER JOIN [${score.SchemaName}].[${score.BaseTable}] s ON s.ID = c.ScoreID ` +
-            `WHERE s.ScoreModelID = @modelId`;
-        const provider = Metadata.Provider as SQLServerDataProvider;
-        await provider.ExecuteSQL(sql, { modelId: model.ID }, undefined, contextUser);
+            `WHERE s.ScoreModelID = @modelId;`
+        );
     }
 
     /** Encode one row as a `(v1, v2, …)` SQL VALUES tuple. With `appendTimestamps`, adds the two
      *  __mj_ audit columns as SYSDATETIMEOFFSET() — the append tables carry them per row; the Score
      *  MERGE stamps its own, so its tuples pass appendTimestamps=false. */
     private tuple(values: SqlValue[], appendTimestamps = false): string {
-        const cells = values.map((v) => this.lit(v));
+        const cells = values.map((v) => sqlLiteral(v));
         if (appendTimestamps) cells.push("SYSDATETIMEOFFSET()", "SYSDATETIMEOFFSET()");
         return `(${cells.join(", ")})`;
     }
 
-    /** Encode a value as a SQL literal: strings escaped + N-prefixed, dates as datetime2, booleans as
-     *  bit, non-finite/nullish as NULL. Inline literals (not params) — a bulk write far exceeds the
-     *  ~2100 parameter cap, so we escape strictly instead. */
-    private lit(v: SqlValue): string {
-        if (v === null || v === undefined) return "NULL";
-        if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
-        if (typeof v === "boolean") return v ? "1" : "0";
-        if (v instanceof Date) return `'${v.toISOString().slice(0, 23)}'`; // 'YYYY-MM-DDTHH:mm:ss.SSS' — datetime2, no tz
-        return `N'${v.replace(/'/g, "''")}'`;
-    }
-
-    /** Upsert every Score in one MERGE: stage into a session #tmp (chunked INSERTs, same batch so the
-     *  temp survives), then MERGE on the model+anchor unique key — matched rows update in place (ID
-     *  preserved), new ones insert. */
-    private async flushScores(provider: SQLServerDataProvider, tuples: string[], contextUser: UserInfo): Promise<void> {
-        if (tuples.length === 0) return;
+    /** SQL fragment that upserts every Score in one MERGE: stage into a session #tmp (chunked
+     *  INSERTs, same batch so the temp survives), then MERGE on the model+anchor unique key so
+     *  matched rows update in place (ID preserved) and new ones insert. Empty string when no rows. */
+    private buildScoresSql(tuples: string[]): string {
+        if (tuples.length === 0) return "";
         const target = this.tableRef("MJ_BizApps_Sonar: Scores");
         const inserts = this.chunk(tuples, INSERT_CHUNK)
             .map((c) => `INSERT INTO #stage (${SCORE_COLS}) VALUES ${c.join(",")};`)
             .join("\n");
-        const sql = `
+        return `
 CREATE TABLE #stage (
     ID uniqueidentifier, ScoreModelID uniqueidentifier, ScoreModelVersionID uniqueidentifier,
     AnchorEntityID uniqueidentifier, AnchorRecordID nvarchar(4000), AnchorRecordKeyJSON nvarchar(max),
@@ -299,24 +309,16 @@ WHEN NOT MATCHED THEN INSERT (${SCORE_COLS}, __mj_CreatedAt, __mj_UpdatedAt)
         s.RawScore, s.NormalizedScore, s.BandID, s.PreviousNormalizedScore, s.PreviousBandID, s.Delta,
         s.TrendDirection, s.DataCompleteness, s.ComputedAt, s.AsOfDate, s.IsStale, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET());
 DROP TABLE #stage;`;
-        await provider.ExecuteSQL(sql, {}, undefined, contextUser);
     }
 
-    /** Bulk-insert append-only rows (contributions / history / transitions): chunked multi-row
-     *  INSERTs in one batch. No-op on empty. */
-    private async flushInserts(
-        provider: SQLServerDataProvider,
-        entityName: string,
-        cols: string,
-        tuples: string[],
-        contextUser: UserInfo,
-    ): Promise<void> {
-        if (tuples.length === 0) return;
+    /** SQL fragment that bulk-inserts append-only rows (contributions / history / transitions) as
+     *  chunked multi-row INSERTs. Empty string when there are no rows. */
+    private buildInsertsSql(entityName: string, cols: string, tuples: string[]): string {
+        if (tuples.length === 0) return "";
         const target = this.tableRef(entityName);
-        const sql = this.chunk(tuples, INSERT_CHUNK)
+        return this.chunk(tuples, INSERT_CHUNK)
             .map((c) => `INSERT INTO ${target} (${cols}) VALUES ${c.join(",")};`)
             .join("\n");
-        await provider.ExecuteSQL(sql, {}, undefined, contextUser);
     }
 
     /** `[schema].[table]` for an entity, resolved from MJ metadata (no hardcoded schema). */
