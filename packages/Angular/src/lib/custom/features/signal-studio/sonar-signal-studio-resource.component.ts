@@ -48,6 +48,7 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public readonly selected = signal<FactorAction | null>(null);
     public readonly code = signal<string>("");
     public readonly testRows = signal<SignalSampleRow[]>([]);
+    public readonly recordNameMap = signal<Map<string, string>>(new Map());
     public readonly models = signal<TestModel[]>([]);
     public readonly sampleAnchorIds = signal<string[]>([]);
 
@@ -95,6 +96,13 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     public readonly saving = signal(false);
     public readonly refining = signal(false);
     public readonly notice = signal<string | null>(null);
+    /** Whether the center stage is showing the commission form vs the workbench/empty state. */
+    public readonly showCommission = signal(false);
+
+    public openCommission(): void {
+        this.showCommission.set(true);
+        this.selected.set(null);
+    }
 
     /** Only AI-authored Runtime signals can be edited/approved (compiled ones live in code). */
     public readonly isEditable = computed(() => this.selected()?.kind === "runtime");
@@ -130,6 +138,8 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
 
     /** Only Draft models can take a new factor (published config is immutable) — the bind targets. */
     public readonly bindableModels = computed(() => this.models().filter((m) => m.status === "Draft"));
+    /** All non-Archived models are valid test targets — Archived ones are decommissioned config. */
+    public readonly testableModels = computed(() => this.models().filter((m) => m.status !== "Archived"));
     /** Library filtered by the search box (name match) — keeps a long catalog navigable. A method, not a
      *  computed: librarySearch is a plain [(ngModel)] property, so a computed wouldn't invalidate on type. */
     public filteredLibrary(): FactorAction[] {
@@ -246,6 +256,7 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
 
     /** Open a signal (review OR library) into the centre workbench. */
     public async select(action: FactorAction): Promise<void> {
+        this.showCommission.set(false);
         this.selected.set(action);
         this.editing.set(false);
         this.testRows.set([]);
@@ -332,14 +343,18 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         if (!action || !ids.length || this.testing()) return;
         this.testing.set(true);
         this.testRows.set([]);
+        this.recordNameMap.set(new Map());
         this.anchorFields.set([]);
         const asOf = this.asOfDate ? new Date(this.asOfDate).toISOString() : null;
         try {
-            this.testRows.set(await this.smith.testSignal(action.id, ids, asOf));
-            // Single named record → also surface the record's fields (the underlying data being scored).
             const model = this.models().find((m) => m.id === this.selectedModelId);
-            if (this.testMode() === "record" && model && ids.length === 1) {
-                this.anchorFields.set(await this.smith.loadAnchorFields(model.anchorEntityID, ids[0]));
+            const rows = await this.smith.testSignal(action.id, ids, asOf, model?.anchorEntityID);
+            this.testRows.set(rows);
+            if (model) {
+                this.recordNameMap.set(await this.smith.resolveAnchorNames(model.anchorEntityID, rows.map((r) => r.anchorRecordId)));
+                if (this.testMode() === "record" && ids.length === 1) {
+                    this.anchorFields.set(await this.smith.loadAnchorFields(model.anchorEntityID, ids[0]));
+                }
             }
         } catch (e: unknown) {
             const error = e instanceof Error ? e.message : String(e);

@@ -30,7 +30,7 @@
 /* ── Three-column cockpit page body ─────────────────────────────────────────── */
 .sonar-page__body.sonar-cockpit {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr) 380px;
+    grid-template-columns: 280px minmax(0, 1fr) 300px;
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -796,6 +796,24 @@
 }
 .sonar-btn--hotkey { display: inline-flex; align-items: center; gap: 0.3rem; }
 
+/* Archive inline-confirm pattern — button transitions from ghost to critical on first click */
+.sonar-btn--archive {
+    border: 1px solid var(--mb-border);
+    background: transparent;
+    color: var(--mb-text-muted);
+}
+.sonar-btn--archive:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--sonar-critical) 40%, var(--mb-border));
+    color: var(--sonar-critical);
+    background: color-mix(in srgb, var(--sonar-critical) 6%, transparent);
+}
+.sonar-btn--archive--confirming {
+    border-color: var(--sonar-critical);
+    color: var(--sonar-critical);
+    background: color-mix(in srgb, var(--sonar-critical) 10%, transparent);
+    animation: sonar-pop-in 0.12s ease;
+}
+
 
 /* ── Patch Bay sockets ─────────────────────────────────────────────────────── */
 .pb-socket {
@@ -890,11 +908,57 @@
    scrolls horizontally (.sonar-page owns overflow-x) rather than crushing the rubric. */
 @media (max-width: 1200px) {
     .sonar-page__body.sonar-cockpit {
-        grid-template-columns: 220px minmax(0, 1fr) 300px;
+        grid-template-columns: 220px minmax(0, 1fr) 260px;
     }
 }
 /* Floor: below this the surface pans instead of squeezing the middle deck to nothing. */
 .sonar-page__body.sonar-cockpit { min-width: 900px; }
+
+/* ── Primary tab bar (Factors / Score Bands / Versions) ───────────────────────────────────── */
+.sonar-builder-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--mb-border);
+    padding: 0 1.5rem;
+    flex-shrink: 0;
+    background: var(--mb-surface);
+}
+
+.sonar-builder-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.625rem 1rem;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--mb-text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.12s ease, border-color 0.12s ease;
+}
+.sonar-builder-tab i { font-size: 0.72rem; }
+.sonar-builder-tab:hover { color: var(--mb-text); }
+.sonar-builder-tab--active { color: var(--sonar-accent); border-bottom-color: var(--sonar-accent); }
+
+/* Tab content panel — bounded flex container; child components own their own scroll */
+.sonar-deck__tab-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--mb-bg);
+}
+
+/* For tabs whose content is inline HTML (not a fill component) — adds scroll + padding */
+.sonar-deck__tab-body--padded {
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    gap: 0.75rem;
+}
 
 /* Mobile tab bar (hidden by default at ≥961px) */
 .sonar-mobile-tab-bar {

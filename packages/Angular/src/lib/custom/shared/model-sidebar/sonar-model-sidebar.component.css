@@ -65,3 +65,48 @@
 }
 .sonar-sidebar__weight i { font-size: 0.55rem; opacity: 0.7; }
 
+/* Archived dot — flat, no glow */
+.sonar-sidebar__dot--archived { background: var(--sonar-faint); }
+
+/* Hairline between active and archived sections */
+.sonar-sidebar__divider {
+    height: 1px;
+    background: var(--sonar-border);
+    margin: 0.25rem 0.55rem;
+    list-style: none;
+}
+
+/* Archived rows — muted so they visually recede below active models */
+.sonar-sidebar__item--archived .sonar-sidebar__name { color: var(--sonar-faint); }
+.sonar-sidebar__item--archived .sonar-sidebar__meta { opacity: 0.55; }
+.sonar-sidebar__item--archived .sonar-sidebar__weight { opacity: 0.45; }
+
+/* Show/hide archived toggle at the bottom of the sidebar */
+.sonar-sidebar__archived-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.4rem 0.55rem;
+    margin-top: 0.25rem;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--sonar-border);
+    cursor: pointer;
+    font-size: 0.72rem;
+    color: var(--sonar-faint);
+    text-align: left;
+    transition: color 0.12s;
+}
+.sonar-sidebar__archived-toggle:hover { color: var(--sonar-muted); }
+.sonar-sidebar__archived-toggle i { font-size: 0.62rem; opacity: 0.7; }
+.sonar-sidebar__archived-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--sonar-faint);
+    background: var(--sonar-surface-sunken);
+    border-radius: 999px;
+    padding: 0.05rem 0.4rem;
+}
+

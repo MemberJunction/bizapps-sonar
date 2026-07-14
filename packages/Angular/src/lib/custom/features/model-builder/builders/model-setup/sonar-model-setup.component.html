@@ -47,6 +47,16 @@
         </sonar-multiselect>
     </section>
 
+    <section class="sonar-card">
+        <div class="sonar-card__label">How far back does "change" look? <span class="sonar-faint">(trend window)</span></div>
+        <div class="sonar-ms__trend-row">
+            <input class="sonar-field sonar-ms__trend-days" type="number" min="1" step="1"
+                   [ngModel]="trendWindowDays()" (ngModelChange)="trendWindowDays.set($event)" placeholder="—" />
+            <span class="sonar-ms__trend-unit">days</span>
+        </div>
+        <p class="sonar-fb__hint">Score deltas and the biggest-movers lists compare each member against their score from about this many days ago. Leave empty to compare against the previous recompute only — beware that re-running a recompute then resets everyone's change to zero.</p>
+    </section>
+
     <section class="sonar-card sonar-note">
         Creating the model saves it as a <strong class="sonar-ink">draft</strong>. You then add signals, choose bands, and publish when it's ready.
     </section>

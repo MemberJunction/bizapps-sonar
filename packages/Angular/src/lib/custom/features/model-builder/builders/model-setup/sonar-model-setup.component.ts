@@ -31,6 +31,10 @@ export class SonarModelSetupComponent {
     public readonly anchorEntityID = signal("");
     /** Chosen data-source entity IDs (chips). Aliases are derived from the entity name on save. */
     public readonly dataSourceIds = signal<string[]>([]);
+    /** Trend window (days): Delta/Trend compare against the score ~N days ago. Defaults to 30 —
+     *  the robust behavior. Cleared (null) = "since the previous recompute", which any no-op
+     *  re-run zeroes out, wiping the Overview's movers. */
+    public readonly trendWindowDays = signal<number | null>(30);
     public readonly saving = signal(false);
     public readonly error = signal<string | null>(null);
 
@@ -64,7 +68,11 @@ export class SonarModelSetupComponent {
         this.saving.set(true);
         this.error.set(null);
         try {
-            const model = await this.models.create({ name: this.name().trim(), anchorEntityID: this.anchorEntityID() });
+            const model = await this.models.create({
+                name: this.name().trim(),
+                anchorEntityID: this.anchorEntityID(),
+                trendWindowDays: this.normalizedTrendWindow(),
+            });
             if (!model) {
                 this.error.set("Couldn't create the model — check the name isn't already taken.");
                 return;
@@ -78,6 +86,14 @@ export class SonarModelSetupComponent {
         } finally {
             this.saving.set(false);
         }
+    }
+
+    /** The trend window as it will persist: a positive whole number of days, or null (an emptied
+     *  or nonsense input falls back to "since last recompute" rather than saving garbage). */
+    private normalizedTrendWindow(): number | null {
+        const days = this.trendWindowDays();
+        if (days == null || !Number.isFinite(days) || days < 1) return null;
+        return Math.round(days);
     }
 
     /** Derive a short alias from the entity's name (e.g. "Activities" -> "activities"). */

@@ -12,7 +12,8 @@ import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath } from "../../core/entity-graph";
 import { ToastService } from "../../core/services/toast.service";
-import { bandKey, BandKey } from "../../core/services/score-read.service";
+import { bandKey, bandKeyFromSeverity, BandKey } from "../../core/services/score-read.service";
+import { TabConfig } from "@memberjunction/ng-ui-components";
 import { resolveAnchorName } from "../../core/services/anchor-name.util";
 import { sqlString } from "../../core/services/sql.util";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
@@ -73,8 +74,16 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Which view is showing: the rubric (default) or one of the hosted builders. The
      *  builders are opened by the model's own actions (+ Add factor / Edit bands / Publish)
      *  and emit `close` to return here — keeps the builders inside the model workflow. */
-    public readonly activeView = signal<"rubric" | "factor" | "bands" | "publish" | "newModel" | "versions">("rubric");
-    public readonly activeBottomTab = signal<"sources" | "population">("sources");
+    public readonly activeView = signal<"rubric" | "factor" | "publish" | "newModel">("rubric");
+    /** Which deck tab is active. Sources/population are top-level tabs, not a nested sub-tab bar. */
+    public readonly activeTab = signal<"factors" | "sources" | "population" | "bands" | "versions">("factors");
+    public readonly modelBuilderTabs: TabConfig[] = [
+        { key: "factors", label: "Factors", icon: "fa-solid fa-wave-square" },
+        { key: "sources", label: "Data Sources", icon: "fa-solid fa-table" },
+        { key: "population", label: "Population", icon: "fa-solid fa-users" },
+        { key: "bands", label: "Score Bands", icon: "fa-solid fa-chart-pie" },
+        { key: "versions", label: "Versions", icon: "fa-solid fa-clock-rotate-left" },
+    ];
     /** The optional "who gets scored?" filter is collapsed by default to reduce friction —
      *  most models score everyone, so we don't make every author confront a rule builder. */
     public readonly scopeOpen = signal(false);
@@ -343,8 +352,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         return "fa-solid fa-sliders";
     }
 
-    public selectBottomTab(tab: "sources" | "population"): void {
-        this.activeBottomTab.set(tab);
+    public selectTab(tab: "factors" | "sources" | "population" | "bands" | "versions"): void {
+        this.activeTab.set(tab);
         if (tab === "sources") {
             queueMicrotask(() => this.recomputeWires());
         }
@@ -392,7 +401,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             await this.modelService.setBandSet(model.ID, bandSetId);
             await this.selectModel(model.ID);
         }
-        this.activeView.set("rubric");
+        // bands is a tab now — no modal to dismiss
     }
 
     /** Width (%) of a contribution bar, scaled to the largest absolute contribution. */
@@ -688,7 +697,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 this.toast.error("Couldn't update that band. Please try again.");
                 return;
             }
-            this.bands.set(this.bands().map((x) => (x.id === b.id ? { ...x, label, min, max, key: bandKey(label) } : x)));
+            this.bands.set(this.bands().map((x) => (x.id === b.id ? { ...x, label, min, max } : x)));
             this.recomputeSampleOptimistic();          // sample's band may change instantly
             this.closeBandEditor();
             if (this.previewed()) { this.tuning.set(true); void this.applyTuning(); } // silent distribution sync
@@ -992,8 +1001,14 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         // Band set (count for the publish gate + editable rows for in-context range tweaking).
         const bandRows = model.BandSetID ? await this.bandService.getBands(model.BandSetID) : [];
         this.bandCount.set(bandRows.length);
-        this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKey(b.Label) })));
+        const allSeverities = bandRows.map((b) => b.Severity);
+        this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKeyFromSeverity(b.Severity, allSeverities) })));
         this.editingBandKey.set(null);
+
+        // A recompute in flight belongs to the model we just left — clear the busy flag so the
+        // new model's button isn't stuck dim. The old run keeps going server-side; its completion
+        // handler self-guards on the model ID (see recompute()), so it won't touch this model's UI.
+        this.recomputing.set(false);
 
         // Auto-run the live preview so the sandbox populates without a manual "Simulate" click —
         // the right rail is a LIVE sandbox now. Reset first; only preview when there's a rubric to
@@ -1035,9 +1050,21 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** A version was published — refresh the model context (status flips) and return to the rubric. */
     public async onPublished(): Promise<void> {
         const id = this.selectedModelId();
-        if (id) await this.selectModel(id);
-        await this.sidebar?.refresh();
-        this.activeView.set("rubric");
+        // Optimistically flip Status so the lock banner renders the moment the modal closes,
+        // without waiting for the DB round-trip. Signal equality is reference-based, so toggle
+        // through null to force computed re-evaluation.
+        const cur = this.selectedModel();
+        if (cur) {
+            cur.Status = "Active";
+            this.selectedModel.set(null);
+            this.selectedModel.set(cur);
+        }
+        this.activeView.set("rubric"); // close modal immediately
+        // Background: full DB re-fetch (updates version label, rubric, sidebar counts, etc.)
+        if (id) {
+            await this.selectModel(id);
+            await this.sidebar?.refresh();
+        }
     }
 
     /**
@@ -1053,11 +1080,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             const res = await this.engine.previewModel(id);
             if (res.errors.length > 0) this.previewError.set(res.errors[0]);
             this.previewTotal.set(res.totalScored ?? 0);
-            this.bandDist.set((res.bandDistribution ?? []).map((b) => ({ label: b.label, pct: b.pct, band: bandKey(b.label) })));
+            const bandsByLabel = new Map(this.bands().map((b) => [b.label, b.key]));
+            this.bandDist.set((res.bandDistribution ?? []).map((b) => ({ label: b.label, pct: b.pct, band: bandsByLabel.get(b.label) ?? bandKey(b.label) })));
             const sample = res.sampleMember;
             if (sample) {
                 const name = await resolveAnchorName(this.selectedModel()?.AnchorEntityID ?? null, sample.anchorId);
-                this.sampleMember.set({ name, score: sample.score, band: bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
+                this.sampleMember.set({ name, score: sample.score, band: bandsByLabel.get(sample.band ?? "") ?? bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
                 const nameByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.name]));
                 this.contributions.set((sample.contributions ?? []).map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value, explanation: c.explanation })));
                 // Cache each factor's normalized value (server value = weightᵢ·normᵢ) for optimistic re-scoring.
@@ -1085,7 +1113,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      *  version. Rubric/factor/source/band/population edits are disabled until the model is
      *  unpublished to a draft (then re-published as a new version). */
     public readonly isPublished = computed(() => this.selectedModel()?.Status === "Active");
+    /** Archive is only available for Draft models. Published models must be unpublished first;
+     *  already-archived models have no valid transition to archive again. */
+    public readonly canArchive  = computed(() => this.selectedModel()?.Status === "Draft");
     public readonly unpublishing = signal(false);
+    public readonly archiving = signal(false);
+    public readonly archiveConfirming = signal(false);
 
     /** Drop a published model back to Draft so it can be edited, then refresh + return to the rubric. */
     public async unpublishToEdit(): Promise<void> {
@@ -1105,6 +1138,32 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
     }
 
+    public archiveRequest(): void {
+        if (!this.archiveConfirming()) { this.archiveConfirming.set(true); return; }
+        void this.confirmArchive();
+    }
+
+    public cancelArchive(): void { this.archiveConfirming.set(false); }
+
+    private async confirmArchive(): Promise<void> {
+        const id = this.selectedModelId();
+        if (!id || this.archiving()) return;
+        this.archiving.set(true);
+        this.archiveConfirming.set(false);
+        try {
+            if (await this.modelService.archive(id)) {
+                await this.sidebar?.refresh();
+                this.selectedModelId.set(null);
+                this.selectedModel.set(null);
+                this.toast.success("Model archived.");
+            } else {
+                this.toast.error("Couldn't archive this model. Please try again.");
+            }
+        } finally {
+            this.archiving.set(false);
+        }
+    }
+
     /**
      * Recompute the model: compute AND persist a full run via the "Sonar: Recompute Model"
      * Action (needs a published model). Surfaces the outcome inline, then re-runs the preview
@@ -1113,17 +1172,27 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public async recompute(): Promise<void> {
         const id = this.selectedModelId();
         if (!id || this.recomputing()) return;
+        // Capture the name now: the toast lands when the run finishes, which may be after the
+        // user has switched models — so it must name the model it's actually reporting on.
+        const modelName = this.selectedModel()?.Name ?? "Model";
         this.recomputing.set(true);
         try {
             const res = await this.engine.recompute(id);
+            // Did the user switch models while this ran? The notification fires either way (the run
+            // really did finish), but we only touch this model's UI if it's still the active one.
+            const stillActive = this.selectedModelId() === id;
             if (res.errors.length > 0 || res.status === "Failed") {
-                this.toast.error(res.errors[0] || "Recompute failed.");
+                this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
-                this.toast.success(`Recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
-                await this.simulate();
+                this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
+                // Only refresh the right rail if we're still on the model we recomputed — otherwise
+                // simulate() would re-score whatever model the user switched TO.
+                if (stillActive) await this.simulate();
             }
         } finally {
-            this.recomputing.set(false);
+            // Only clear the busy flag if we're still on this model. A model switch already reset it
+            // (and may have kicked off its own work) — don't stomp that.
+            if (this.selectedModelId() === id) this.recomputing.set(false);
         }
     }
 }

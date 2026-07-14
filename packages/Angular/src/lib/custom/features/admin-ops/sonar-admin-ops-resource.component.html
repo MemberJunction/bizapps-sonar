@@ -43,29 +43,23 @@
                                 <div class="sonar-card__label">Recent recompute runs</div>
                             </div>
 
-                            <!-- Performance Dashboard Stats Grid -->
-                            <div class="sonar-ops__stats-grid">
-                                <div class="sonar-stat sonar-stat--iconed">
-                                    <div class="sonar-stat__text">
-                                        <div class="sonar-stat__label">Success rate</div>
-                                        <div class="sonar-stat__value">{{ successRate() }}</div>
-                                    </div>
-                                    <div class="sonar-stat__icon"><i class="fa-solid fa-circle-check"></i></div>
-                                </div>
-                                <div class="sonar-stat sonar-stat--iconed">
-                                    <div class="sonar-stat__text">
-                                        <div class="sonar-stat__label">Avg duration</div>
-                                        <div class="sonar-stat__value">{{ averageDuration() }}</div>
-                                    </div>
-                                    <div class="sonar-stat__icon"><i class="fa-solid fa-clock"></i></div>
-                                </div>
-                                <div class="sonar-stat sonar-stat--iconed">
-                                    <div class="sonar-stat__text">
-                                        <div class="sonar-stat__label">Total scored</div>
-                                        <div class="sonar-stat__value">{{ totalScoredCount() | number }}</div>
-                                    </div>
-                                    <div class="sonar-stat__icon"><i class="fa-solid fa-database"></i></div>
-                                </div>
+                            <!-- Stats pills row -->
+                            <div class="sonar-ops__stat-pills">
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-circle-check sonar-ops__stat-ico--ok"></i>
+                                    <span class="sonar-ops__stat-val">{{ successRate() }}</span>
+                                    <span class="sonar-ops__stat-lbl">Success rate</span>
+                                </span>
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-clock sonar-ops__stat-ico--brand"></i>
+                                    <span class="sonar-ops__stat-val">{{ averageDuration() }}</span>
+                                    <span class="sonar-ops__stat-lbl">Avg duration</span>
+                                </span>
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-database sonar-ops__stat-ico--muted"></i>
+                                    <span class="sonar-ops__stat-val">{{ totalScoredCount() | number }}</span>
+                                    <span class="sonar-ops__stat-lbl">Total scored</span>
+                                </span>
                             </div>
 
                             <!-- Upgraded Runs Table -->
