@@ -1,0 +1,74 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar Authoring Agent",
+      "Description": "Builds Sonar scoring config (models/factors/bands) from natural language via the tool surface. Declarative-first; produces drafts for human review.",
+      "ExposeAsAction": false,
+      "ExecutionOrder": 0,
+      "ExecutionMode": "Sequential",
+      "EnableContextCompression": false,
+      "TypeID": "F7926101-5099-4FA5-836A-479D9707C818",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wand-magic-sparkles",
+      "ModelSelectionMode": "Agent",
+      "PayloadDownstreamPaths": "[\"*\"]",
+      "PayloadUpstreamPaths": "[\"*\"]",
+      "FinalPayloadValidationMode": "Retry",
+      "FinalPayloadValidationMaxRetries": 3,
+      "MaxIterationsPerRun": 12,
+      "MaxExecutionsPerRun": 18,
+      "StartingPayloadValidationMode": "Fail",
+      "OwnerUserID": "ECAFCCEC-6A37-EF11-86D4-000D3A4E707E",
+      "InvocationMode": "Any",
+      "ArtifactCreationMode": "Always",
+      "InjectNotes": true,
+      "MaxNotesToInject": 5,
+      "NoteInjectionStrategy": "Relevant",
+      "InjectExamples": false,
+      "MaxExamplesToInject": 3,
+      "ExampleInjectionStrategy": "Semantic",
+      "IsRestricted": false,
+      "MessageMode": "None",
+      "NoteRetentionDays": 90,
+      "ExampleRetentionDays": 180,
+      "AutoArchiveEnabled": true,
+      "AllowEphemeralClientTools": true,
+      "SearchScopeAccess": "None",
+      "AcceptUnregisteredFiles": false,
+      "AllowMemoryWrite": true,
+      "SupportsPlanMode": true,
+      "AcceptsSkills": "None",
+      "SkillActivationMode": "RequestedOnly",
+      "RequirePlanMode": false,
+      "SkipEmbeddings": false
+    },
+    "relatedEntities": {
+      "MJ: AI Agent Prompts": [
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "PromptID": "3A70C8FF-B823-4491-8B3D-3BC258C82AEB",
+            "ExecutionOrder": 1,
+            "Status": "Active",
+            "ContextBehavior": "Complete",
+            "SkipEmbeddings": false
+          },
+          "primaryKey": {
+            "ID": "50583FD9-19F9-4ED8-9B22-2DF9D4733D3F"
+          },
+          "sync": {
+            "lastModified": "2026-07-14T23:34:29.008Z",
+            "checksum": "e5de9486ae0ebbcb3063a7ec24053c25961fe4e1c48e161fbc1378b6db548d82"
+          }
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "CF1D58BA-451E-4515-89BD-AC3F16A19534"
+    },
+    "sync": {
+      "lastModified": "2026-07-14T23:34:28.985Z",
+      "checksum": "969f634390a932a764a839fb2a27504d9c333d5e3217fb53efe8132b4b7df039"
+    }
+  }
+]
