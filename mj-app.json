@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "name": "mj-bizapps-sonar",
   "displayName": "Sonar",
-  "description": "Configurable engagement scoring engine on the MemberJunction entity graph — define any number of concurrent scoring models over any anchor entity, with explainable, trending scores and an action layer",
+  "description": "Configurable engagement scoring engine on the MemberJunction entity graph. Define any number of concurrent scoring models over any anchor entity, with explainable, trending scores and an action layer.",
   "version": "0.1.0",
   "license": "ISC",
   "icon": "fa-solid fa-wave-square",
@@ -12,7 +12,7 @@
     "url": "https://memberjunction.com"
   },
   "repository": "https://github.com/MemberJunction/bizapps-sonar",
-  "mjVersionRange": ">=5.33.0 <6.0.0",
+  "mjVersionRange": ">=5.45.0 <6.0.0",
   "schema": {
     "name": "__mj_BizAppsSonar",
     "createIfNotExists": true
