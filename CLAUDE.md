@@ -338,6 +338,7 @@ This repo uses MemberJunction's CodeGen system to generate entity and action sub
 - Never include `__mj_CreatedAt`/`__mj_UpdatedAt` columns in CREATE TABLE - CodeGen handles them
 - Never create indexes for foreign key columns - CodeGen creates them automatically
 - Use hardcoded UUIDs in seed/metadata migrations, never NEWID()
+- **App config in `metadata/` is dual-sourced.** `mj app install` runs migrations only (not `metadata/`), so the config those dirs hold (bands, windows, actions, queries, remote ops, the authoring agent) is also baked into a generated seed migration (`V…__Seed_App_Metadata.sql`). **If you edit any `metadata/` config, regenerate that seed** or a fresh install ships stale config. Regen steps are in the seed file's header; see [`migrations/README.md`](migrations/README.md).
 
 ---
 
