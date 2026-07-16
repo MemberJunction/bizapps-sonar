@@ -17,8 +17,32 @@
 -- Schema conventions (matching the schema migrations):
 --   - ${flyway:defaultSchema}  = the Sonar schema (resolves to __mj_BizAppsSonar)
 --   - __mj                     = the MemberJunction core schema (always __mj)
--- Generated from `mj sync push` (formatAsMigration) then schema-swapped, since
--- mj-sync emits the inverse convention (core as placeholder, Sonar hardcoded).
+--
+-- SOURCE OF TRUTH / REGEN --------------------------------------------------
+-- This file is a GENERATED SNAPSHOT. The editable, round-trippable source is
+-- the mj-sync metadata under metadata/ (score-band-sets, score-bands,
+-- time-windows, actions, queries, remote-operations, templates, prompts,
+-- agents). Those dirs stay the place you author config. This migration only
+-- exists because `mj app install` does not process metadata/.
+--
+-- If you change any of those records, you MUST regenerate this file, or a
+-- fresh install ships stale config while dev (mj sync push) shows the new:
+--   1. In metadata/.mj-sync.json set sqlLogging.formatAsMigration = true
+--   2. `mj sync push` against a CLEAN MJ core (fresh DB, core migrated) to
+--      emit metadata/sql_logging/MetadataSync_Push_*.sql
+--   3. Schema-swap it: __mj_BizAppsSonar -> ${flyway:defaultSchema} and the
+--      core placeholder -> literal __mj (mj-sync emits the inverse convention:
+--      core as the placeholder, Sonar schema hardcoded)
+--   4. Re-add the IF NOT EXISTS guard around every spCreate (see below)
+--   5. Set formatAsMigration back to false
+--
+-- IDEMPOTENCY --------------------------------------------------------------
+-- Every spCreate is wrapped in `IF NOT EXISTS (... WHERE ID = @id)` so this
+-- migration is safe to run against a dev DB already loaded via `mj sync push`
+-- (the documented dev flow). Without the guard, re-running spCreate with the
+-- hardcoded IDs throws PK violations. spUpdate calls are left unguarded (an
+-- update on an existing row is already idempotent). A clean install has none
+-- of these records, so every guard passes and all rows are created.
 -- =============================================================================
 
 -- Save MJ: Schema Info (core SP call only)
@@ -42,7 +66,8 @@ SET
 SET
   @Description_e7e3967e = N'Sonar: Configurable engagement scoring engine'
 SET
-  @EntityNamePrefix_e7e3967e = N'Sonar: ' EXEC [__mj].spCreateSchemaInfo @ID = @ID_e7e3967e,
+  @EntityNamePrefix_e7e3967e = N'Sonar: ' IF NOT EXISTS (SELECT 1 FROM [__mj].[SchemaInfo] WHERE ID = @ID_e7e3967e)
+EXEC [__mj].spCreateSchemaInfo @ID = @ID_e7e3967e,
   @SchemaName = @SchemaName_e7e3967e,
   @EntityIDMin = @EntityIDMin_e7e3967e,
   @EntityIDMax = @EntityIDMax_e7e3967e,
@@ -181,6 +206,7 @@ SET
   @UserID_2661cd2b = 'ECAFCCEC-6A37-EF11-86D4-000D3A4E707E'
 SET
   @IsActive_2661cd2b = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[Template] WHERE ID = @ID_2661cd2b)
 EXEC [__mj].spCreateTemplate @ID = @ID_2661cd2b,
   @Name = @Name_2661cd2b,
   @Description = @Description_2661cd2b,
@@ -295,6 +321,7 @@ SET
   @Priority_7897d46c = 1
 SET
   @IsActive_7897d46c = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[TemplateContent] WHERE ID = @ID_7897d46c)
 EXEC [__mj].spCreateTemplateContent @ID = @ID_7897d46c,
   @TemplateID = @TemplateID_7897d46c,
   @TypeID = @TypeID_7897d46c,
@@ -421,6 +448,7 @@ SET
   @PrefillFallbackMode_ab0ca827 = N'Ignore'
 SET
   @RequireSpecificModels_ab0ca827 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[AIPrompt] WHERE ID = @ID_ab0ca827)
 EXEC [__mj].spCreateAIPrompt @ID = @ID_ab0ca827,
   @Name = @Name_ab0ca827,
   @Description = @Description_ab0ca827,
@@ -651,6 +679,7 @@ SET
   @SkillActivationMode_d5081f3c = N'RequestedOnly'
 SET
   @RequirePlanMode_d5081f3c = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[AIAgent] WHERE ID = @ID_d5081f3c)
 EXEC [__mj].spCreateAIAgent @ID = @ID_d5081f3c,
   @Name = @Name_d5081f3c,
   @Description = @Description_d5081f3c,
@@ -783,7 +812,8 @@ SET
 SET
   @Status_030265e4 = N'Active'
 SET
-  @ContextBehavior_030265e4 = N'Complete' EXEC [__mj].spCreateAIAgentPrompt @ID = @ID_030265e4,
+  @ContextBehavior_030265e4 = N'Complete' IF NOT EXISTS (SELECT 1 FROM [__mj].[AIAgentPrompt] WHERE ID = @ID_030265e4)
+EXEC [__mj].spCreateAIAgentPrompt @ID = @ID_030265e4,
   @AgentID = @AgentID_030265e4,
   @PromptID = @PromptID_030265e4,
   @Purpose = @Purpose_030265e4,
@@ -816,7 +846,8 @@ SET
 SET
   @LengthDays_7b83edbc = 30
 SET
-  @Description_7b83edbc = N'Rolling 30-day window ending at the as-of date. Short-term recency signals (recent logins, recent opens).' EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_7b83edbc,
+  @Description_7b83edbc = N'Rolling 30-day window ending at the as-of date. Short-term recency signals (recent logins, recent opens).' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[TimeWindow] WHERE ID = @ID_7b83edbc)
+EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_7b83edbc,
   @Name = @Name_7b83edbc,
   @WindowType = @WindowType_7b83edbc,
   @LengthDays = @LengthDays_7b83edbc,
@@ -848,7 +879,8 @@ SET
 SET
   @LengthDays_a7b594f4 = 90
 SET
-  @Description_a7b594f4 = N'Rolling 90-day window ending at the as-of date. The default window for most engagement factors.' EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_a7b594f4,
+  @Description_a7b594f4 = N'Rolling 90-day window ending at the as-of date. The default window for most engagement factors.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[TimeWindow] WHERE ID = @ID_a7b594f4)
+EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_a7b594f4,
   @Name = @Name_a7b594f4,
   @WindowType = @WindowType_a7b594f4,
   @LengthDays = @LengthDays_a7b594f4,
@@ -880,7 +912,8 @@ SET
 SET
   @LengthMonths_00007096 = 12
 SET
-  @Description_00007096 = N'Rolling 12-month window ending at the as-of date. Annual-cadence signals (event attendance, dues, certifications).' EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_00007096,
+  @Description_00007096 = N'Rolling 12-month window ending at the as-of date. Annual-cadence signals (event attendance, dues, certifications).' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[TimeWindow] WHERE ID = @ID_00007096)
+EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_00007096,
   @Name = @Name_00007096,
   @WindowType = @WindowType_00007096,
   @LengthDays = @LengthDays_00007096,
@@ -910,7 +943,8 @@ SET
 SET
   @WindowType_cfbca076 = N'AllTime'
 SET
-  @Description_cfbca076 = N'No time bound; aggregates over the entire history of the related entity (e.g. lifetime giving, total certifications earned).' EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_cfbca076,
+  @Description_cfbca076 = N'No time bound; aggregates over the entire history of the related entity (e.g. lifetime giving, total certifications earned).' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[TimeWindow] WHERE ID = @ID_cfbca076)
+EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_cfbca076,
   @Name = @Name_cfbca076,
   @WindowType = @WindowType_cfbca076,
   @LengthDays = @LengthDays_cfbca076,
@@ -945,7 +979,8 @@ SET
 SET
   @OffsetDays_ed112abc = -90
 SET
-  @Description_ed112abc = N'The 90 days leading up to each member''s renewal date. Lets decay close to renewal be weighted differently from decay far out.' EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_ed112abc,
+  @Description_ed112abc = N'The 90 days leading up to each member''s renewal date. Lets decay close to renewal be weighted differently from decay far out.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[TimeWindow] WHERE ID = @ID_ed112abc)
+EXEC [${flyway:defaultSchema}].spCreateTimeWindow @ID = @ID_ed112abc,
   @Name = @Name_ed112abc,
   @WindowType = @WindowType_ed112abc,
   @LengthDays = @LengthDays_ed112abc,
@@ -968,7 +1003,8 @@ SET
 SET
   @Name_85bb09a0 = N'Default Health Bands'
 SET
-  @Description_85bb09a0 = N'Starter three-band rubric on a 0–100 scale: At Risk / Neutral / Healthy. A generic default operators can clone and tune per model.' EXEC [${flyway:defaultSchema}].spCreateScoreBandSet @ID = @ID_85bb09a0,
+  @Description_85bb09a0 = N'Starter three-band rubric on a 0–100 scale: At Risk / Neutral / Healthy. A generic default operators can clone and tune per model.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[ScoreBandSet] WHERE ID = @ID_85bb09a0)
+EXEC [${flyway:defaultSchema}].spCreateScoreBandSet @ID = @ID_85bb09a0,
   @Name = @Name_85bb09a0,
   @AnchorEntityID = @AnchorEntityID_85bb09a0,
   @AnchorEntityID_Clear = 1,
@@ -1003,7 +1039,8 @@ SET
 SET
   @IsTerminal_385c40db = 0
 SET
-  @Description_385c40db = N'Low engagement — needs intervention.' EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_385c40db,
+  @Description_385c40db = N'Low engagement — needs intervention.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[ScoreBand] WHERE ID = @ID_385c40db)
+EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_385c40db,
   @BandSetID = @BandSetID_385c40db,
   @Label = @Label_385c40db,
   @MinScore = @MinScore_385c40db,
@@ -1042,7 +1079,8 @@ SET
 SET
   @IsTerminal_060a643c = 0
 SET
-  @Description_060a643c = N'Moderate engagement — monitor.' EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_060a643c,
+  @Description_060a643c = N'Moderate engagement — monitor.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[ScoreBand] WHERE ID = @ID_060a643c)
+EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_060a643c,
   @BandSetID = @BandSetID_060a643c,
   @Label = @Label_060a643c,
   @MinScore = @MinScore_060a643c,
@@ -1081,7 +1119,8 @@ SET
 SET
   @IsTerminal_2bc54717 = 0
 SET
-  @Description_2bc54717 = N'Strong engagement.' EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_2bc54717,
+  @Description_2bc54717 = N'Strong engagement.' IF NOT EXISTS (SELECT 1 FROM [${flyway:defaultSchema}].[ScoreBand] WHERE ID = @ID_2bc54717)
+EXEC [${flyway:defaultSchema}].spCreateScoreBand @ID = @ID_2bc54717,
   @BandSetID = @BandSetID_2bc54717,
   @Label = @Label_2bc54717,
   @MinScore = @MinScore_2bc54717,
@@ -1140,7 +1179,8 @@ SET
 SET
   @DriverClass_8f390e6b = N'SonarPreviewModel'
 SET
-  @IconClass_8f390e6b = N'fa-solid fa-wave-square' EXEC [__mj].spCreateAction @ID = @ID_8f390e6b,
+  @IconClass_8f390e6b = N'fa-solid fa-wave-square' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_8f390e6b)
+EXEC [__mj].spCreateAction @ID = @ID_8f390e6b,
   @CategoryID = @CategoryID_8f390e6b,
   @Name = @Name_8f390e6b,
   @Description = @Description_8f390e6b,
@@ -1229,7 +1269,8 @@ SET
 SET
   @DriverClass_ba09e796 = N'SonarRecomputeModel'
 SET
-  @IconClass_ba09e796 = N'fa-solid fa-rotate' EXEC [__mj].spCreateAction @ID = @ID_ba09e796,
+  @IconClass_ba09e796 = N'fa-solid fa-rotate' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_ba09e796)
+EXEC [__mj].spCreateAction @ID = @ID_ba09e796,
   @CategoryID = @CategoryID_ba09e796,
   @Name = @Name_ba09e796,
   @Description = @Description_ba09e796,
@@ -1318,7 +1359,8 @@ SET
 SET
   @DriverClass_e7c4b868 = N'SonarValidateFactor'
 SET
-  @IconClass_e7c4b868 = N'fa-solid fa-flask' EXEC [__mj].spCreateAction @ID = @ID_e7c4b868,
+  @IconClass_e7c4b868 = N'fa-solid fa-flask' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_e7c4b868)
+EXEC [__mj].spCreateAction @ID = @ID_e7c4b868,
   @CategoryID = @CategoryID_e7c4b868,
   @Name = @Name_e7c4b868,
   @Description = @Description_e7c4b868,
@@ -1407,7 +1449,8 @@ SET
 SET
   @DriverClass_ca53e85f = N'SonarListFactorActions'
 SET
-  @IconClass_ca53e85f = N'fa-solid fa-list-check' EXEC [__mj].spCreateAction @ID = @ID_ca53e85f,
+  @IconClass_ca53e85f = N'fa-solid fa-list-check' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_ca53e85f)
+EXEC [__mj].spCreateAction @ID = @ID_ca53e85f,
   @CategoryID = @CategoryID_ca53e85f,
   @Name = @Name_ca53e85f,
   @Description = @Description_ca53e85f,
@@ -1496,7 +1539,8 @@ SET
 SET
   @DriverClass_9ed9ada7 = N'SonarCreateFactor'
 SET
-  @IconClass_9ed9ada7 = N'fa-solid fa-wave-square' EXEC [__mj].spCreateAction @ID = @ID_9ed9ada7,
+  @IconClass_9ed9ada7 = N'fa-solid fa-wave-square' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_9ed9ada7)
+EXEC [__mj].spCreateAction @ID = @ID_9ed9ada7,
   @CategoryID = @CategoryID_9ed9ada7,
   @Name = @Name_9ed9ada7,
   @Description = @Description_9ed9ada7,
@@ -1585,7 +1629,8 @@ SET
 SET
   @DriverClass_d8f709e7 = N'SonarAddDataSource'
 SET
-  @IconClass_d8f709e7 = N'fa-solid fa-diagram-project' EXEC [__mj].spCreateAction @ID = @ID_d8f709e7,
+  @IconClass_d8f709e7 = N'fa-solid fa-diagram-project' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_d8f709e7)
+EXEC [__mj].spCreateAction @ID = @ID_d8f709e7,
   @CategoryID = @CategoryID_d8f709e7,
   @Name = @Name_d8f709e7,
   @Description = @Description_d8f709e7,
@@ -1674,7 +1719,8 @@ SET
 SET
   @DriverClass_a2ba58c7 = N'SonarCreateModel'
 SET
-  @IconClass_a2ba58c7 = N'fa-solid fa-sliders' EXEC [__mj].spCreateAction @ID = @ID_a2ba58c7,
+  @IconClass_a2ba58c7 = N'fa-solid fa-sliders' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_a2ba58c7)
+EXEC [__mj].spCreateAction @ID = @ID_a2ba58c7,
   @CategoryID = @CategoryID_a2ba58c7,
   @Name = @Name_a2ba58c7,
   @Description = @Description_a2ba58c7,
@@ -1763,7 +1809,8 @@ SET
 SET
   @DriverClass_00821672 = N'SonarSetBandSet'
 SET
-  @IconClass_00821672 = N'fa-solid fa-layer-group' EXEC [__mj].spCreateAction @ID = @ID_00821672,
+  @IconClass_00821672 = N'fa-solid fa-layer-group' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_00821672)
+EXEC [__mj].spCreateAction @ID = @ID_00821672,
   @CategoryID = @CategoryID_00821672,
   @Name = @Name_00821672,
   @Description = @Description_00821672,
@@ -1852,7 +1899,8 @@ SET
 SET
   @DriverClass_3e863fdc = N'SonarGetPrompt'
 SET
-  @IconClass_3e863fdc = N'fa-solid fa-file-lines' EXEC [__mj].spCreateAction @ID = @ID_3e863fdc,
+  @IconClass_3e863fdc = N'fa-solid fa-file-lines' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_3e863fdc)
+EXEC [__mj].spCreateAction @ID = @ID_3e863fdc,
   @CategoryID = @CategoryID_3e863fdc,
   @Name = @Name_3e863fdc,
   @Description = @Description_3e863fdc,
@@ -1941,7 +1989,8 @@ SET
 SET
   @DriverClass_4ce0b34a = N'SonarUpdatePrompt'
 SET
-  @IconClass_4ce0b34a = N'fa-solid fa-floppy-disk' EXEC [__mj].spCreateAction @ID = @ID_4ce0b34a,
+  @IconClass_4ce0b34a = N'fa-solid fa-floppy-disk' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_4ce0b34a)
+EXEC [__mj].spCreateAction @ID = @ID_4ce0b34a,
   @CategoryID = @CategoryID_4ce0b34a,
   @Name = @Name_4ce0b34a,
   @Description = @Description_4ce0b34a,
@@ -2030,7 +2079,8 @@ SET
 SET
   @DriverClass_0bb170c6 = N'SonarRunAuthoringAgent'
 SET
-  @IconClass_0bb170c6 = N'fa-solid fa-wand-magic-sparkles' EXEC [__mj].spCreateAction @ID = @ID_0bb170c6,
+  @IconClass_0bb170c6 = N'fa-solid fa-wand-magic-sparkles' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_0bb170c6)
+EXEC [__mj].spCreateAction @ID = @ID_0bb170c6,
   @CategoryID = @CategoryID_0bb170c6,
   @Name = @Name_0bb170c6,
   @Description = @Description_0bb170c6,
@@ -2119,7 +2169,8 @@ SET
 SET
   @DriverClass_1c8e97de = N'SonarBuildModel'
 SET
-  @IconClass_1c8e97de = N'fa-solid fa-cubes' EXEC [__mj].spCreateAction @ID = @ID_1c8e97de,
+  @IconClass_1c8e97de = N'fa-solid fa-cubes' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_1c8e97de)
+EXEC [__mj].spCreateAction @ID = @ID_1c8e97de,
   @CategoryID = @CategoryID_1c8e97de,
   @Name = @Name_1c8e97de,
   @Description = @Description_1c8e97de,
@@ -2208,7 +2259,8 @@ SET
 SET
   @DriverClass_23caf30a = N'SonarDescribeModel'
 SET
-  @IconClass_23caf30a = N'fa-solid fa-magnifying-glass' EXEC [__mj].spCreateAction @ID = @ID_23caf30a,
+  @IconClass_23caf30a = N'fa-solid fa-magnifying-glass' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_23caf30a)
+EXEC [__mj].spCreateAction @ID = @ID_23caf30a,
   @CategoryID = @CategoryID_23caf30a,
   @Name = @Name_23caf30a,
   @Description = @Description_23caf30a,
@@ -2297,7 +2349,8 @@ SET
 SET
   @DriverClass_8cf702cb = N'SonarListRelatedEntities'
 SET
-  @IconClass_8cf702cb = N'fa-solid fa-diagram-project' EXEC [__mj].spCreateAction @ID = @ID_8cf702cb,
+  @IconClass_8cf702cb = N'fa-solid fa-diagram-project' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_8cf702cb)
+EXEC [__mj].spCreateAction @ID = @ID_8cf702cb,
   @CategoryID = @CategoryID_8cf702cb,
   @Name = @Name_8cf702cb,
   @Description = @Description_8cf702cb,
@@ -2386,7 +2439,8 @@ SET
 SET
   @DriverClass_0cc8a1f9 = N'SonarAuthorFactorAction'
 SET
-  @IconClass_0cc8a1f9 = N'fa-solid fa-hammer' EXEC [__mj].spCreateAction @ID = @ID_0cc8a1f9,
+  @IconClass_0cc8a1f9 = N'fa-solid fa-hammer' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_0cc8a1f9)
+EXEC [__mj].spCreateAction @ID = @ID_0cc8a1f9,
   @CategoryID = @CategoryID_0cc8a1f9,
   @Name = @Name_0cc8a1f9,
   @Description = @Description_0cc8a1f9,
@@ -2475,7 +2529,8 @@ SET
 SET
   @DriverClass_2fe7395c = N'SonarStartFactorJob'
 SET
-  @IconClass_2fe7395c = N'fa-solid fa-bolt' EXEC [__mj].spCreateAction @ID = @ID_2fe7395c,
+  @IconClass_2fe7395c = N'fa-solid fa-bolt' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_2fe7395c)
+EXEC [__mj].spCreateAction @ID = @ID_2fe7395c,
   @CategoryID = @CategoryID_2fe7395c,
   @Name = @Name_2fe7395c,
   @Description = @Description_2fe7395c,
@@ -2564,7 +2619,8 @@ SET
 SET
   @DriverClass_8b56c63b = N'SonarRefineFactorAction'
 SET
-  @IconClass_8b56c63b = N'fa-solid fa-wand-magic-sparkles' EXEC [__mj].spCreateAction @ID = @ID_8b56c63b,
+  @IconClass_8b56c63b = N'fa-solid fa-wand-magic-sparkles' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_8b56c63b)
+EXEC [__mj].spCreateAction @ID = @ID_8b56c63b,
   @CategoryID = @CategoryID_8b56c63b,
   @Name = @Name_8b56c63b,
   @Description = @Description_8b56c63b,
@@ -2653,7 +2709,8 @@ SET
 SET
   @DriverClass_aec79711 = N'SonarUnpublishModel'
 SET
-  @IconClass_aec79711 = N'fa-solid fa-lock-open' EXEC [__mj].spCreateAction @ID = @ID_aec79711,
+  @IconClass_aec79711 = N'fa-solid fa-lock-open' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_aec79711)
+EXEC [__mj].spCreateAction @ID = @ID_aec79711,
   @CategoryID = @CategoryID_aec79711,
   @Name = @Name_aec79711,
   @Description = @Description_aec79711,
@@ -2742,7 +2799,8 @@ SET
 SET
   @DriverClass_df7fd51a = N'SonarFindEntities'
 SET
-  @IconClass_df7fd51a = N'fa-solid fa-magnifying-glass' EXEC [__mj].spCreateAction @ID = @ID_df7fd51a,
+  @IconClass_df7fd51a = N'fa-solid fa-magnifying-glass' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_df7fd51a)
+EXEC [__mj].spCreateAction @ID = @ID_df7fd51a,
   @CategoryID = @CategoryID_df7fd51a,
   @Name = @Name_df7fd51a,
   @Description = @Description_df7fd51a,
@@ -2831,7 +2889,8 @@ SET
 SET
   @DriverClass_f916bff7 = N'SonarFindModels'
 SET
-  @IconClass_f916bff7 = N'fa-solid fa-layer-group' EXEC [__mj].spCreateAction @ID = @ID_f916bff7,
+  @IconClass_f916bff7 = N'fa-solid fa-layer-group' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_f916bff7)
+EXEC [__mj].spCreateAction @ID = @ID_f916bff7,
   @CategoryID = @CategoryID_f916bff7,
   @Name = @Name_f916bff7,
   @Description = @Description_f916bff7,
@@ -2920,7 +2979,8 @@ SET
 SET
   @DriverClass_0c1a3051 = N'SonarTestSignal'
 SET
-  @IconClass_0c1a3051 = N'fa-solid fa-flask' EXEC [__mj].spCreateAction @ID = @ID_0c1a3051,
+  @IconClass_0c1a3051 = N'fa-solid fa-flask' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_0c1a3051)
+EXEC [__mj].spCreateAction @ID = @ID_0c1a3051,
   @CategoryID = @CategoryID_0c1a3051,
   @Name = @Name_0c1a3051,
   @Description = @Description_0c1a3051,
@@ -3009,7 +3069,8 @@ SET
 SET
   @DriverClass_ef434b5e = N'SonarCancelFactorJob'
 SET
-  @IconClass_ef434b5e = N'fa-solid fa-stop' EXEC [__mj].spCreateAction @ID = @ID_ef434b5e,
+  @IconClass_ef434b5e = N'fa-solid fa-stop' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_ef434b5e)
+EXEC [__mj].spCreateAction @ID = @ID_ef434b5e,
   @CategoryID = @CategoryID_ef434b5e,
   @Name = @Name_ef434b5e,
   @Description = @Description_ef434b5e,
@@ -3098,7 +3159,8 @@ SET
 SET
   @DriverClass_0da79fbb = N'SonarBindSignalToModel'
 SET
-  @IconClass_0da79fbb = N'fa-solid fa-link' EXEC [__mj].spCreateAction @ID = @ID_0da79fbb,
+  @IconClass_0da79fbb = N'fa-solid fa-link' IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ID_0da79fbb)
+EXEC [__mj].spCreateAction @ID = @ID_0da79fbb,
   @CategoryID = @CategoryID_0da79fbb,
   @Name = @Name_0da79fbb,
   @Description = @Description_0da79fbb,
@@ -3167,6 +3229,7 @@ SET
   @Description_b3ac618f = N'The ScoreModel ID to preview.'
 SET
   @IsRequired_b3ac618f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_b3ac618f)
 EXEC [__mj].spCreateActionParam @ID = @ID_b3ac618f,
   @ActionID = @ActionID_b3ac618f,
   @Name = @Name_b3ac618f,
@@ -3209,6 +3272,7 @@ SET
   @Description_7833ae8c = N'JSON: { totalScored, bandDistribution[], sampleMember }.'
 SET
   @IsRequired_7833ae8c = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_7833ae8c)
 EXEC [__mj].spCreateActionParam @ID = @ID_7833ae8c,
   @ActionID = @ActionID_7833ae8c,
   @Name = @Name_7833ae8c,
@@ -3239,7 +3303,8 @@ SET
 SET
   @IsSuccess_22c3f6a2 = 1
 SET
-  @Description_22c3f6a2 = N'Preview computed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_22c3f6a2,
+  @Description_22c3f6a2 = N'Preview computed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_22c3f6a2)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_22c3f6a2,
   @ActionID = @ActionID_22c3f6a2,
   @ResultCode = @ResultCode_22c3f6a2,
   @IsSuccess = @IsSuccess_22c3f6a2,
@@ -3262,7 +3327,8 @@ SET
 SET
   @IsSuccess_78fa0653 = 0
 SET
-  @Description_78fa0653 = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_78fa0653,
+  @Description_78fa0653 = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_78fa0653)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_78fa0653,
   @ActionID = @ActionID_78fa0653,
   @ResultCode = @ResultCode_78fa0653,
   @IsSuccess = @IsSuccess_78fa0653,
@@ -3285,7 +3351,8 @@ SET
 SET
   @IsSuccess_b2f13440 = 0
 SET
-  @Description_b2f13440 = N'The engine failed to compute scores.' EXEC [__mj].spCreateActionResultCode @ID = @ID_b2f13440,
+  @Description_b2f13440 = N'The engine failed to compute scores.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_b2f13440)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_b2f13440,
   @ActionID = @ActionID_b2f13440,
   @ResultCode = @ResultCode_b2f13440,
   @IsSuccess = @IsSuccess_b2f13440,
@@ -3320,6 +3387,7 @@ SET
   @Description_4529f73d = N'The ScoreModel ID to recompute (must be published).'
 SET
   @IsRequired_4529f73d = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_4529f73d)
 EXEC [__mj].spCreateActionParam @ID = @ID_4529f73d,
   @ActionID = @ActionID_4529f73d,
   @Name = @Name_4529f73d,
@@ -3362,6 +3430,7 @@ SET
   @Description_d8cf6cef = N'JSON: { runId, status, recordsScored }.'
 SET
   @IsRequired_d8cf6cef = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_d8cf6cef)
 EXEC [__mj].spCreateActionParam @ID = @ID_d8cf6cef,
   @ActionID = @ActionID_d8cf6cef,
   @Name = @Name_d8cf6cef,
@@ -3392,7 +3461,8 @@ SET
 SET
   @IsSuccess_6d48ce2b = 1
 SET
-  @Description_6d48ce2b = N'Recompute succeeded.' EXEC [__mj].spCreateActionResultCode @ID = @ID_6d48ce2b,
+  @Description_6d48ce2b = N'Recompute succeeded.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_6d48ce2b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_6d48ce2b,
   @ActionID = @ActionID_6d48ce2b,
   @ResultCode = @ResultCode_6d48ce2b,
   @IsSuccess = @IsSuccess_6d48ce2b,
@@ -3415,7 +3485,8 @@ SET
 SET
   @IsSuccess_e00a10cc = 0
 SET
-  @Description_e00a10cc = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_e00a10cc,
+  @Description_e00a10cc = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_e00a10cc)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_e00a10cc,
   @ActionID = @ActionID_e00a10cc,
   @ResultCode = @ResultCode_e00a10cc,
   @IsSuccess = @IsSuccess_e00a10cc,
@@ -3438,7 +3509,8 @@ SET
 SET
   @IsSuccess_9b581f49 = 0
 SET
-  @Description_9b581f49 = N'The recompute run failed (e.g. model not published).' EXEC [__mj].spCreateActionResultCode @ID = @ID_9b581f49,
+  @Description_9b581f49 = N'The recompute run failed (e.g. model not published).' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_9b581f49)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_9b581f49,
   @ActionID = @ActionID_9b581f49,
   @ResultCode = @ResultCode_9b581f49,
   @IsSuccess = @IsSuccess_9b581f49,
@@ -3473,6 +3545,7 @@ SET
   @Description_affd0e7c = N'The ScoreModel ID the draft factor belongs to.'
 SET
   @IsRequired_affd0e7c = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_affd0e7c)
 EXEC [__mj].spCreateActionParam @ID = @ID_affd0e7c,
   @ActionID = @ActionID_affd0e7c,
   @Name = @Name_affd0e7c,
@@ -3515,6 +3588,7 @@ SET
   @Description_3bca1e13 = N'JSON of the draft factor: { sourceRelatedEntityID, aggregation, aggregateFieldName?, filterExpression?, timeWindowID?, normalizationMethod, higherIsBetter }.'
 SET
   @IsRequired_3bca1e13 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_3bca1e13)
 EXEC [__mj].spCreateActionParam @ID = @ID_3bca1e13,
   @ActionID = @ActionID_3bca1e13,
   @Name = @Name_3bca1e13,
@@ -3557,6 +3631,7 @@ SET
   @Description_1d3b8483 = N'JSON: { membersWithData, sampleAnchorId, sampleRawValue, sampleStrength }.'
 SET
   @IsRequired_1d3b8483 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_1d3b8483)
 EXEC [__mj].spCreateActionParam @ID = @ID_1d3b8483,
   @ActionID = @ActionID_1d3b8483,
   @Name = @Name_1d3b8483,
@@ -3587,7 +3662,8 @@ SET
 SET
   @IsSuccess_05a0878b = 1
 SET
-  @Description_05a0878b = N'Preview computed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_05a0878b,
+  @Description_05a0878b = N'Preview computed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_05a0878b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_05a0878b,
   @ActionID = @ActionID_05a0878b,
   @ResultCode = @ResultCode_05a0878b,
   @IsSuccess = @IsSuccess_05a0878b,
@@ -3610,7 +3686,8 @@ SET
 SET
   @IsSuccess_b2f04360 = 0
 SET
-  @Description_b2f04360 = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_b2f04360,
+  @Description_b2f04360 = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_b2f04360)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_b2f04360,
   @ActionID = @ActionID_b2f04360,
   @ResultCode = @ResultCode_b2f04360,
   @IsSuccess = @IsSuccess_b2f04360,
@@ -3633,7 +3710,8 @@ SET
 SET
   @IsSuccess_2631d5f0 = 0
 SET
-  @Description_2631d5f0 = N'The engine failed to evaluate the draft factor.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2631d5f0,
+  @Description_2631d5f0 = N'The engine failed to evaluate the draft factor.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2631d5f0)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2631d5f0,
   @ActionID = @ActionID_2631d5f0,
   @ResultCode = @ResultCode_2631d5f0,
   @IsSuccess = @IsSuccess_2631d5f0,
@@ -3668,6 +3746,7 @@ SET
   @Description_09c59f77 = N'JSON array of factor-actions: { actionId, name, description, contract, params[] }.'
 SET
   @IsRequired_09c59f77 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_09c59f77)
 EXEC [__mj].spCreateActionParam @ID = @ID_09c59f77,
   @ActionID = @ActionID_09c59f77,
   @Name = @Name_09c59f77,
@@ -3698,7 +3777,8 @@ SET
 SET
   @IsSuccess_2cfd837c = 1
 SET
-  @Description_2cfd837c = N'Catalog returned.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2cfd837c,
+  @Description_2cfd837c = N'Catalog returned.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2cfd837c)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2cfd837c,
   @ActionID = @ActionID_2cfd837c,
   @ResultCode = @ResultCode_2cfd837c,
   @IsSuccess = @IsSuccess_2cfd837c,
@@ -3721,7 +3801,8 @@ SET
 SET
   @IsSuccess_44c70a69 = 0
 SET
-  @Description_44c70a69 = N'Failed to build the factor-action catalog.' EXEC [__mj].spCreateActionResultCode @ID = @ID_44c70a69,
+  @Description_44c70a69 = N'Failed to build the factor-action catalog.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_44c70a69)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_44c70a69,
   @ActionID = @ActionID_44c70a69,
   @ResultCode = @ResultCode_44c70a69,
   @IsSuccess = @IsSuccess_44c70a69,
@@ -3756,6 +3837,7 @@ SET
   @Description_e745e40f = N'The ScoreModel to add the factor to.'
 SET
   @IsRequired_e745e40f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_e745e40f)
 EXEC [__mj].spCreateActionParam @ID = @ID_e745e40f,
   @ActionID = @ActionID_e745e40f,
   @Name = @Name_e745e40f,
@@ -3798,6 +3880,7 @@ SET
   @Description_b20f2421 = N'JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode.'
 SET
   @IsRequired_b20f2421 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_b20f2421)
 EXEC [__mj].spCreateActionParam @ID = @ID_b20f2421,
   @ActionID = @ActionID_b20f2421,
   @Name = @Name_b20f2421,
@@ -3840,6 +3923,7 @@ SET
   @Description_24fd1fe5 = N'JSON: { factorID, modelFactorID }.'
 SET
   @IsRequired_24fd1fe5 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_24fd1fe5)
 EXEC [__mj].spCreateActionParam @ID = @ID_24fd1fe5,
   @ActionID = @ActionID_24fd1fe5,
   @Name = @Name_24fd1fe5,
@@ -3870,7 +3954,8 @@ SET
 SET
   @IsSuccess_f227730c = 1
 SET
-  @Description_f227730c = N'Factor created and bound.' EXEC [__mj].spCreateActionResultCode @ID = @ID_f227730c,
+  @Description_f227730c = N'Factor created and bound.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_f227730c)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_f227730c,
   @ActionID = @ActionID_f227730c,
   @ResultCode = @ResultCode_f227730c,
   @IsSuccess = @IsSuccess_f227730c,
@@ -3893,7 +3978,8 @@ SET
 SET
   @IsSuccess_c6470cfa = 0
 SET
-  @Description_c6470cfa = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_c6470cfa,
+  @Description_c6470cfa = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_c6470cfa)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_c6470cfa,
   @ActionID = @ActionID_c6470cfa,
   @ResultCode = @ResultCode_c6470cfa,
   @IsSuccess = @IsSuccess_c6470cfa,
@@ -3916,7 +4002,8 @@ SET
 SET
   @IsSuccess_ee7142d0 = 0
 SET
-  @Description_ee7142d0 = N'The model was not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_ee7142d0,
+  @Description_ee7142d0 = N'The model was not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_ee7142d0)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_ee7142d0,
   @ActionID = @ActionID_ee7142d0,
   @ResultCode = @ResultCode_ee7142d0,
   @IsSuccess = @IsSuccess_ee7142d0,
@@ -3939,7 +4026,8 @@ SET
 SET
   @IsSuccess_626c8a64 = 0
 SET
-  @Description_626c8a64 = N'Saving the factor or binding failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_626c8a64,
+  @Description_626c8a64 = N'Saving the factor or binding failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_626c8a64)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_626c8a64,
   @ActionID = @ActionID_626c8a64,
   @ResultCode = @ResultCode_626c8a64,
   @IsSuccess = @IsSuccess_626c8a64,
@@ -3974,6 +4062,7 @@ SET
   @Description_a84b2658 = N'The ScoreModel to wire the source into.'
 SET
   @IsRequired_a84b2658 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_a84b2658)
 EXEC [__mj].spCreateActionParam @ID = @ID_a84b2658,
   @ActionID = @ActionID_a84b2658,
   @Name = @Name_a84b2658,
@@ -4016,6 +4105,7 @@ SET
   @Description_eca4a482 = N'JSON AddDataSourceSpec: relatedEntityID, alias, relationshipPath (optional explicit FK path).'
 SET
   @IsRequired_eca4a482 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_eca4a482)
 EXEC [__mj].spCreateActionParam @ID = @ID_eca4a482,
   @ActionID = @ActionID_eca4a482,
   @Name = @Name_eca4a482,
@@ -4058,6 +4148,7 @@ SET
   @Description_509e5289 = N'JSON: { modelRelatedEntityID }.'
 SET
   @IsRequired_509e5289 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_509e5289)
 EXEC [__mj].spCreateActionParam @ID = @ID_509e5289,
   @ActionID = @ActionID_509e5289,
   @Name = @Name_509e5289,
@@ -4088,7 +4179,8 @@ SET
 SET
   @IsSuccess_448741cf = 1
 SET
-  @Description_448741cf = N'Data source wired.' EXEC [__mj].spCreateActionResultCode @ID = @ID_448741cf,
+  @Description_448741cf = N'Data source wired.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_448741cf)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_448741cf,
   @ActionID = @ActionID_448741cf,
   @ResultCode = @ResultCode_448741cf,
   @IsSuccess = @IsSuccess_448741cf,
@@ -4111,7 +4203,8 @@ SET
 SET
   @IsSuccess_55089cf0 = 0
 SET
-  @Description_55089cf0 = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_55089cf0,
+  @Description_55089cf0 = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_55089cf0)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_55089cf0,
   @ActionID = @ActionID_55089cf0,
   @ResultCode = @ResultCode_55089cf0,
   @IsSuccess = @IsSuccess_55089cf0,
@@ -4134,7 +4227,8 @@ SET
 SET
   @IsSuccess_34afe362 = 0
 SET
-  @Description_34afe362 = N'Saving the data source failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_34afe362,
+  @Description_34afe362 = N'Saving the data source failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_34afe362)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_34afe362,
   @ActionID = @ActionID_34afe362,
   @ResultCode = @ResultCode_34afe362,
   @IsSuccess = @IsSuccess_34afe362,
@@ -4169,6 +4263,7 @@ SET
   @Description_38b2c076 = N'JSON CreateModelSpec: name, anchorEntityID.'
 SET
   @IsRequired_38b2c076 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_38b2c076)
 EXEC [__mj].spCreateActionParam @ID = @ID_38b2c076,
   @ActionID = @ActionID_38b2c076,
   @Name = @Name_38b2c076,
@@ -4211,6 +4306,7 @@ SET
   @Description_d2a54a45 = N'JSON: { modelID }.'
 SET
   @IsRequired_d2a54a45 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_d2a54a45)
 EXEC [__mj].spCreateActionParam @ID = @ID_d2a54a45,
   @ActionID = @ActionID_d2a54a45,
   @Name = @Name_d2a54a45,
@@ -4241,7 +4337,8 @@ SET
 SET
   @IsSuccess_81388e3c = 1
 SET
-  @Description_81388e3c = N'Draft model created.' EXEC [__mj].spCreateActionResultCode @ID = @ID_81388e3c,
+  @Description_81388e3c = N'Draft model created.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_81388e3c)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_81388e3c,
   @ActionID = @ActionID_81388e3c,
   @ResultCode = @ResultCode_81388e3c,
   @IsSuccess = @IsSuccess_81388e3c,
@@ -4264,7 +4361,8 @@ SET
 SET
   @IsSuccess_51d406a9 = 0
 SET
-  @Description_51d406a9 = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_51d406a9,
+  @Description_51d406a9 = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_51d406a9)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_51d406a9,
   @ActionID = @ActionID_51d406a9,
   @ResultCode = @ResultCode_51d406a9,
   @IsSuccess = @IsSuccess_51d406a9,
@@ -4287,7 +4385,8 @@ SET
 SET
   @IsSuccess_d7839369 = 0
 SET
-  @Description_d7839369 = N'Saving the model failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_d7839369,
+  @Description_d7839369 = N'Saving the model failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_d7839369)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_d7839369,
   @ActionID = @ActionID_d7839369,
   @ResultCode = @ResultCode_d7839369,
   @IsSuccess = @IsSuccess_d7839369,
@@ -4322,6 +4421,7 @@ SET
   @Description_210a9018 = N'The ScoreModel to attach the band set to.'
 SET
   @IsRequired_210a9018 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_210a9018)
 EXEC [__mj].spCreateActionParam @ID = @ID_210a9018,
   @ActionID = @ActionID_210a9018,
   @Name = @Name_210a9018,
@@ -4364,6 +4464,7 @@ SET
   @Description_92e49946 = N'The ScoreBandSet to attach.'
 SET
   @IsRequired_92e49946 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_92e49946)
 EXEC [__mj].spCreateActionParam @ID = @ID_92e49946,
   @ActionID = @ActionID_92e49946,
   @Name = @Name_92e49946,
@@ -4406,6 +4507,7 @@ SET
   @Description_d142e828 = N'JSON: { modelID, bandSetID }.'
 SET
   @IsRequired_d142e828 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_d142e828)
 EXEC [__mj].spCreateActionParam @ID = @ID_d142e828,
   @ActionID = @ActionID_d142e828,
   @Name = @Name_d142e828,
@@ -4436,7 +4538,8 @@ SET
 SET
   @IsSuccess_d8dd6056 = 1
 SET
-  @Description_d8dd6056 = N'Band set attached.' EXEC [__mj].spCreateActionResultCode @ID = @ID_d8dd6056,
+  @Description_d8dd6056 = N'Band set attached.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_d8dd6056)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_d8dd6056,
   @ActionID = @ActionID_d8dd6056,
   @ResultCode = @ResultCode_d8dd6056,
   @IsSuccess = @IsSuccess_d8dd6056,
@@ -4459,7 +4562,8 @@ SET
 SET
   @IsSuccess_e7a2821e = 0
 SET
-  @Description_e7a2821e = N'A required input was missing or invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_e7a2821e,
+  @Description_e7a2821e = N'A required input was missing or invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_e7a2821e)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_e7a2821e,
   @ActionID = @ActionID_e7a2821e,
   @ResultCode = @ResultCode_e7a2821e,
   @IsSuccess = @IsSuccess_e7a2821e,
@@ -4482,7 +4586,8 @@ SET
 SET
   @IsSuccess_aecb00ec = 0
 SET
-  @Description_aecb00ec = N'The model was not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_aecb00ec,
+  @Description_aecb00ec = N'The model was not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_aecb00ec)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_aecb00ec,
   @ActionID = @ActionID_aecb00ec,
   @ResultCode = @ResultCode_aecb00ec,
   @IsSuccess = @IsSuccess_aecb00ec,
@@ -4505,7 +4610,8 @@ SET
 SET
   @IsSuccess_86db0362 = 0
 SET
-  @Description_86db0362 = N'Saving the model failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_86db0362,
+  @Description_86db0362 = N'Saving the model failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_86db0362)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_86db0362,
   @ActionID = @ActionID_86db0362,
   @ResultCode = @ResultCode_86db0362,
   @IsSuccess = @IsSuccess_86db0362,
@@ -4540,6 +4646,7 @@ SET
   @Description_ebe0ea5e = N'The registered AIPrompt Name to read (e.g. a factor-action''s contract.promptName).'
 SET
   @IsRequired_ebe0ea5e = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_ebe0ea5e)
 EXEC [__mj].spCreateActionParam @ID = @ID_ebe0ea5e,
   @ActionID = @ActionID_ebe0ea5e,
   @Name = @Name_ebe0ea5e,
@@ -4582,6 +4689,7 @@ SET
   @Description_7b39a6b8 = N'JSON: { promptId, templateContentId, text } (or { error }).'
 SET
   @IsRequired_7b39a6b8 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_7b39a6b8)
 EXEC [__mj].spCreateActionParam @ID = @ID_7b39a6b8,
   @ActionID = @ActionID_7b39a6b8,
   @Name = @Name_7b39a6b8,
@@ -4612,7 +4720,8 @@ SET
 SET
   @IsSuccess_2a4a1a01 = 1
 SET
-  @Description_2a4a1a01 = N'Prompt text returned.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2a4a1a01,
+  @Description_2a4a1a01 = N'Prompt text returned.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2a4a1a01)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2a4a1a01,
   @ActionID = @ActionID_2a4a1a01,
   @ResultCode = @ResultCode_2a4a1a01,
   @IsSuccess = @IsSuccess_2a4a1a01,
@@ -4635,7 +4744,8 @@ SET
 SET
   @IsSuccess_94747f5d = 0
 SET
-  @Description_94747f5d = N'PromptName was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_94747f5d,
+  @Description_94747f5d = N'PromptName was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_94747f5d)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_94747f5d,
   @ActionID = @ActionID_94747f5d,
   @ResultCode = @ResultCode_94747f5d,
   @IsSuccess = @IsSuccess_94747f5d,
@@ -4658,7 +4768,8 @@ SET
 SET
   @IsSuccess_921f6ff0 = 0
 SET
-  @Description_921f6ff0 = N'Failed to read the prompt.' EXEC [__mj].spCreateActionResultCode @ID = @ID_921f6ff0,
+  @Description_921f6ff0 = N'Failed to read the prompt.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_921f6ff0)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_921f6ff0,
   @ActionID = @ActionID_921f6ff0,
   @ResultCode = @ResultCode_921f6ff0,
   @IsSuccess = @IsSuccess_921f6ff0,
@@ -4693,6 +4804,7 @@ SET
   @Description_730edf12 = N'The MJ Template Content row id whose text to overwrite (from Sonar: Get Prompt).'
 SET
   @IsRequired_730edf12 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_730edf12)
 EXEC [__mj].spCreateActionParam @ID = @ID_730edf12,
   @ActionID = @ActionID_730edf12,
   @Name = @Name_730edf12,
@@ -4735,6 +4847,7 @@ SET
   @Description_47e31f85 = N'The new prompt text.'
 SET
   @IsRequired_47e31f85 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_47e31f85)
 EXEC [__mj].spCreateActionParam @ID = @ID_47e31f85,
   @ActionID = @ActionID_47e31f85,
   @Name = @Name_47e31f85,
@@ -4777,6 +4890,7 @@ SET
   @Description_07e6bee6 = N'JSON: { templateContentId, saved }.'
 SET
   @IsRequired_07e6bee6 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_07e6bee6)
 EXEC [__mj].spCreateActionParam @ID = @ID_07e6bee6,
   @ActionID = @ActionID_07e6bee6,
   @Name = @Name_07e6bee6,
@@ -4807,7 +4921,8 @@ SET
 SET
   @IsSuccess_0fb11d58 = 1
 SET
-  @Description_0fb11d58 = N'Prompt updated.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0fb11d58,
+  @Description_0fb11d58 = N'Prompt updated.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0fb11d58)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0fb11d58,
   @ActionID = @ActionID_0fb11d58,
   @ResultCode = @ResultCode_0fb11d58,
   @IsSuccess = @IsSuccess_0fb11d58,
@@ -4830,7 +4945,8 @@ SET
 SET
   @IsSuccess_cb3b6735 = 0
 SET
-  @Description_cb3b6735 = N'TemplateContentID was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_cb3b6735,
+  @Description_cb3b6735 = N'TemplateContentID was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_cb3b6735)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_cb3b6735,
   @ActionID = @ActionID_cb3b6735,
   @ResultCode = @ResultCode_cb3b6735,
   @IsSuccess = @IsSuccess_cb3b6735,
@@ -4853,7 +4969,8 @@ SET
 SET
   @IsSuccess_11ea8113 = 0
 SET
-  @Description_11ea8113 = N'Template content row not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_11ea8113,
+  @Description_11ea8113 = N'Template content row not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_11ea8113)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_11ea8113,
   @ActionID = @ActionID_11ea8113,
   @ResultCode = @ResultCode_11ea8113,
   @IsSuccess = @IsSuccess_11ea8113,
@@ -4876,7 +4993,8 @@ SET
 SET
   @IsSuccess_550795ae = 0
 SET
-  @Description_550795ae = N'Failed to save the prompt.' EXEC [__mj].spCreateActionResultCode @ID = @ID_550795ae,
+  @Description_550795ae = N'Failed to save the prompt.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_550795ae)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_550795ae,
   @ActionID = @ActionID_550795ae,
   @ResultCode = @ResultCode_550795ae,
   @IsSuccess = @IsSuccess_550795ae,
@@ -4911,6 +5029,7 @@ SET
   @Description_81e030b0 = N'The natural-language instruction for the authoring agent.'
 SET
   @IsRequired_81e030b0 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_81e030b0)
 EXEC [__mj].spCreateActionParam @ID = @ID_81e030b0,
   @ActionID = @ActionID_81e030b0,
   @Name = @Name_81e030b0,
@@ -4953,6 +5072,7 @@ SET
   @Description_23a09cdb = N'Optional context (e.g. the model the user is viewing), prepended to the prompt.'
 SET
   @IsRequired_23a09cdb = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_23a09cdb)
 EXEC [__mj].spCreateActionParam @ID = @ID_23a09cdb,
   @ActionID = @ActionID_23a09cdb,
   @Name = @Name_23a09cdb,
@@ -4995,6 +5115,7 @@ SET
   @Description_31ecd17d = N'The agent''s human-readable summary of what it built.'
 SET
   @IsRequired_31ecd17d = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_31ecd17d)
 EXEC [__mj].spCreateActionParam @ID = @ID_31ecd17d,
   @ActionID = @ActionID_31ecd17d,
   @Name = @Name_31ecd17d,
@@ -5025,7 +5146,8 @@ SET
 SET
   @IsSuccess_ca245cb6 = 1
 SET
-  @Description_ca245cb6 = N'Agent completed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_ca245cb6,
+  @Description_ca245cb6 = N'Agent completed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_ca245cb6)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_ca245cb6,
   @ActionID = @ActionID_ca245cb6,
   @ResultCode = @ResultCode_ca245cb6,
   @IsSuccess = @IsSuccess_ca245cb6,
@@ -5048,7 +5170,8 @@ SET
 SET
   @IsSuccess_189e9f23 = 0
 SET
-  @Description_189e9f23 = N'A required input was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_189e9f23,
+  @Description_189e9f23 = N'A required input was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_189e9f23)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_189e9f23,
   @ActionID = @ActionID_189e9f23,
   @ResultCode = @ResultCode_189e9f23,
   @IsSuccess = @IsSuccess_189e9f23,
@@ -5071,7 +5194,8 @@ SET
 SET
   @IsSuccess_213dbf3f = 0
 SET
-  @Description_213dbf3f = N'The authoring agent was not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_213dbf3f,
+  @Description_213dbf3f = N'The authoring agent was not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_213dbf3f)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_213dbf3f,
   @ActionID = @ActionID_213dbf3f,
   @ResultCode = @ResultCode_213dbf3f,
   @IsSuccess = @IsSuccess_213dbf3f,
@@ -5094,7 +5218,8 @@ SET
 SET
   @IsSuccess_c5c8764b = 0
 SET
-  @Description_c5c8764b = N'The agent run failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_c5c8764b,
+  @Description_c5c8764b = N'The agent run failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_c5c8764b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_c5c8764b,
   @ActionID = @ActionID_c5c8764b,
   @ResultCode = @ResultCode_c5c8764b,
   @IsSuccess = @IsSuccess_c5c8764b,
@@ -5129,6 +5254,7 @@ SET
   @Description_182c6542 = N'JSON BuildModelSpec: { name, anchorEntityID, sources:[{relatedEntityID, alias, relationshipPath?}], factors:[{name, sourceAlias, aggregation, aggregateFieldName?, filterExpression?, timeWindowID?, dateField?, normalizationMethod?, higherIsBetter?, weight?, weightMode?}], bandSetId? }.'
 SET
   @IsRequired_182c6542 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_182c6542)
 EXEC [__mj].spCreateActionParam @ID = @ID_182c6542,
   @ActionID = @ActionID_182c6542,
   @Name = @Name_182c6542,
@@ -5171,6 +5297,7 @@ SET
   @Description_55f7d5cf = N'JSON: { modelID, sources:{alias→id}, factors:[id], bandSetAttached }.'
 SET
   @IsRequired_55f7d5cf = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_55f7d5cf)
 EXEC [__mj].spCreateActionParam @ID = @ID_55f7d5cf,
   @ActionID = @ActionID_55f7d5cf,
   @Name = @Name_55f7d5cf,
@@ -5201,7 +5328,8 @@ SET
 SET
   @IsSuccess_82b6cada = 1
 SET
-  @Description_82b6cada = N'Draft model built.' EXEC [__mj].spCreateActionResultCode @ID = @ID_82b6cada,
+  @Description_82b6cada = N'Draft model built.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_82b6cada)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_82b6cada,
   @ActionID = @ActionID_82b6cada,
   @ResultCode = @ResultCode_82b6cada,
   @IsSuccess = @IsSuccess_82b6cada,
@@ -5224,7 +5352,8 @@ SET
 SET
   @IsSuccess_63eef9d6 = 0
 SET
-  @Description_63eef9d6 = N'Spec missing required fields.' EXEC [__mj].spCreateActionResultCode @ID = @ID_63eef9d6,
+  @Description_63eef9d6 = N'Spec missing required fields.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_63eef9d6)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_63eef9d6,
   @ActionID = @ActionID_63eef9d6,
   @ResultCode = @ResultCode_63eef9d6,
   @IsSuccess = @IsSuccess_63eef9d6,
@@ -5247,7 +5376,8 @@ SET
 SET
   @IsSuccess_2d571076 = 0
 SET
-  @Description_2d571076 = N'A step failed; the partial draft is reported.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2d571076,
+  @Description_2d571076 = N'A step failed; the partial draft is reported.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2d571076)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2d571076,
   @ActionID = @ActionID_2d571076,
   @ResultCode = @ResultCode_2d571076,
   @IsSuccess = @IsSuccess_2d571076,
@@ -5282,6 +5412,7 @@ SET
   @Description_f1184999 = N'The ScoreModel ID to describe (preferred). Provide this or Name.'
 SET
   @IsRequired_f1184999 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_f1184999)
 EXEC [__mj].spCreateActionParam @ID = @ID_f1184999,
   @ActionID = @ActionID_f1184999,
   @Name = @Name_f1184999,
@@ -5324,6 +5455,7 @@ SET
   @Description_d53ca87f = N'The exact model name to describe (used when ModelID is absent).'
 SET
   @IsRequired_d53ca87f = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_d53ca87f)
 EXEC [__mj].spCreateActionParam @ID = @ID_d53ca87f,
   @ActionID = @ActionID_d53ca87f,
   @Name = @Name_d53ca87f,
@@ -5366,6 +5498,7 @@ SET
   @Description_6860a3c1 = N'JSON ModelDescription: { modelID, name, status, anchorEntityID, anchorEntityName, bandSet, sources[], factors[] }.'
 SET
   @IsRequired_6860a3c1 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_6860a3c1)
 EXEC [__mj].spCreateActionParam @ID = @ID_6860a3c1,
   @ActionID = @ActionID_6860a3c1,
   @Name = @Name_6860a3c1,
@@ -5396,7 +5529,8 @@ SET
 SET
   @IsSuccess_f3064c8a = 1
 SET
-  @Description_f3064c8a = N'Model described.' EXEC [__mj].spCreateActionResultCode @ID = @ID_f3064c8a,
+  @Description_f3064c8a = N'Model described.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_f3064c8a)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_f3064c8a,
   @ActionID = @ActionID_f3064c8a,
   @ResultCode = @ResultCode_f3064c8a,
   @IsSuccess = @IsSuccess_f3064c8a,
@@ -5419,7 +5553,8 @@ SET
 SET
   @IsSuccess_a8d3ed4b = 0
 SET
-  @Description_a8d3ed4b = N'Neither ModelID nor Name was provided.' EXEC [__mj].spCreateActionResultCode @ID = @ID_a8d3ed4b,
+  @Description_a8d3ed4b = N'Neither ModelID nor Name was provided.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_a8d3ed4b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_a8d3ed4b,
   @ActionID = @ActionID_a8d3ed4b,
   @ResultCode = @ResultCode_a8d3ed4b,
   @IsSuccess = @IsSuccess_a8d3ed4b,
@@ -5442,7 +5577,8 @@ SET
 SET
   @IsSuccess_0d0d7e11 = 0
 SET
-  @Description_0d0d7e11 = N'No model matched the given ID or name.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0d0d7e11,
+  @Description_0d0d7e11 = N'No model matched the given ID or name.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0d0d7e11)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0d0d7e11,
   @ActionID = @ActionID_0d0d7e11,
   @ResultCode = @ResultCode_0d0d7e11,
   @IsSuccess = @IsSuccess_0d0d7e11,
@@ -5465,7 +5601,8 @@ SET
 SET
   @IsSuccess_0fb5d124 = 0
 SET
-  @Description_0fb5d124 = N'An unexpected error occurred while reading the model.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0fb5d124,
+  @Description_0fb5d124 = N'An unexpected error occurred while reading the model.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0fb5d124)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0fb5d124,
   @ActionID = @ActionID_0fb5d124,
   @ResultCode = @ResultCode_0fb5d124,
   @IsSuccess = @IsSuccess_0fb5d124,
@@ -5500,6 +5637,7 @@ SET
   @Description_c67c1a19 = N'The anchor entity ID to find joinable business sources for.'
 SET
   @IsRequired_c67c1a19 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_c67c1a19)
 EXEC [__mj].spCreateActionParam @ID = @ID_c67c1a19,
   @ActionID = @ActionID_c67c1a19,
   @Name = @Name_c67c1a19,
@@ -5542,6 +5680,7 @@ SET
   @Description_d9744c0f = N'JSON: { anchorEntityID, anchorEntityName, related: [{ entityID, entityName, schemaName, viaField }] }.'
 SET
   @IsRequired_d9744c0f = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_d9744c0f)
 EXEC [__mj].spCreateActionParam @ID = @ID_d9744c0f,
   @ActionID = @ActionID_d9744c0f,
   @Name = @Name_d9744c0f,
@@ -5572,7 +5711,8 @@ SET
 SET
   @IsSuccess_8939fc05 = 1
 SET
-  @Description_8939fc05 = N'Related business entities listed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_8939fc05,
+  @Description_8939fc05 = N'Related business entities listed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_8939fc05)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_8939fc05,
   @ActionID = @ActionID_8939fc05,
   @ResultCode = @ResultCode_8939fc05,
   @IsSuccess = @IsSuccess_8939fc05,
@@ -5595,7 +5735,8 @@ SET
 SET
   @IsSuccess_ed038967 = 0
 SET
-  @Description_ed038967 = N'AnchorEntityID was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_ed038967,
+  @Description_ed038967 = N'AnchorEntityID was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_ed038967)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_ed038967,
   @ActionID = @ActionID_ed038967,
   @ResultCode = @ResultCode_ed038967,
   @IsSuccess = @IsSuccess_ed038967,
@@ -5618,7 +5759,8 @@ SET
 SET
   @IsSuccess_593758aa = 0
 SET
-  @Description_593758aa = N'No entity matched the given anchor ID.' EXEC [__mj].spCreateActionResultCode @ID = @ID_593758aa,
+  @Description_593758aa = N'No entity matched the given anchor ID.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_593758aa)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_593758aa,
   @ActionID = @ActionID_593758aa,
   @ResultCode = @ResultCode_593758aa,
   @IsSuccess = @IsSuccess_593758aa,
@@ -5641,7 +5783,8 @@ SET
 SET
   @IsSuccess_ad11d881 = 0
 SET
-  @Description_ad11d881 = N'An unexpected error occurred while walking the entity graph.' EXEC [__mj].spCreateActionResultCode @ID = @ID_ad11d881,
+  @Description_ad11d881 = N'An unexpected error occurred while walking the entity graph.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_ad11d881)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_ad11d881,
   @ActionID = @ActionID_ad11d881,
   @ResultCode = @ResultCode_ad11d881,
   @IsSuccess = @IsSuccess_ad11d881,
@@ -5676,6 +5819,7 @@ SET
   @Description_90827393 = N'The signal to build, in plain English (e.g. ''longest streak of consecutive months with an event registration'').'
 SET
   @IsRequired_90827393 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_90827393)
 EXEC [__mj].spCreateActionParam @ID = @ID_90827393,
   @ActionID = @ActionID_90827393,
   @Name = @Name_90827393,
@@ -5718,6 +5862,7 @@ SET
   @Description_50ea3ec0 = N'Optional grounding: the anchor entity and available data sources, so the generated code targets real data.'
 SET
   @IsRequired_50ea3ec0 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_50ea3ec0)
 EXEC [__mj].spCreateActionParam @ID = @ID_50ea3ec0,
   @ActionID = @ActionID_50ea3ec0,
   @Name = @Name_50ea3ec0,
@@ -5760,6 +5905,7 @@ SET
   @Description_e22b0dcd = N'JSON: { actionId, approvalStatus, name, message }.'
 SET
   @IsRequired_e22b0dcd = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_e22b0dcd)
 EXEC [__mj].spCreateActionParam @ID = @ID_e22b0dcd,
   @ActionID = @ActionID_e22b0dcd,
   @Name = @Name_e22b0dcd,
@@ -5790,7 +5936,8 @@ SET
 SET
   @IsSuccess_a40172b3 = 1
 SET
-  @Description_a40172b3 = N'ActionSmith authored a Runtime factor-action (Pending approval).' EXEC [__mj].spCreateActionResultCode @ID = @ID_a40172b3,
+  @Description_a40172b3 = N'ActionSmith authored a Runtime factor-action (Pending approval).' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_a40172b3)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_a40172b3,
   @ActionID = @ActionID_a40172b3,
   @ResultCode = @ResultCode_a40172b3,
   @IsSuccess = @IsSuccess_a40172b3,
@@ -5813,7 +5960,8 @@ SET
 SET
   @IsSuccess_5df5d6cd = 0
 SET
-  @Description_5df5d6cd = N'Description was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_5df5d6cd,
+  @Description_5df5d6cd = N'Description was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_5df5d6cd)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_5df5d6cd,
   @ActionID = @ActionID_5df5d6cd,
   @ResultCode = @ResultCode_5df5d6cd,
   @IsSuccess = @IsSuccess_5df5d6cd,
@@ -5836,7 +5984,8 @@ SET
 SET
   @IsSuccess_185159c9 = 0
 SET
-  @Description_185159c9 = N'The ActionSmith agent is not present in this environment.' EXEC [__mj].spCreateActionResultCode @ID = @ID_185159c9,
+  @Description_185159c9 = N'The ActionSmith agent is not present in this environment.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_185159c9)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_185159c9,
   @ActionID = @ActionID_185159c9,
   @ResultCode = @ResultCode_185159c9,
   @IsSuccess = @IsSuccess_185159c9,
@@ -5859,7 +6008,8 @@ SET
 SET
   @IsSuccess_a6382d48 = 0
 SET
-  @Description_a6382d48 = N'ActionSmith did not complete (or errored) — message carries the reason.' EXEC [__mj].spCreateActionResultCode @ID = @ID_a6382d48,
+  @Description_a6382d48 = N'ActionSmith did not complete (or errored) — message carries the reason.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_a6382d48)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_a6382d48,
   @ActionID = @ActionID_a6382d48,
   @ResultCode = @ResultCode_a6382d48,
   @IsSuccess = @IsSuccess_a6382d48,
@@ -5894,6 +6044,7 @@ SET
   @Description_1531693d = N'The signal to build, in plain English.'
 SET
   @IsRequired_1531693d = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_1531693d)
 EXEC [__mj].spCreateActionParam @ID = @ID_1531693d,
   @ActionID = @ActionID_1531693d,
   @Name = @Name_1531693d,
@@ -5936,6 +6087,7 @@ SET
   @Description_5b50038f = N'Optional grounding: the anchor entity and available data sources.'
 SET
   @IsRequired_5b50038f = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_5b50038f)
 EXEC [__mj].spCreateActionParam @ID = @ID_5b50038f,
   @ActionID = @ActionID_5b50038f,
   @Name = @Name_5b50038f,
@@ -5978,6 +6130,7 @@ SET
   @Description_61ace377 = N'JSON: { agentRunId } — poll AIAgentRun for status/result.'
 SET
   @IsRequired_61ace377 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_61ace377)
 EXEC [__mj].spCreateActionParam @ID = @ID_61ace377,
   @ActionID = @ActionID_61ace377,
   @Name = @Name_61ace377,
@@ -6008,7 +6161,8 @@ SET
 SET
   @IsSuccess_90fb96e8 = 1
 SET
-  @Description_90fb96e8 = N'Job started; AgentRunID returned.' EXEC [__mj].spCreateActionResultCode @ID = @ID_90fb96e8,
+  @Description_90fb96e8 = N'Job started; AgentRunID returned.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_90fb96e8)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_90fb96e8,
   @ActionID = @ActionID_90fb96e8,
   @ResultCode = @ResultCode_90fb96e8,
   @IsSuccess = @IsSuccess_90fb96e8,
@@ -6031,7 +6185,8 @@ SET
 SET
   @IsSuccess_247431e7 = 0
 SET
-  @Description_247431e7 = N'Description was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_247431e7,
+  @Description_247431e7 = N'Description was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_247431e7)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_247431e7,
   @ActionID = @ActionID_247431e7,
   @ResultCode = @ResultCode_247431e7,
   @IsSuccess = @IsSuccess_247431e7,
@@ -6054,7 +6209,8 @@ SET
 SET
   @IsSuccess_c95e9a6d = 0
 SET
-  @Description_c95e9a6d = N'ActionSmith agent not present in this environment.' EXEC [__mj].spCreateActionResultCode @ID = @ID_c95e9a6d,
+  @Description_c95e9a6d = N'ActionSmith agent not present in this environment.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_c95e9a6d)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_c95e9a6d,
   @ActionID = @ActionID_c95e9a6d,
   @ResultCode = @ResultCode_c95e9a6d,
   @IsSuccess = @IsSuccess_c95e9a6d,
@@ -6077,7 +6233,8 @@ SET
 SET
   @IsSuccess_2f2da92a = 0
 SET
-  @Description_2f2da92a = N'The job didn''t start.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2f2da92a,
+  @Description_2f2da92a = N'The job didn''t start.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2f2da92a)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2f2da92a,
   @ActionID = @ActionID_2f2da92a,
   @ResultCode = @ResultCode_2f2da92a,
   @IsSuccess = @IsSuccess_2f2da92a,
@@ -6112,6 +6269,7 @@ SET
   @Description_1b535e6c = N'The existing signal (Runtime action) to improve.'
 SET
   @IsRequired_1b535e6c = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_1b535e6c)
 EXEC [__mj].spCreateActionParam @ID = @ID_1b535e6c,
   @ActionID = @ActionID_1b535e6c,
   @Name = @Name_1b535e6c,
@@ -6154,6 +6312,7 @@ SET
   @Description_a71baf22 = N'What to change or improve, in plain English.'
 SET
   @IsRequired_a71baf22 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_a71baf22)
 EXEC [__mj].spCreateActionParam @ID = @ID_a71baf22,
   @ActionID = @ActionID_a71baf22,
   @Name = @Name_a71baf22,
@@ -6196,6 +6355,7 @@ SET
   @Description_bf7c830d = N'JSON: { agentRunId } — poll AIAgentRun for status; the signal updates in place when it completes.'
 SET
   @IsRequired_bf7c830d = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_bf7c830d)
 EXEC [__mj].spCreateActionParam @ID = @ID_bf7c830d,
   @ActionID = @ActionID_bf7c830d,
   @Name = @Name_bf7c830d,
@@ -6226,7 +6386,8 @@ SET
 SET
   @IsSuccess_11833474 = 1
 SET
-  @Description_11833474 = N'Refine job started; AgentRunID returned.' EXEC [__mj].spCreateActionResultCode @ID = @ID_11833474,
+  @Description_11833474 = N'Refine job started; AgentRunID returned.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_11833474)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_11833474,
   @ActionID = @ActionID_11833474,
   @ResultCode = @ResultCode_11833474,
   @IsSuccess = @IsSuccess_11833474,
@@ -6249,7 +6410,8 @@ SET
 SET
   @IsSuccess_5a4daca9 = 0
 SET
-  @Description_5a4daca9 = N'TargetActionID or Feedback was missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_5a4daca9,
+  @Description_5a4daca9 = N'TargetActionID or Feedback was missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_5a4daca9)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_5a4daca9,
   @ActionID = @ActionID_5a4daca9,
   @ResultCode = @ResultCode_5a4daca9,
   @IsSuccess = @IsSuccess_5a4daca9,
@@ -6272,7 +6434,8 @@ SET
 SET
   @IsSuccess_80ae3c0b = 0
 SET
-  @Description_80ae3c0b = N'Target action or ActionSmith agent not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_80ae3c0b,
+  @Description_80ae3c0b = N'Target action or ActionSmith agent not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_80ae3c0b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_80ae3c0b,
   @ActionID = @ActionID_80ae3c0b,
   @ResultCode = @ResultCode_80ae3c0b,
   @IsSuccess = @IsSuccess_80ae3c0b,
@@ -6295,7 +6458,8 @@ SET
 SET
   @IsSuccess_b18190f1 = 0
 SET
-  @Description_b18190f1 = N'The refine job didn''t start.' EXEC [__mj].spCreateActionResultCode @ID = @ID_b18190f1,
+  @Description_b18190f1 = N'The refine job didn''t start.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_b18190f1)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_b18190f1,
   @ActionID = @ActionID_b18190f1,
   @ResultCode = @ResultCode_b18190f1,
   @IsSuccess = @IsSuccess_b18190f1,
@@ -6330,6 +6494,7 @@ SET
   @Description_2e1eabd4 = N'The model to unpublish (preferred). Provide this or ModelName.'
 SET
   @IsRequired_2e1eabd4 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_2e1eabd4)
 EXEC [__mj].spCreateActionParam @ID = @ID_2e1eabd4,
   @ActionID = @ActionID_2e1eabd4,
   @Name = @Name_2e1eabd4,
@@ -6372,6 +6537,7 @@ SET
   @Description_818a52d8 = N'Exact model name, if the ID isn''t known.'
 SET
   @IsRequired_818a52d8 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_818a52d8)
 EXEC [__mj].spCreateActionParam @ID = @ID_818a52d8,
   @ActionID = @ActionID_818a52d8,
   @Name = @Name_818a52d8,
@@ -6414,6 +6580,7 @@ SET
   @Description_5a5212a4 = N'JSON: { modelID, name, previousStatus, status }.'
 SET
   @IsRequired_5a5212a4 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_5a5212a4)
 EXEC [__mj].spCreateActionParam @ID = @ID_5a5212a4,
   @ActionID = @ActionID_5a5212a4,
   @Name = @Name_5a5212a4,
@@ -6444,7 +6611,8 @@ SET
 SET
   @IsSuccess_84d3e13c = 1
 SET
-  @Description_84d3e13c = N'Model unpublished to Draft (or already Draft).' EXEC [__mj].spCreateActionResultCode @ID = @ID_84d3e13c,
+  @Description_84d3e13c = N'Model unpublished to Draft (or already Draft).' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_84d3e13c)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_84d3e13c,
   @ActionID = @ActionID_84d3e13c,
   @ResultCode = @ResultCode_84d3e13c,
   @IsSuccess = @IsSuccess_84d3e13c,
@@ -6467,7 +6635,8 @@ SET
 SET
   @IsSuccess_f23b9e52 = 0
 SET
-  @Description_f23b9e52 = N'Neither ModelID nor ModelName was provided.' EXEC [__mj].spCreateActionResultCode @ID = @ID_f23b9e52,
+  @Description_f23b9e52 = N'Neither ModelID nor ModelName was provided.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_f23b9e52)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_f23b9e52,
   @ActionID = @ActionID_f23b9e52,
   @ResultCode = @ResultCode_f23b9e52,
   @IsSuccess = @IsSuccess_f23b9e52,
@@ -6490,7 +6659,8 @@ SET
 SET
   @IsSuccess_8615d1eb = 0
 SET
-  @Description_8615d1eb = N'No model matched the identifier.' EXEC [__mj].spCreateActionResultCode @ID = @ID_8615d1eb,
+  @Description_8615d1eb = N'No model matched the identifier.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_8615d1eb)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_8615d1eb,
   @ActionID = @ActionID_8615d1eb,
   @ResultCode = @ResultCode_8615d1eb,
   @IsSuccess = @IsSuccess_8615d1eb,
@@ -6513,7 +6683,8 @@ SET
 SET
   @IsSuccess_aec12f4b = 0
 SET
-  @Description_aec12f4b = N'Unpublish failed or the model is in a non-unpublishable state.' EXEC [__mj].spCreateActionResultCode @ID = @ID_aec12f4b,
+  @Description_aec12f4b = N'Unpublish failed or the model is in a non-unpublishable state.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_aec12f4b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_aec12f4b,
   @ActionID = @ActionID_aec12f4b,
   @ResultCode = @ResultCode_aec12f4b,
   @IsSuccess = @IsSuccess_aec12f4b,
@@ -6548,6 +6719,7 @@ SET
   @Description_2f232688 = N'Case-insensitive substring of the entity name. Omit to list all business entities.'
 SET
   @IsRequired_2f232688 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_2f232688)
 EXEC [__mj].spCreateActionParam @ID = @ID_2f232688,
   @ActionID = @ActionID_2f232688,
   @Name = @Name_2f232688,
@@ -6590,6 +6762,7 @@ SET
   @Description_064642a4 = N'JSON: { entities: [{ id, name, schemaName, description }], count, truncated }.'
 SET
   @IsRequired_064642a4 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_064642a4)
 EXEC [__mj].spCreateActionParam @ID = @ID_064642a4,
   @ActionID = @ActionID_064642a4,
   @Name = @Name_064642a4,
@@ -6620,7 +6793,8 @@ SET
 SET
   @IsSuccess_0361b216 = 1
 SET
-  @Description_0361b216 = N'Returned matching business entities.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0361b216,
+  @Description_0361b216 = N'Returned matching business entities.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0361b216)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0361b216,
   @ActionID = @ActionID_0361b216,
   @ResultCode = @ResultCode_0361b216,
   @IsSuccess = @IsSuccess_0361b216,
@@ -6643,7 +6817,8 @@ SET
 SET
   @IsSuccess_9b7dafea = 0
 SET
-  @Description_9b7dafea = N'Lookup failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_9b7dafea,
+  @Description_9b7dafea = N'Lookup failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_9b7dafea)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_9b7dafea,
   @ActionID = @ActionID_9b7dafea,
   @ResultCode = @ResultCode_9b7dafea,
   @IsSuccess = @IsSuccess_9b7dafea,
@@ -6678,6 +6853,7 @@ SET
   @Description_3f470485 = N'Case-insensitive substring of the model name. Omit to list all models.'
 SET
   @IsRequired_3f470485 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_3f470485)
 EXEC [__mj].spCreateActionParam @ID = @ID_3f470485,
   @ActionID = @ActionID_3f470485,
   @Name = @Name_3f470485,
@@ -6720,6 +6896,7 @@ SET
   @Description_1f598b0a = N'JSON: { models: [{ id, name, status, anchorEntityID, anchorName }], count, truncated }.'
 SET
   @IsRequired_1f598b0a = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_1f598b0a)
 EXEC [__mj].spCreateActionParam @ID = @ID_1f598b0a,
   @ActionID = @ActionID_1f598b0a,
   @Name = @Name_1f598b0a,
@@ -6750,7 +6927,8 @@ SET
 SET
   @IsSuccess_23b0e534 = 1
 SET
-  @Description_23b0e534 = N'Returned matching models.' EXEC [__mj].spCreateActionResultCode @ID = @ID_23b0e534,
+  @Description_23b0e534 = N'Returned matching models.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_23b0e534)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_23b0e534,
   @ActionID = @ActionID_23b0e534,
   @ResultCode = @ResultCode_23b0e534,
   @IsSuccess = @IsSuccess_23b0e534,
@@ -6773,7 +6951,8 @@ SET
 SET
   @IsSuccess_0509f84c = 0
 SET
-  @Description_0509f84c = N'Lookup failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0509f84c,
+  @Description_0509f84c = N'Lookup failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0509f84c)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0509f84c,
   @ActionID = @ActionID_0509f84c,
   @ResultCode = @ResultCode_0509f84c,
   @IsSuccess = @IsSuccess_0509f84c,
@@ -6808,6 +6987,7 @@ SET
   @Description_7f6f064f = N'The signal (Runtime action) to test.'
 SET
   @IsRequired_7f6f064f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_7f6f064f)
 EXEC [__mj].spCreateActionParam @ID = @ID_7f6f064f,
   @ActionID = @ActionID_7f6f064f,
   @Name = @Name_7f6f064f,
@@ -6850,6 +7030,7 @@ SET
   @Description_3e6f63b9 = N'JSON array of sample anchor record ids to test the signal against.'
 SET
   @IsRequired_3e6f63b9 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_3e6f63b9)
 EXEC [__mj].spCreateActionParam @ID = @ID_3e6f63b9,
   @ActionID = @ActionID_3e6f63b9,
   @Name = @Name_3e6f63b9,
@@ -6892,6 +7073,7 @@ SET
   @Description_27ec62ff = N'ISO date to compute the signal as of. Defaults to now.'
 SET
   @IsRequired_27ec62ff = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_27ec62ff)
 EXEC [__mj].spCreateActionParam @ID = @ID_27ec62ff,
   @ActionID = @ActionID_27ec62ff,
   @Name = @Name_27ec62ff,
@@ -6934,6 +7116,7 @@ SET
   @Description_15a2340e = N'JSON: { rows: [{ anchorRecordId, value, explanation, error }] }.'
 SET
   @IsRequired_15a2340e = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_15a2340e)
 EXEC [__mj].spCreateActionParam @ID = @ID_15a2340e,
   @ActionID = @ActionID_15a2340e,
   @Name = @Name_15a2340e,
@@ -6964,7 +7147,8 @@ SET
 SET
   @IsSuccess_475559eb = 1
 SET
-  @Description_475559eb = N'Returned per-record test results.' EXEC [__mj].spCreateActionResultCode @ID = @ID_475559eb,
+  @Description_475559eb = N'Returned per-record test results.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_475559eb)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_475559eb,
   @ActionID = @ActionID_475559eb,
   @ResultCode = @ResultCode_475559eb,
   @IsSuccess = @IsSuccess_475559eb,
@@ -6987,7 +7171,8 @@ SET
 SET
   @IsSuccess_8aa5a0e7 = 0
 SET
-  @Description_8aa5a0e7 = N'TargetActionID or AnchorRecordIDs missing/invalid.' EXEC [__mj].spCreateActionResultCode @ID = @ID_8aa5a0e7,
+  @Description_8aa5a0e7 = N'TargetActionID or AnchorRecordIDs missing/invalid.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_8aa5a0e7)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_8aa5a0e7,
   @ActionID = @ActionID_8aa5a0e7,
   @ResultCode = @ResultCode_8aa5a0e7,
   @IsSuccess = @IsSuccess_8aa5a0e7,
@@ -7010,7 +7195,8 @@ SET
 SET
   @IsSuccess_1b423471 = 0
 SET
-  @Description_1b423471 = N'Signal or Test Runtime Action not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_1b423471,
+  @Description_1b423471 = N'Signal or Test Runtime Action not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_1b423471)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_1b423471,
   @ActionID = @ActionID_1b423471,
   @ResultCode = @ResultCode_1b423471,
   @IsSuccess = @IsSuccess_1b423471,
@@ -7033,7 +7219,8 @@ SET
 SET
   @IsSuccess_6754f0f8 = 0
 SET
-  @Description_6754f0f8 = N'Test run failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_6754f0f8,
+  @Description_6754f0f8 = N'Test run failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_6754f0f8)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_6754f0f8,
   @ActionID = @ActionID_6754f0f8,
   @ResultCode = @ResultCode_6754f0f8,
   @IsSuccess = @IsSuccess_6754f0f8,
@@ -7068,6 +7255,7 @@ SET
   @Description_42d15a3f = N'The AIAgentRun id of the in-flight job to cancel.'
 SET
   @IsRequired_42d15a3f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_42d15a3f)
 EXEC [__mj].spCreateActionParam @ID = @ID_42d15a3f,
   @ActionID = @ActionID_42d15a3f,
   @Name = @Name_42d15a3f,
@@ -7110,6 +7298,7 @@ SET
   @Description_e773d7f2 = N'JSON: { aborted, statusFlipped }.'
 SET
   @IsRequired_e773d7f2 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_e773d7f2)
 EXEC [__mj].spCreateActionParam @ID = @ID_e773d7f2,
   @ActionID = @ActionID_e773d7f2,
   @Name = @Name_e773d7f2,
@@ -7140,7 +7329,8 @@ SET
 SET
   @IsSuccess_59096f02 = 1
 SET
-  @Description_59096f02 = N'Job cancelled (or already finished).' EXEC [__mj].spCreateActionResultCode @ID = @ID_59096f02,
+  @Description_59096f02 = N'Job cancelled (or already finished).' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_59096f02)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_59096f02,
   @ActionID = @ActionID_59096f02,
   @ResultCode = @ResultCode_59096f02,
   @IsSuccess = @IsSuccess_59096f02,
@@ -7163,7 +7353,8 @@ SET
 SET
   @IsSuccess_456f118b = 0
 SET
-  @Description_456f118b = N'AgentRunID missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_456f118b,
+  @Description_456f118b = N'AgentRunID missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_456f118b)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_456f118b,
   @ActionID = @ActionID_456f118b,
   @ResultCode = @ResultCode_456f118b,
   @IsSuccess = @IsSuccess_456f118b,
@@ -7186,7 +7377,8 @@ SET
 SET
   @IsSuccess_2e27233a = 0
 SET
-  @Description_2e27233a = N'Cancel failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_2e27233a,
+  @Description_2e27233a = N'Cancel failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_2e27233a)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_2e27233a,
   @ActionID = @ActionID_2e27233a,
   @ResultCode = @ResultCode_2e27233a,
   @IsSuccess = @IsSuccess_2e27233a,
@@ -7221,6 +7413,7 @@ SET
   @Description_db5cb31f = N'The approved signal (Runtime action) to bind.'
 SET
   @IsRequired_db5cb31f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_db5cb31f)
 EXEC [__mj].spCreateActionParam @ID = @ID_db5cb31f,
   @ActionID = @ActionID_db5cb31f,
   @Name = @Name_db5cb31f,
@@ -7263,6 +7456,7 @@ SET
   @Description_fcb32ded = N'The Draft model to bind the signal into.'
 SET
   @IsRequired_fcb32ded = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_fcb32ded)
 EXEC [__mj].spCreateActionParam @ID = @ID_fcb32ded,
   @ActionID = @ActionID_fcb32ded,
   @Name = @Name_fcb32ded,
@@ -7305,6 +7499,7 @@ SET
   @Description_988dfe36 = N'Rubric weight 0..1 (default 0.25).'
 SET
   @IsRequired_988dfe36 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_988dfe36)
 EXEC [__mj].spCreateActionParam @ID = @ID_988dfe36,
   @ActionID = @ActionID_988dfe36,
   @Name = @Name_988dfe36,
@@ -7347,6 +7542,7 @@ SET
   @Description_cf7b957e = N'Factor name override (defaults to the signal''s name).'
 SET
   @IsRequired_cf7b957e = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_cf7b957e)
 EXEC [__mj].spCreateActionParam @ID = @ID_cf7b957e,
   @ActionID = @ActionID_cf7b957e,
   @Name = @Name_cf7b957e,
@@ -7389,6 +7585,7 @@ SET
   @Description_e65752aa = N'JSON: { factorID, modelFactorID }.'
 SET
   @IsRequired_e65752aa = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = @ID_e65752aa)
 EXEC [__mj].spCreateActionParam @ID = @ID_e65752aa,
   @ActionID = @ActionID_e65752aa,
   @Name = @Name_e65752aa,
@@ -7419,7 +7616,8 @@ SET
 SET
   @IsSuccess_472a8a8f = 1
 SET
-  @Description_472a8a8f = N'Signal bound into the model.' EXEC [__mj].spCreateActionResultCode @ID = @ID_472a8a8f,
+  @Description_472a8a8f = N'Signal bound into the model.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_472a8a8f)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_472a8a8f,
   @ActionID = @ActionID_472a8a8f,
   @ResultCode = @ResultCode_472a8a8f,
   @IsSuccess = @IsSuccess_472a8a8f,
@@ -7442,7 +7640,8 @@ SET
 SET
   @IsSuccess_13ff3382 = 0
 SET
-  @Description_13ff3382 = N'ActionID or ModelID missing.' EXEC [__mj].spCreateActionResultCode @ID = @ID_13ff3382,
+  @Description_13ff3382 = N'ActionID or ModelID missing.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_13ff3382)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_13ff3382,
   @ActionID = @ActionID_13ff3382,
   @ResultCode = @ResultCode_13ff3382,
   @IsSuccess = @IsSuccess_13ff3382,
@@ -7465,7 +7664,8 @@ SET
 SET
   @IsSuccess_0b5c7371 = 0
 SET
-  @Description_0b5c7371 = N'Signal or model not found.' EXEC [__mj].spCreateActionResultCode @ID = @ID_0b5c7371,
+  @Description_0b5c7371 = N'Signal or model not found.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_0b5c7371)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_0b5c7371,
   @ActionID = @ActionID_0b5c7371,
   @ResultCode = @ResultCode_0b5c7371,
   @IsSuccess = @IsSuccess_0b5c7371,
@@ -7488,7 +7688,8 @@ SET
 SET
   @IsSuccess_e3ac760e = 0
 SET
-  @Description_e3ac760e = N'Model not Draft, signal not Approved, or save failed.' EXEC [__mj].spCreateActionResultCode @ID = @ID_e3ac760e,
+  @Description_e3ac760e = N'Model not Draft, signal not Approved, or save failed.' IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = @ID_e3ac760e)
+EXEC [__mj].spCreateActionResultCode @ID = @ID_e3ac760e,
   @ActionID = @ActionID_e3ac760e,
   @ResultCode = @ResultCode_e3ac760e,
   @IsSuccess = @IsSuccess_e3ac760e,
@@ -7574,6 +7775,7 @@ SET
   @Status_32432c1c = N'Active'
 SET
   @CodeLocked_32432c1c = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[RemoteOperation] WHERE ID = @ID_32432c1c)
 EXEC [__mj].spCreateRemoteOperation @ID = @ID_32432c1c,
   @Name = @Name_32432c1c,
   @OperationKey = @OperationKey_32432c1c,
@@ -7677,6 +7879,7 @@ SET
   @EmbeddingModelID_d4afd73a = '1D45AA65-41EC-4572-9ECD-AB2826C9B059'
 SET
   @Reusable_d4afd73a = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[Query] WHERE ID = @ID_d4afd73a)
 EXEC [__mj].spCreateQuery @ID = @ID_d4afd73a,
   @Name = @Name_d4afd73a,
   @CategoryID = @CategoryID_d4afd73a,
@@ -7781,6 +7984,7 @@ SET
   @EmbeddingModelID_7d70f031 = '1D45AA65-41EC-4572-9ECD-AB2826C9B059'
 SET
   @Reusable_7d70f031 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[Query] WHERE ID = @ID_7d70f031)
 EXEC [__mj].spCreateQuery @ID = @ID_7d70f031,
   @Name = @Name_7d70f031,
   @CategoryID = @CategoryID_7d70f031,
@@ -7893,6 +8097,7 @@ SET
   @EmbeddingModelID_6a4f31b5 = '1D45AA65-41EC-4572-9ECD-AB2826C9B059'
 SET
   @Reusable_6a4f31b5 = 0
+IF NOT EXISTS (SELECT 1 FROM [__mj].[Query] WHERE ID = @ID_6a4f31b5)
 EXEC [__mj].spCreateQuery @ID = @ID_6a4f31b5,
   @Name = @Name_6a4f31b5,
   @CategoryID = @CategoryID_6a4f31b5,
@@ -7956,7 +8161,8 @@ SET
 SET
   @SampleValue_db384856 = N'e4f8d2b1-6c3a-4f9e-8d7c-2b1a5c3d4e5f'
 SET
-  @DetectionMethod_db384856 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_db384856,
+  @DetectionMethod_db384856 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_db384856)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_db384856,
   @QueryID = @QueryID_db384856,
   @Name = @Name_db384856,
   @Type = @Type_db384856,
@@ -7989,6 +8195,7 @@ SET
   @DetectionMethod_b4c64d4f = N'AI'
 SET
   @AutoDetectConfidenceScore_b4c64d4f = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_b4c64d4f)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_b4c64d4f,
   @QueryID = @QueryID_b4c64d4f,
   @EntityID = @EntityID_b4c64d4f,
@@ -8013,6 +8220,7 @@ SET
   @DetectionMethod_9df1634a = N'AI'
 SET
   @AutoDetectConfidenceScore_9df1634a = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_9df1634a)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_9df1634a,
   @QueryID = @QueryID_9df1634a,
   @EntityID = @EntityID_9df1634a,
@@ -8058,7 +8266,8 @@ SET
 SET
   @IsSummary_0cdf4d29 = 0
 SET
-  @DetectionMethod_0cdf4d29 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_0cdf4d29,
+  @DetectionMethod_0cdf4d29 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_0cdf4d29)
+EXEC [__mj].spCreateQueryField @ID = @ID_0cdf4d29,
   @QueryID = @QueryID_0cdf4d29,
   @Name = @Name_0cdf4d29,
   @Description = @Description_0cdf4d29,
@@ -8121,7 +8330,8 @@ SET
 SET
   @IsSummary_202386c2 = 0
 SET
-  @DetectionMethod_202386c2 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_202386c2,
+  @DetectionMethod_202386c2 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_202386c2)
+EXEC [__mj].spCreateQueryField @ID = @ID_202386c2,
   @QueryID = @QueryID_202386c2,
   @Name = @Name_202386c2,
   @Description = @Description_202386c2,
@@ -8178,7 +8388,8 @@ SET
 SET
   @IsSummary_173eade0 = 0
 SET
-  @DetectionMethod_173eade0 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_173eade0,
+  @DetectionMethod_173eade0 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_173eade0)
+EXEC [__mj].spCreateQueryField @ID = @ID_173eade0,
   @QueryID = @QueryID_173eade0,
   @Name = @Name_173eade0,
   @Description = @Description_173eade0,
@@ -8237,7 +8448,8 @@ SET
 SET
   @IsSummary_b3c7321f = 1
 SET
-  @DetectionMethod_b3c7321f = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_b3c7321f,
+  @DetectionMethod_b3c7321f = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_b3c7321f)
+EXEC [__mj].spCreateQueryField @ID = @ID_b3c7321f,
   @QueryID = @QueryID_b3c7321f,
   @Name = @Name_b3c7321f,
   @Description = @Description_b3c7321f,
@@ -8375,6 +8587,7 @@ SET
   @DetectionMethod_8304fb7d = N'AI'
 SET
   @AutoDetectConfidenceScore_8304fb7d = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_8304fb7d)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_8304fb7d,
   @QueryID = @QueryID_8304fb7d,
   @EntityID = @EntityID_8304fb7d,
@@ -8399,6 +8612,7 @@ SET
   @DetectionMethod_bcdea7fa = N'AI'
 SET
   @AutoDetectConfidenceScore_bcdea7fa = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_bcdea7fa)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_bcdea7fa,
   @QueryID = @QueryID_bcdea7fa,
   @EntityID = @EntityID_bcdea7fa,
@@ -8434,7 +8648,8 @@ SET
 SET
   @SampleValue_13333c51 = N'00000000-0000-0000-0000-000000000001'
 SET
-  @DetectionMethod_13333c51 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_13333c51,
+  @DetectionMethod_13333c51 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_13333c51)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_13333c51,
   @QueryID = @QueryID_13333c51,
   @Name = @Name_13333c51,
   @Type = @Type_13333c51,
@@ -8478,7 +8693,8 @@ SET
 SET
   @SampleValue_9fdf415c = N'2023-10-01'
 SET
-  @DetectionMethod_9fdf415c = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_9fdf415c,
+  @DetectionMethod_9fdf415c = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_9fdf415c)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_9fdf415c,
   @QueryID = @QueryID_9fdf415c,
   @Name = @Name_9fdf415c,
   @Type = @Type_9fdf415c,
@@ -8522,7 +8738,8 @@ SET
 SET
   @SampleValue_0f4d0130 = N'2023-10-31'
 SET
-  @DetectionMethod_0f4d0130 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_0f4d0130,
+  @DetectionMethod_0f4d0130 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_0f4d0130)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_0f4d0130,
   @QueryID = @QueryID_0f4d0130,
   @Name = @Name_0f4d0130,
   @Type = @Type_0f4d0130,
@@ -8566,7 +8783,8 @@ SET
 SET
   @SampleValue_bdc8506b = N'10'
 SET
-  @DetectionMethod_bdc8506b = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_bdc8506b,
+  @DetectionMethod_bdc8506b = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_bdc8506b)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_bdc8506b,
   @QueryID = @QueryID_bdc8506b,
   @Name = @Name_bdc8506b,
   @Type = @Type_bdc8506b,
@@ -8622,7 +8840,8 @@ SET
 SET
   @IsSummary_f89b4e65 = 0
 SET
-  @DetectionMethod_f89b4e65 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_f89b4e65,
+  @DetectionMethod_f89b4e65 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_f89b4e65)
+EXEC [__mj].spCreateQueryField @ID = @ID_f89b4e65,
   @QueryID = @QueryID_f89b4e65,
   @Name = @Name_f89b4e65,
   @Description = @Description_f89b4e65,
@@ -8682,7 +8901,8 @@ SET
 SET
   @IsSummary_8702a5e0 = 0
 SET
-  @DetectionMethod_8702a5e0 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_8702a5e0,
+  @DetectionMethod_8702a5e0 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_8702a5e0)
+EXEC [__mj].spCreateQueryField @ID = @ID_8702a5e0,
   @QueryID = @QueryID_8702a5e0,
   @Name = @Name_8702a5e0,
   @Description = @Description_8702a5e0,
@@ -8742,7 +8962,8 @@ SET
 SET
   @IsSummary_e1325c52 = 0
 SET
-  @DetectionMethod_e1325c52 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_e1325c52,
+  @DetectionMethod_e1325c52 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_e1325c52)
+EXEC [__mj].spCreateQueryField @ID = @ID_e1325c52,
   @QueryID = @QueryID_e1325c52,
   @Name = @Name_e1325c52,
   @Description = @Description_e1325c52,
@@ -8804,7 +9025,8 @@ SET
 SET
   @IsSummary_5d514d6f = 0
 SET
-  @DetectionMethod_5d514d6f = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_5d514d6f,
+  @DetectionMethod_5d514d6f = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_5d514d6f)
+EXEC [__mj].spCreateQueryField @ID = @ID_5d514d6f,
   @QueryID = @QueryID_5d514d6f,
   @Name = @Name_5d514d6f,
   @Description = @Description_5d514d6f,
@@ -8861,7 +9083,8 @@ SET
 SET
   @IsSummary_ff454928 = 0
 SET
-  @DetectionMethod_ff454928 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_ff454928,
+  @DetectionMethod_ff454928 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_ff454928)
+EXEC [__mj].spCreateQueryField @ID = @ID_ff454928,
   @QueryID = @QueryID_ff454928,
   @Name = @Name_ff454928,
   @Description = @Description_ff454928,
@@ -8922,7 +9145,8 @@ SET
 SET
   @IsSummary_0d75cc79 = 0
 SET
-  @DetectionMethod_0d75cc79 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_0d75cc79,
+  @DetectionMethod_0d75cc79 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_0d75cc79)
+EXEC [__mj].spCreateQueryField @ID = @ID_0d75cc79,
   @QueryID = @QueryID_0d75cc79,
   @Name = @Name_0d75cc79,
   @Description = @Description_0d75cc79,
@@ -9072,6 +9296,7 @@ SET
   @DetectionMethod_aaddafca = N'AI'
 SET
   @AutoDetectConfidenceScore_aaddafca = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_aaddafca)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_aaddafca,
   @QueryID = @QueryID_aaddafca,
   @EntityID = @EntityID_aaddafca,
@@ -9096,6 +9321,7 @@ SET
   @DetectionMethod_78aed961 = N'AI'
 SET
   @AutoDetectConfidenceScore_78aed961 = 1
+IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryEntity] WHERE ID = @ID_78aed961)
 EXEC [__mj].spCreateQueryEntity @ID = @ID_78aed961,
   @QueryID = @QueryID_78aed961,
   @EntityID = @EntityID_78aed961,
@@ -9131,7 +9357,8 @@ SET
 SET
   @SampleValue_48bd2217 = N'e2a4b8c1-1234-5678-90ab-cdef12345678'
 SET
-  @DetectionMethod_48bd2217 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_48bd2217,
+  @DetectionMethod_48bd2217 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_48bd2217)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_48bd2217,
   @QueryID = @QueryID_48bd2217,
   @Name = @Name_48bd2217,
   @Type = @Type_48bd2217,
@@ -9175,7 +9402,8 @@ SET
 SET
   @SampleValue_71f03252 = N'2023-10-01'
 SET
-  @DetectionMethod_71f03252 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_71f03252,
+  @DetectionMethod_71f03252 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_71f03252)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_71f03252,
   @QueryID = @QueryID_71f03252,
   @Name = @Name_71f03252,
   @Type = @Type_71f03252,
@@ -9219,7 +9447,8 @@ SET
 SET
   @SampleValue_ce4e8f55 = N'2023-10-31'
 SET
-  @DetectionMethod_ce4e8f55 = N'AI' EXEC [__mj].spCreateQueryParameter @ID = @ID_ce4e8f55,
+  @DetectionMethod_ce4e8f55 = N'AI' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryParameter] WHERE ID = @ID_ce4e8f55)
+EXEC [__mj].spCreateQueryParameter @ID = @ID_ce4e8f55,
   @QueryID = @QueryID_ce4e8f55,
   @Name = @Name_ce4e8f55,
   @Type = @Type_ce4e8f55,
@@ -9275,7 +9504,8 @@ SET
 SET
   @IsSummary_6b90d42b = 0
 SET
-  @DetectionMethod_6b90d42b = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_6b90d42b,
+  @DetectionMethod_6b90d42b = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_6b90d42b)
+EXEC [__mj].spCreateQueryField @ID = @ID_6b90d42b,
   @QueryID = @QueryID_6b90d42b,
   @Name = @Name_6b90d42b,
   @Description = @Description_6b90d42b,
@@ -9335,7 +9565,8 @@ SET
 SET
   @IsSummary_40d62c35 = 0
 SET
-  @DetectionMethod_40d62c35 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_40d62c35,
+  @DetectionMethod_40d62c35 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_40d62c35)
+EXEC [__mj].spCreateQueryField @ID = @ID_40d62c35,
   @QueryID = @QueryID_40d62c35,
   @Name = @Name_40d62c35,
   @Description = @Description_40d62c35,
@@ -9395,7 +9626,8 @@ SET
 SET
   @IsSummary_25fe64ae = 0
 SET
-  @DetectionMethod_25fe64ae = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_25fe64ae,
+  @DetectionMethod_25fe64ae = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_25fe64ae)
+EXEC [__mj].spCreateQueryField @ID = @ID_25fe64ae,
   @QueryID = @QueryID_25fe64ae,
   @Name = @Name_25fe64ae,
   @Description = @Description_25fe64ae,
@@ -9455,7 +9687,8 @@ SET
 SET
   @IsSummary_2217c823 = 0
 SET
-  @DetectionMethod_2217c823 = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_2217c823,
+  @DetectionMethod_2217c823 = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_2217c823)
+EXEC [__mj].spCreateQueryField @ID = @ID_2217c823,
   @QueryID = @QueryID_2217c823,
   @Name = @Name_2217c823,
   @Description = @Description_2217c823,
@@ -9513,7 +9746,8 @@ SET
 SET
   @IsSummary_21ed5b5e = 1
 SET
-  @DetectionMethod_21ed5b5e = N'Manual' EXEC [__mj].spCreateQueryField @ID = @ID_21ed5b5e,
+  @DetectionMethod_21ed5b5e = N'Manual' IF NOT EXISTS (SELECT 1 FROM [__mj].[QueryField] WHERE ID = @ID_21ed5b5e)
+EXEC [__mj].spCreateQueryField @ID = @ID_21ed5b5e,
   @QueryID = @QueryID_21ed5b5e,
   @Name = @Name_21ed5b5e,
   @Description = @Description_21ed5b5e,
