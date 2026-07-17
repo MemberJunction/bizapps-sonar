@@ -114,10 +114,27 @@ A healthy install has:
 
 ## Scoring your own data
 
-Sonar scores an **anchor entity** (e.g. members) plus related activity. To score data that already lives in your MemberJunction instance:
+Sonar scores an **anchor entity** (e.g. members) plus related activity. Its engine is metadata-driven, so it can only score entities MemberJunction already knows about. To score data that lives in your instance:
 
-1. Make sure the anchor and its related activity entities are **registered with MemberJunction** (via CodeGen). Sonar's engine is metadata-driven, it can only score entities MJ knows about.
+1. Make sure the anchor and its related activity entities are **registered with MemberJunction** (see below if they come from another app).
 2. In **Model Builder**, create a model: pick the anchor, add declarative factors (Count / Sum / Avg over the related entities, with a normalization method, `Percentile` is a good default for long-tailed activity counts), set a rubric and bands, publish, and recompute.
+
+### Scoring an existing app's data (e.g. the MoreCheese association demo)
+
+A common setup is running Sonar against another app's data, for example the **MoreCheese** association demo (members, events, courses, orders across the `__mj_BizAppsCommon` + `morecheese_*` schemas). Sonar doesn't need that app installed, only its tables present and its entities registered.
+
+1. **Load the data** into your database (the demo ships SQL seed packs, load them per that app's instructions).
+2. **Register the entities, without generating the other app's code.** Run CodeGen with `--skipfiles`:
+
+   ```bash
+   npx mj codegen --skipfiles
+   ```
+
+   `--skipfiles` runs **database-side operations only**: it registers the entities in `__mj.Entity` and creates the SQL views/procs Sonar needs, but skips generating the TypeScript entities, Angular forms, and GraphQL resolvers for that app. That is exactly what you want here, Sonar reads those entities generically via `RunView` (by entity name), so it never needs their generated classes. Running a full `mj codegen` instead would scaffold the association app's code into your tree (and trip its build hooks) for no benefit.
+
+   Run CodeGen with a config whose `newEntityDefaults` / schema scope covers the schemas you loaded (typically the owning app's `mj.config.cjs`). To keep it from touching **this** app's schema, add `__mj_BizAppsSonar` to that config's `excludeSchemas`.
+
+3. **Define the model.** With the entities registered, point a Model Builder model at the anchor (e.g. `People`) with factors over the related activity (event registrations, course enrollments, orders), publish, and recompute.
 
 ---
 
