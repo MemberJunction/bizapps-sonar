@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-engine",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sonar scoring engine — IFactorEvaluator contract, FactorCompiler, NormalizationEngine, ScoringEngine, and RecomputeOrchestrator over the __sonar data",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,7 +22,7 @@
     "vitest": "^3.1.1"
   },
   "dependencies": {
-    "@mj-biz-apps/sonar-entities": "0.1.0"
+    "@mj-biz-apps/sonar-entities": "0.2.0"
   },
   "peerDependencies": {
     "@memberjunction/actions": "^5.45.0",

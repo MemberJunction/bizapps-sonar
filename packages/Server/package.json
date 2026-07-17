@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-server",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sonar server bootstrap - GraphQL resolvers and class registrations for the Sonar engagement scoring Open App",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,9 +21,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@mj-biz-apps/sonar-core-entities-server": "0.1.0",
-    "@mj-biz-apps/sonar-entities": "0.1.0",
-    "@mj-biz-apps/sonar-actions": "0.1.0",
+    "@mj-biz-apps/sonar-core-entities-server": "0.2.0",
+    "@mj-biz-apps/sonar-entities": "0.2.0",
+    "@mj-biz-apps/sonar-actions": "0.2.0",
     "class-validator": "^0.14.3"
   },
   "peerDependencies": {
