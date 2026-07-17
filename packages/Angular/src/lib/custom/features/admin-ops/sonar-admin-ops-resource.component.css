@@ -1,0 +1,351 @@
+/* Admin & Ops surface-specific styles. Shared primitives live in sonar-shell.css. */
+
+
+/* Recompute runs table.
+   §5 table standard: right-aligned tabular numerics, neutral zeros, zebra + hover,
+   sticky header. ~90% neutral; the only status color is a non-zero band-moves count. */
+/* Contain the run list: it can grow long, so cap the height and scroll internally — this is
+   what makes the sticky header earn its keep, and keeps the section a tidy block instead of a
+   sprawling list that pushes Governance off-screen. */
+.sonar-table-wrap { overflow: auto; max-height: 23rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm); }
+.sonar-table { width: 100%; border-collapse: collapse; font-size: var(--sonar-font-sm); }
+
+/* Sticky header so column labels stay visible while the run list scrolls. The bottom
+   hairline replaces the per-cell first-row border below. */
+.sonar-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--sonar-surface);
+    text-align: left;
+    font-size: var(--sonar-font-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sonar-faint);
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--sonar-border-strong);
+}
+.sonar-table td { padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--sonar-border); }
+
+/* Row hover: faint accent wash + a hairline accent top/bottom to lift the active row.
+   Overrides zebra so the hovered row reads as one band regardless of its stripe. */
+.sonar-table tbody tr {
+    transition: background 0.15s ease;
+}
+.sonar-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--sonar-brand) 4%, var(--sonar-surface));
+}
+
+/* Numeric columns: right-aligned. Pair with .sonar-mono on cells for tabular figures
+   (the shell gives .sonar-mono font-variant-numeric: tabular-nums). */
+.sonar-table th.sonar-num,
+.sonar-table td.sonar-num { text-align: right; }
+
+/* A zero count must read as neutral, never a status color — so a 0 in Band moves is
+   muted ink while only a non-zero count carries the at-risk emphasis. */
+.sonar-table td.sonar-num--zero { color: var(--sonar-muted); }
+
+/* Empty-state row: centered, on-scale padding (replaces an inline style). */
+.sonar-table__empty { text-align: center; padding: 1rem; }
+
+/* Stat pills row — compact inline summary bar above the runs table */
+.sonar-ops__stat-pills {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    padding-bottom: 0.75rem;
+}
+.sonar-ops__stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 1rem;
+    border-right: 1px solid var(--sonar-border);
+    font-size: var(--sonar-font-sm);
+}
+.sonar-ops__stat-pill:first-child { padding-left: 0; }
+.sonar-ops__stat-pill:last-child { border-right: none; }
+.sonar-ops__stat-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--sonar-ink);
+    font-variant-numeric: tabular-nums;
+}
+.sonar-ops__stat-lbl {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+}
+.sonar-ops__stat-ico--ok   { color: var(--sonar-healthy); font-size: 0.8rem; }
+.sonar-ops__stat-ico--brand { color: var(--sonar-brand);  font-size: 0.8rem; }
+.sonar-ops__stat-ico--muted { color: var(--sonar-muted);  font-size: 0.8rem; }
+
+/* Table layout details */
+.sonar-ops__model-cell {
+    font-weight: 600;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sonar-ink);
+}
+.sonar-ops__model-icon {
+    color: var(--sonar-brand);
+    font-size: 0.85rem;
+}
+
+/* Glowing Status Badge */
+.sonar-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--sonar-radius-sm);
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    text-transform: capitalize;
+    border: 1px solid var(--sonar-border);
+}
+.sonar-status-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+.sonar-status-badge--success {
+    background: var(--sonar-healthy-bg);
+    color: var(--sonar-healthy);
+    border-color: color-mix(in srgb, var(--sonar-healthy) 30%, transparent);
+}
+.sonar-status-badge--success .sonar-status-badge__dot {
+    background: var(--sonar-healthy);
+    box-shadow: 0 0 6px var(--sonar-healthy);
+}
+.sonar-status-badge--fail {
+    background: var(--sonar-critical-bg);
+    color: var(--sonar-critical);
+    border-color: color-mix(in srgb, var(--sonar-critical) 30%, transparent);
+}
+.sonar-status-badge--fail .sonar-status-badge__dot {
+    background: var(--sonar-critical);
+    box-shadow: 0 0 6px var(--sonar-critical);
+}
+
+/* Admin & Ops Layout overrides */
+.sonar-ops__card-head {
+    margin-bottom: 1.25rem;
+}
+.sonar-ops__card-label {
+    margin-bottom: 1.25rem;
+}
+.sonar-ops__governance-stack {
+    gap: 1.25rem;
+}
+
+/* Chip/Badge alignments in header/titles */
+.sonar-timeline__title .sonar-chip,
+.sonar-card__label .sonar-chip {
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Governance Layout columns */
+.sonar-ops__governance-layout {
+    grid-template-columns: 1.2fr 1.8fr;
+    align-items: stretch;
+    gap: 1.5rem;
+}
+
+
+/* Code Diff Inspector Panel */
+.sonar-ops__diff-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+}
+
+/* Diff box and scroll container */
+.sonar-ops__diff-box {
+    flex: 1;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+/* Diff Preformatted block */
+.sonar-ops__diff-pre {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    font-family: var(--sonar-mono);
+    white-space: pre;
+    color: var(--sonar-ink);
+}
+
+/* Diff Lines styling. white-space:pre-wrap preserves the JSON's leading indentation (the lines
+   are now <div>s, not a <pre>) while still wrapping long lines instead of overflowing. */
+.sonar-ops__diff-line {
+    padding: 0.1rem 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: 2px;
+    white-space: pre-wrap;
+    font-size: 11.5px;
+    line-height: 1.6;
+}
+
+/* Git Addition line: light green background tint, green text */
+.sonar-ops__diff-line--add {
+    background-color: color-mix(in srgb, var(--sonar-healthy) 12%, transparent);
+    color: var(--sonar-healthy);
+    font-weight: 500;
+}
+
+/* Git Deletion line: light red background tint, red text */
+.sonar-ops__diff-line--del {
+    background-color: color-mix(in srgb, var(--sonar-critical) 12%, transparent);
+    color: var(--sonar-critical);
+    font-weight: 500;
+}
+
+/* Git Header line (diff meta, hunk headers): muted indigo text */
+.sonar-ops__diff-line--header {
+    color: var(--sonar-brand);
+    font-weight: 600;
+    background-color: color-mix(in srgb, var(--sonar-brand) 6%, transparent);
+}
+
+/* Git Normal line: default body text */
+.sonar-ops__diff-line--normal {
+    color: var(--sonar-muted);
+}
+
+/* Gauge elements hover */
+.sonar-gauge {
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sonar-gauge:hover {
+    transform: scale(1.08);
+}
+
+/* Empty Diff state */
+.sonar-ops__empty-diff {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--sonar-muted);
+}
+.sonar-ops__empty-diff i {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--sonar-faint);
+}
+
+/* Sidebar Navigation Rail (Admin & Ops) */
+.sonar-ops-sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-right: 1px solid var(--sonar-border);
+    padding-right: 1rem;
+    box-sizing: border-box;
+    height: 100%;
+}
+.sonar-ops-sidebar__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--sonar-radius);
+    background: transparent;
+    color: var(--sonar-muted);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.sonar-ops-sidebar__item:hover {
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-ink);
+}
+.sonar-ops-sidebar__item--active {
+    background: color-mix(in srgb, var(--sonar-brand) 8%, var(--sonar-surface-sunken));
+    border-color: color-mix(in srgb, var(--sonar-brand) 20%, var(--sonar-border));
+    color: var(--sonar-brand);
+}
+.sonar-ops-sidebar__item i {
+    font-size: 1.15rem;
+    width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sonar-ops-sidebar__item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.sonar-ops-sidebar__item-title {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+}
+.sonar-ops-sidebar__item-subtitle {
+    font-size: 0.72rem;
+    color: var(--sonar-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sonar-ops-sidebar__item--active .sonar-ops-sidebar__item-subtitle {
+    color: color-mix(in srgb, var(--sonar-brand) 70%, var(--sonar-faint));
+}
+
+/* Scroll containment for Admin & Ops tabs content */
+.sonar-ops .sonar-with-rail__main {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.sonar-ops__tab-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+/* Ensure the grid and sections stretch correctly */
+.sonar-ops__governance-split {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+}
+/* Run health card should be full height in content */
+.sonar-ops__tab-content > .sonar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.sonar-ops__tab-content > .sonar-group > .sonar-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+/* Ensure runs table wraps and scrolls appropriately */
+.sonar-ops__tab-content .sonar-table-wrap {
+    flex: 1;
+    max-height: none; /* Let the scroll containment limit the card, table scrolls within card */
+}

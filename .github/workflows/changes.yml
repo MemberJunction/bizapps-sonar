@@ -82,3 +82,21 @@ jobs:
             exit 1
           fi
           echo "Valid changeset with minor or major bump found"
+
+      - name: Check seed migration is regenerated when metadata config changes
+        run: |
+          # The V…_Seed_App_Metadata.sql migration is a generated snapshot of the mj-sync
+          # config in metadata/ (mj app install runs migrations, not metadata/). If a PR edits
+          # that config but doesn't regenerate the seed, a clean install ships stale config.
+          # Tripwire: checks the seed was touched, not that the regen is correct; regen steps
+          # live in the seed file header / migrations/README.md. Issue #22 tracks the airtight
+          # regenerate-and-diff version.
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          CONFIG_CHANGED=$(echo "$CHANGED" | grep -E '^metadata/(score-band-sets|score-bands|time-windows|actions|queries|remote-operations|templates|prompts|agents|applications)/' || true)
+          SEED_CHANGED=$(echo "$CHANGED" | grep -E '^migrations/V.*Seed_App_Metadata.*\.sql$' || true)
+          if [ -n "$CONFIG_CHANGED" ] && [ -z "$SEED_CHANGED" ]; then
+            echo "::error::metadata/ config changed but the seed migration (V…_Seed_App_Metadata.sql) was not regenerated. Edit config in metadata/, regenerate the seed (see the seed file header / migrations/README.md), and commit both. Changed config:"
+            echo "$CONFIG_CHANGED"
+            exit 1
+          fi
+          echo "Seed <-> metadata coupling OK"

@@ -1,0 +1,705 @@
+/* ── KPI strip ──────────────────────────────────────────────────────────────
+   Extends .sonar-stat (shell) with warn / neg / pos modifier tones for the
+   net-movement and at-risk tiles. The shell defines the grid and base tile. */
+
+.sonar-pf-kpi-strip {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Scope caption above the KPI strip — makes it unambiguous the tiles are one model, not a
+   cross-model total (which would double-count members shared between models). */
+.sonar-pf-focus-label {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sonar-muted);
+    margin: 1rem 0 0.5rem;
+}
+
+.sonar-stat__sub {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+    margin-top: 0.125rem;
+}
+
+.sonar-stat--warn .sonar-stat__value {
+    color: var(--sonar-atrisk);
+}
+
+/* Primary tile — the one KPI that should read first (At risk). Subtle atrisk tint + a larger,
+   atrisk-toned value so it carries visual weight without a loud accent rail. */
+.sonar-stat--primary {
+    background: color-mix(in srgb, var(--sonar-atrisk) 5%, var(--sonar-surface));
+    border-color: color-mix(in srgb, var(--sonar-atrisk) 28%, var(--sonar-border));
+}
+.sonar-stat--primary .sonar-stat__value {
+    font-size: 2.3rem;
+    color: var(--sonar-atrisk);
+}
+
+.sonar-stat--neg .sonar-stat__value {
+    color: var(--sonar-critical);
+}
+
+.sonar-stat--pos .sonar-stat__value {
+    color: var(--sonar-healthy);
+}
+
+/* ── Dashboard grid ─────────────────────────────────────────────────────────
+   Main (chart + table) takes remaining width; sidebar is fixed at 280px.
+   Below 1100px the sidebar drops below the main column. */
+
+.sonar-pf-dash {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .sonar-pf-dash {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Chart card ─────────────────────────────────────────────────────────────
+   Removes sonar-card default padding so the Marimekko bleeds to the card edge,
+   then re-adds it above and below the chart. */
+
+.sonar-pf-chart-card {
+    padding-bottom: 1rem;
+}
+
+/* Loading placeholder */
+.sonar-pf-mek-placeholder {
+    height: 180px;
+    border-radius: var(--sonar-radius-sm);
+}
+
+/* ── Marimekko chart ────────────────────────────────────────────────────────
+   A flex row where each column's width is proportional to its `flex` value
+   (member count). Within each column, band segments stack bottom→top via
+   column-reverse — so healthy (DOM-first) lands at the bottom and critical
+   (DOM-last) floats to the top. */
+
+.sonar-pf-mek {
+    display: flex;
+    height: 180px;
+    gap: 3px;
+    overflow: hidden;
+    border-radius: var(--sonar-radius-sm);
+    margin-bottom: 10px;
+}
+
+.sonar-pf-mek__col {
+    display: flex;
+    flex-direction: column-reverse;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter 0.12s;
+}
+
+.sonar-pf-mek__col:hover,
+.sonar-pf-mek__col--hovered {
+    filter: brightness(1.08);
+}
+
+.sonar-pf-mek__seg {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+/* ── Chart view toggle ──────────────────────────────────────────────────────*/
+
+.sonar-pf-view-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 2px;
+}
+
+.sonar-pf-view-toggle__btn {
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    padding: 4px 10px;
+    border: none;
+    border-radius: calc(var(--sonar-radius-sm) - 1px);
+    background: transparent;
+    color: var(--sonar-faint);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.sonar-pf-view-toggle__btn:hover {
+    color: var(--sonar-muted);
+}
+
+.sonar-pf-view-toggle__btn--active {
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+
+/* ── Marimekko column labels ────────────────────────────────────────────────
+   Mirror the chart's flex layout so each label aligns to its column. */
+
+.sonar-pf-mek-labels {
+    display: flex;
+    gap: 3px;
+    margin-top: 6px;
+}
+
+.sonar-pf-mek-labels__name {
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    color: var(--sonar-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* ── Marimekko footer: hover info panel + static legend ─────────────────────
+   The footer area transitions between a static legend (no hover) and a live
+   band-breakdown panel when a column is moused over. */
+
+.sonar-pf-mek-footer {
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--sonar-border);
+    min-height: 28px;
+}
+
+.sonar-pf-mek-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+    animation: sonar-fadein 0.1s ease;
+}
+
+@keyframes sonar-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.sonar-pf-mek-info__name {
+    font-weight: 700;
+    color: var(--sonar-ink);
+}
+
+.sonar-pf-mek-info__sep {
+    color: var(--sonar-border-strong);
+}
+
+.sonar-pf-mek-info__total {
+    color: var(--sonar-muted);
+}
+
+.sonar-pf-mek-info__band {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: var(--sonar-surface-sunken);
+    border-radius: var(--sonar-radius-sm);
+}
+
+.sonar-pf-mek-info__swatch {
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* ── Chart legend ───────────────────────────────────────────────────────────*/
+
+.sonar-pf-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.sonar-pf-legend__item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+}
+
+.sonar-pf-legend__swatch {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* ── Movement table ─────────────────────────────────────────────────────────*/
+
+.sonar-pf-table-wrap {
+    overflow-x: auto;
+}
+
+.sonar-pf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--sonar-font-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.sonar-pf-table th {
+    font-size: var(--sonar-font-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-faint);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+    border-bottom: 1px solid var(--sonar-border);
+    white-space: nowrap;
+    background: var(--sonar-surface);
+}
+
+.sonar-pf-table th.sonar-pf-table__r,
+.sonar-pf-table td.sonar-pf-table__r {
+    text-align: right;
+    padding-left: 0;
+}
+
+.sonar-pf-table td {
+    padding: 0.625rem 0.75rem 0.625rem 0;
+    color: var(--sonar-ink);
+    border-bottom: 1px solid var(--sonar-border);
+    vertical-align: middle;
+}
+
+.sonar-pf-table__row:last-child td {
+    border-bottom: none;
+}
+
+.sonar-pf-table__row:hover td {
+    background: var(--sonar-surface-sunken);
+}
+
+.sonar-pf-table__name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--sonar-ink);
+}
+
+.sonar-pf-table__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sonar-pf-table__anchor {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+    margin-top: 1px;
+    padding-left: 13px;
+}
+
+.sonar-pf-table__good {
+    color: var(--sonar-healthy);
+    font-weight: 600;
+}
+
+.sonar-pf-table__bad {
+    color: var(--sonar-atrisk);
+    font-weight: 600;
+}
+
+.sonar-pf-table__muted {
+    color: var(--sonar-faint);
+}
+
+.sonar-pf-stale {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sonar-atrisk);
+    background: var(--sonar-atrisk-bg);
+    padding: 1px 5px;
+    border-radius: var(--sonar-radius-sm);
+    margin-left: 4px;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────────
+   Compact model list. Each row has a 3px left border (color = urgency), a body
+   with name + anchor + mini band bar, and an optional right-side key number. */
+
+.sonar-pf-sidebar {
+    padding: 0;
+}
+
+.sonar-pf-sidebar .sonar-card__head {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    margin-bottom: 0;
+}
+
+.sonar-pf-slot {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--sonar-border);
+    border-left: 3px solid var(--sonar-border);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.sonar-pf-slot:hover {
+    background: var(--sonar-surface-sunken);
+}
+
+.sonar-pf-slot:last-child {
+    border-bottom: none;
+}
+
+/* Paused: slightly muted — data exists but scoring is suspended. */
+.sonar-pf-slot--paused {
+    opacity: 0.6;
+}
+
+/* Draft: full opacity but italicised name so it reads as "not yet live". */
+.sonar-pf-slot--draft .sonar-pf-slot__name {
+    font-style: italic;
+    color: var(--sonar-muted);
+}
+
+.sonar-pf-slot--skeleton {
+    cursor: default;
+    gap: 0.5rem;
+    border-left-color: var(--sonar-border);
+}
+
+.sonar-pf-slot--skeleton:hover {
+    background: transparent;
+}
+
+.sonar-pf-slot__indicator {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.sonar-pf-slot__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sonar-pf-slot__name {
+    font-size: var(--sonar-font-sm);
+    font-weight: 700;
+    color: var(--sonar-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sonar-pf-slot__meta {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sonar-pf-slot__band-bar {
+    display: flex;
+    height: 4px;
+    border-radius: 2px;
+    overflow: hidden;
+    gap: 1px;
+    margin-top: 4px;
+}
+
+.sonar-pf-slot__band-seg {
+    flex-shrink: 0;
+    height: 100%;
+    border-radius: 1px;
+}
+
+/* Right-side key number per slot */
+.sonar-pf-slot__num {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
+.sonar-pf-slot__num-val {
+    font-size: 1.0625rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.sonar-pf-slot__num-val--warn { color: var(--sonar-atrisk); }
+.sonar-pf-slot__num-val--crit { color: var(--sonar-critical); }
+.sonar-pf-slot__num-val--good { color: var(--sonar-healthy); }
+.sonar-pf-slot__num-val--mute { color: var(--sonar-faint); }
+
+.sonar-pf-slot__num-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sonar-faint);
+    text-align: right;
+}
+
+/* ── Chip modifier ──────────────────────────────────────────────────────────
+   Muted variant used for status badges (Paused, Draft) in the sidebar. */
+
+.sonar-chip--muted {
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-faint);
+    border: 1px solid var(--sonar-border);
+}
+
+/* ── Selected sidebar slot ──────────────────────────────────────────────────*/
+
+.sonar-pf-slot--selected {
+    background: var(--sonar-surface-sunken);
+    border-left-width: 3px;
+}
+
+/* ── Model detail header ─────────────────────────────────────────────────────
+   Breadcrumb back-button + model title + lens toggle, all in one flex row.  */
+
+.sonar-pf-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.sonar-pf-detail-back {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    color: var(--sonar-faint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    white-space: nowrap;
+    transition: color 0.12s;
+}
+
+.sonar-pf-detail-back:hover {
+    color: var(--sonar-muted);
+}
+
+.sonar-pf-detail-title {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sonar-pf-detail-model {
+    font-size: var(--sonar-font-base);
+    font-weight: 800;
+    color: var(--sonar-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sonar-pf-detail-anchor {
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+    white-space: nowrap;
+}
+
+/* ── Insight table ───────────────────────────────────────────────────────────
+   Four-column flex row per band: [swatch+label] [count] [pct] [delta].
+   Right-aligned numeric columns with tabular figures for clean stacking.    */
+
+.sonar-pf-insight {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.sonar-pf-insight__row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--sonar-border);
+    font-size: var(--sonar-font-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.sonar-pf-insight__row:last-child {
+    border-bottom: none;
+}
+
+.sonar-pf-insight__band {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--sonar-ink);
+}
+
+.sonar-pf-insight__swatch {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.sonar-pf-insight__count {
+    font-weight: 700;
+    color: var(--sonar-ink);
+    text-align: right;
+    min-width: 48px;
+}
+
+.sonar-pf-insight__pct {
+    color: var(--sonar-muted);
+    text-align: right;
+    min-width: 36px;
+}
+
+.sonar-pf-insight__delta {
+    text-align: right;
+    min-width: 44px;
+    font-weight: 600;
+    color: var(--sonar-faint);
+}
+
+.sonar-pf-insight__delta--good { color: var(--sonar-healthy); }
+.sonar-pf-insight__delta--bad  { color: var(--sonar-atrisk); }
+
+/* Full-width band bar below the insight rows — mirrors the Marimekko proportions. */
+.sonar-pf-insight__bar {
+    display: flex;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    gap: 2px;
+}
+
+.sonar-pf-insight__bar-seg {
+    flex-shrink: 0;
+    height: 100%;
+}
+
+/* ── Band-mix history chart ──────────────────────────────────────────────────
+   One proportional stacked column per snapshot, column-reverse so healthy
+   sits at the bottom (same visual grammar as the Marimekko).               */
+
+.sonar-pf-mix {
+    display: flex;
+    height: 140px;
+    gap: 4px;
+    align-items: stretch;
+}
+
+.sonar-pf-mix__col {
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.sonar-pf-mix__seg {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.sonar-pf-mix-labels {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.sonar-pf-mix-labels__label {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    color: var(--sonar-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Cycle movement summary (3-up flow stats) ───────────────────────────────*/
+
+.sonar-pf-detail-movement {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.sonar-pf-detail-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sonar-pf-detail-flow__val {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--sonar-muted);
+    line-height: 1;
+}
+
+.sonar-pf-detail-flow--good .sonar-pf-detail-flow__val { color: var(--sonar-healthy); }
+.sonar-pf-detail-flow--bad  .sonar-pf-detail-flow__val { color: var(--sonar-atrisk); }
+
+.sonar-pf-detail-flow__label {
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sonar-faint);
+}
+
+/* ── Skeleton pulse ─────────────────────────────────────────────────────────*/
+
+.sonar-skeleton {
+    background: color-mix(in srgb, var(--sonar-border) 60%, var(--sonar-surface));
+    border-radius: var(--sonar-radius-sm);
+    animation: sonar-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sonar-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}

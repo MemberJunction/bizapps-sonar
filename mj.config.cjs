@@ -118,8 +118,8 @@ module.exports = {
     NameRulesBySchema: [
       { SchemaName: '${mj_core_schema}', EntityNamePrefix: 'MJ: ' },
       {
-        SchemaName: '__sonar',
-        EntityNamePrefix: 'Sonar: ',
+        SchemaName: '__mj_BizAppsSonar',
+        EntityNamePrefix: 'MJ_BizApps_Sonar: ',
         EntityNameSuffix: '',
       },
     ]
@@ -169,7 +169,7 @@ module.exports = {
     schemaPlaceholders: [
       // Substitution runs sequentially with a greedy regex — keep the app
       // schema listed before '__mj' so no rule can partially match another.
-      { schema: '__sonar', placeholder: '${flyway:defaultSchema}' },
+      { schema: '__mj_BizAppsSonar', placeholder: '${flyway:defaultSchema}' },
       { schema: '__mj', placeholder: '${mjSchema}' }
     ]
   },

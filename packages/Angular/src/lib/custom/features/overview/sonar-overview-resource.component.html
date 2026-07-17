@@ -1,0 +1,307 @@
+<div class="sonar-page sonar-page--railed sonar-home">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <button class="sonar-btn sonar-btn--ghost" (click)="current.toggleSidebar()" title="Choose scoring model" style="padding: 0.5rem; margin-right: 0.25rem;">
+                <i class="fa-solid fa-bars" style="font-size: 1.25rem;"></i>
+            </button>
+            <span class="sonar-page__icon"><i class="fa-solid fa-wave-square"></i></span>
+            <div>
+                <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
+                    {{ model() ? model()!.Name : 'Sonar' }}
+                </h1>
+                <p class="sonar-page__subtitle">
+                    @if (model()) {
+                        <!-- The old stat-tile grid, collapsed to one metadata line (population, coverage,
+                             config counts, recency). Low coverage is an operational warning, so it gets
+                             band-colored emphasis instead of whispering in muted text. -->
+                        Anchor: {{ anchorName() }}
+                        · <span class="sonar-mono">{{ population() === null ? '—' : (population() | number) }}</span> in population
+                        · <span class="sonar-mono">{{ scoredCount() | number }}</span> scored@if (coveragePct() !== null) {&nbsp;(<span [class.sonar-home__coverage-low]="coveragePct()! < 100">{{ coveragePct() }}%</span>)}
+                        · {{ signalCount() }} signals
+                        · {{ bandCount() }} bands
+                        @if (lastRecomputeLabel()) { · recomputed {{ lastRecomputeLabel() }} }
+                    } @else {
+                        Your engagement-scoring models at a glance.
+                    }
+                </p>
+            </div>
+        </div>
+        @if (model()) {
+            <div class="sonar-page__actions">
+                <span class="sonar-chip" [ngClass]="statusClass(model()!.Status)">{{ model()!.Status }}</span>
+            </div>
+        }
+    </div>
+
+    <div class="sonar-page__body sonar-with-rail">
+        <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
+
+        <div class="sonar-with-rail__main">
+            @if (loadingModel()) {
+                <div class="sonar-stack">
+                    <section class="sonar-home__hero sonar-home__hero--skeleton">
+                        <div class="sonar-skeleton sonar-skeleton--text" style="width:12rem"></div>
+                        <div class="sonar-skeleton sonar-skeleton--text" style="width:26rem;height:1.25rem;margin-top:1rem"></div>
+                        <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:11rem;margin-top:1.5rem"></div>
+                    </section>
+                    <section class="sonar-card">
+                        <div class="sonar-skeleton sonar-skeleton--text" style="width:14rem"></div>
+                        <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:7rem;margin-top:1rem"></div>
+                    </section>
+                </div>
+            } @else if (loaded() && !model()) {
+                <div class="sonar-empty">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <h2>No model selected</h2>
+                    <p>Pick a model from the rail, or open <strong>Model Builder</strong> to create your first one.</p>
+                </div>
+            } @else if (model()) {
+                <div class="sonar-stack">
+                    <!-- Hero anchor: one plain-language headline over ONE switchable visualization.
+                         Three lenses on the same population; the toggle persists as a preference. -->
+                    <section class="sonar-home__hero">
+                        <div class="sonar-home__hero-head">
+                            <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-line"></i>{{ heroEyebrow() }}</div>
+                            @if (distribution().length > 0) {
+                                <div class="sonar-segmented sonar-home__hero-tabs" role="tablist" aria-label="Hero visualization">
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'insight'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'insight'" (click)="setHeroView('insight')">
+                                        <i class="fa-solid fa-table-list"></i> Insight table
+                                    </button>
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'flow'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'flow'" (click)="setHeroView('flow')">
+                                        <i class="fa-solid fa-arrows-left-right"></i> Migration flow
+                                    </button>
+                                    <button type="button" class="sonar-segmented__opt" role="tab" [attr.aria-selected]="heroView() === 'mix'"
+                                            [class.sonar-segmented__opt--active]="heroView() === 'mix'" (click)="setHeroView('mix')">
+                                        <i class="fa-solid fa-chart-column"></i> Band mix
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        @if (distribution().length === 0) {
+                            <p class="sonar-home__hero-empty">
+                                No persisted scores yet. Publish the model, then run <strong>Recompute</strong> in Model Builder to populate this.
+                            </p>
+                        } @else {
+                            <!-- Plain language first: what changed, in one sentence. -->
+                            @if (headline(); as h) {
+                                @switch (h.kind) {
+                                    @case ('moved') {
+                                        <div class="sonar-home__headline">
+                                            Since {{ h.prevDate }}: <span class="sonar-home__headline-bad">{{ h.declined | number }} members</span> slipped toward {{ h.worstLabel }},
+                                            <span class="sonar-home__headline-good">{{ h.improved | number }} improved</span>.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">
+                                            {{ h.movedPct }}% of the scored population moved
+                                            @if (h.topFlow) { · biggest shift: {{ h.topFlow.fromLabel }} → {{ h.topFlow.toLabel }} ({{ h.topFlow.count | number }} members) }
+                                        </div>
+                                    }
+                                    @case ('steady') {
+                                        <div class="sonar-home__headline">
+                                            Scores held steady since {{ h.prevDate }} — no band changes across {{ scoredCount() | number }} members.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">Recomputed {{ h.currDate }} · distribution unchanged below</div>
+                                    }
+                                    @case ('first') {
+                                        <div class="sonar-home__headline">
+                                            First recompute complete — {{ scoredCount() | number }} members scored across {{ bandCount() }} bands.
+                                        </div>
+                                        <div class="sonar-home__headline-sub">Movement and trends appear after the next recompute</div>
+                                    }
+                                }
+                            }
+
+                            <!-- Lens 1: insight table — one row per band; absorbs the old trajectory card
+                                 via per-band share sparklines (all on ONE shared y-scale). -->
+                            @if (heroView() === 'insight') {
+                                <div class="sonar-home__itable">
+                                    @for (r of insightRows(); track r.key) {
+                                        <div class="sonar-home__irow">
+                                            <div class="sonar-home__irow-id">
+                                                <span class="sonar-donut__dot sonar-donut__dot--{{ r.key }}"></span>
+                                                <span class="sonar-home__irow-label">{{ r.label }}</span>
+                                            </div>
+                                            <div class="sonar-home__irow-share">
+                                                <div class="sonar-home__irow-track">
+                                                    <div class="sonar-home__irow-fill sonar-home__irow-fill--{{ r.key }}" [style.width.%]="r.pct"></div>
+                                                </div>
+                                                <span class="sonar-mono sonar-home__irow-pct">{{ r.pct }}%</span>
+                                            </div>
+                                            @if (r.spark) {
+                                                <svg class="sonar-home__irow-spark" viewBox="0 0 120 28" title="Share of population over recent recomputes (all bands share one scale)">
+                                                    <path class="sonar-home__spark-area sonar-home__spark-area--{{ r.key }}" [attr.d]="r.spark.area"></path>
+                                                    <path class="sonar-home__spark-line sonar-home__spark-line--{{ r.key }}" [attr.d]="r.spark.line"></path>
+                                                    <circle class="sonar-home__spark-dot sonar-home__spark-dot--{{ r.key }}" [attr.cx]="r.spark.endX" [attr.cy]="r.spark.endY" r="2.5"></circle>
+                                                </svg>
+                                            } @else { <span class="sonar-home__irow-nospark">—</span> }
+                                            <div class="sonar-mono sonar-home__irow-counts">
+                                                @if (r.prev !== null) { {{ r.prev | number }} <span class="sonar-home__irow-arrow">→</span> }
+                                                <b>{{ r.count | number }}</b>
+                                            </div>
+                                            <span class="sonar-mono sonar-home__irow-delta sonar-home__irow-delta--{{ r.tone }}">
+                                                {{ r.delta === null ? 'new' : deltaText(r.delta) }}
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="sonar-home__hero-caption">Bar = current share of population · sparkline = share over recent recomputes (shared scale)</div>
+                            }
+
+                            <!-- Lens 2: migration flow — REAL band changes between the last two recomputes. -->
+                            @if (heroView() === 'flow') {
+                                <div class="sonar-home__hero-sankey">
+                                    <div class="sonar-sankey__header">
+                                        <span>{{ headline()?.prevDate }}</span>
+                                        <span>{{ headline()?.currDate }}</span>
+                                    </div>
+                                    <div class="sonar-sankey__container">
+                                        <div class="sonar-sankey__nodes">
+                                            @for (nd of flowLeftNodes(); track nd.key) {
+                                                <div class="sonar-sankey__node sonar-sankey__node--{{ nd.key }}">
+                                                    {{ nd.label }}
+                                                    <span class="sonar-mono sonar-sankey__node-count">{{ nd.count | number }}</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="sonar-sankey__canvas">
+                                            <svg viewBox="0 0 640 240" preserveAspectRatio="none">
+                                                @for (link of flowLinks(); track $index) {
+                                                    <path [attr.d]="link.d" [attr.stroke-width]="link.width"
+                                                          class="sonar-sankey__link"
+                                                          [class.sonar-sankey__link--worse]="link.worse"
+                                                          [class.sonar-sankey__link--better]="!link.worse"></path>
+                                                }
+                                                @for (link of flowLinks(); track $index) {
+                                                    <text class="sonar-sankey__link-label"
+                                                          [class.sonar-sankey__link-label--worse]="link.worse"
+                                                          [attr.x]="link.labelX" [attr.y]="link.labelY" text-anchor="middle">{{ link.count }}</text>
+                                                }
+                                            </svg>
+                                            @if (flowLinks().length === 0) {
+                                                <div class="sonar-home__flow-steady">
+                                                    @if (headline()?.kind === 'first') { Movement appears after the next recompute. }
+                                                    @else { No band movement — every member held their band. }
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="sonar-sankey__nodes">
+                                            @for (nd of flowRightNodes(); track nd.key) {
+                                                <div class="sonar-sankey__node sonar-sankey__node--{{ nd.key }}">
+                                                    {{ nd.label }}
+                                                    <span class="sonar-mono sonar-sankey__node-count">{{ nd.count | number }}</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sonar-home__hero-caption">Ribbons = members who changed band, labeled with counts · amber = decline, green = recovery</div>
+                            }
+
+                            <!-- Lens 3: band mix — DISCRETE stacked columns, one per recompute. Scores step
+                                 at recomputes (they don't drift between them), so no continuous curves. -->
+                            @if (heroView() === 'mix') {
+                                @if (mixColumns().length >= 2) {
+                                    <div class="sonar-home__mix">
+                                        <div class="sonar-home__mix-cols">
+                                            @for (col of mixColumns(); track $index) {
+                                                <div class="sonar-home__mix-colwrap">
+                                                    <div class="sonar-home__mix-col">
+                                                        @for (seg of col.segments; track seg.key) {
+                                                            <div class="sonar-home__mix-seg sonar-home__mix-seg--{{ seg.key }}" [style.height.%]="seg.pct"></div>
+                                                        }
+                                                    </div>
+                                                    <span class="sonar-mono sonar-home__mix-date">{{ col.dateLabel }}</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="sonar-home__mix-legend">
+                                            @for (l of mixLegend(); track l.key) {
+                                                <div class="sonar-home__hero-legrow">
+                                                    <span class="sonar-donut__dot sonar-donut__dot--{{ l.key }}"></span>
+                                                    <span class="sonar-home__hero-legname">{{ l.label }}</span>
+                                                    <span class="sonar-mono sonar-home__hero-legval">{{ l.count | number }} ({{ l.pct }}%)</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="sonar-home__hero-caption">Each column is one recompute, segments show the band mix · current counts on the right</div>
+                                } @else {
+                                    <div class="sonar-empty sonar-empty--inline">
+                                        <i class="fa-solid fa-chart-column"></i>
+                                        <p>Not enough history yet — the band mix appears after a second recompute.</p>
+                                    </div>
+                                }
+                            }
+                        }
+                    </section>
+
+                    <!-- Who needs action: full-width so the cohort list has room to grow.
+                         Cohort chips first (band movements), then the biggest individual movers. -->
+                    @if (scoredCount() > 0) {
+                        <section class="sonar-card sonar-home__action">
+                            <div class="sonar-home__action-head">
+                                <div class="sonar-card__label">
+                                    Who needs action
+                                    @if (actionBaselineLabel(); as bl) {
+                                        · vs {{ bl }}@if (actionBaseline()?.clamped) { <span class="sonar-home__action-clamp">&nbsp;(oldest snapshot available)</span> }
+                                    }
+                                </div>
+                                @if (actionBaseline()) {
+                                    <div class="sonar-segmented sonar-home__seg-compact" role="tablist" aria-label="Comparison timeframe">
+                                        @for (opt of windowOptions; track opt.id) {
+                                            <button type="button" class="sonar-segmented__opt" role="tab"
+                                                    [attr.aria-selected]="actionWindow() === opt.id"
+                                                    [class.sonar-segmented__opt--active]="actionWindow() === opt.id"
+                                                    (click)="actionWindow.set(opt.id)">{{ opt.label }}</button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            @if (actionFlows().length > 0) {
+                                <div class="sonar-home__cohorts">
+                                    @for (f of actionFlows(); track f.fromLabel + f.toLabel) {
+                                        <span class="sonar-chip" [ngClass]="f.worse ? 'sonar-chip--atrisk' : 'sonar-chip--healthy'">
+                                            {{ f.count | number }} {{ f.worse ? 'slipped' : 'recovered' }} {{ f.fromLabel }} → {{ f.toLabel }}
+                                        </span>
+                                    }
+                                </div>
+                            } @else {
+                                <div class="sonar-home__action-steady">
+                                    @if (headline()?.kind === 'first') {
+                                        <span>First recompute — nobody has moved yet. The standing cohort is still worth working:</span>
+                                    } @else {
+                                        <span>No band changes in this window — nobody newly needs action. The standing cohort is still worth working:</span>
+                                    }
+                                    @if (worstSlice(); as w) {
+                                        <span class="sonar-chip sonar-chip--{{ w.key }}">{{ w.count | number }} currently {{ w.label }}</span>
+                                    }
+                                </div>
+                            }
+                            <!-- Score Movers hidden: data pipeline temporarily disabled -->
+                        </section>
+                    }
+
+                    <!-- Needs attention -->
+                    @if (attention().length > 0) {
+                        <section class="sonar-group">
+                            <h2 class="sonar-group__title">Needs attention</h2>
+                            <div class="sonar-stack">
+                                @for (a of attention(); track a) {
+                                    <div class="sonar-card sonar-home__attention">
+                                        <i class="fa-solid fa-circle-exclamation"></i>
+                                        <span>{{ a }}</span>
+                                    </div>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Floating Sonar Assistant copilot (available on every surface) -->
+<sonar-copilot-launcher></sonar-copilot-launcher>

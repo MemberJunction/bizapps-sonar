@@ -1,0 +1,217 @@
+/* Score-Band Builder — two-column cockpit layout.
+   Left sidebar: set picker, name, preview, actions.
+   Right main: band rows table that fills remaining height and scrolls. */
+
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sonar-faint { color: var(--sonar-faint); }
+.sonar-ink   { color: var(--sonar-ink); }
+.sonar-mono  { font-family: ui-monospace, SFMono-Regular, monospace; }
+
+/* Outer wrapper — two-column grid that fills :host */
+.sonar-sb {
+    display: grid;
+    grid-template-columns: 256px 1fr;
+    grid-template-rows: 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ── Left sidebar ─────────────────────────────────────────────────────────── */
+.sonar-sb__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-right: 1px solid var(--sonar-border);
+    overflow-y: auto;
+    min-height: 0;
+    background: var(--sonar-surface);
+}
+
+.sonar-sb__sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sonar-sb__setpick-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.sonar-sb__setpick {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.sonar-fb__name-field {
+    font-size: 0.95rem;
+    font-weight: 600;
+    width: 100%;
+}
+
+.sonar-fb__sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    color: var(--sonar-muted);
+}
+
+/* Number-line preview card */
+.sonar-sb__preview-card {
+    padding: 0.75rem;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sonar-sb__line {
+    display: flex;
+    height: 2rem;
+    border-radius: var(--sonar-radius-sm);
+    overflow: hidden;
+}
+
+.sonar-sb__seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--sonar-on-band);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.sonar-sb__seg--healthy  { background: var(--sonar-healthy); }
+.sonar-sb__seg--watch    { background: var(--sonar-watch); }
+.sonar-sb__seg--atrisk   { background: var(--sonar-atrisk); }
+.sonar-sb__seg--critical { background: var(--sonar-critical); }
+.sonar-sb__seg--unknown  { background: var(--sonar-muted); }
+
+.sonar-sb__marker-track {
+    position: relative;
+    height: 1.5rem;
+}
+
+.sonar-sb__marker {
+    position: absolute;
+    top: 0.2rem;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.sonar-sb__try {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.sonar-sb__try input[type="range"] {
+    flex: 1;
+    accent-color: var(--sonar-brand);
+}
+
+/* Push actions to the bottom of the sidebar */
+.sonar-sb__sidebar-grow { flex: 1; }
+
+.sonar-sb__coverage-warn {
+    font-size: 0.78rem;
+}
+
+.sonar-sb__sidebar-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+/* ── Right main area ─────────────────────────────────────────────────────── */
+.sonar-sb__main {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    overflow: hidden;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+.sonar-sb__rows-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+/* generic field input */
+.sonar-field {
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.35rem 0.55rem;
+    color: var(--sonar-ink);
+    font-size: 0.85rem;
+    width: 100%;
+}
+.sonar-field:focus { outline: none; border-color: var(--sonar-brand); }
+
+/* Band rows grid: Label, From, To, Severity, Final, delete */
+.sonar-sb__grid {
+    display: grid;
+    grid-template-columns: 1.6fr 0.8fr 0.8fr 0.8fr 0.7fr 1.75rem;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.sonar-sb__grid--head {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sonar-faint);
+    padding: 0 0.25rem 0.15rem;
+    flex-shrink: 0;
+}
+
+/* Scrollable rows body — fills remaining main height */
+.sonar-sb__rows-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sonar-sb__row {
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    padding: 0.4rem 0.5rem;
+}
+
+/* Label cell: swatch + input */
+.sonar-sb__label-cell  { display: flex; align-items: center; gap: 0.4rem; }
+.sonar-sb__band-swatch { flex: none; width: 0.625rem; height: 0.625rem; border-radius: 50%; }
+.sonar-sb__band-swatch--healthy  { background: var(--sonar-healthy); }
+.sonar-sb__band-swatch--watch    { background: var(--sonar-watch); }
+.sonar-sb__band-swatch--atrisk   { background: var(--sonar-atrisk); }
+.sonar-sb__band-swatch--critical { background: var(--sonar-critical); }
+.sonar-sb__band-swatch--unknown  { background: var(--sonar-muted); }
+.sonar-sb__label-cell .sonar-field { flex: 1; min-width: 0; }
+
+.sonar-sb__term { display: flex; justify-content: center; }
+.sonar-sb__term input { accent-color: var(--sonar-brand); }
+.sonar-sb__del { color: var(--sonar-faint); background: none; border: none; cursor: pointer; }
+.sonar-sb__del:hover { color: var(--sonar-critical); }
+
+.sonar-sb__rows-note { margin-top: 0.5rem; }

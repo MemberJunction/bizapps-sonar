@@ -3,7 +3,7 @@ Don't say "You're absolutely right" each time I correct you. Mix it up, that's s
 
 # Sonar Development Guide
 
-This repository is **Sonar**, a configurable engagement-scoring engine built as a **MemberJunction Open App** on top of the [MemberJunction](https://github.com/MemberJunction/MJ) platform. It owns the `__sonar` database schema and lets operators define any number of concurrent scoring models — anchor entity, factors, rubric, bands — entirely as data, with explainable score output and an action layer.
+This repository is **Sonar**, a configurable engagement-scoring engine built as a **MemberJunction Open App** on top of the [MemberJunction](https://github.com/MemberJunction/MJ) platform. It owns the `__mj_BizAppsSonar` database schema and lets operators define any number of concurrent scoring models — anchor entity, factors, rubric, bands — entirely as data, with explainable score output and an action layer.
 
 **Read [`/plans/plan.md`](plans/plan.md) before doing schema or engine work** — it contains the full data model design (§5), the scoring engine pipeline (§6), and the package layout (§4.5). [`/plans/README.md`](plans/README.md) is the executive summary.
 
@@ -11,9 +11,9 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 
 ```
 bizapps-sonar/
-  mj-app.json          - MJ Open App manifest (schema __sonar, packages, startup exports)
+  mj-app.json          - MJ Open App manifest (schema __mj_BizAppsSonar, packages, startup exports)
   mj.config.cjs        - CodeGen configuration (entity name prefix 'Sonar: ')
-  migrations/          - Skyway SQL migrations for the __sonar schema
+  migrations/          - Skyway SQL migrations for the __mj_BizAppsSonar schema
   metadata/            - mj-sync metadata (schema-info, entities; later: agents, actions, templates)
   plans/               - Product plan, data model design, and UI mockups
   apps/
@@ -175,8 +175,8 @@ This repo uses a two-tier branching model (matching bizapps-common, BCSaaS, and 
 
 ## Sonar Domain Conventions
 
-- **Schema**: all Sonar tables live in **`__sonar`**. Migrations use `${flyway:defaultSchema}` as the schema placeholder.
-- **Entity name prefix**: CodeGen names new `__sonar` entities `Sonar: <Name>` (configured in `mj.config.cjs` `newEntityDefaults`).
+- **Schema**: all Sonar tables live in **`__mj_BizAppsSonar`**. Migrations use `${flyway:defaultSchema}` as the schema placeholder.
+- **Entity name prefix**: CodeGen names new `__mj_BizAppsSonar` entities `Sonar: <Name>` (configured in `mj.config.cjs` `newEntityDefaults`).
 - **Configuration is data**: models, factors, rubrics, windows, bands, write-back rules, and playbooks are all rows — code is the engine that interprets them. Don't hardcode scoring logic that belongs in configuration entities.
 - **Data model groups** (plan §5): configuration (`ScoreModel`, `ScoreModelVersion`, `ModelRelatedEntity`, `ScoreBandSet`/`ScoreBand`) · factors & windows (`Factor`, `TimeWindow`, `ModelFactor`) · runtime output (`Score`, `ScoreFactorContribution`, `ScoreHistory`, `ScoreBandTransition`) · recompute/audit · Action governance & write-back · action layer · calibration network · templates.
 - **Published model versions are immutable** — publishing snapshots full config into `ScoreModelVersion` for reproducible, auditable scores.
@@ -333,11 +333,12 @@ This repo uses MemberJunction's CodeGen system to generate entity and action sub
 
 ## Database Migrations
 - Run `npm run mj:migrate` from repo root
-- Migrations live in `/migrations` and run against the `__sonar` schema via `${flyway:defaultSchema}`
+- Migrations live in `/migrations` and run against the `__mj_BizAppsSonar` schema via `${flyway:defaultSchema}`
 - See MJ documentation for migration file format and conventions
 - Never include `__mj_CreatedAt`/`__mj_UpdatedAt` columns in CREATE TABLE - CodeGen handles them
 - Never create indexes for foreign key columns - CodeGen creates them automatically
 - Use hardcoded UUIDs in seed/metadata migrations, never NEWID()
+- **App config in `metadata/` is dual-sourced.** `mj app install` runs migrations only (not `metadata/`), so the config those dirs hold (bands, windows, actions, queries, remote ops, the authoring agent) is also baked into a generated seed migration (`V…__Seed_App_Metadata.sql`). **If you edit any `metadata/` config, regenerate that seed** or a fresh install ships stale config. Regen steps are in the seed file's header; see [`migrations/README.md`](migrations/README.md).
 
 ---
 
@@ -379,6 +380,6 @@ Source maps are scoped to local packages only (`apps/MJAPI/**`, `packages/Entiti
 
 ## Purpose
 
-Sonar is a standalone product (working title) built as an MJ Open App. It scores engagement for **any anchor entity** on the MemberJunction graph — members, donors, volunteers, learners, chapters — using operator-authored models whose configuration lives entirely in the `__sonar` schema. Scores are explainable by construction (weighted sums of named factor contributions), tracked over time, written back to source systems, and acted on through MJ Actions with holdout-measured lift.
+Sonar is a standalone product (working title) built as an MJ Open App. It scores engagement for **any anchor entity** on the MemberJunction graph — members, donors, volunteers, learners, chapters — using operator-authored models whose configuration lives entirely in the `__mj_BizAppsSonar` schema. Scores are explainable by construction (weighted sums of named factor contributions), tracked over time, written back to source systems, and acted on through MJ Actions with holdout-measured lift.
 
 See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.

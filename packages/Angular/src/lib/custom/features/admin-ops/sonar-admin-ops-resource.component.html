@@ -1,0 +1,201 @@
+<div class="sonar-page sonar-page--railed sonar-ops">
+    <div class="sonar-page__header">
+        <div class="sonar-page__heading">
+            <span class="sonar-page__icon"><i class="fa-solid fa-gauge-high"></i></span>
+            <div>
+                <h1 class="sonar-page__title">Engine operations</h1>
+                <p class="sonar-page__subtitle">Recompute health, published versions, and the config audit trail</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="sonar-page__body sonar-with-rail">
+        <!-- Sidebar Navigation Rail -->
+        <aside class="sonar-ops-sidebar" role="navigation" aria-label="Operations sections">
+            <button type="button" class="sonar-ops-sidebar__item" 
+                    [class.sonar-ops-sidebar__item--active]="activeTab() === 'health'"
+                    (click)="setTab('health')">
+                <i class="fa-solid fa-circle-check"></i>
+                <div class="sonar-ops-sidebar__item-text">
+                    <span class="sonar-ops-sidebar__item-title">Run Health</span>
+                    <span class="sonar-ops-sidebar__item-subtitle">Recent runs & stats</span>
+                </div>
+            </button>
+            <button type="button" class="sonar-ops-sidebar__item" 
+                    [class.sonar-ops-sidebar__item--active]="activeTab() === 'governance'"
+                    (click)="setTab('governance')">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <div class="sonar-ops-sidebar__item-text">
+                    <span class="sonar-ops-sidebar__item-title">Governance</span>
+                    <span class="sonar-ops-sidebar__item-subtitle">Version history & diffs</span>
+                </div>
+            </button>
+        </aside>
+
+        <!-- Main Panel area (scroll-contained) -->
+        <div class="sonar-with-rail__main">
+            @if (activeTab() === 'health') {
+                <div class="sonar-stack sonar-ops__tab-content">
+                    <!-- Group: run health -->
+                    <div class="sonar-group">
+                        <section class="sonar-card">
+                            <div class="sonar-card__head sonar-ops__card-head">
+                                <div class="sonar-card__label">Recent recompute runs</div>
+                            </div>
+
+                            <!-- Stats pills row -->
+                            <div class="sonar-ops__stat-pills">
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-circle-check sonar-ops__stat-ico--ok"></i>
+                                    <span class="sonar-ops__stat-val">{{ successRate() }}</span>
+                                    <span class="sonar-ops__stat-lbl">Success rate</span>
+                                </span>
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-clock sonar-ops__stat-ico--brand"></i>
+                                    <span class="sonar-ops__stat-val">{{ averageDuration() }}</span>
+                                    <span class="sonar-ops__stat-lbl">Avg duration</span>
+                                </span>
+                                <span class="sonar-ops__stat-pill">
+                                    <i class="fa-solid fa-database sonar-ops__stat-ico--muted"></i>
+                                    <span class="sonar-ops__stat-val">{{ totalScoredCount() | number }}</span>
+                                    <span class="sonar-ops__stat-lbl">Total scored</span>
+                                </span>
+                            </div>
+
+                            <!-- Upgraded Runs Table -->
+                            <div class="sonar-table-wrap">
+                                <table class="sonar-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Model</th>
+                                            <th>Trigger</th>
+                                            <th>Scope</th>
+                                            <th class="sonar-num">Scored</th>
+                                            <th class="sonar-num">Changed</th>
+                                            <th class="sonar-num">Band moves</th>
+                                            <th class="sonar-num">Duration</th>
+                                            <th class="sonar-num">Cost</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (r of runs(); track $index) {
+                                            <tr>
+                                                <td class="sonar-ops__model-cell">
+                                                    <i class="fa-solid fa-sliders sonar-ops__model-icon"></i>
+                                                    {{ r.model }}
+                                                </td>
+                                                <td class="sonar-faint">{{ r.trigger }}</td>
+                                                <td class="sonar-faint">{{ r.scope }}</td>
+                                                <td class="sonar-mono sonar-num">{{ r.scored | number }}</td>
+                                                <td class="sonar-mono sonar-num">{{ r.changed | number }}</td>
+                                                <td class="sonar-mono sonar-num" [class.sonar-text--atrisk]="r.moves > 0" [class.sonar-num--zero]="r.moves === 0">{{ r.moves | number }}</td>
+                                                <td class="sonar-mono sonar-num">{{ r.duration }}</td>
+                                                <td class="sonar-mono sonar-num sonar-faint">{{ r.cost }}</td>
+                                                <td>
+                                                    <span class="sonar-status-badge" [class.sonar-status-badge--success]="r.ok" [class.sonar-status-badge--fail]="!r.ok">
+                                                        <span class="sonar-status-badge__dot"></span>
+                                                        {{ r.statusLabel }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (runs().length === 0) {
+                                            <tr><td colspan="9" class="sonar-faint sonar-table__empty">No recompute runs yet.</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="sonar-note">Cost units track Action-backed factors flagged <span class="sonar-mono">IsExpensive</span>; full population runs on a schedule, events trigger incrementals.</p>
+                        </section>
+                    </div>
+                </div>
+            }
+
+            @if (activeTab() === 'governance') {
+                <div class="sonar-stack sonar-ops__tab-content">
+                    <div class="sonar-split sonar-ops__governance-split">
+                        <div class="sonar-stack sonar-ops__governance-stack">
+                            <section class="sonar-card">
+                                <div class="sonar-card__label sonar-ops__card-label">Published versions</div>
+                                <div class="sonar-timeline sonar-timeline--interactive">
+                                    @for (v of versions(); track $index) {
+                                        <div class="sonar-timeline__item" 
+                                             [class.sonar-timeline__item--active]="v.current"
+                                             [class.sonar-timeline__item--selected]="selectedVersion()?.label === v.label"
+                                             (click)="selectVersion(v)">
+                                            <span class="sonar-timeline__node"></span>
+                                            <div class="sonar-timeline__content">
+                                                <div class="sonar-timeline__title">
+                                                    {{ v.label }}
+                                                    @if (v.current) { <span class="sonar-chip sonar-chip--healthy">current</span> }
+                                                </div>
+                                                <div class="sonar-timeline__meta">published by {{ v.by }} · {{ v.when }}</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (versions().length === 0) {
+                                        <p class="sonar-faint">No published versions yet.</p>
+                                    }
+                                </div>
+                            </section>
+
+                            <section class="sonar-card">
+                                <div class="sonar-card__label sonar-ops__card-label">Config audit trail</div>
+                                <div class="sonar-timeline">
+                                    @for (a of audit(); track $index) {
+                                        <div class="sonar-timeline__item">
+                                            <span class="sonar-timeline__node"></span>
+                                            <div class="sonar-timeline__content">
+                                                <div class="sonar-timeline__title">
+                                                    {{ a.what }} <span class="sonar-faint" style="font-weight: 400;">· {{ a.change }}</span>
+                                                </div>
+                                                <div class="sonar-timeline__meta">changed by {{ a.by }} · {{ a.when }}</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (audit().length === 0) {
+                                        <p class="sonar-faint">No config changes recorded yet.</p>
+                                    }
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Config Diff Inspector — real diff of the version's ConfigSnapshotJSON vs the prior version -->
+                        <section class="sonar-card sonar-ops__diff-panel">
+                            <div class="sonar-card__label">
+                                Config diff vs previous version
+                                @if (selectedVersion(); as sv) {
+                                    <span class="sonar-chip sonar-chip--watch">v{{ sv.versionNumber }}</span>
+                                }
+                            </div>
+                            @if (selectedVersion()) {
+                                @if (selectedIsInitial()) {
+                                    <div class="sonar-ops__empty-diff">
+                                        <i class="fa-solid fa-flag-checkered"></i>
+                                        <p class="sonar-faint">Initial published version — there's no earlier version to compare against.</p>
+                                    </div>
+                                } @else {
+                                    <div class="sonar-ops__diff-box sonar-mono">
+                                        @for (l of diffLines(); track $index) {
+                                            <div class="sonar-ops__diff-line sonar-ops__diff-line--{{ l.type }}">{{ l.type === 'add' ? '+ ' : l.type === 'del' ? '- ' : '  ' }}{{ l.text }}</div>
+                                        }
+                                    </div>
+                                }
+                            } @else {
+                                <div class="sonar-ops__empty-diff">
+                                    <i class="fa-solid fa-code-compare"></i>
+                                    <p class="sonar-faint">Select a published version on the left to inspect its scoring-config changes.</p>
+                                </div>
+                            }
+                        </section>
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+<!-- Floating Sonar Assistant copilot (available on every surface) -->
+<sonar-copilot-launcher></sonar-copilot-launcher>

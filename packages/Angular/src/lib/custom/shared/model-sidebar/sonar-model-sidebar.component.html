@@ -1,0 +1,61 @@
+<aside class="sonar-sidebar" [class.sonar-sidebar--collapsed]="!sidebarExpanded()">
+    <div class="sonar-sidebar__head">
+        <span class="sonar-sidebar__title">Models</span>
+        <div class="sonar-sidebar__head-right">
+            @if (models().length > 0) { <span class="sonar-sidebar__count">{{ models().length }}</span> }
+            @if (createEnabled) { <button class="sonar-sidebar__new" title="New model" (click)="create.emit()">+ New</button> }
+        </div>
+    </div>
+
+    @if (models().length > 5) {
+        <input class="sonar-sidebar__search" type="search" placeholder="Filter models&hellip;"
+               [value]="query()" (input)="query.set($any($event.target).value)" />
+    }
+
+    @if (loaded() && models().length === 0) {
+        <p class="sonar-sidebar__empty">No models yet. @if (createEnabled) { Click <strong>+ New</strong> to create one. } @else { Open <strong>Model Builder</strong> to create one. }</p>
+    } @else {
+        <ul class="sonar-sidebar__list">
+            @for (m of visibleModels(); track m.id) {
+                <li>
+                    <button class="sonar-sidebar__item" [class.sonar-sidebar__item--active]="m.id === selectedId()" (click)="pick(m.id)" [title]="m.name + ' · ' + m.status">
+                        <span class="sonar-sidebar__dot sonar-sidebar__dot--{{ statusTone(m.status) }}" [attr.aria-label]="m.status"></span>
+                        <span class="sonar-sidebar__body">
+                            <span class="sonar-sidebar__name">{{ m.name }}</span>
+                            <span class="sonar-sidebar__meta"><i class="fa-solid fa-bullseye"></i> {{ m.anchorName }}</span>
+                        </span>
+                        <span class="sonar-sidebar__weight" [title]="m.signals + (m.signals === 1 ? ' signal' : ' signals')"><i class="fa-solid fa-wave-square"></i> {{ m.signals }}</span>
+                    </button>
+                </li>
+            }
+
+            @if (showArchived() && visibleArchivedModels().length > 0) {
+                <li class="sonar-sidebar__divider" aria-hidden="true"></li>
+                @for (m of visibleArchivedModels(); track m.id) {
+                    <li>
+                        <button class="sonar-sidebar__item sonar-sidebar__item--archived" [class.sonar-sidebar__item--active]="m.id === selectedId()" (click)="pick(m.id)" [title]="m.name + ' · Archived'">
+                            <span class="sonar-sidebar__dot sonar-sidebar__dot--archived" aria-label="Archived"></span>
+                            <span class="sonar-sidebar__body">
+                                <span class="sonar-sidebar__name">{{ m.name }}</span>
+                                <span class="sonar-sidebar__meta"><i class="fa-solid fa-bullseye"></i> {{ m.anchorName }}</span>
+                            </span>
+                            <span class="sonar-sidebar__weight"><i class="fa-solid fa-wave-square"></i> {{ m.signals }}</span>
+                        </button>
+                    </li>
+                }
+            }
+
+            @if (visibleModels().length === 0 && !(showArchived() && visibleArchivedModels().length > 0)) {
+                <li class="sonar-sidebar__empty">No models match &ldquo;{{ query() }}&rdquo;.</li>
+            }
+        </ul>
+
+        @if (archivedCount() > 0) {
+            <button class="sonar-sidebar__archived-toggle" (click)="toggleArchived()" [title]="showArchived() ? 'Hide archived models' : 'Show archived models'">
+                <i class="fa-solid fa-box-archive"></i>
+                @if (showArchived()) { Hide archived } @else { show {{ archivedCount() }} archived }
+                <span class="sonar-sidebar__archived-badge">{{ archivedCount() }}</span>
+            </button>
+        }
+    }
+</aside>

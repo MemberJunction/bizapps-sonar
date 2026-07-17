@@ -1,0 +1,18 @@
+{
+  "entity": "MJ: Applications",
+  "filePattern": "**/.*.json",
+  "pull": {
+    "createNewFileIfNotFound": true,
+    "newFileName": ".sonar-application.json",
+    "appendRecordsToExistingFile": true,
+    "updateExistingRecords": true,
+    "ignoreNullFields": true,
+    "ignoreVirtualFields": true,
+    "relatedEntities": {
+      "MJ: Application Entities": {
+        "entity": "MJ: Application Entities",
+        "foreignKey": "ApplicationID"
+      }
+    }
+  }
+}

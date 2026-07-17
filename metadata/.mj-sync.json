@@ -5,7 +5,16 @@
   },
   "directoryOrder": [
     "schema-info",
-    "entities"
+    "entities",
+    "applications",
+    "templates",
+    "prompts",
+    "agents",
+    "time-windows",
+    "score-band-sets",
+    "score-bands",
+    "actions",
+    "remote-operations"
   ],
   "sqlLogging": {
     "enabled": true,
