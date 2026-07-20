@@ -100,3 +100,6 @@ jobs:
             exit 1
           fi
           echo "Seed <-> metadata coupling OK"
+
+      - name: Validate seeded AI agents have tools
+        run: ./.github/scripts/validate-seed-agent-tools.sh
