@@ -1,10 +1,10 @@
 ---
-"@mj-biz-apps/sonar-entities": major
-"@mj-biz-apps/sonar-engine": major
-"@mj-biz-apps/sonar-core-entities-server": major
-"@mj-biz-apps/sonar-actions": major
-"@mj-biz-apps/sonar-server": major
-"@mj-biz-apps/sonar-ng": major
+"@mj-biz-apps/sonar-entities": minor
+"@mj-biz-apps/sonar-engine": minor
+"@mj-biz-apps/sonar-core-entities-server": minor
+"@mj-biz-apps/sonar-actions": minor
+"@mj-biz-apps/sonar-server": minor
+"@mj-biz-apps/sonar-ng": minor
 ---
 
 Wire the Sonar Authoring Agent to its action tool surface so fresh `mj app install` seeds a working agent.
