@@ -33,4 +33,15 @@ if [ "$LINKS" -eq 0 ]; then
   exit 1
 fi
 
-echo "::notice::Seed agent tool-surface OK ($LINKS AIAgentAction seeding statement(s) found)."
+# Links must be emitted AFTER the Sonar Actions they FK-reference (AIAgentAction.ActionID
+# -> Action). On a clean install the seed runs top-to-bottom; if a link block precedes the
+# spCreateAction calls, the referenced Action rows don't exist yet and the seed aborts on a
+# FK violation. Invisible on a populated dev DB (actions already present). See PR #27.
+LAST_ACTION=$(grep -nE 'spCreateAction\b' "$SEED" | tail -1 | cut -d: -f1)
+FIRST_LINK=$(grep -nE 'spCreateAIAgentAction\b|INSERT INTO \[?__mj\]?\.\[?AIAgentAction\]?' "$SEED" | head -1 | cut -d: -f1)
+if [ -n "$LAST_ACTION" ] && [ -n "$FIRST_LINK" ] && [ "$FIRST_LINK" -lt "$LAST_ACTION" ]; then
+  echo "::error::AIAgentAction links (first at line $FIRST_LINK) are emitted before the Actions they reference (last spCreateAction at line $LAST_ACTION). On a clean install the FK-referenced Action rows don't exist yet, so the seed aborts on a FK violation. Move the link block after all spCreateAction calls (end of the seed is safe). See PR #27."
+  exit 1
+fi
+
+echo "::notice::Seed agent tool-surface OK ($LINKS link statement(s); ordering OK: first link line ${FIRST_LINK:-n/a} after last action line ${LAST_ACTION:-n/a})."
