@@ -11,7 +11,8 @@
     "ignoreVirtualFields": true,
     "filter": "Name = 'Sonar Authoring Agent'",
     "relatedEntities": {
-      "MJ: AI Agent Prompts": { "entity": "MJ: AI Agent Prompts", "foreignKey": "AgentID" }
+      "MJ: AI Agent Prompts": { "entity": "MJ: AI Agent Prompts", "foreignKey": "AgentID" },
+      "MJ: AI Agent Actions": { "entity": "MJ: AI Agent Actions", "foreignKey": "AgentID" }
     }
   }
 }
