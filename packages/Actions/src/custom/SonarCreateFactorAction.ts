@@ -119,11 +119,15 @@ export class SonarCreateFactorAction extends SonarActionBase {
         }
         const aggregation = this.asEnum(spec.aggregation, AGGREGATIONS) ?? "Count";
         const aggregateFieldName = aggregation === "Count" ? null : (spec.aggregateFieldName ?? null);
-        // Aggregate field must be a real column on the source entity (weak models hallucinate names).
-        if (aggregateFieldName) {
+        const dateField = spec.dateField ?? null;
+        // Column-referencing fields (aggregate field + date field) must be REAL columns on the source
+        // entity (weak models hallucinate names). FilterExpression is free-form SQL — left to the engine.
+        if (aggregateFieldName || dateField) {
             const cols = await this.sourceColumns(md, spec.sourceRelatedEntityID, contextUser);
-            if (cols && !cols.includes(aggregateFieldName)) {
-                this.saveError = `aggregate field '${aggregateFieldName}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`;
+            const bad = cols ? [aggregateFieldName, dateField].find((c) => c && !cols.includes(c)) : null;
+            if (bad && cols) {
+                const which = bad === aggregateFieldName ? "aggregate field" : "date field";
+                this.saveError = `${which} '${bad}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`;
                 return null;
             }
         }
@@ -140,7 +144,7 @@ export class SonarCreateFactorAction extends SonarActionBase {
         factor.AggregateFieldName = aggregateFieldName;
         factor.FilterExpression = spec.filterExpression ?? null;
         factor.TimeWindowID = spec.timeWindowID ?? null;
-        factor.DateField = spec.dateField ?? null;
+        factor.DateField = dateField;
         factor.NormalizationMethod = this.asEnum(spec.normalizationMethod, NORMALIZATIONS) ?? "MinMax";
         factor.NormalizationParamsJSON = spec.normalizationParamsJSON ?? null;
         factor.HigherIsBetter = spec.higherIsBetter ?? true;

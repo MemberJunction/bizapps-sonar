@@ -164,13 +164,17 @@ export class SonarBuildModelAction extends SonarActionBase {
 
             const aggregation = this.asEnum(f.aggregation, AGGREGATIONS) ?? "Count";
             const aggregateFieldName = aggregation === "Count" ? null : (f.aggregateFieldName ?? null);
-            // The aggregate field must be a real column on the source entity — weak models
-            // hallucinate plausible names (e.g. 'TotalAmount' for a 'TotalGross' column). Catch it
-            // here with the valid columns, so the agent self-corrects instead of failing at compile.
-            if (aggregateFieldName) {
+            const dateField = f.dateField ?? null;
+            // Column-referencing fields (aggregate field + date field) must be REAL columns on the
+            // source entity — weak models hallucinate names ('TotalAmount' for a 'TotalGross' column).
+            // Catch it here with the valid columns so the agent self-corrects instead of failing at
+            // compile. (FilterExpression is free-form SQL — left to the engine, not parsed here.)
+            if (aggregateFieldName || dateField) {
                 const cols = await this.sourceColumns(md, sourceRelatedEntityID, user);
-                if (cols && !cols.includes(aggregateFieldName)) {
-                    return new Error(`factor '${f.name}': aggregate field '${aggregateFieldName}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`);
+                const bad = cols ? [aggregateFieldName, dateField].find((c) => c && !cols.includes(c)) : null;
+                if (bad && cols) {
+                    const which = bad === aggregateFieldName ? "aggregate field" : "date field";
+                    return new Error(`factor '${f.name}': ${which} '${bad}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`);
                 }
             }
 
@@ -186,7 +190,7 @@ export class SonarBuildModelAction extends SonarActionBase {
             factor.AggregateFieldName = aggregateFieldName;
             factor.FilterExpression = f.filterExpression ?? null;
             factor.TimeWindowID = f.timeWindowID ?? null;
-            factor.DateField = f.dateField ?? null;
+            factor.DateField = dateField;
             factor.NormalizationMethod = this.asEnum(f.normalizationMethod, NORMALIZATIONS) ?? "MinMax";
             factor.NormalizationParamsJSON = f.normalizationParamsJSON ?? null;
             factor.HigherIsBetter = f.higherIsBetter ?? true;
