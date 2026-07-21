@@ -32,7 +32,7 @@
     "@memberjunction/templates": "5.45.0",
     "axios": "^1.13.4",
     "class-validator": "^0.14.3",
-    "@mj-biz-apps/sonar-server": "0.2.0"
+    "@mj-biz-apps/sonar-server": "0.3.0"
   },
   "repository": {
     "type": "git",
