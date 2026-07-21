@@ -21,8 +21,8 @@ Write-back to source systems, an intervention / action layer with holdout-measur
 
 ## Requirements
 
-- A running MemberJunction deployment in the range `>=5.33.0 <6.0.0` (developed against 5.45).
-- SQL Server (Sonar's schema is `__mj_BizAppsSonar`).
+- A running MemberJunction deployment in the range `>=5.45.0 <6.0.0`.
+- SQL Server, or PostgreSQL 17+ (Sonar's schema is `__mj_BizAppsSonar`).
 - For the authoring agent and any LLM-backed factors: an AI provider configured in the host MJ.
 
 ## Install (as an Open App)
@@ -30,9 +30,9 @@ Write-back to source systems, an intervention / action layer with holdout-measur
 Install directly from this repository with the MJ CLI:
 
 ```bash
-mj app install https://github.com/MemberJunction/bizapps-sonar
-# or pin a released version:
-mj app install https://github.com/MemberJunction/bizapps-sonar --version <tag>
+# Sonar's schema (__mj_BizAppsSonar) uses MJ's reserved '__' prefix, so install needs the
+# override flag. Pin a released version with --version (latest is v0.3.0):
+mj app install https://github.com/MemberJunction/bizapps-sonar --version v0.3.0 --dangerously-ignore-dbl-underscore-schema-rule
 ```
 
 This reads [`mj-app.json`](./mj-app.json) and, against your MJ instance: creates the `__mj_BizAppsSonar` schema, runs the Skyway migrations, loads the seed metadata (score bands, time windows, actions, queries, remote operations, the authoring agent), and registers the server + client bootstrap packages. Use `mj app list`, `mj app info`, `mj app upgrade`, and `mj app remove` to manage the installed app.
