@@ -162,6 +162,18 @@ export class SonarBuildModelAction extends SonarActionBase {
                     : new Error(`factor '${f.name}' has no data source. Set its 'sourceAlias' to one of the model's sources: ${hint}.`);
             }
 
+            const aggregation = this.asEnum(f.aggregation, AGGREGATIONS) ?? "Count";
+            const aggregateFieldName = aggregation === "Count" ? null : (f.aggregateFieldName ?? null);
+            // The aggregate field must be a real column on the source entity — weak models
+            // hallucinate plausible names (e.g. 'TotalAmount' for a 'TotalGross' column). Catch it
+            // here with the valid columns, so the agent self-corrects instead of failing at compile.
+            if (aggregateFieldName) {
+                const cols = await this.sourceColumns(md, sourceRelatedEntityID, user);
+                if (cols && !cols.includes(aggregateFieldName)) {
+                    return new Error(`factor '${f.name}': aggregate field '${aggregateFieldName}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`);
+                }
+            }
+
             const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, user);
             factor.NewRecord();
             factor.Name = f.name.trim();
@@ -170,8 +182,8 @@ export class SonarBuildModelAction extends SonarActionBase {
             factor.AnchorEntityID = anchorEntityID;
             factor.ScoreModelID = modelId;
             factor.SourceRelatedEntityID = sourceRelatedEntityID;
-            factor.Aggregation = this.asEnum(f.aggregation, AGGREGATIONS) ?? "Count";
-            factor.AggregateFieldName = factor.Aggregation === "Count" ? null : (f.aggregateFieldName ?? null);
+            factor.Aggregation = aggregation;
+            factor.AggregateFieldName = aggregateFieldName;
             factor.FilterExpression = f.filterExpression ?? null;
             factor.TimeWindowID = f.timeWindowID ?? null;
             factor.DateField = f.dateField ?? null;
@@ -205,6 +217,14 @@ export class SonarBuildModelAction extends SonarActionBase {
     private clampWeight(weight: number | undefined): number {
         if (typeof weight !== "number" || Number.isNaN(weight)) return 0.25;
         return Math.min(1, Math.max(0, weight));
+    }
+    /** Column names on a data source's related entity, for validating aggregate fields.
+     *  Returns null if the source/entity can't be resolved (validation is then skipped). */
+    private async sourceColumns(md: Metadata, sourceRelatedEntityID: string, user?: UserInfo): Promise<string[] | null> {
+        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, user);
+        if (!(await mre.Load(sourceRelatedEntityID))) return null;
+        const ent = md.EntityByID(mre.RelatedEntityID);
+        return ent ? ent.Fields.map((fld) => fld.Name) : null;
     }
     private slugify(name: string): string {
         return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
