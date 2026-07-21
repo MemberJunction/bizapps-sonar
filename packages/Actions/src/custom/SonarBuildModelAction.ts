@@ -151,9 +151,15 @@ export class SonarBuildModelAction extends SonarActionBase {
             const aggGap = this.aggregateFieldGap(f.aggregation, f.aggregateFieldName);
             if (aggGap) return new Error(`factor '${f.name}': ${aggGap}`);
             const sourceRelatedEntityID = f.sourceAlias ? sourceIds[f.sourceAlias] : f.sourceRelatedEntityID ?? null;
-            if (f.sourceAlias && !sourceRelatedEntityID) {
+            // Every factor here is Declarative, which MUST read through a data source
+            // (SourceRelatedEntityID). Reject an unresolved source now with an actionable error
+            // instead of silently creating an orphaned factor the engine can't compile.
+            if (!sourceRelatedEntityID) {
                 const valid = Object.keys(sourceIds);
-                return new Error(`factor '${f.name}' references unknown source alias '${f.sourceAlias}'. Valid aliases (from this spec's sources): ${valid.length ? valid.join(", ") : "(none — add the source to spec.sources first)"}.`);
+                const hint = valid.length ? valid.join(", ") : "(none — add the source to spec.sources first)";
+                return f.sourceAlias
+                    ? new Error(`factor '${f.name}' references unknown source alias '${f.sourceAlias}'. Valid aliases (from this spec's sources): ${hint}.`)
+                    : new Error(`factor '${f.name}' has no data source. Set its 'sourceAlias' to one of the model's sources: ${hint}.`);
             }
 
             const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, user);

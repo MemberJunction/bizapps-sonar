@@ -110,6 +110,12 @@ export class SonarCreateFactorAction extends SonarActionBase {
         contextUser?: UserInfo,
     ): Promise<mjBizAppsSonarFactorEntity | null> {
         const md = new Metadata();
+        // A declarative factor must read through a model data source; refuse to create an
+        // orphaned factor (the engine can't compile one with no SourceRelatedEntityID).
+        if (!spec.sourceRelatedEntityID) {
+            this.saveError = `declarative factor '${spec.name}' has no data source — provide sourceRelatedEntityID (a model related entity / ModelRelatedEntity id).`;
+            return null;
+        }
         const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, contextUser);
         factor.NewRecord();
         factor.Name = spec.name.trim();
