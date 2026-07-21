@@ -22,14 +22,28 @@ app-level config that `mj sync push` loads in dev (score bands, time windows, ac
 queries, remote operations, and the authoring agent) is also baked into a **generated
 seed migration** so a clean install gets it.
 
-**The `metadata/` dirs remain the editable, round-trippable source of truth.** The seed
-migration is a point-in-time snapshot. This means:
+### ⚠️ The seed is FROZEN — do NOT regenerate it
 
-- **If you edit any config in `metadata/` (bands, windows, actions, queries, agent,
-  prompt, template, remote ops), you MUST regenerate the seed migration**, or a fresh
-  install ships stale config while dev (via push) shows the new. The exact regen steps
-  are in the header of `V202607142340__v0.1.x_Seed_App_Metadata.sql`.
-- The seed guards every `spCreate` with `IF NOT EXISTS`, so it is idempotent and safe to
-  run against a dev DB already loaded via `mj sync push` (no PK violations).
+`V202607142340__v0.1.x_Seed_App_Metadata.sql` **shipped in v0.2.0.** It is a released,
+immutable migration. **Never edit or regenerate it.** Changing a released migration
+changes its Flyway checksum, which aborts every upgrade (validation failure) — and Flyway
+never re-runs an already-applied version, so the change wouldn't land anyway. Regenerating
+this seed is exactly what broke the v0.2.0 → v0.3.0 upgrade (see PR #29).
+
+**The old "if you edit `metadata/`, regenerate the seed" workflow is retired.** To add or
+change installed config, write a **NEW forward migration** — never touch the seed:
+
+- SQL Server: `migrations/V<newer timestamp>__v<ver>.x_<desc>.sql`
+- PostgreSQL parity: `migrations-pg/V<newer>__v<ver>.x_<desc>.pg.sql` (don't forget this —
+  a SQL-Server-only fix leaves PG shipping the old config)
+- Make inserts idempotent (`IF NOT EXISTS` / `WHERE NOT EXISTS`) and place them AFTER any
+  rows they FK-reference (a forward migration runs after the seed, so seed rows exist).
+- Template: `V202607202300__v0.3.x_Agent_Tool_Surface.sql` + its `.pg.sql` twin.
+
+**`metadata/` remains the editable dev source of truth** (round-trips via `mj sync`), but
+it no longer drives the seed. Caveat: `metadata/agents/.sonar-agent.json` still describes
+the agent's 22 `AIAgentAction` links — those are now seeded by the forward migrations
+above, NOT the seed. A naive "regenerate the seed from metadata" would wrongly re-add them
+to the frozen seed and re-break upgrades.
 
 The full `__mj_BizAppsSonar` data model design is in [`/plans/plan.md` §5](../plans/plan.md).
