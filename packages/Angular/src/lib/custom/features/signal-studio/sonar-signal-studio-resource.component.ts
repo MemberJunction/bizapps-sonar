@@ -28,6 +28,9 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
     private readonly catalog = inject(ActionCatalogService);
 
     public description = "";
+    /** Anchor the new signal is bound to (its PK becomes AnchorRecordID). A signal is authored against ONE
+     *  anchor entity so the agent knows what it's scoring — rigid, but it's what makes the code correct. */
+    public commissionAnchorId: string | null = null;
     public editCode = "";
     public refineFeedback = "";
     public selectedModelId: string | null = null;
@@ -136,6 +139,16 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         return this.computeDiff(v.code, this.code());
     });
 
+    /** Distinct anchor entities across all models — the set a new signal can be bound to. A signal targets
+     *  ONE anchor (its PK is the AnchorRecordID the code scores), so this is the commission-form picker. */
+    public readonly anchors = computed<{ id: string; name: string }[]>(() => {
+        const seen = new Map<string, string>();
+        for (const m of this.models()) {
+            if (m.anchorEntityID && !seen.has(m.anchorEntityID)) seen.set(m.anchorEntityID, m.anchorName ?? "Anchor");
+        }
+        return [...seen].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    });
+
     /** Only Draft models can take a new factor (published config is immutable) — the bind targets. */
     public readonly bindableModels = computed(() => this.models().filter((m) => m.status === "Draft"));
     /** All non-Archived models are valid test targets — Archived ones are decommissioned config. */
@@ -237,11 +250,11 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
 
     public async commission(): Promise<void> {
         const desc = this.description.trim();
-        if (!desc || this.commissioning()) return;
+        if (!desc || !this.commissionAnchorId || this.commissioning()) return;
         this.commissioning.set(true);
         this.notice.set(null);
         try {
-            const res = await this.smith.startJob(desc);
+            const res = await this.smith.startJob(desc, this.commissionAnchorId);
             if (res.ok) {
                 this.notice.set("Job started — ActionSmith is writing it in the background. It'll appear under “For review” when ready.");
                 this.description = "";

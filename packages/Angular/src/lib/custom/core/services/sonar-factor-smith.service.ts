@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Metadata, RunView } from "@memberjunction/core";
+import { EntityInfo, Metadata, RunView } from "@memberjunction/core";
 import { sqlString } from "./sql.util";
 import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
@@ -88,11 +88,14 @@ export interface AnchorField { name: string; value: string }
 export class SonarFactorSmithService {
     private readonly actionIdCache = new Map<string, string>();
 
-    /** Commission a signal: fire ActionSmith detached and return its AgentRunID to track. */
-    public async startJob(description: string, context?: string | null): Promise<{ ok: boolean; agentRunId?: string; error?: string }> {
+    /** Commission a signal: fire ActionSmith detached and return its AgentRunID to track. The signal is
+     *  BOUND to `anchorEntityID` — we hand the agent that anchor's schema (entity + related sources + link
+     *  fields) as Context so it authors against the real graph instead of guessing which entity to Load. */
+    public async startJob(description: string, anchorEntityID?: string | null): Promise<{ ok: boolean; agentRunId?: string; error?: string }> {
         const id = await this.resolveActionId(START_JOB_ACTION);
         if (!id) return { ok: false, error: "The factor-job action isn't available." };
         const params: { Name: string; Value: string; Type: "Input" }[] = [{ Name: "Description", Value: description, Type: "Input" }];
+        const context = anchorEntityID ? this.buildAnchorContext(anchorEntityID) : null;
         if (context) params.push({ Name: "Context", Value: context, Type: "Input" });
         const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return { ok: false, error: res.Message || "Couldn't start the job." };
@@ -394,6 +397,55 @@ export class SonarFactorSmithService {
         action.CodeApprovedByUserID = md.CurrentUser.ID;
         action.CodeApprovedAt = new Date();
         return (await action.Save()) ? { ok: true } : { ok: false, error: action.LatestResult?.Message || "Approve failed." };
+    }
+
+    /** Cap columns listed per related entity so a wide table can't bloat the prompt. */
+    private static readonly MAX_CONTEXT_COLUMNS = 24;
+
+    /** Describe the anchor's schema for ActionSmith: the anchor entity (whose PK is AnchorRecordID) plus
+     *  every business entity that references it, with the link field + columns. This is the grounding that
+     *  stops the agent guessing which entity to Load. Returns null if the anchor can't be resolved. */
+    private buildAnchorContext(anchorEntityID: string): string | null {
+        const md = new Metadata();
+        const anchor = md.Entities.find((e) => e.ID === anchorEntityID);
+        if (!anchor) return null;
+        const pk = anchor.FirstPrimaryKey?.Name ?? "ID";
+        const related = this.relatedSources(md, anchorEntityID);
+        const lines = [
+            `ANCHOR ENTITY: '${anchor.Name}'. AnchorRecordID is this entity's '${pk}' (its primary key).`,
+            `Start from the anchor: utilities.entity.Load('${anchor.Name}', AnchorRecordID).`,
+        ];
+        if (related.length) {
+            lines.push(
+                `Related entities that reference this anchor (read them with utilities.rv.RunView where the link field = AnchorRecordID; do NOT Load them by AnchorRecordID — it is not their key):`,
+                ...related.map((r) => `- '${r.entityName}' (link field: ${r.viaField}) — columns: ${r.columns.join(", ")}`),
+            );
+        } else {
+            lines.push(`No child entities reference this anchor directly — read the fields off the anchor record itself.`);
+        }
+        return lines.join("\n");
+    }
+
+    /** Business entities with a foreign key pointing at the anchor (the one-to-many sources a signal reads),
+     *  each with its link field + columns. Mirrors the server-side List Related Entities scoping: skips the
+     *  MJ system schemas so only real business data is offered. */
+    private relatedSources(md: Metadata, anchorEntityID: string): { entityName: string; viaField: string; columns: string[] }[] {
+        const sources: { entityName: string; viaField: string; columns: string[] }[] = [];
+        for (const entity of md.Entities) {
+            if (entity.ID === anchorEntityID || (entity.SchemaName ?? "").startsWith("__mj")) continue;
+            const link = entity.Fields.find((f) => f.RelatedEntityID === anchorEntityID);
+            if (!link) continue;
+            sources.push({ entityName: entity.Name, viaField: link.Name, columns: this.columnNames(entity) });
+        }
+        return sources.sort((a, b) => a.entityName.localeCompare(b.entityName));
+    }
+
+    /** Non-system column names on an entity, capped so a wide table can't blow up the prompt. */
+    private columnNames(entity: EntityInfo): string[] {
+        const cols = entity.Fields.filter((f) => !f.Name.startsWith("__mj_")).map((f) => f.Name);
+        return cols.length > SonarFactorSmithService.MAX_CONTEXT_COLUMNS
+            ? [...cols.slice(0, SonarFactorSmithService.MAX_CONTEXT_COLUMNS), `…(+${cols.length - SonarFactorSmithService.MAX_CONTEXT_COLUMNS} more)`]
+            : cols;
     }
 
     private async loadAction(actionId: string): Promise<MJActionEntity | null> {

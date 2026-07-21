@@ -262,6 +262,10 @@
     line-height: 1.65;
     margin-bottom: 1rem;
 }
+.sonar-studio__commission-field { display: flex; flex-direction: column; gap: 0.375rem; margin-bottom: 1rem; }
+.sonar-studio__commission-label { font-size: var(--sonar-font-sm); font-weight: 600; color: var(--sonar-ink); }
+.sonar-studio__anchor-select { width: 100%; max-width: 22rem; font: inherit; }
+.sonar-studio__commission-subhint { margin: 0; font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.5; }
 .sonar-studio__desc { width: 100%; resize: vertical; font: inherit; line-height: 1.55; margin-bottom: 0.5rem; min-height: 11rem; }
 .sonar-studio__examples { display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 1rem; }
 .sonar-studio__examples-label { font-size: var(--sonar-font-xs); color: var(--sonar-muted); }
