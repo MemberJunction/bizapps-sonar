@@ -83,20 +83,24 @@ jobs:
           fi
           echo "Valid changeset with minor or major bump found"
 
-      - name: Check seed migration is regenerated when metadata config changes
+      - name: Check a migration delivers changed metadata config
         run: |
-          # The V…_Seed_App_Metadata.sql migration is a generated snapshot of the mj-sync
-          # config in metadata/ (mj app install runs migrations, not metadata/). If a PR edits
-          # that config but doesn't regenerate the seed, a clean install ships stale config.
-          # Tripwire: checks the seed was touched, not that the regen is correct; regen steps
-          # live in the seed file header / migrations/README.md. Issue #22 tracks the airtight
-          # regenerate-and-diff version.
+          # mj app install runs migrations only (not metadata/), so installable config that
+          # changes in metadata/ must be delivered to installs by a migration. The seed
+          # (V…_Seed_App_Metadata.sql) is FROZEN (shipped in v0.2.0 — never regenerate it, see
+          # migrations/README.md); new/changed config now goes in a NEW forward migration
+          # (migrations/V… and, for PG parity, migrations-pg/V…). Tripwire: if installable
+          # metadata config changed but NO migration was added/changed, a clean install ships
+          # stale config. .mj-sync.json is excluded — it's dev-only capture config, not installed.
           CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          CONFIG_CHANGED=$(echo "$CHANGED" | grep -E '^metadata/(score-band-sets|score-bands|time-windows|actions|queries|remote-operations|templates|prompts|agents|applications)/' || true)
-          SEED_CHANGED=$(echo "$CHANGED" | grep -E '^migrations/V.*Seed_App_Metadata.*\.sql$' || true)
-          if [ -n "$CONFIG_CHANGED" ] && [ -z "$SEED_CHANGED" ]; then
-            echo "::error::metadata/ config changed but the seed migration (V…_Seed_App_Metadata.sql) was not regenerated. Edit config in metadata/, regenerate the seed (see the seed file header / migrations/README.md), and commit both. Changed config:"
+          CONFIG_CHANGED=$(echo "$CHANGED" | grep -E '^metadata/(score-band-sets|score-bands|time-windows|actions|queries|remote-operations|templates|prompts|agents|applications)/' | grep -v '\.mj-sync\.json$' || true)
+          MIGRATION_CHANGED=$(echo "$CHANGED" | grep -E '^migrations(-pg)?/.*\.sql$' || true)
+          if [ -n "$CONFIG_CHANGED" ] && [ -z "$MIGRATION_CHANGED" ]; then
+            echo "::error::metadata/ config changed but no migration delivers it. The seed is FROZEN — add a NEW forward migration (migrations/V… and, for PG, migrations-pg/V…) with the config; do NOT regenerate the seed (see migrations/README.md). Changed config:"
             echo "$CONFIG_CHANGED"
             exit 1
           fi
-          echo "Seed <-> metadata coupling OK"
+          echo "Config <-> migration coupling OK"
+
+      - name: Validate seeded AI agents have tools
+        run: ./.github/scripts/validate-seed-agent-tools.sh
