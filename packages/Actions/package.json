@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-actions",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Generated action subclasses maintained by the CodeGen utility.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,8 +23,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@mj-biz-apps/sonar-engine": "0.3.0",
-    "@mj-biz-apps/sonar-entities": "0.3.0",
+    "@mj-biz-apps/sonar-engine": "0.4.0",
+    "@mj-biz-apps/sonar-entities": "0.4.0",
     "zod": "~3.24.4"
   },
   "peerDependencies": {

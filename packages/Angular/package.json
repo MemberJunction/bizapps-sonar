@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-ng",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Sonar Angular bootstrap - form components and module for the Sonar engagement scoring Open App",
   "main": "dist/public-api.js",
   "types": "dist/public-api.d.ts",
@@ -18,7 +18,7 @@
   "author": "MemberJunction.com",
   "license": "ISC",
   "dependencies": {
-    "@mj-biz-apps/sonar-entities": "0.3.0"
+    "@mj-biz-apps/sonar-entities": "0.4.0"
   },
   "peerDependencies": {
     "@angular/animations": ">=21.0.0 <22.0.0",
