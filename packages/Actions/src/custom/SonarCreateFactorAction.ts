@@ -3,11 +3,12 @@ import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
-import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarModelRelatedEntityEntity, mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 
 const FACTOR = "MJ_BizApps_Sonar: Factors";
 const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
 const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
+const MODEL_RELATED_ENTITY = "MJ_BizApps_Sonar: Model Related Entities";
 
 /** Allowed enum values, declared so we can narrow JSON strings to the entity's literal unions
  *  (a validated `as` cast, never `as any`). */
@@ -110,6 +111,27 @@ export class SonarCreateFactorAction extends SonarActionBase {
         contextUser?: UserInfo,
     ): Promise<mjBizAppsSonarFactorEntity | null> {
         const md = new Metadata();
+        // A declarative factor must read through a model data source; refuse to create an
+        // orphaned factor (the engine can't compile one with no SourceRelatedEntityID).
+        if (!spec.sourceRelatedEntityID) {
+            this.saveError = `declarative factor '${spec.name}' has no data source — provide sourceRelatedEntityID (a model related entity / ModelRelatedEntity id).`;
+            return null;
+        }
+        const aggregation = this.asEnum(spec.aggregation, AGGREGATIONS) ?? "Count";
+        const aggregateFieldName = aggregation === "Count" ? null : (spec.aggregateFieldName ?? null);
+        const dateField = spec.dateField ?? null;
+        // Column-referencing fields (aggregate field + date field) must be REAL columns on the source
+        // entity (weak models hallucinate names). FilterExpression is free-form SQL — left to the engine.
+        if (aggregateFieldName || dateField) {
+            const cols = await this.sourceColumns(md, spec.sourceRelatedEntityID, contextUser);
+            const bad = cols ? [aggregateFieldName, dateField].find((c) => c && !cols.includes(c)) : null;
+            if (bad && cols) {
+                const which = bad === aggregateFieldName ? "aggregate field" : "date field";
+                this.saveError = `${which} '${bad}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`;
+                return null;
+            }
+        }
+
         const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, contextUser);
         factor.NewRecord();
         factor.Name = spec.name.trim();
@@ -118,11 +140,11 @@ export class SonarCreateFactorAction extends SonarActionBase {
         factor.AnchorEntityID = anchorEntityID;
         factor.ScoreModelID = modelId;
         factor.SourceRelatedEntityID = spec.sourceRelatedEntityID ?? null;
-        factor.Aggregation = this.asEnum(spec.aggregation, AGGREGATIONS) ?? "Count";
-        factor.AggregateFieldName = factor.Aggregation === "Count" ? null : (spec.aggregateFieldName ?? null);
+        factor.Aggregation = aggregation;
+        factor.AggregateFieldName = aggregateFieldName;
         factor.FilterExpression = spec.filterExpression ?? null;
         factor.TimeWindowID = spec.timeWindowID ?? null;
-        factor.DateField = spec.dateField ?? null;
+        factor.DateField = dateField;
         factor.NormalizationMethod = this.asEnum(spec.normalizationMethod, NORMALIZATIONS) ?? "MinMax";
         factor.NormalizationParamsJSON = spec.normalizationParamsJSON ?? null;
         factor.HigherIsBetter = spec.higherIsBetter ?? true;
@@ -162,6 +184,14 @@ export class SonarCreateFactorAction extends SonarActionBase {
     }
 
     /** lowercase, hyphenate, strip non-alphanumerics — same shape as FactorService.slugify. */
+    /** Column names on a data source's related entity, for validating aggregate fields.
+     *  Returns null if the source/entity can't be resolved (validation is then skipped). */
+    private async sourceColumns(md: Metadata, sourceRelatedEntityID: string, user?: UserInfo): Promise<string[] | null> {
+        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, user);
+        if (!(await mre.Load(sourceRelatedEntityID))) return null;
+        const ent = md.EntityByID(mre.RelatedEntityID);
+        return ent ? ent.Fields.map((fld) => fld.Name) : null;
+    }
     private slugify(name: string): string {
         return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
