@@ -136,6 +136,14 @@
                         <div class="sonar-studio__commission-eyebrow"><i class="fa-solid fa-bolt"></i> New signal</div>
                         <h2 class="sonar-studio__commission-title">Describe what you want to measure</h2>
                         <p class="sonar-studio__commission-hint">The agent writes a scoring function, self-tests it, then places it in the pipeline for your review. You approve nothing until you&rsquo;ve seen it run.</p>
+                        <div class="sonar-studio__commission-field">
+                            <label class="sonar-studio__commission-label" for="commissionAnchor">What are you scoring?</label>
+                            <select id="commissionAnchor" class="sonar-input sonar-studio__anchor-select" [(ngModel)]="commissionAnchorId">
+                                <option [ngValue]="null" disabled>Pick the anchor to score&hellip;</option>
+                                @for (a of anchors(); track a.id) { <option [ngValue]="a.id">{{ a.name }}</option> }
+                            </select>
+                            <p class="sonar-studio__commission-subhint">The signal is bound to this entity: its records are what the code scores, one at a time.</p>
+                        </div>
                         <textarea class="sonar-input sonar-studio__desc" [(ngModel)]="description" rows="4"
                                   placeholder="e.g. the longest streak of consecutive months a member registered for an event (reads Event Registrations on the Members anchor)"></textarea>
                         <div class="sonar-studio__examples">
@@ -148,7 +156,7 @@
                             <p class="sonar-studio__contract">
                                 <i class="fa-solid fa-circle-info"></i> Returns <strong>one number + a short &ldquo;why&rdquo;</strong> per record. Nothing scores until you approve it.
                             </p>
-                            <button mjButton variant="primary" class="sonar-studio__commission-go" [disabled]="!description.trim() || commissioning()" (click)="commission()">
+                            <button mjButton variant="primary" class="sonar-studio__commission-go" [disabled]="!description.trim() || !commissionAnchorId || commissioning()" (click)="commission()">
                                 @if (commissioning()) { <i class="fa-solid fa-spinner fa-spin"></i> Starting&hellip; }
                                 @else { <i class="fa-solid fa-bolt"></i> Commission signal }
                             </button>
