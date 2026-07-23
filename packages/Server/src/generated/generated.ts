@@ -3320,6 +3320,9 @@ export class mjBizAppsSonarScoreModel_ {
     @Field() 
     _mj__UpdatedAt: Date;
         
+    @Field({nullable: true, description: `Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.`}) 
+    OutcomeDefinitionJSON?: string;
+        
     @Field() 
     @MaxLength(255)
     AnchorEntity: string;
@@ -3438,6 +3441,9 @@ export class CreatemjBizAppsSonarScoreModelInput {
     @Field({ nullable: true })
     Notes: string | null;
 
+    @Field({ nullable: true })
+    OutcomeDefinitionJSON: string | null;
+
     @Field(() => RestoreContextInput, { nullable: true })
     RestoreContext___?: RestoreContextInput;
 }
@@ -3513,6 +3519,9 @@ export class UpdatemjBizAppsSonarScoreModelInput {
 
     @Field({ nullable: true })
     Notes?: string | null;
+
+    @Field({ nullable: true })
+    OutcomeDefinitionJSON?: string | null;
 
     @Field(() => [KeyValuePairInput], { nullable: true })
     OldValues___?: KeyValuePairInput[];

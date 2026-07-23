@@ -1165,7 +1165,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Optional description of what the model scores and why.`),
     AnchorEntityID: z.string().describe(`
         * * Field Name: AnchorEntityID
-        * * Display Name: Anchor Entity ID
+        * * Display Name: Anchor Entity
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Entities (vwEntities.ID)`),
     Status: z.union([z.literal('Active'), z.literal('Archived'), z.literal('Draft'), z.literal('Paused')]).describe(`
@@ -1182,7 +1182,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Lifecycle status of the model: Draft, Active, Paused, or Archived.`),
     CurrentVersionID: z.string().nullable().describe(`
         * * Field Name: CurrentVersionID
-        * * Display Name: Current Version ID
+        * * Display Name: Current Version
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     ScoreScaleMin: z.number().describe(`
@@ -1217,7 +1217,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: For ExpressionDriven models, the formula over factor slugs used to combine contributions.`),
     BandSetID: z.string().nullable().describe(`
         * * Field Name: BandSetID
-        * * Display Name: Band Set ID
+        * * Display Name: Band Set
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)`),
     PopulationFilter: z.string().nullable().describe(`
@@ -1266,7 +1266,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Number of days used to compute the headline Delta and trend on each score.`),
     OwnerUserID: z.string().nullable().describe(`
         * * Field Name: OwnerUserID
-        * * Display Name: Owner User ID
+        * * Display Name: Owner
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)`),
     EffectiveFrom: z.date().nullable().describe(`
@@ -1294,17 +1294,22 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    OutcomeDefinitionJSON: z.string().nullable().describe(`
+        * * Field Name: OutcomeDefinitionJSON
+        * * Display Name: Outcome Definition
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.`),
     AnchorEntity: z.string().describe(`
         * * Field Name: AnchorEntity
-        * * Display Name: Anchor Entity
+        * * Display Name: Anchor Entity Name
         * * SQL Data Type: nvarchar(255)`),
     BandSet: z.string().nullable().describe(`
         * * Field Name: BandSet
-        * * Display Name: Band Set
+        * * Display Name: Band Set Name
         * * SQL Data Type: nvarchar(200)`),
     OwnerUser: z.string().nullable().describe(`
         * * Field Name: OwnerUser
-        * * Display Name: Owner User
+        * * Display Name: Owner Name
         * * SQL Data Type: nvarchar(100)`),
 });
 
@@ -4602,7 +4607,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: AnchorEntityID
-    * * Display Name: Anchor Entity ID
+    * * Display Name: Anchor Entity
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Entities (vwEntities.ID)
     */
@@ -4635,7 +4640,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: CurrentVersionID
-    * * Display Name: Current Version ID
+    * * Display Name: Current Version
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
@@ -4710,7 +4715,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: BandSetID
-    * * Display Name: Band Set ID
+    * * Display Name: Band Set
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)
     */
@@ -4815,7 +4820,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUserID
-    * * Display Name: Owner User ID
+    * * Display Name: Owner
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)
     */
@@ -4886,8 +4891,21 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
     }
 
     /**
+    * * Field Name: OutcomeDefinitionJSON
+    * * Display Name: Outcome Definition
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.
+    */
+    get OutcomeDefinitionJSON(): string | null {
+        return this.Get('OutcomeDefinitionJSON');
+    }
+    set OutcomeDefinitionJSON(value: string | null) {
+        this.Set('OutcomeDefinitionJSON', value);
+    }
+
+    /**
     * * Field Name: AnchorEntity
-    * * Display Name: Anchor Entity
+    * * Display Name: Anchor Entity Name
     * * SQL Data Type: nvarchar(255)
     */
     get AnchorEntity(): string {
@@ -4896,7 +4914,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: BandSet
-    * * Display Name: Band Set
+    * * Display Name: Band Set Name
     * * SQL Data Type: nvarchar(200)
     */
     get BandSet(): string | null {
@@ -4905,7 +4923,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUser
-    * * Display Name: Owner User
+    * * Display Name: Owner Name
     * * SQL Data Type: nvarchar(100)
     */
     get OwnerUser(): string | null {

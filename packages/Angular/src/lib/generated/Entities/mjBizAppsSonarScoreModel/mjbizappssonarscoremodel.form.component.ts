@@ -16,7 +16,11 @@ export class mjBizAppsSonarScoreModelFormComponent extends BaseFormComponent {
     override async ngOnInit() {
         await super.ngOnInit();
         this.initSections([
-            { sectionKey: 'details', sectionName: 'Details', isExpanded: true },
+            { sectionKey: 'modelConfiguration', sectionName: 'Model Configuration', isExpanded: true },
+            { sectionKey: 'scoringLogic', sectionName: 'Scoring Logic', isExpanded: true },
+            { sectionKey: 'executionPolicy', sectionName: 'Execution Policy', isExpanded: true },
+            { sectionKey: 'ownershipAndValidity', sectionName: 'Ownership and Validity', isExpanded: true },
+            { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreHistories', sectionName: 'Score Histories', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreBandTransitions', sectionName: 'Score Band Transitions', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreRecomputeRuns', sectionName: 'Score Recompute Runs', isExpanded: false },

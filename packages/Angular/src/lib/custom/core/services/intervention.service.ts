@@ -50,6 +50,13 @@ export interface FireableAction { id: string; name: string; description: string 
 export interface LiftSummary {
     treatedMeasured: number;
     controlMeasured: number;
+    /** Human label of the org's outcome definition (e.g. "climbed a band", "Status = Active"). */
+    outcomeLabel: string;
+    /** Share of each cohort that met the outcome definition + the headline lift (pp). */
+    successRateTreatment: number | null;
+    successRateControl: number | null;
+    successLiftPct: number | null;
+    /** Leading indicators (move faster than the real outcome). */
     avgScoreDeltaTreatment: number | null;
     avgScoreDeltaControl: number | null;
     scoreLift: number | null;

@@ -478,10 +478,11 @@
                                                     <td><span class="sonar-chip sonar-chip--small">{{ iv.status }}</span></td>
                                                     <td class="sonar-iv-table__lift">
                                                         @if (liftFor(iv.id); as m) {
-                                                            <span class="sonar-mono" [class.sonar-pos]="(m.lift.scoreLift ?? 0) > 0" [class.sonar-neg]="(m.lift.scoreLift ?? 0) < 0"
-                                                                  [title]="'Treatment avg ' + liftLabel(m.lift.avgScoreDeltaTreatment) + ' vs control ' + liftLabel(m.lift.avgScoreDeltaControl) + ' score points; band-up lift ' + liftLabel(m.lift.bandUpLiftPct) + 'pp. Measured over ' + m.lift.treatedMeasured + ' treated / ' + m.lift.controlMeasured + ' control.'">
-                                                                {{ liftLabel(m.lift.scoreLift) }} pts
+                                                            <span class="sonar-mono" [class.sonar-pos]="(m.lift.successLiftPct ?? 0) > 0" [class.sonar-neg]="(m.lift.successLiftPct ?? 0) < 0"
+                                                                  [title]="'Outcome: ' + m.lift.outcomeLabel + '. Treatment ' + liftLabel(m.lift.successRateTreatment !== null ? m.lift.successRateTreatment * 100 : null) + '% vs control ' + liftLabel(m.lift.successRateControl !== null ? m.lift.successRateControl * 100 : null) + '%. Leading: score lift ' + liftLabel(m.lift.scoreLift) + ', band-up ' + liftLabel(m.lift.bandUpLiftPct) + 'pp. Over ' + m.lift.treatedMeasured + ' treated / ' + m.lift.controlMeasured + ' control.'">
+                                                                {{ liftLabel(m.lift.successLiftPct) }} pp
                                                             </span>
+                                                            <span class="sonar-faint sonar-iv-table__outcome">{{ m.lift.outcomeLabel }}</span>
                                                             @if (m.unmeasurable) { <span class="sonar-faint" title="Members with no score history before assignment">· {{ m.unmeasurable }} n/a</span> }
                                                         } @else {
                                                             <button class="sonar-btn sonar-btn--ghost sonar-iv-table__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"

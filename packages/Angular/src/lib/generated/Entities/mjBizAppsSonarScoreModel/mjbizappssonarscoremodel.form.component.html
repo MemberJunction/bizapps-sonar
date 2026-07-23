@@ -10,11 +10,11 @@
     <!-- ========================================
          FIELD PANELS
          ======================================== -->
-    <!-- Details Section -->
+    <!-- Model Configuration Section -->
     <mj-collapsible-panel
-        SectionKey="details"
-        SectionName="Details"
-        Icon="fa fa-align-left"
+        SectionKey="modelConfiguration"
+        SectionName="Model Configuration"
+        Icon="fa fa-cog"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -67,6 +67,16 @@
             [FormContext]="formContext"
             LinkType="Record"
         ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Scoring Logic Section -->
+    <mj-collapsible-panel
+        SectionKey="scoringLogic"
+        SectionName="Scoring Logic"
+        Icon="fa fa-calculator"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -95,7 +105,7 @@
             [Record]="record"
             [ShowLabel]="true"
             FieldName="CombineExpression"
-            Type="textarea"
+            Type="code"
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
@@ -112,10 +122,28 @@
             [Record]="record"
             [ShowLabel]="true"
             FieldName="PopulationFilter"
-            Type="textarea"
+            Type="code"
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="true"
+            FieldName="OutcomeDefinitionJSON"
+            Type="code"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+        ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Execution Policy Section -->
+    <mj-collapsible-panel
+        SectionKey="executionPolicy"
+        SectionName="Execution Policy"
+        Icon="fa fa-clock"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -156,6 +184,16 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Ownership and Validity Section -->
+    <mj-collapsible-panel
+        SectionKey="ownershipAndValidity"
+        SectionName="Ownership and Validity"
+        Icon="fa fa-user-shield"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -189,6 +227,16 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- System Metadata Section -->
+    <mj-collapsible-panel
+        SectionKey="systemMetadata"
+        SectionName="System Metadata"
+        Icon="fa fa-database"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
