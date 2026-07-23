@@ -391,3 +391,5 @@
 .sonar-iv-table tbody tr:last-child td { border-bottom: none; }
 .sonar-iv-table__num { text-align: right; font-variant-numeric: tabular-nums; }
 .sonar-iv-table__name { font-weight: 600; color: var(--sonar-ink); }
+.sonar-iv-table__lift { white-space: nowrap; }
+.sonar-iv-table__measure { font-size: var(--sonar-font-xs); padding: 0.25rem 0.5rem; }

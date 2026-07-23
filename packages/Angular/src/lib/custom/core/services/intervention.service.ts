@@ -6,6 +6,7 @@ import { extractActionResult } from "./action-result.util";
 import { sqlString } from "./sql.util";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
+const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
 
 /** The score-evaluable segment filter the launch panel builds from the current triage state
  *  (band/score range) or from the Movers view (a delta threshold — the "biggest droppers" rule). */
@@ -43,6 +44,21 @@ export interface LaunchResult {
 /** An MJ Action the operator can pick as the play (what fires per treated member). */
 export interface FireableAction { id: string; name: string; description: string | null }
 
+/** Treatment-vs-control lift for one intervention (engine's MeasureResult.lift). */
+export interface LiftSummary {
+    treatedMeasured: number;
+    controlMeasured: number;
+    avgScoreDeltaTreatment: number | null;
+    avgScoreDeltaControl: number | null;
+    scoreLift: number | null;
+    bandUpRateTreatment: number | null;
+    bandUpRateControl: number | null;
+    bandUpLiftPct: number | null;
+}
+
+/** The measure action's full result. */
+export interface MeasureResult { measured: number; alreadyMeasured: number; unmeasurable: number; lift: LiftSummary }
+
 /** One configured intervention + its assignment tallies — the Interventions tab row. */
 export interface InterventionSummary {
     id: string;
@@ -71,11 +87,11 @@ interface ActionRow { ID: string; Name: string; Description: string | null }
  */
 @Injectable({ providedIn: "root" })
 export class InterventionService {
-    private runActionId: string | null = null;
+    private readonly actionIdCache = new Map<string, string>();
 
     /** Run the launch payload through `Sonar: Run Intervention` (preview or commit). */
     public async run(config: LaunchConfig): Promise<{ ok: boolean; result?: LaunchResult; error?: string }> {
-        const id = await this.resolveRunActionId();
+        const id = await this.resolveActionIdByName(RUN_INTERVENTION_ACTION);
         if (!id) return { ok: false, error: "The intervention action isn't available in this environment." };
         const res = await this.actionClient().RunAction(id, [
             { Name: "ConfigJSON", Value: JSON.stringify(config), Type: "Input" },
@@ -83,6 +99,18 @@ export class InterventionService {
         if (!res.Success) return { ok: false, error: res.Message || "The intervention run failed." };
         const result = extractActionResult<LaunchResult>(res);
         return result ? { ok: true, result } : { ok: false, error: "The run returned no result payload." };
+    }
+
+    /** Measure one intervention's outcomes (baseline vs now) and get the lift summary. */
+    public async measure(interventionId: string): Promise<{ ok: boolean; result?: MeasureResult; error?: string }> {
+        const id = await this.resolveActionIdByName(MEASURE_OUTCOMES_ACTION);
+        if (!id) return { ok: false, error: "The measure action isn't available in this environment." };
+        const res = await this.actionClient().RunAction(id, [
+            { Name: "InterventionID", Value: interventionId, Type: "Input" },
+        ]);
+        if (!res.Success) return { ok: false, error: res.Message || "Measuring outcomes failed." };
+        const result = extractActionResult<MeasureResult>(res);
+        return result ? { ok: true, result } : { ok: false, error: "The measure run returned no result payload." };
     }
 
     /** Active, param-less-friendly plays the operator can fire — Business Apps category actions. */
@@ -166,16 +194,17 @@ export class InterventionService {
         return new GraphQLActionClient(Metadata.Provider as GraphQLDataProvider);
     }
 
-    private async resolveRunActionId(): Promise<string | null> {
-        if (this.runActionId) return this.runActionId;
+    private async resolveActionIdByName(name: string): Promise<string | null> {
+        const cached = this.actionIdCache.get(name);
+        if (cached) return cached;
         const provider = Metadata.Provider as GraphQLDataProvider;
         await ActionEngineBase.Instance.Config(false, provider.CurrentUser, provider);
-        let action = ActionEngineBase.Instance.Actions.find((a) => a.Name === RUN_INTERVENTION_ACTION);
+        let action = ActionEngineBase.Instance.Actions.find((a) => a.Name === name);
         if (!action) {
             await ActionEngineBase.Instance.Config(true, provider.CurrentUser, provider);
-            action = ActionEngineBase.Instance.Actions.find((a) => a.Name === RUN_INTERVENTION_ACTION);
+            action = ActionEngineBase.Instance.Actions.find((a) => a.Name === name);
         }
-        this.runActionId = action?.ID ?? null;
-        return this.runActionId;
+        if (action) this.actionIdCache.set(name, action.ID);
+        return action?.ID ?? null;
     }
 }

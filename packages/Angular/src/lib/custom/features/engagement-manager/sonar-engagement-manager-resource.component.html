@@ -398,6 +398,9 @@
                                     <h2 class="sonar-card__title"><i class="fa-solid fa-bullhorn"></i> Interventions</h2>
                                     <p class="sonar-faint" style="margin: 0; font-size: var(--sonar-font-sm);">Every launched play keeps a random holdout, so outcome lift is measured against a real control group.</p>
                                 </div>
+                                @if (measureError(); as err) {
+                                    <p class="sonar-launch__error" style="margin: 0 0 0.75rem;"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</p>
+                                }
                                 @if (loadingInterventions()) {
                                     <div class="sonar-skeleton" style="height: 6rem;"></div>
                                 } @else if (interventions().length === 0) {
@@ -419,6 +422,7 @@
                                                 <th class="sonar-iv-table__num">Held</th>
                                                 <th class="sonar-iv-table__num">Failed</th>
                                                 <th>Status</th>
+                                                <th>Lift</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -433,6 +437,20 @@
                                                     <td class="sonar-iv-table__num sonar-mono">{{ iv.held }}</td>
                                                     <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="iv.failed > 0">{{ iv.failed }}</td>
                                                     <td><span class="sonar-chip sonar-chip--small">{{ iv.status }}</span></td>
+                                                    <td class="sonar-iv-table__lift">
+                                                        @if (liftFor(iv.id); as m) {
+                                                            <span class="sonar-mono" [class.sonar-pos]="(m.lift.scoreLift ?? 0) > 0" [class.sonar-neg]="(m.lift.scoreLift ?? 0) < 0"
+                                                                  [title]="'Treatment avg ' + liftLabel(m.lift.avgScoreDeltaTreatment) + ' vs control ' + liftLabel(m.lift.avgScoreDeltaControl) + ' score points; band-up lift ' + liftLabel(m.lift.bandUpLiftPct) + 'pp. Measured over ' + m.lift.treatedMeasured + ' treated / ' + m.lift.controlMeasured + ' control.'">
+                                                                {{ liftLabel(m.lift.scoreLift) }} pts
+                                                            </span>
+                                                            @if (m.unmeasurable) { <span class="sonar-faint" title="Members with no score history before assignment">· {{ m.unmeasurable }} n/a</span> }
+                                                        } @else {
+                                                            <button class="sonar-btn sonar-btn--ghost sonar-iv-table__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"
+                                                                    title="Measure outcomes: each member's score/band now vs at assignment, treatment vs control">
+                                                                @if (measuringId() === iv.id) { <i class="fa-solid fa-circle-notch fa-spin"></i> } @else { <i class="fa-solid fa-scale-balanced"></i> Measure }
+                                                            </button>
+                                                        }
+                                                    </td>
                                                 </tr>
                                             }
                                         </tbody>

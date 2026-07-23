@@ -272,7 +272,7 @@ export const mjBizAppsSonarInterventionAssignmentSchema = z.object({
     AnchorRecordID: z.string().describe(`
         * * Field Name: AnchorRecordID
         * * Display Name: Anchor Record ID
-        * * SQL Data Type: nvarchar(100)
+        * * SQL Data Type: nvarchar(450)
         * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).`),
     AnchorRecordKeyJSON: z.string().nullable().describe(`
         * * Field Name: AnchorRecordKeyJSON
@@ -328,7 +328,7 @@ export const mjBizAppsSonarInterventionOutcomeSchema = z.object({
         * * Default Value: newsequentialid()`),
     AssignmentID: z.string().describe(`
         * * Field Name: AssignmentID
-        * * Display Name: Assignment
+        * * Display Name: Assignment ID
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)`),
     OutcomeType: z.union([z.literal('Churned'), z.literal('NoChange'), z.literal('Reactivated'), z.literal('Renewed'), z.literal('Upgraded')]).describe(`
@@ -345,7 +345,7 @@ export const mjBizAppsSonarInterventionOutcomeSchema = z.object({
         * * Description: The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.`),
     OutcomeAt: z.date().nullable().describe(`
         * * Field Name: OutcomeAt
-        * * Display Name: Outcome Date
+        * * Display Name: Outcome At
         * * SQL Data Type: datetime2
         * * Description: When the business outcome occurred.`),
     ScoreDeltaAfter: z.number().nullable().describe(`
@@ -368,6 +368,10 @@ export const mjBizAppsSonarInterventionOutcomeSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    Assignment: z.string().describe(`
+        * * Field Name: Assignment
+        * * Display Name: Assignment
+        * * SQL Data Type: nvarchar(450)`),
 });
 
 export type mjBizAppsSonarInterventionOutcomeEntityType = z.infer<typeof mjBizAppsSonarInterventionOutcomeSchema>;
@@ -383,7 +387,7 @@ export const mjBizAppsSonarInterventionSchema = z.object({
         * * Default Value: newsequentialid()`),
     ScoreSegmentID: z.string().describe(`
         * * Field Name: ScoreSegmentID
-        * * Display Name: Score Segment
+        * * Display Name: Score Segment ID
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)`),
     Name: z.string().describe(`
@@ -409,7 +413,7 @@ export const mjBizAppsSonarInterventionSchema = z.object({
         * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.`),
     ActionID: z.string().describe(`
         * * Field Name: ActionID
-        * * Display Name: Action
+        * * Display Name: Action ID
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)`),
     ControlGroupPercent: z.number().nullable().describe(`
@@ -428,6 +432,11 @@ export const mjBizAppsSonarInterventionSchema = z.object({
     *   * Draft
     *   * Paused
         * * Description: Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.`),
+    ActionParamsJSON: z.string().nullable().describe(`
+        * * Field Name: ActionParamsJSON
+        * * Display Name: Action Parameters
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.`),
     __mj_CreatedAt: z.date().describe(`
         * * Field Name: __mj_CreatedAt
         * * Display Name: Created At
@@ -440,11 +449,11 @@ export const mjBizAppsSonarInterventionSchema = z.object({
         * * Default Value: getutcdate()`),
     ScoreSegment: z.string().describe(`
         * * Field Name: ScoreSegment
-        * * Display Name: Segment Name
+        * * Display Name: Score Segment
         * * SQL Data Type: nvarchar(200)`),
     Action: z.string().describe(`
         * * Field Name: Action
-        * * Display Name: Action Name
+        * * Display Name: Action
         * * SQL Data Type: nvarchar(425)`),
 });
 
@@ -2306,7 +2315,7 @@ export class mjBizAppsSonarInterventionAssignmentEntity extends BaseEntity<mjBiz
     /**
     * * Field Name: AnchorRecordID
     * * Display Name: Anchor Record ID
-    * * SQL Data Type: nvarchar(100)
+    * * SQL Data Type: nvarchar(450)
     * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).
     */
     get AnchorRecordID(): string {
@@ -2449,7 +2458,7 @@ export class mjBizAppsSonarInterventionOutcomeEntity extends BaseEntity<mjBizApp
 
     /**
     * * Field Name: AssignmentID
-    * * Display Name: Assignment
+    * * Display Name: Assignment ID
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)
     */
@@ -2482,7 +2491,7 @@ export class mjBizAppsSonarInterventionOutcomeEntity extends BaseEntity<mjBizApp
 
     /**
     * * Field Name: OutcomeAt
-    * * Display Name: Outcome Date
+    * * Display Name: Outcome At
     * * SQL Data Type: datetime2
     * * Description: When the business outcome occurred.
     */
@@ -2537,6 +2546,15 @@ export class mjBizAppsSonarInterventionOutcomeEntity extends BaseEntity<mjBizApp
     */
     get __mj_UpdatedAt(): Date {
         return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Assignment
+    * * Display Name: Assignment
+    * * SQL Data Type: nvarchar(450)
+    */
+    get Assignment(): string {
+        return this.Get('Assignment');
     }
 }
 
@@ -2618,7 +2636,7 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
 
     /**
     * * Field Name: ScoreSegmentID
-    * * Display Name: Score Segment
+    * * Display Name: Score Segment ID
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)
     */
@@ -2676,7 +2694,7 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
 
     /**
     * * Field Name: ActionID
-    * * Display Name: Action
+    * * Display Name: Action ID
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)
     */
@@ -2720,6 +2738,19 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
     }
 
     /**
+    * * Field Name: ActionParamsJSON
+    * * Display Name: Action Parameters
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.
+    */
+    get ActionParamsJSON(): string | null {
+        return this.Get('ActionParamsJSON');
+    }
+    set ActionParamsJSON(value: string | null) {
+        this.Set('ActionParamsJSON', value);
+    }
+
+    /**
     * * Field Name: __mj_CreatedAt
     * * Display Name: Created At
     * * SQL Data Type: datetimeoffset
@@ -2741,7 +2772,7 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
 
     /**
     * * Field Name: ScoreSegment
-    * * Display Name: Segment Name
+    * * Display Name: Score Segment
     * * SQL Data Type: nvarchar(200)
     */
     get ScoreSegment(): string {
@@ -2750,7 +2781,7 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
 
     /**
     * * Field Name: Action
-    * * Display Name: Action Name
+    * * Display Name: Action
     * * SQL Data Type: nvarchar(425)
     */
     get Action(): string {

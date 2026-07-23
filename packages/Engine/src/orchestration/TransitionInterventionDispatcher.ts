@@ -18,8 +18,14 @@ interface WatchingIntervention {
     name: string;
     holdoutPercent: number;
     actionId: string;
+    /** The play's configured params (from Intervention.ActionParamsJSON) — `{{member}}` tokens are
+     *  filled per fire by the runner. Empty = fire with no params. */
+    actionParams: { name: string; value: string }[];
     segmentFilter: SegmentFilter;
     segmentBandId: string | null;
+    /** True when the segment is a delta rule (dropped/gained N since the last run) — these fire on
+     *  CURRENT membership each recompute (delta is per-run state), not on band transitions. */
+    isDeltaRule: boolean;
 }
 
 /** What one dispatch did — surfaced to the run log, never thrown. */
@@ -36,21 +42,21 @@ export interface TransitionDispatchSummary {
  * transitions, this dispatcher fires every Active `OnEnterSegment` intervention whose segment the
  * transitioning member just ENTERED, then marks those transitions Handled.
  *
- * v1 semantics — deliberate and narrow:
- * - "Entering" is keyed on the BAND: a transition matches a segment when `ToBandID` equals the
- *   segment filter's `bandId`. Score-range-only segments (no bandId) are skipped for OnEnterSegment
- *   (logged once) — a band boundary is the crisp "state changed" event; a pure range has no
- *   entered/left edge in the transition row.
- * - Entrants still resolve THROUGH the segment (InterventionRunner.onlyAnchorIds), so a member whose
- *   score doesn't actually satisfy the full filter can never be fired.
- * - Transitions are marked Handled only when at least one OnEnterSegment intervention watches this
- *   model — an unconfigured deployment keeps today's behavior (rows stay queued for later consumers,
- *   e.g. write-back).
+ * Trigger semantics:
+ * - BAND segments: "entering" keys off this run's transitions — a transition matches when `ToBandID`
+ *   equals the segment filter's `bandId`. Entrants still resolve THROUGH the segment
+ *   (InterventionRunner.onlyAnchorIds), so a member whose score doesn't satisfy the full filter can
+ *   never be fired. Transitions are marked Handled only when at least one band watcher exists — an
+ *   unconfigured deployment keeps rows queued for later consumers (e.g. write-back).
+ * - DELTA segments ("dropped N+ since the last run"): the delta IS per-run state, so these fire on
+ *   the segment's CURRENT membership after every recompute — no transition row needed. Per-member
+ *   idempotency keeps anyone from being fired twice by the same intervention across runs.
+ * - Segments with neither a band nor a delta rule are skipped (logged) — a pure score range has no
+ *   "entered" edge to key off.
+ * - The fired Action gets the intervention's persisted params (ActionParamsJSON, `{{member}}` token
+ *   filled per fire); null/malformed params → fire param-less.
  * - Failures NEVER propagate: the scoring run already succeeded; a broken intervention is logged and
- *   the transitions stay unhandled for a retry on the next run.
- * - The fired Action gets NO params in v1: the Intervention row stores only ActionID (no
- *   ActionParamsJSON column yet), so autonomous firing suits param-less/defaulted actions. Adding a
- *   persisted params column (+ the `{{member}}` token fill) is a flagged follow-up.
+ *   band transitions stay unhandled for a retry on the next run.
  */
 export class TransitionInterventionDispatcher {
     public async dispatch(
@@ -63,25 +69,35 @@ export class TransitionInterventionDispatcher {
             const watchers = await this.loadWatchers(modelId, contextUser);
             if (watchers.length === 0) return summary; // nothing configured — leave transitions queued
 
-            const transitions = await this.loadUnhandledTransitions(modelId, recomputeRunId, contextUser);
-            summary.transitions = transitions.length;
-            if (transitions.length === 0) return summary;
-
+            const bandWatchers = watchers.filter((w) => w.segmentBandId);
+            const deltaWatchers = watchers.filter((w) => !w.segmentBandId && w.isDeltaRule);
             const runner = new InterventionRunner(createInterventionInvoker());
-            for (const w of watchers) {
-                if (!w.segmentBandId) {
-                    LogStatus(`Sonar: OnEnterSegment intervention '${w.name}' watches a segment with no bandId — skipped (band-entry only in v1).`);
-                    continue;
+
+            // Band watchers key off this run's transitions (the crisp "entered the band" event).
+            if (bandWatchers.length > 0) {
+                const transitions = await this.loadUnhandledTransitions(modelId, recomputeRunId, contextUser);
+                summary.transitions = transitions.length;
+                for (const w of bandWatchers) {
+                    const entrants = new Set(transitions.filter((t) => t.ToBandID === w.segmentBandId).map((t) => t.AnchorRecordID));
+                    if (entrants.size === 0) continue;
+                    summary.interventionsMatched++;
+                    this.tally(summary, await this.fireForEntrants(runner, modelId, w, entrants, contextUser));
                 }
-                const entrants = new Set(transitions.filter((t) => t.ToBandID === w.segmentBandId).map((t) => t.AnchorRecordID));
-                if (entrants.size === 0) continue;
-                summary.interventionsMatched++;
-                const result = await this.fireForEntrants(runner, modelId, w, entrants, contextUser);
-                summary.assigned += result.treated + result.held;
-                summary.sent += result.sent;
-                summary.failed += result.failed;
+                await this.markHandled(transitions, contextUser);
             }
-            await this.markHandled(transitions, contextUser);
+
+            // Delta watchers fire on CURRENT membership each recompute — the delta IS this run's
+            // state, so the segment filter itself selects the entrants. Per-member idempotency in
+            // the runner keeps a member from being re-fired on later runs.
+            for (const w of deltaWatchers) {
+                summary.interventionsMatched++;
+                this.tally(summary, await this.fireForEntrants(runner, modelId, w, null, contextUser));
+            }
+
+            const skipped = watchers.length - bandWatchers.length - deltaWatchers.length;
+            if (skipped > 0) {
+                LogStatus(`Sonar: ${skipped} OnEnterSegment intervention(s) watch segments with neither a band nor a delta rule — skipped.`);
+            }
             if (summary.interventionsMatched > 0) {
                 LogStatus(
                     `Sonar: OnEnterSegment dispatch — ${summary.transitions} transition(s), ` +
@@ -96,6 +112,12 @@ export class TransitionInterventionDispatcher {
         return summary;
     }
 
+    private tally(summary: TransitionDispatchSummary, result: InterventionRunResult): void {
+        summary.assigned += result.treated + result.held;
+        summary.sent += result.sent;
+        summary.failed += result.failed;
+    }
+
     /** Active OnEnterSegment interventions watching this model's segments. */
     private async loadWatchers(modelId: string, contextUser: UserInfo): Promise<WatchingIntervention[]> {
         const rv = new RunView();
@@ -106,11 +128,11 @@ export class TransitionInterventionDispatcher {
         const segments = segs.Success ? (segs.Results ?? []) : [];
         if (segments.length === 0) return [];
         const idList = segments.map((s) => `'${s.ID}'`).join(",");
-        const ivs = await rv.RunView<{ ID: string; Name: string; ScoreSegmentID: string; ActionID: string; ControlGroupPercent: number | null }>(
+        const ivs = await rv.RunView<{ ID: string; Name: string; ScoreSegmentID: string; ActionID: string; ControlGroupPercent: number | null; ActionParamsJSON: string | null }>(
             {
                 EntityName: INTERVENTION_ENTITY,
                 ExtraFilter: `ScoreSegmentID IN (${idList}) AND TriggerType='OnEnterSegment' AND Status='Active'`,
-                Fields: ["ID", "Name", "ScoreSegmentID", "ActionID", "ControlGroupPercent"],
+                Fields: ["ID", "Name", "ScoreSegmentID", "ActionID", "ControlGroupPercent", "ActionParamsJSON"],
                 ResultType: "simple",
             },
             contextUser,
@@ -123,10 +145,26 @@ export class TransitionInterventionDispatcher {
                 name: i.Name,
                 holdoutPercent: i.ControlGroupPercent ?? 0,
                 actionId: i.ActionID,
+                actionParams: this.parseParams(i.ActionParamsJSON),
                 segmentFilter: filter,
                 segmentBandId: filter.bandId ?? null,
+                isDeltaRule: filter.minDelta != null || filter.maxDelta != null,
             };
         });
+    }
+
+    /** Parse the intervention's stored [{name,value}] param list; malformed → fire param-less. */
+    private parseParams(raw: string | null): { name: string; value: string }[] {
+        if (!raw) return [];
+        try {
+            const parsed: unknown = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .filter((p): p is { name: string; value: string } => !!p && typeof p === "object" && typeof (p as { name?: unknown }).name === "string")
+                .map((p) => ({ name: p.name, value: String(p.value ?? "") }));
+        } catch {
+            return [];
+        }
     }
 
     /** A segment's stored FilterExpression is the JSON SegmentFilter; unparseable → empty filter. */
@@ -158,12 +196,13 @@ export class TransitionInterventionDispatcher {
         return res.Success ? (res.Results ?? []) : [];
     }
 
-    /** Fire one intervention for its entrants — commit mode, entrant-targeted, capped. */
+    /** Fire one intervention — commit mode, capped. `entrants` targets a transition subset (band
+     *  watchers); null lets the segment filter itself select this run's members (delta watchers). */
     private async fireForEntrants(
         runner: InterventionRunner,
         modelId: string,
         w: WatchingIntervention,
-        entrants: ReadonlySet<string>,
+        entrants: ReadonlySet<string> | null,
         contextUser: UserInfo,
     ): Promise<InterventionRunResult> {
         return runner.run(
@@ -172,10 +211,10 @@ export class TransitionInterventionDispatcher {
                 modelId,
                 segmentFilter: w.segmentFilter,
                 holdoutPercent: w.holdoutPercent,
-                action: { actionId: w.actionId, params: [] },
+                action: { actionId: w.actionId, params: w.actionParams },
                 cap: ON_ENTER_CAP,
                 preview: false,
-                onlyAnchorIds: entrants,
+                onlyAnchorIds: entrants ?? undefined,
             },
             contextUser,
         );

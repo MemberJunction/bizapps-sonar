@@ -9,7 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, MeasureResult } from "../../core/services/intervention.service";
 
 
 /**
@@ -58,6 +58,10 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly launchDone = signal<LaunchResult | null>(null);
     public readonly interventions = signal<InterventionSummary[]>([]);
     public readonly loadingInterventions = signal(false);
+    /** Per-intervention lift readouts (filled by Measure) + the row currently measuring. */
+    public readonly liftById = signal<Map<string, MeasureResult>>(new Map());
+    public readonly measuringId = signal<string | null>(null);
+    public readonly measureError = signal<string | null>(null);
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -374,6 +378,31 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         } finally {
             this.loadingInterventions.set(false);
         }
+    }
+
+    /** Measure one intervention's outcomes (baseline vs now) and surface its lift readout. */
+    public async measureIntervention(interventionId: string): Promise<void> {
+        if (this.measuringId()) return;
+        this.measuringId.set(interventionId);
+        this.measureError.set(null);
+        try {
+            const res = await this.interventionService.measure(interventionId);
+            if (res.ok && res.result) {
+                this.liftById.update((m) => { const next = new Map(m); next.set(interventionId, res.result!); return next; });
+            } else {
+                this.measureError.set(res.error ?? "Measuring outcomes failed.");
+            }
+        } finally {
+            this.measuringId.set(null);
+        }
+    }
+
+    public liftFor(interventionId: string): MeasureResult | null { return this.liftById().get(interventionId) ?? null; }
+
+    /** Signed one-decimal label for lift numbers ("+3.2" / "-1.0"). */
+    public liftLabel(v: number | null): string {
+        if (v == null) return "n/a";
+        return `${v >= 0 ? "+" : ""}${v.toFixed(1)}`;
     }
 
     /**

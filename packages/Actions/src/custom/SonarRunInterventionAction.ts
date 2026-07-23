@@ -167,6 +167,9 @@ export class SonarRunInterventionAction extends SonarActionBase {
         iv.ActionID = cfg.action.actionId;
         iv.ControlGroupPercent = pct;
         iv.Status = "Active";
+        // Persist the play's params so the intervention is self-contained: a later autonomous fire
+        // (or a re-run from the record) uses the same params the operator launched with.
+        if (cfg.action.params.length > 0) iv.ActionParamsJSON = JSON.stringify(cfg.action.params);
         if (!(await iv.Save())) {
             throw new Error(`Failed to create intervention: ${iv.LatestResult?.CompleteMessage ?? "unknown"}`);
         }

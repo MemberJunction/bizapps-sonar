@@ -2899,5 +2899,86 @@
         }
       ]
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Measure Intervention Outcomes",
+      "Description": "Fills InterventionOutcome for one intervention's assignments (baseline = the member's score history at assignment; outcome = current score/band movement) and returns the treatment-vs-control lift summary. Re-runnable: measured assignments are skipped; lift aggregates everything measured so far. v1 outcomes are engagement outcomes (score/band movement); business outcomes come later.",
+      "DriverClass": "SonarMeasureOutcomes",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-scale-balanced",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001C-4000-8000-00000000001C"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Intervention whose assignments to measure."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON MeasureResult: { measured, alreadyMeasured, unmeasurable, lift: { scoreLift, bandUpLiftPct, ... } }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Outcomes measured; lift summary returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "InterventionID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Measurement failed (intervention/segment not found or write error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
   }
 ]

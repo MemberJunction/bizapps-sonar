@@ -512,7 +512,7 @@ export class mjBizAppsSonarInterventionAssignment_ {
     InterventionID: string;
         
     @Field({description: `Canonical id of the assigned anchor record (matches Score.AnchorRecordID).`}) 
-    @MaxLength(100)
+    @MaxLength(450)
     AnchorRecordID: string;
         
     @Field({nullable: true, description: `Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.`}) 
@@ -736,6 +736,10 @@ export class mjBizAppsSonarInterventionOutcome_ {
     @Field() 
     _mj__UpdatedAt: Date;
         
+    @Field() 
+    @MaxLength(450)
+    Assignment: string;
+        
 }
 
 //****************************************************************************
@@ -917,6 +921,9 @@ export class mjBizAppsSonarIntervention_ {
     @MaxLength(16)
     Status: string;
         
+    @Field({nullable: true, description: `JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.`}) 
+    ActionParamsJSON?: string;
+        
     @Field() 
     _mj__CreatedAt: Date;
         
@@ -965,6 +972,9 @@ export class CreatemjBizAppsSonarInterventionInput {
     @Field({ nullable: true })
     Status?: string;
 
+    @Field({ nullable: true })
+    ActionParamsJSON: string | null;
+
     @Field(() => RestoreContextInput, { nullable: true })
     RestoreContext___?: RestoreContextInput;
 }
@@ -998,6 +1008,9 @@ export class UpdatemjBizAppsSonarInterventionInput {
 
     @Field({ nullable: true })
     Status?: string;
+
+    @Field({ nullable: true })
+    ActionParamsJSON?: string | null;
 
     @Field(() => [KeyValuePairInput], { nullable: true })
     OldValues___?: KeyValuePairInput[];
