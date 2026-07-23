@@ -2980,5 +2980,64 @@
         }
       ]
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Add to Worklist",
+      "Description": "The zero-dependency intervention play: firing it queues a treated member onto the Sonar follow-up worklist (worked in the Interventions tab — mark Contacted/Done). The assignment row is the artifact; no external system. Belongs to the 'Sonar Plays' category so the launch picker offers only real plays.",
+      "DriverClass": "SonarAddToWorklist",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-list-check",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Sonar Plays"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001D-4000-8000-00000000001D"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "The member being queued onto the worklist."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001D-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { queued, anchorRecordId }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001D-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Member queued onto the worklist."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001D-4000-8000-0000000000C1"
+          }
+        }
+      ]
+    }
   }
 ]

@@ -9,7 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, WorklistMember } from "../../core/services/intervention.service";
 
 
 /**
@@ -89,6 +89,11 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly liftById = signal<Map<string, MeasureResult>>(new Map());
     public readonly measuringId = signal<string | null>(null);
     public readonly measureError = signal<string | null>(null);
+    /** The follow-up worklist drill-in: which intervention is expanded + its treated members. */
+    public readonly expandedInterventionId = signal<string | null>(null);
+    public readonly worklist = signal<WorklistMember[]>([]);
+    public readonly loadingWorklist = signal(false);
+    public readonly worklistStatuses = ["Sent", "Contacted", "Done"];
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -484,6 +489,27 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     }
 
     public liftFor(interventionId: string): MeasureResult | null { return this.liftById().get(interventionId) ?? null; }
+
+    /** Expand/collapse an intervention's follow-up worklist (its treated members, worked in-app). */
+    public async toggleWorklist(interventionId: string): Promise<void> {
+        if (this.expandedInterventionId() === interventionId) { this.expandedInterventionId.set(null); return; }
+        this.expandedInterventionId.set(interventionId);
+        this.worklist.set([]);
+        this.loadingWorklist.set(true);
+        try {
+            this.worklist.set(await this.interventionService.worklistFor(interventionId, this.anchorEntityId()));
+        } finally {
+            this.loadingWorklist.set(false);
+        }
+    }
+
+    /** Advance a worklist member's status (Sent → Contacted → Done) and reflect it locally. */
+    public async markWorklist(assignmentId: string, status: string): Promise<void> {
+        const res = await this.interventionService.setWorklistStatus(assignmentId, status);
+        if (res.ok) {
+            this.worklist.update((list) => list.map((m) => (m.assignmentId === assignmentId ? { ...m, status } : m)));
+        }
+    }
 
     /** Signed one-decimal label for lift numbers ("+3.2" / "-1.0"). */
     public liftLabel(v: number | null): string {

@@ -36,3 +36,4 @@ export * from "./SonarCancelFactorJobAction";
 export * from "./SonarBindSignalToModelAction";
 export * from "./SonarRunInterventionAction";
 export * from "./SonarMeasureOutcomesAction";
+export * from "./SonarAddToWorklistAction";

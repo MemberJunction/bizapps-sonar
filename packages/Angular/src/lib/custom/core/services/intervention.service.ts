@@ -4,6 +4,8 @@ import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 import { extractActionResult } from "./action-result.util";
 import { sqlString } from "./sql.util";
+import { resolveAnchorName } from "./anchor-name.util";
+import { mjBizAppsSonarInterventionAssignmentEntity } from "@mj-biz-apps/sonar-entities";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
@@ -45,6 +47,9 @@ export interface LaunchResult {
 
 /** An MJ Action the operator can pick as the play (what fires per treated member). */
 export interface FireableAction { id: string; name: string; description: string | null }
+
+/** One treated member on an intervention's follow-up worklist. */
+export interface WorklistMember { assignmentId: string; anchorRecordId: string; name: string; status: string }
 
 /** Treatment-vs-control lift for one intervention (engine's MeasureResult.lift). */
 export interface LiftSummary {
@@ -122,17 +127,48 @@ export class InterventionService {
         return result ? { ok: true, result } : { ok: false, error: "The measure run returned no result payload." };
     }
 
-    /** Active, param-less-friendly plays the operator can fire — Business Apps category actions. */
+    /** The plays an operator can fire — ONLY the "Sonar Plays" category (purpose-built interventions),
+     *  so the picker isn't polluted with the authoring/utility actions. */
     public async fireableActions(): Promise<FireableAction[]> {
         const res = await new RunView().RunView<ActionRow>({
             EntityName: "MJ: Actions",
-            ExtraFilter: `Status='Active' AND Category='Business Apps'`,
+            ExtraFilter: `Status='Active' AND Category='Sonar Plays'`,
             OrderBy: "Name ASC",
             Fields: ["ID", "Name", "Description"],
             ResultType: "simple",
         });
         const rows = res.Success ? res.Results ?? [] : [];
         return rows.map((r) => ({ id: r.ID, name: r.Name, description: r.Description }));
+    }
+
+    /** The treated members of an intervention — the follow-up worklist. Control is excluded (held out,
+     *  never contacted). Names resolved off the anchor entity so it reads as people, not GUIDs. */
+    public async worklistFor(interventionId: string, anchorEntityId: string | null): Promise<WorklistMember[]> {
+        const res = await new RunView().RunView<{ ID: string; AnchorRecordID: string; ActionDeliveryStatus: string | null }>({
+            EntityName: "MJ_BizApps_Sonar: Intervention Assignments",
+            ExtraFilter: `InterventionID='${sqlString(interventionId)}' AND Cohort='Treatment'`,
+            Fields: ["ID", "AnchorRecordID", "ActionDeliveryStatus"],
+            IgnoreMaxRows: true,
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        return Promise.all(
+            rows.map(async (r) => ({
+                assignmentId: r.ID,
+                anchorRecordId: r.AnchorRecordID,
+                name: await resolveAnchorName(anchorEntityId, r.AnchorRecordID),
+                status: r.ActionDeliveryStatus ?? "Sent",
+            })),
+        );
+    }
+
+    /** Update one worklist member's status (Sent → Contacted → Done) as the operator works the list. */
+    public async setWorklistStatus(assignmentId: string, status: string): Promise<{ ok: boolean; error?: string }> {
+        const md = new Metadata();
+        const row = await md.GetEntityObject<mjBizAppsSonarInterventionAssignmentEntity>("MJ_BizApps_Sonar: Intervention Assignments");
+        if (!(await row.Load(assignmentId))) return { ok: false, error: "Assignment not found." };
+        row.ActionDeliveryStatus = status;
+        return (await row.Save()) ? { ok: true } : { ok: false, error: row.LatestResult?.Message || "Save failed." };
     }
 
     /** All interventions on this model's segments, each with its assignment tallies. */

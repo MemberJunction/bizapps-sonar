@@ -467,7 +467,13 @@
                                         <tbody>
                                             @for (iv of interventions(); track iv.id) {
                                                 <tr>
-                                                    <td class="sonar-iv-table__name">{{ iv.name }}</td>
+                                                    <td class="sonar-iv-table__name">
+                                                        <button type="button" class="sonar-iv-table__expand" (click)="toggleWorklist(iv.id)"
+                                                                [attr.aria-expanded]="expandedInterventionId() === iv.id" title="Show the follow-up worklist (treated members)">
+                                                            <i class="fa-solid" [class.fa-caret-down]="expandedInterventionId() === iv.id" [class.fa-caret-right]="expandedInterventionId() !== iv.id"></i>
+                                                        </button>
+                                                        {{ iv.name }}
+                                                    </td>
                                                     <td class="sonar-faint">{{ iv.segmentName }}</td>
                                                     <td><span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span></td>
                                                     <td class="sonar-iv-table__num sonar-mono">{{ iv.holdoutPercent ?? 0 }}%</td>
@@ -492,6 +498,35 @@
                                                         }
                                                     </td>
                                                 </tr>
+                                                @if (expandedInterventionId() === iv.id) {
+                                                    <tr class="sonar-iv-worklist__row">
+                                                        <td colspan="10">
+                                                            @if (loadingWorklist()) {
+                                                                <div class="sonar-skeleton" style="height: 3rem;"></div>
+                                                            } @else if (worklist().length === 0) {
+                                                                <p class="sonar-faint" style="margin: 0.5rem 0;">No treated members on this play's worklist.</p>
+                                                            } @else {
+                                                                <div class="sonar-iv-worklist">
+                                                                    <div class="sonar-iv-worklist__head"><i class="fa-solid fa-list-check"></i> Follow-up worklist · {{ worklist().length }} to work (control held out)</div>
+                                                                    @for (w of worklist(); track w.assignmentId) {
+                                                                        <div class="sonar-iv-worklist__item">
+                                                                            <span class="sonar-iv-worklist__name">{{ w.name }}</span>
+                                                                            <span class="sonar-chip sonar-chip--small">{{ w.status === 'Sent' ? 'To do' : w.status }}</span>
+                                                                            <span class="sonar-iv-worklist__actions">
+                                                                                @for (s of worklistStatuses; track s) {
+                                                                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-iv-worklist__btn"
+                                                                                            [class.sonar-iv-worklist__btn--on]="w.status === s" (click)="markWorklist(w.assignmentId, s)">
+                                                                                        {{ s === 'Sent' ? 'To do' : s }}
+                                                                                    </button>
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
                                             }
                                         </tbody>
                                     </table>
