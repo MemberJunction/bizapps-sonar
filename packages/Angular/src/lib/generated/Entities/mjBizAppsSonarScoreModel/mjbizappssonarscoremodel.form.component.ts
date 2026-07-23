@@ -26,7 +26,8 @@ export class mjBizAppsSonarScoreModelFormComponent extends BaseFormComponent {
             { sectionKey: 'mJBizAppsSonarFactorsSourceScoreModelID', sectionName: 'Factors (Source Score Model ID)', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarModelFactors', sectionName: 'Model Factors', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreModelVersions', sectionName: 'Score Model Versions', isExpanded: false },
-            { sectionKey: 'mJBizAppsSonarModelRelatedEntities', sectionName: 'Model Related Entities', isExpanded: false }
+            { sectionKey: 'mJBizAppsSonarModelRelatedEntities', sectionName: 'Model Related Entities', isExpanded: false },
+            { sectionKey: 'mJBizAppsSonarScoreSegments', sectionName: 'Score Segments', isExpanded: false }
         ]);
     }
 }

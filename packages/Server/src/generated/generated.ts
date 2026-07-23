@@ -17,7 +17,7 @@ import { MaxLength } from 'class-validator';
 import * as mj_core_schema_server_object_types from '@memberjunction/server'
 
 
-import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarModelRelatedEntityEntity, mjBizAppsSonarScoreBandSetEntity, mjBizAppsSonarScoreBandTransitionEntity, mjBizAppsSonarScoreBandEntity, mjBizAppsSonarScoreFactorContributionEntity, mjBizAppsSonarScoreHistoryEntity, mjBizAppsSonarScoreModelAuditEventEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreRecomputeRunEntity, mjBizAppsSonarScoreEntity, mjBizAppsSonarTimeWindowEntity } from '@mj-biz-apps/sonar-entities';
+import { mjBizAppsSonarFactorEntity, mjBizAppsSonarInterventionAssignmentEntity, mjBizAppsSonarInterventionOutcomeEntity, mjBizAppsSonarInterventionEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarModelRelatedEntityEntity, mjBizAppsSonarScoreBandSetEntity, mjBizAppsSonarScoreBandTransitionEntity, mjBizAppsSonarScoreBandEntity, mjBizAppsSonarScoreFactorContributionEntity, mjBizAppsSonarScoreHistoryEntity, mjBizAppsSonarScoreModelAuditEventEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreRecomputeRunEntity, mjBizAppsSonarScoreSegmentEntity, mjBizAppsSonarScoreEntity, mjBizAppsSonarTimeWindowEntity } from '@mj-biz-apps/sonar-entities';
     
 
 //****************************************************************************
@@ -443,8 +443,8 @@ export class mjBizAppsSonarFactorResolver extends ResolverBase {
     async mjBizAppsSonarFactor(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarFactor_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Factors', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -453,8 +453,8 @@ export class mjBizAppsSonarFactorResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ModelFactors_FactorIDArray(@Root() mjbizappssonarfactor_: mjBizAppsSonarFactor_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Model Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('FactorID')}='${mjbizappssonarfactor_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('FactorID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarfactor_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Model Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -463,8 +463,8 @@ export class mjBizAppsSonarFactorResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_FactorIDArray(@Root() mjbizappssonarfactor_: mjBizAppsSonarFactor_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Factor Contributions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('FactorID')}='${mjbizappssonarfactor_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('FactorID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarfactor_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Factor Contributions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -494,6 +494,610 @@ export class mjBizAppsSonarFactorResolver extends ResolverBase {
         const provider = GetReadWriteProvider(providers);
         const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
         return this.DeleteRecord('MJ_BizApps_Sonar: Factors', key, options, provider, userPayload, pubSub);
+    }
+    
+}
+
+//****************************************************************************
+// ENTITY CLASS for MJ_BizApps_Sonar: Intervention Assignments
+//****************************************************************************
+@ObjectType({ description: `One member\'s enrollment in an intervention, split into treatment vs. control (the holdout) for lift measurement.` })
+export class mjBizAppsSonarInterventionAssignment_ {
+    @Field() 
+    @MaxLength(36)
+    ID: string;
+        
+    @Field() 
+    @MaxLength(36)
+    InterventionID: string;
+        
+    @Field({description: `Canonical id of the assigned anchor record (matches Score.AnchorRecordID).`}) 
+    @MaxLength(100)
+    AnchorRecordID: string;
+        
+    @Field({nullable: true, description: `Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.`}) 
+    AnchorRecordKeyJSON?: string;
+        
+    @Field({description: `Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).`}) 
+    @MaxLength(10)
+    Cohort: string;
+        
+    @Field({description: `When the member was assigned to this intervention.`}) 
+    AssignedAt: Date;
+        
+    @Field({nullable: true, description: `Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.`}) 
+    @MaxLength(20)
+    ActionDeliveryStatus?: string;
+        
+    @Field() 
+    _mj__CreatedAt: Date;
+        
+    @Field() 
+    _mj__UpdatedAt: Date;
+        
+    @Field() 
+    @MaxLength(200)
+    Intervention: string;
+        
+    @Field(() => [mjBizAppsSonarInterventionOutcome_])
+    mjBizAppsSonarMJ_BizApps_Sonar_InterventionOutcomes_AssignmentIDArray: mjBizAppsSonarInterventionOutcome_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_InterventionOutcomes
+    
+}
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Intervention Assignments
+//****************************************************************************
+@InputType()
+export class CreatemjBizAppsSonarInterventionAssignmentInput {
+    @Field({ nullable: true })
+    ID?: string;
+
+    @Field({ nullable: true })
+    InterventionID?: string;
+
+    @Field({ nullable: true })
+    AnchorRecordID?: string;
+
+    @Field({ nullable: true })
+    AnchorRecordKeyJSON: string | null;
+
+    @Field({ nullable: true })
+    Cohort?: string;
+
+    @Field({ nullable: true })
+    AssignedAt?: Date;
+
+    @Field({ nullable: true })
+    ActionDeliveryStatus: string | null;
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Intervention Assignments
+//****************************************************************************
+@InputType()
+export class UpdatemjBizAppsSonarInterventionAssignmentInput {
+    @Field()
+    ID: string;
+
+    @Field({ nullable: true })
+    InterventionID?: string;
+
+    @Field({ nullable: true })
+    AnchorRecordID?: string;
+
+    @Field({ nullable: true })
+    AnchorRecordKeyJSON?: string | null;
+
+    @Field({ nullable: true })
+    Cohort?: string;
+
+    @Field({ nullable: true })
+    AssignedAt?: Date;
+
+    @Field({ nullable: true })
+    ActionDeliveryStatus?: string | null;
+
+    @Field(() => [KeyValuePairInput], { nullable: true })
+    OldValues___?: KeyValuePairInput[];
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+//****************************************************************************
+// RESOLVER for MJ_BizApps_Sonar: Intervention Assignments
+//****************************************************************************
+@ObjectType()
+export class RunmjBizAppsSonarInterventionAssignmentViewResult {
+    @Field(() => [mjBizAppsSonarInterventionAssignment_])
+    Results: mjBizAppsSonarInterventionAssignment_[];
+
+    @Field(() => String, {nullable: true})
+    UserViewRunID?: string;
+
+    @Field(() => Int, {nullable: true})
+    RowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    TotalRowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    ExecutionTime: number;
+
+    @Field({nullable: true})
+    ErrorMessage?: string;
+
+    @Field(() => Boolean, {nullable: false})
+    Success: boolean;
+}
+
+@Resolver(mjBizAppsSonarInterventionAssignment_)
+export class mjBizAppsSonarInterventionAssignmentResolver extends ResolverBase {
+    @Query(() => RunmjBizAppsSonarInterventionAssignmentViewResult)
+    async RunmjBizAppsSonarInterventionAssignmentViewByID(@Arg('input', () => RunViewByIDInput) input: RunViewByIDInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByIDGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionAssignmentViewResult)
+    async RunmjBizAppsSonarInterventionAssignmentViewByName(@Arg('input', () => RunViewByNameInput) input: RunViewByNameInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByNameGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionAssignmentViewResult)
+    async RunmjBizAppsSonarInterventionAssignmentDynamicView(@Arg('input', () => RunDynamicViewInput) input: RunDynamicViewInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        input.EntityName = 'MJ_BizApps_Sonar: Intervention Assignments';
+        return super.RunDynamicViewGeneric(input, provider, userPayload, pubSub);
+    }
+    @Query(() => mjBizAppsSonarInterventionAssignment_, { nullable: true })
+    async mjBizAppsSonarInterventionAssignment(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarInterventionAssignment_ | null> {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Intervention Assignments', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventionAssignments')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Intervention Assignments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Intervention Assignments', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+    
+    @FieldResolver(() => [mjBizAppsSonarInterventionOutcome_])
+    async mjBizAppsSonarMJ_BizApps_Sonar_InterventionOutcomes_AssignmentIDArray(@Root() mjbizappssonarinterventionassignment_: mjBizAppsSonarInterventionAssignment_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Intervention Outcomes', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventionOutcomes')} WHERE ${provider.QuoteIdentifier('AssignmentID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Intervention Outcomes', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarinterventionassignment_.ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Intervention Outcomes', rows, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+        
+    @Mutation(() => mjBizAppsSonarInterventionAssignment_)
+    async CreatemjBizAppsSonarInterventionAssignment(
+        @Arg('input', () => CreatemjBizAppsSonarInterventionAssignmentInput) input: CreatemjBizAppsSonarInterventionAssignmentInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.CreateRecord('MJ_BizApps_Sonar: Intervention Assignments', input, provider, userPayload, pubSub)
+    }
+        
+    @Mutation(() => mjBizAppsSonarInterventionAssignment_)
+    async UpdatemjBizAppsSonarInterventionAssignment(
+        @Arg('input', () => UpdatemjBizAppsSonarInterventionAssignmentInput) input: UpdatemjBizAppsSonarInterventionAssignmentInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.UpdateRecord('MJ_BizApps_Sonar: Intervention Assignments', input, provider, userPayload, pubSub);
+    }
+    
+    @Mutation(() => mjBizAppsSonarInterventionAssignment_)
+    async DeletemjBizAppsSonarInterventionAssignment(@Arg('ID', () => String) ID: string, @Arg('options___', () => DeleteOptionsInput) options: DeleteOptionsInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadWriteProvider(providers);
+        const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
+        return this.DeleteRecord('MJ_BizApps_Sonar: Intervention Assignments', key, options, provider, userPayload, pubSub);
+    }
+    
+}
+
+//****************************************************************************
+// ENTITY CLASS for MJ_BizApps_Sonar: Intervention Outcomes
+//****************************************************************************
+@ObjectType({ description: `The measured result for one intervention assignment (business outcome + score change) — the basis for treatment-vs-control lift.` })
+export class mjBizAppsSonarInterventionOutcome_ {
+    @Field() 
+    @MaxLength(36)
+    ID: string;
+        
+    @Field() 
+    @MaxLength(36)
+    AssignmentID: string;
+        
+    @Field({description: `The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.`}) 
+    @MaxLength(16)
+    OutcomeType: string;
+        
+    @Field({nullable: true, description: `When the business outcome occurred.`}) 
+    OutcomeAt?: Date;
+        
+    @Field(() => Float, {nullable: true, description: `Change in the member's normalized score from assignment to measurement (engagement movement after the play).`}) 
+    ScoreDeltaAfter?: number;
+        
+    @Field({nullable: true, description: `When the outcome was measured/recorded.`}) 
+    MeasuredAt?: Date;
+        
+    @Field() 
+    _mj__CreatedAt: Date;
+        
+    @Field() 
+    _mj__UpdatedAt: Date;
+        
+}
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Intervention Outcomes
+//****************************************************************************
+@InputType()
+export class CreatemjBizAppsSonarInterventionOutcomeInput {
+    @Field({ nullable: true })
+    ID?: string;
+
+    @Field({ nullable: true })
+    AssignmentID?: string;
+
+    @Field({ nullable: true })
+    OutcomeType?: string;
+
+    @Field({ nullable: true })
+    OutcomeAt: Date | null;
+
+    @Field(() => Float, { nullable: true })
+    ScoreDeltaAfter: number | null;
+
+    @Field({ nullable: true })
+    MeasuredAt: Date | null;
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Intervention Outcomes
+//****************************************************************************
+@InputType()
+export class UpdatemjBizAppsSonarInterventionOutcomeInput {
+    @Field()
+    ID: string;
+
+    @Field({ nullable: true })
+    AssignmentID?: string;
+
+    @Field({ nullable: true })
+    OutcomeType?: string;
+
+    @Field({ nullable: true })
+    OutcomeAt?: Date | null;
+
+    @Field(() => Float, { nullable: true })
+    ScoreDeltaAfter?: number | null;
+
+    @Field({ nullable: true })
+    MeasuredAt?: Date | null;
+
+    @Field(() => [KeyValuePairInput], { nullable: true })
+    OldValues___?: KeyValuePairInput[];
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+//****************************************************************************
+// RESOLVER for MJ_BizApps_Sonar: Intervention Outcomes
+//****************************************************************************
+@ObjectType()
+export class RunmjBizAppsSonarInterventionOutcomeViewResult {
+    @Field(() => [mjBizAppsSonarInterventionOutcome_])
+    Results: mjBizAppsSonarInterventionOutcome_[];
+
+    @Field(() => String, {nullable: true})
+    UserViewRunID?: string;
+
+    @Field(() => Int, {nullable: true})
+    RowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    TotalRowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    ExecutionTime: number;
+
+    @Field({nullable: true})
+    ErrorMessage?: string;
+
+    @Field(() => Boolean, {nullable: false})
+    Success: boolean;
+}
+
+@Resolver(mjBizAppsSonarInterventionOutcome_)
+export class mjBizAppsSonarInterventionOutcomeResolver extends ResolverBase {
+    @Query(() => RunmjBizAppsSonarInterventionOutcomeViewResult)
+    async RunmjBizAppsSonarInterventionOutcomeViewByID(@Arg('input', () => RunViewByIDInput) input: RunViewByIDInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByIDGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionOutcomeViewResult)
+    async RunmjBizAppsSonarInterventionOutcomeViewByName(@Arg('input', () => RunViewByNameInput) input: RunViewByNameInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByNameGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionOutcomeViewResult)
+    async RunmjBizAppsSonarInterventionOutcomeDynamicView(@Arg('input', () => RunDynamicViewInput) input: RunDynamicViewInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        input.EntityName = 'MJ_BizApps_Sonar: Intervention Outcomes';
+        return super.RunDynamicViewGeneric(input, provider, userPayload, pubSub);
+    }
+    @Query(() => mjBizAppsSonarInterventionOutcome_, { nullable: true })
+    async mjBizAppsSonarInterventionOutcome(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarInterventionOutcome_ | null> {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Intervention Outcomes', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventionOutcomes')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Intervention Outcomes', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Intervention Outcomes', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+    
+    @Mutation(() => mjBizAppsSonarInterventionOutcome_)
+    async CreatemjBizAppsSonarInterventionOutcome(
+        @Arg('input', () => CreatemjBizAppsSonarInterventionOutcomeInput) input: CreatemjBizAppsSonarInterventionOutcomeInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.CreateRecord('MJ_BizApps_Sonar: Intervention Outcomes', input, provider, userPayload, pubSub)
+    }
+        
+    @Mutation(() => mjBizAppsSonarInterventionOutcome_)
+    async UpdatemjBizAppsSonarInterventionOutcome(
+        @Arg('input', () => UpdatemjBizAppsSonarInterventionOutcomeInput) input: UpdatemjBizAppsSonarInterventionOutcomeInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.UpdateRecord('MJ_BizApps_Sonar: Intervention Outcomes', input, provider, userPayload, pubSub);
+    }
+    
+    @Mutation(() => mjBizAppsSonarInterventionOutcome_)
+    async DeletemjBizAppsSonarInterventionOutcome(@Arg('ID', () => String) ID: string, @Arg('options___', () => DeleteOptionsInput) options: DeleteOptionsInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadWriteProvider(providers);
+        const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
+        return this.DeleteRecord('MJ_BizApps_Sonar: Intervention Outcomes', key, options, provider, userPayload, pubSub);
+    }
+    
+}
+
+//****************************************************************************
+// ENTITY CLASS for MJ_BizApps_Sonar: Interventions
+//****************************************************************************
+@ObjectType({ description: `What to do for a segment: fire an MJ Action against its members, with an automatic holdout for lift measurement.` })
+export class mjBizAppsSonarIntervention_ {
+    @Field() 
+    @MaxLength(36)
+    ID: string;
+        
+    @Field() 
+    @MaxLength(36)
+    ScoreSegmentID: string;
+        
+    @Field({description: `Display name of the intervention.`}) 
+    @MaxLength(200)
+    Name: string;
+        
+    @Field({nullable: true, description: `Optional description of the play and its intent.`}) 
+    Description?: string;
+        
+    @Field({description: `When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.`}) 
+    @MaxLength(20)
+    TriggerType: string;
+        
+    @Field() 
+    @MaxLength(36)
+    ActionID: string;
+        
+    @Field(() => Float, {nullable: true, description: `Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.`}) 
+    ControlGroupPercent?: number;
+        
+    @Field({description: `Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.`}) 
+    @MaxLength(16)
+    Status: string;
+        
+    @Field() 
+    _mj__CreatedAt: Date;
+        
+    @Field() 
+    _mj__UpdatedAt: Date;
+        
+    @Field() 
+    @MaxLength(200)
+    ScoreSegment: string;
+        
+    @Field() 
+    @MaxLength(425)
+    Action: string;
+        
+    @Field(() => [mjBizAppsSonarInterventionAssignment_])
+    mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments_InterventionIDArray: mjBizAppsSonarInterventionAssignment_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments
+    
+}
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Interventions
+//****************************************************************************
+@InputType()
+export class CreatemjBizAppsSonarInterventionInput {
+    @Field({ nullable: true })
+    ID?: string;
+
+    @Field({ nullable: true })
+    ScoreSegmentID?: string;
+
+    @Field({ nullable: true })
+    Name?: string;
+
+    @Field({ nullable: true })
+    Description: string | null;
+
+    @Field({ nullable: true })
+    TriggerType?: string;
+
+    @Field({ nullable: true })
+    ActionID?: string;
+
+    @Field(() => Float, { nullable: true })
+    ControlGroupPercent: number | null;
+
+    @Field({ nullable: true })
+    Status?: string;
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Interventions
+//****************************************************************************
+@InputType()
+export class UpdatemjBizAppsSonarInterventionInput {
+    @Field()
+    ID: string;
+
+    @Field({ nullable: true })
+    ScoreSegmentID?: string;
+
+    @Field({ nullable: true })
+    Name?: string;
+
+    @Field({ nullable: true })
+    Description?: string | null;
+
+    @Field({ nullable: true })
+    TriggerType?: string;
+
+    @Field({ nullable: true })
+    ActionID?: string;
+
+    @Field(() => Float, { nullable: true })
+    ControlGroupPercent?: number | null;
+
+    @Field({ nullable: true })
+    Status?: string;
+
+    @Field(() => [KeyValuePairInput], { nullable: true })
+    OldValues___?: KeyValuePairInput[];
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+//****************************************************************************
+// RESOLVER for MJ_BizApps_Sonar: Interventions
+//****************************************************************************
+@ObjectType()
+export class RunmjBizAppsSonarInterventionViewResult {
+    @Field(() => [mjBizAppsSonarIntervention_])
+    Results: mjBizAppsSonarIntervention_[];
+
+    @Field(() => String, {nullable: true})
+    UserViewRunID?: string;
+
+    @Field(() => Int, {nullable: true})
+    RowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    TotalRowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    ExecutionTime: number;
+
+    @Field({nullable: true})
+    ErrorMessage?: string;
+
+    @Field(() => Boolean, {nullable: false})
+    Success: boolean;
+}
+
+@Resolver(mjBizAppsSonarIntervention_)
+export class mjBizAppsSonarInterventionResolver extends ResolverBase {
+    @Query(() => RunmjBizAppsSonarInterventionViewResult)
+    async RunmjBizAppsSonarInterventionViewByID(@Arg('input', () => RunViewByIDInput) input: RunViewByIDInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByIDGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionViewResult)
+    async RunmjBizAppsSonarInterventionViewByName(@Arg('input', () => RunViewByNameInput) input: RunViewByNameInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByNameGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarInterventionViewResult)
+    async RunmjBizAppsSonarInterventionDynamicView(@Arg('input', () => RunDynamicViewInput) input: RunDynamicViewInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        input.EntityName = 'MJ_BizApps_Sonar: Interventions';
+        return super.RunDynamicViewGeneric(input, provider, userPayload, pubSub);
+    }
+    @Query(() => mjBizAppsSonarIntervention_, { nullable: true })
+    async mjBizAppsSonarIntervention(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarIntervention_ | null> {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Interventions', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventions')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Interventions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Interventions', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+    
+    @FieldResolver(() => [mjBizAppsSonarInterventionAssignment_])
+    async mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments_InterventionIDArray(@Root() mjbizappssonarintervention_: mjBizAppsSonarIntervention_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Intervention Assignments', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventionAssignments')} WHERE ${provider.QuoteIdentifier('InterventionID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Intervention Assignments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarintervention_.ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Intervention Assignments', rows, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+        
+    @Mutation(() => mjBizAppsSonarIntervention_)
+    async CreatemjBizAppsSonarIntervention(
+        @Arg('input', () => CreatemjBizAppsSonarInterventionInput) input: CreatemjBizAppsSonarInterventionInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.CreateRecord('MJ_BizApps_Sonar: Interventions', input, provider, userPayload, pubSub)
+    }
+        
+    @Mutation(() => mjBizAppsSonarIntervention_)
+    async UpdatemjBizAppsSonarIntervention(
+        @Arg('input', () => UpdatemjBizAppsSonarInterventionInput) input: UpdatemjBizAppsSonarInterventionInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.UpdateRecord('MJ_BizApps_Sonar: Interventions', input, provider, userPayload, pubSub);
+    }
+    
+    @Mutation(() => mjBizAppsSonarIntervention_)
+    async DeletemjBizAppsSonarIntervention(@Arg('ID', () => String) ID: string, @Arg('options___', () => DeleteOptionsInput) options: DeleteOptionsInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadWriteProvider(providers);
+        const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
+        return this.DeleteRecord('MJ_BizApps_Sonar: Interventions', key, options, provider, userPayload, pubSub);
     }
     
 }
@@ -709,8 +1313,8 @@ export class mjBizAppsSonarModelFactorResolver extends ResolverBase {
     async mjBizAppsSonarModelFactor(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarModelFactor_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Model Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Model Factors', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -719,8 +1323,8 @@ export class mjBizAppsSonarModelFactorResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_ModelFactorIDArray(@Root() mjbizappssonarmodelfactor_: mjBizAppsSonarModelFactor_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Factor Contributions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ModelFactorID')}='${mjbizappssonarmodelfactor_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ModelFactorID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarmodelfactor_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Factor Contributions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -929,8 +1533,8 @@ export class mjBizAppsSonarModelRelatedEntityResolver extends ResolverBase {
     async mjBizAppsSonarModelRelatedEntity(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarModelRelatedEntity_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Model Related Entities', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelRelatedEntities')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Related Entities', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelRelatedEntities')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Related Entities', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Model Related Entities', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -939,8 +1543,8 @@ export class mjBizAppsSonarModelRelatedEntityResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Factors_SourceRelatedEntityIDArray(@Root() mjbizappssonarmodelrelatedentity_: mjBizAppsSonarModelRelatedEntity_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('SourceRelatedEntityID')}='${mjbizappssonarmodelrelatedentity_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('SourceRelatedEntityID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarmodelrelatedentity_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1109,8 +1713,8 @@ export class mjBizAppsSonarScoreBandSetResolver extends ResolverBase {
     async mjBizAppsSonarScoreBandSet(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreBandSet_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Sets', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandSets')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Sets', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandSets')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Sets', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Sets', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1119,8 +1723,8 @@ export class mjBizAppsSonarScoreBandSetResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreBands_BandSetIDArray(@Root() mjbizappssonarscorebandset_: mjBizAppsSonarScoreBandSet_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Bands', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBands')} WHERE ${provider.QuoteIdentifier('BandSetID')}='${mjbizappssonarscorebandset_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Bands', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBands')} WHERE ${provider.QuoteIdentifier('BandSetID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Bands', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscorebandset_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Bands', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1129,8 +1733,8 @@ export class mjBizAppsSonarScoreBandSetResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreModels_BandSetIDArray(@Root() mjbizappssonarscorebandset_: mjBizAppsSonarScoreBandSet_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Models', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('BandSetID')}='${mjbizappssonarscorebandset_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('BandSetID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscorebandset_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Models', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1342,8 +1946,8 @@ export class mjBizAppsSonarScoreBandTransitionResolver extends ResolverBase {
     async mjBizAppsSonarScoreBandTransition(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreBandTransition_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Transitions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Transitions', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1567,8 +2171,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarScoreBand(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreBand_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Bands', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBands')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Bands', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBands')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Bands', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Bands', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1577,8 +2181,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Scores_BandIDArray(@Root() mjbizappssonarscoreband_: mjBizAppsSonarScoreBand_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Scores', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('BandID')}='${mjbizappssonarscoreband_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('BandID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoreband_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Scores', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1587,8 +2191,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Scores_PreviousBandIDArray(@Root() mjbizappssonarscoreband_: mjBizAppsSonarScoreBand_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Scores', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('PreviousBandID')}='${mjbizappssonarscoreband_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('PreviousBandID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoreband_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Scores', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1597,8 +2201,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_BandIDArray(@Root() mjbizappssonarscoreband_: mjBizAppsSonarScoreBand_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Histories', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('BandID')}='${mjbizappssonarscoreband_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('BandID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoreband_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Histories', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1607,8 +2211,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_FromBandIDArray(@Root() mjbizappssonarscoreband_: mjBizAppsSonarScoreBand_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Transitions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('FromBandID')}='${mjbizappssonarscoreband_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('FromBandID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoreband_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Transitions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1617,8 +2221,8 @@ export class mjBizAppsSonarScoreBandResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_ToBandIDArray(@Root() mjbizappssonarscoreband_: mjBizAppsSonarScoreBand_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Transitions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ToBandID')}='${mjbizappssonarscoreband_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ToBandID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoreband_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Transitions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -1854,8 +2458,8 @@ export class mjBizAppsSonarScoreFactorContributionResolver extends ResolverBase 
     async mjBizAppsSonarScoreFactorContribution(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreFactorContribution_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Factor Contributions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Factor Contributions', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2097,8 +2701,8 @@ export class mjBizAppsSonarScoreHistoryResolver extends ResolverBase {
     async mjBizAppsSonarScoreHistory(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreHistory_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Histories', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Histories', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2313,8 +2917,8 @@ export class mjBizAppsSonarScoreModelAuditEventResolver extends ResolverBase {
     async mjBizAppsSonarScoreModelAuditEvent(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreModelAuditEvent_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Model Audit Events', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelAuditEvents')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Audit Events', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelAuditEvents')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Audit Events', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Model Audit Events', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2539,8 +3143,8 @@ export class mjBizAppsSonarScoreModelVersionResolver extends ResolverBase {
     async mjBizAppsSonarScoreModelVersion(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreModelVersion_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Model Versions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelVersions')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Versions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelVersions')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Versions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Model Versions', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2549,8 +3153,8 @@ export class mjBizAppsSonarScoreModelVersionResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreRecomputeRuns_ScoreModelVersionIDArray(@Root() mjbizappssonarscoremodelversion_: mjBizAppsSonarScoreModelVersion_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Recompute Runs', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}='${mjbizappssonarscoremodelversion_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodelversion_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Recompute Runs', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2559,8 +3163,8 @@ export class mjBizAppsSonarScoreModelVersionResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Scores_ScoreModelVersionIDArray(@Root() mjbizappssonarscoremodelversion_: mjBizAppsSonarScoreModelVersion_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Scores', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}='${mjbizappssonarscoremodelversion_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodelversion_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Scores', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2569,8 +3173,8 @@ export class mjBizAppsSonarScoreModelVersionResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_ScoreModelVersionIDArray(@Root() mjbizappssonarscoremodelversion_: mjBizAppsSonarScoreModelVersion_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Histories', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}='${mjbizappssonarscoremodelversion_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ScoreModelVersionID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodelversion_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Histories', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2579,8 +3183,8 @@ export class mjBizAppsSonarScoreModelVersionResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreModels_CurrentVersionIDArray(@Root() mjbizappssonarscoremodelversion_: mjBizAppsSonarScoreModelVersion_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Models', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('CurrentVersionID')}='${mjbizappssonarscoremodelversion_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('CurrentVersionID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodelversion_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Models', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2744,6 +3348,9 @@ export class mjBizAppsSonarScoreModel_ {
     
     @Field(() => [mjBizAppsSonarModelRelatedEntity_])
     mjBizAppsSonarMJ_BizApps_Sonar_ModelRelatedEntities_ScoreModelIDArray: mjBizAppsSonarModelRelatedEntity_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_ModelRelatedEntities
+    
+    @Field(() => [mjBizAppsSonarScoreSegment_])
+    mjBizAppsSonarMJ_BizApps_Sonar_ScoreSegments_ScoreModelIDArray: mjBizAppsSonarScoreSegment_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_ScoreSegments
     
 }
 
@@ -2952,8 +3559,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarScoreModel(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreModel_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Models', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModels')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Models', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Models', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2962,8 +3569,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreHistories_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Histories', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreHistories')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Histories', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Histories', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2972,8 +3579,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Transitions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Transitions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2982,8 +3589,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreRecomputeRuns_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Recompute Runs', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Recompute Runs', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -2992,8 +3599,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Scores_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Scores', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Scores', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3002,8 +3609,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelAuditEvents_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Model Audit Events', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelAuditEvents')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Audit Events', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelAuditEvents')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Audit Events', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Model Audit Events', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3012,8 +3619,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Factors_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3022,8 +3629,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Factors_SourceScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('SourceScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('SourceScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3032,8 +3639,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ModelFactors_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Model Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelFactors')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Model Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3042,8 +3649,8 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreModelVersions_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Model Versions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelVersions')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Versions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreModelVersions')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Model Versions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Model Versions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3052,9 +3659,19 @@ export class mjBizAppsSonarScoreModelResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ModelRelatedEntities_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Model Related Entities', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelRelatedEntities')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}='${mjbizappssonarscoremodel_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Related Entities', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwModelRelatedEntities')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Model Related Entities', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Model Related Entities', rows, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+        
+    @FieldResolver(() => [mjBizAppsSonarScoreSegment_])
+    async mjBizAppsSonarMJ_BizApps_Sonar_ScoreSegments_ScoreModelIDArray(@Root() mjbizappssonarscoremodel_: mjBizAppsSonarScoreModel_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Segments', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreSegments')} WHERE ${provider.QuoteIdentifier('ScoreModelID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Segments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoremodel_.ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Segments', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
         
@@ -3312,8 +3929,8 @@ export class mjBizAppsSonarScoreRecomputeRunResolver extends ResolverBase {
     async mjBizAppsSonarScoreRecomputeRun(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreRecomputeRun_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Recompute Runs', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreRecomputeRuns')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Recompute Runs', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Recompute Runs', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3322,8 +3939,8 @@ export class mjBizAppsSonarScoreRecomputeRunResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreBandTransitions_RecomputeRunIDArray(@Root() mjbizappssonarscorerecomputerun_: mjBizAppsSonarScoreRecomputeRun_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Band Transitions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('RecomputeRunID')}='${mjbizappssonarscorerecomputerun_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreBandTransitions')} WHERE ${provider.QuoteIdentifier('RecomputeRunID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Band Transitions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscorerecomputerun_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Band Transitions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3353,6 +3970,219 @@ export class mjBizAppsSonarScoreRecomputeRunResolver extends ResolverBase {
         const provider = GetReadWriteProvider(providers);
         const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
         return this.DeleteRecord('MJ_BizApps_Sonar: Score Recompute Runs', key, options, provider, userPayload, pubSub);
+    }
+    
+}
+
+//****************************************************************************
+// ENTITY CLASS for MJ_BizApps_Sonar: Score Segments
+//****************************************************************************
+@ObjectType({ description: `A saved cohort over a model\'s scored records (e.g. "At-Risk in the renewal window") that interventions key off.` })
+export class mjBizAppsSonarScoreSegment_ {
+    @Field() 
+    @MaxLength(36)
+    ID: string;
+        
+    @Field() 
+    @MaxLength(36)
+    ScoreModelID: string;
+        
+    @Field({description: `Display name of the segment.`}) 
+    @MaxLength(200)
+    Name: string;
+        
+    @Field({nullable: true, description: `Optional description of who the segment captures and why.`}) 
+    Description?: string;
+        
+    @Field({nullable: true, description: `JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.`}) 
+    FilterExpression?: string;
+        
+    @Field(() => Boolean, {description: `When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.`}) 
+    IsDynamic: boolean;
+        
+    @Field(() => Int, {nullable: true, description: `Cached count of members in the segment as of LastEvaluatedAt (display/perf only).`}) 
+    MemberCountCached?: number;
+        
+    @Field({nullable: true, description: `When the segment membership/count was last evaluated.`}) 
+    LastEvaluatedAt?: Date;
+        
+    @Field() 
+    _mj__CreatedAt: Date;
+        
+    @Field() 
+    _mj__UpdatedAt: Date;
+        
+    @Field() 
+    @MaxLength(200)
+    ScoreModel: string;
+        
+    @Field(() => [mjBizAppsSonarIntervention_])
+    mjBizAppsSonarMJ_BizApps_Sonar_Interventions_ScoreSegmentIDArray: mjBizAppsSonarIntervention_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_Interventions
+    
+}
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Score Segments
+//****************************************************************************
+@InputType()
+export class CreatemjBizAppsSonarScoreSegmentInput {
+    @Field({ nullable: true })
+    ID?: string;
+
+    @Field({ nullable: true })
+    ScoreModelID?: string;
+
+    @Field({ nullable: true })
+    Name?: string;
+
+    @Field({ nullable: true })
+    Description: string | null;
+
+    @Field({ nullable: true })
+    FilterExpression: string | null;
+
+    @Field(() => Boolean, { nullable: true })
+    IsDynamic?: boolean;
+
+    @Field(() => Int, { nullable: true })
+    MemberCountCached: number | null;
+
+    @Field({ nullable: true })
+    LastEvaluatedAt: Date | null;
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+
+//****************************************************************************
+// INPUT TYPE for MJ_BizApps_Sonar: Score Segments
+//****************************************************************************
+@InputType()
+export class UpdatemjBizAppsSonarScoreSegmentInput {
+    @Field()
+    ID: string;
+
+    @Field({ nullable: true })
+    ScoreModelID?: string;
+
+    @Field({ nullable: true })
+    Name?: string;
+
+    @Field({ nullable: true })
+    Description?: string | null;
+
+    @Field({ nullable: true })
+    FilterExpression?: string | null;
+
+    @Field(() => Boolean, { nullable: true })
+    IsDynamic?: boolean;
+
+    @Field(() => Int, { nullable: true })
+    MemberCountCached?: number | null;
+
+    @Field({ nullable: true })
+    LastEvaluatedAt?: Date | null;
+
+    @Field(() => [KeyValuePairInput], { nullable: true })
+    OldValues___?: KeyValuePairInput[];
+
+    @Field(() => RestoreContextInput, { nullable: true })
+    RestoreContext___?: RestoreContextInput;
+}
+    
+//****************************************************************************
+// RESOLVER for MJ_BizApps_Sonar: Score Segments
+//****************************************************************************
+@ObjectType()
+export class RunmjBizAppsSonarScoreSegmentViewResult {
+    @Field(() => [mjBizAppsSonarScoreSegment_])
+    Results: mjBizAppsSonarScoreSegment_[];
+
+    @Field(() => String, {nullable: true})
+    UserViewRunID?: string;
+
+    @Field(() => Int, {nullable: true})
+    RowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    TotalRowCount: number;
+
+    @Field(() => Int, {nullable: true})
+    ExecutionTime: number;
+
+    @Field({nullable: true})
+    ErrorMessage?: string;
+
+    @Field(() => Boolean, {nullable: false})
+    Success: boolean;
+}
+
+@Resolver(mjBizAppsSonarScoreSegment_)
+export class mjBizAppsSonarScoreSegmentResolver extends ResolverBase {
+    @Query(() => RunmjBizAppsSonarScoreSegmentViewResult)
+    async RunmjBizAppsSonarScoreSegmentViewByID(@Arg('input', () => RunViewByIDInput) input: RunViewByIDInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByIDGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarScoreSegmentViewResult)
+    async RunmjBizAppsSonarScoreSegmentViewByName(@Arg('input', () => RunViewByNameInput) input: RunViewByNameInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        return super.RunViewByNameGeneric(input, provider, userPayload, pubSub);
+    }
+
+    @Query(() => RunmjBizAppsSonarScoreSegmentViewResult)
+    async RunmjBizAppsSonarScoreSegmentDynamicView(@Arg('input', () => RunDynamicViewInput) input: RunDynamicViewInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        input.EntityName = 'MJ_BizApps_Sonar: Score Segments';
+        return super.RunDynamicViewGeneric(input, provider, userPayload, pubSub);
+    }
+    @Query(() => mjBizAppsSonarScoreSegment_, { nullable: true })
+    async mjBizAppsSonarScoreSegment(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScoreSegment_ | null> {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Segments', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreSegments')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Segments', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Segments', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+    
+    @FieldResolver(() => [mjBizAppsSonarIntervention_])
+    async mjBizAppsSonarMJ_BizApps_Sonar_Interventions_ScoreSegmentIDArray(@Root() mjbizappssonarscoresegment_: mjBizAppsSonarScoreSegment_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        this.CheckUserReadPermissions('MJ_BizApps_Sonar: Interventions', userPayload);
+        const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwInterventions')} WHERE ${provider.QuoteIdentifier('ScoreSegmentID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Interventions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscoresegment_.ID], undefined, this.GetUserFromPayload(userPayload));
+        const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Interventions', rows, this.GetUserFromPayload(userPayload));
+        return result;
+    }
+        
+    @Mutation(() => mjBizAppsSonarScoreSegment_)
+    async CreatemjBizAppsSonarScoreSegment(
+        @Arg('input', () => CreatemjBizAppsSonarScoreSegmentInput) input: CreatemjBizAppsSonarScoreSegmentInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.CreateRecord('MJ_BizApps_Sonar: Score Segments', input, provider, userPayload, pubSub)
+    }
+        
+    @Mutation(() => mjBizAppsSonarScoreSegment_)
+    async UpdatemjBizAppsSonarScoreSegment(
+        @Arg('input', () => UpdatemjBizAppsSonarScoreSegmentInput) input: UpdatemjBizAppsSonarScoreSegmentInput,
+        @Ctx() { providers, userPayload }: AppContext,
+        @PubSub() pubSub: PubSubEngine
+    ) {
+        const provider = GetReadWriteProvider(providers);
+        return this.UpdateRecord('MJ_BizApps_Sonar: Score Segments', input, provider, userPayload, pubSub);
+    }
+    
+    @Mutation(() => mjBizAppsSonarScoreSegment_)
+    async DeletemjBizAppsSonarScoreSegment(@Arg('ID', () => String) ID: string, @Arg('options___', () => DeleteOptionsInput) options: DeleteOptionsInput, @Ctx() { providers, userPayload }: AppContext, @PubSub() pubSub: PubSubEngine) {
+        const provider = GetReadWriteProvider(providers);
+        const key = new CompositeKey([{FieldName: 'ID', Value: ID}]);
+        return this.DeleteRecord('MJ_BizApps_Sonar: Score Segments', key, options, provider, userPayload, pubSub);
     }
     
 }
@@ -3651,8 +4481,8 @@ export class mjBizAppsSonarScoreResolver extends ResolverBase {
     async mjBizAppsSonarScore(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarScore_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Scores', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScores')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Scores', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Scores', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3661,8 +4491,8 @@ export class mjBizAppsSonarScoreResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_ScoreFactorContributions_ScoreIDArray(@Root() mjbizappssonarscore_: mjBizAppsSonarScore_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Score Factor Contributions', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ScoreID')}='${mjbizappssonarscore_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwScoreFactorContributions')} WHERE ${provider.QuoteIdentifier('ScoreID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Score Factor Contributions', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonarscore_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Score Factor Contributions', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3861,8 +4691,8 @@ export class mjBizAppsSonarTimeWindowResolver extends ResolverBase {
     async mjBizAppsSonarTimeWindow(@Arg('ID', () => String) ID: string, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine): Promise<mjBizAppsSonarTimeWindow_ | null> {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Time Windows', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwTimeWindows')} WHERE ${provider.QuoteIdentifier('ID')}='${ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Time Windows', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwTimeWindows')} WHERE ${provider.QuoteIdentifier('ID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Time Windows', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.MapFieldNamesToCodeNames('MJ_BizApps_Sonar: Time Windows', rows && rows.length > 0 ? rows[0] : null, this.GetUserFromPayload(userPayload));
         return result;
     }
@@ -3871,8 +4701,8 @@ export class mjBizAppsSonarTimeWindowResolver extends ResolverBase {
     async mjBizAppsSonarMJ_BizApps_Sonar_Factors_TimeWindowIDArray(@Root() mjbizappssonartimewindow_: mjBizAppsSonarTimeWindow_, @Ctx() { userPayload, providers }: AppContext, @PubSub() pubSub: PubSubEngine) {
         this.CheckUserReadPermissions('MJ_BizApps_Sonar: Factors', userPayload);
         const provider = GetReadOnlyProvider(providers, { allowFallbackToReadWrite: true });
-        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('TimeWindowID')}='${mjbizappssonartimewindow_.ID}' ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
-        const rows = await provider.ExecuteSQL(sSQL, undefined, undefined, this.GetUserFromPayload(userPayload));
+        const sSQL = `SELECT * FROM ${provider.QuoteSchemaAndView('__mj_BizAppsSonar', 'vwFactors')} WHERE ${provider.QuoteIdentifier('TimeWindowID')}=${provider.BuildParameterPlaceholder(0)} ` + this.getRowLevelSecurityWhereClause(provider, 'MJ_BizApps_Sonar: Factors', userPayload, EntityPermissionType.Read, 'AND');
+        const rows = await provider.ExecuteSQL(sSQL, [mjbizappssonartimewindow_.ID], undefined, this.GetUserFromPayload(userPayload));
         const result = await this.ArrayMapFieldNamesToCodeNames('MJ_BizApps_Sonar: Factors', rows, this.GetUserFromPayload(userPayload));
         return result;
     }
