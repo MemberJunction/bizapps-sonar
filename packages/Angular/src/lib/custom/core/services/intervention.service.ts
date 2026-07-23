@@ -43,6 +43,8 @@ export interface LaunchResult {
     sent: number;
     failed: number;
     preview: boolean;
+    /** False → the chosen play isn't cleared to fire (a generated action needs approval); commit is blocked. */
+    playApproved: boolean;
 }
 
 /** An MJ Action the operator can pick as the play (what fires per treated member). */

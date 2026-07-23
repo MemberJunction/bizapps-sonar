@@ -72,11 +72,19 @@ export class SonarRunInterventionAction extends SonarActionBase {
                 request,
                 params.ContextUser,
             );
+            // Governance gate: an un-approved play is blocked on commit (nothing was written/fired).
+            if (!cfg.preview && !result.playApproved) {
+                return this.fail(
+                    params,
+                    "ERROR",
+                    "This play isn't cleared to fire: a generated (Runtime) action must be human-Approved (CodeApprovalStatus) first. Nothing was written or fired.",
+                );
+            }
             return {
                 Success: true,
                 ResultCode: "SUCCESS",
                 Message: cfg.preview
-                    ? `Preview: would fire ${result.treated} real message(s), hold back ${result.held}.`
+                    ? `Preview: would fire ${result.treated} message(s), hold back ${result.held}.${result.playApproved ? "" : " (Play not approved — commit will be blocked.)"}`
                     : `Fired ${result.sent} message(s), held back ${result.held}, ${result.failed} failed.`,
                 Params: [...params.Params, { Name: "Result", Value: JSON.stringify(result), Type: "Both" }],
             };

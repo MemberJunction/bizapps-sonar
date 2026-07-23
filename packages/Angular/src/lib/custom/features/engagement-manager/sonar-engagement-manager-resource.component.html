@@ -130,7 +130,7 @@
                                         <button class="sonar-btn" [disabled]="!launchActionId() || launchBusy() !== null" (click)="previewLaunch()">
                                             @if (launchBusy() === 'preview') { <i class="fa-solid fa-circle-notch fa-spin"></i> Previewing… } @else { <i class="fa-solid fa-eye"></i> Preview }
                                         </button>
-                                        <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchBusy() !== null" (click)="commitLaunch()"
+                                        <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchPreview()?.playApproved === false || launchBusy() !== null" (click)="commitLaunch()"
                                                 [title]="launchPreview() ? 'Write assignments and fire the play for the treatment group' : 'Preview first — nothing launches unseen'">
                                             @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> Launch }
                                         </button>
@@ -147,6 +147,7 @@
                                                 Tracked under <button type="button" class="sonar-launch__link" (click)="showInterventions()">Interventions</button>.
                                             </span>
                                         }
+                                        @if (launchPreview()?.playApproved === false) { <span class="sonar-launch__error"><i class="fa-solid fa-shield-halved"></i> This play needs approval before it can fire (generated actions are gated).</span> }
                                         @if (launchError(); as err) { <span class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</span> }
                                     </div>
                                 </section>

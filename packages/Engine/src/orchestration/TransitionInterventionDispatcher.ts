@@ -113,6 +113,11 @@ export class TransitionInterventionDispatcher {
     }
 
     private tally(summary: TransitionDispatchSummary, result: InterventionRunResult): void {
+        // An un-approved play fires nothing autonomously (the runner's gate). Surface it, don't fail.
+        if (!result.playApproved) {
+            LogStatus(`Sonar: an OnEnterSegment play is not Approved — autonomous fire skipped (nothing written/fired).`);
+            return;
+        }
         summary.assigned += result.treated + result.held;
         summary.sent += result.sent;
         summary.failed += result.failed;

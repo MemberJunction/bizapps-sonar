@@ -40,6 +40,17 @@ export interface InterventionRunResult {
     sent: number; // treated fires that succeeded (0 in preview)
     failed: number; // treated fires that failed (0 in preview)
     preview: boolean;
+    playApproved: boolean; // false → the play isn't cleared to fire; a commit writes/fires NOTHING
+}
+
+/**
+ * Governance gate for a play (plan §5.5, mirrors Bind Signal): a code-in-the-repo action (Type other
+ * than 'Runtime') is inherently trusted — its PR review is its review. A generated 'Runtime' action
+ * must be human-Approved (CodeApprovalStatus) before it can fire, because it carries arbitrary code
+ * that takes a real-world action. Pure, so it's unit-testable and shared by any caller.
+ */
+export function playApprovedFromMeta(type: string | null | undefined, codeApprovalStatus: string | null | undefined): boolean {
+    return type !== "Runtime" || codeApprovalStatus === "Approved";
 }
 
 /** Fires one MJ Action with the given params. Injected (the real one wraps ActionEngineServer in
@@ -112,6 +123,7 @@ export class InterventionRunner {
         const members = req.onlyAnchorIds ? resolved.filter((m) => req.onlyAnchorIds!.has(m.anchorRecordId)) : resolved;
         const assigned = await this.loadAssignedAnchorIds(req.interventionId, contextUser);
         const plan = planAssignments(members, assigned, req.holdoutPercent, req.cap);
+        const playApproved = await this.isPlayApproved(req.action.actionId, contextUser);
 
         const base: InterventionRunResult = {
             cohortSize: members.length,
@@ -123,8 +135,11 @@ export class InterventionRunner {
             sent: 0,
             failed: 0,
             preview: req.preview,
+            playApproved,
         };
-        if (req.preview) {
+        // Preview never writes/fires. And an un-approved play is BLOCKED on commit — write no
+        // assignments, fire nothing (the gate is here so it holds for BOTH manual and autonomous callers).
+        if (req.preview || !playApproved) {
             return base;
         }
 
@@ -158,6 +173,19 @@ export class InterventionRunner {
         } catch {
             return false;
         }
+    }
+
+    /** Is the play cleared to fire? Loads the Action's Type + CodeApprovalStatus and applies the gate
+     *  ({@link playApprovedFromMeta}). A missing/unresolvable action is treated as NOT approved (fail
+     *  closed — never fire something we can't verify). */
+    private async isPlayApproved(actionId: string, contextUser: UserInfo): Promise<boolean> {
+        const res = await new RunView().RunView<{ Type: string | null; CodeApprovalStatus: string | null }>(
+            { EntityName: "MJ: Actions", ExtraFilter: `ID='${actionId}'`, Fields: ["Type", "CodeApprovalStatus"], MaxRows: 1, ResultType: "simple" },
+            contextUser,
+        );
+        const row = res.Success ? res.Results?.[0] : undefined;
+        if (!row) return false;
+        return playApprovedFromMeta(row.Type, row.CodeApprovalStatus);
     }
 
     /** Anchor ids already assigned to this intervention (idempotency — never re-fire them). */

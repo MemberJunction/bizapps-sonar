@@ -74,3 +74,17 @@ describe("planAssignments", () => {
         expect(second.map((a) => a.cohort)).toEqual(first.map((a) => a.cohort));
     });
 });
+
+import { playApprovedFromMeta } from "../orchestration/InterventionRunner";
+
+describe("playApprovedFromMeta (fire-time governance gate)", () => {
+    it("codebase actions are inherently trusted (any non-Runtime type fires)", () => {
+        expect(playApprovedFromMeta("Custom", "Pending")).toBe(true);
+        expect(playApprovedFromMeta("Custom", null)).toBe(true);
+    });
+    it("generated Runtime actions fire ONLY when Approved", () => {
+        expect(playApprovedFromMeta("Runtime", "Approved")).toBe(true);
+        expect(playApprovedFromMeta("Runtime", "Pending")).toBe(false);
+        expect(playApprovedFromMeta("Runtime", null)).toBe(false);
+    });
+});
