@@ -88,7 +88,7 @@ GO
 CREATE TABLE ${flyway:defaultSchema}.InterventionAssignment (
     ID UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
     InterventionID UNIQUEIDENTIFIER NOT NULL,
-    AnchorRecordID NVARCHAR(100) NOT NULL,
+    AnchorRecordID NVARCHAR(450) NOT NULL, -- matches Score.AnchorRecordID (V202606241205 widened for composite anchor keys)
     AnchorRecordKeyJSON NVARCHAR(MAX) NULL,
     Cohort NVARCHAR(10) NOT NULL,
     AssignedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),

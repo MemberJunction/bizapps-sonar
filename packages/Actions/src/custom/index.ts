@@ -34,3 +34,4 @@ export * from "./SonarFindModelsAction";
 export * from "./SonarTestSignalAction";
 export * from "./SonarCancelFactorJobAction";
 export * from "./SonarBindSignalToModelAction";
+export * from "./SonarRunInterventionAction";

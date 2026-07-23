@@ -2818,5 +2818,86 @@
       "lastModified": "2026-06-30T15:45:42.445Z",
       "checksum": "8ea36b7b21dd28f1e383730184682463e0b024e7b3f3cef86afaf06a1cbff70c"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Run Intervention",
+      "Description": "The action layer's entry point: find-or-creates an ad-hoc ScoreSegment (band/score filter) and an Intervention (segment + chosen MJ Action + holdout %), then runs it. preview:true returns cohort/treated/held counts without writing or firing; preview:false writes one InterventionAssignment per member and fires the Action for each Treatment member (Control is held out). Idempotent: already-assigned members are never re-fired.",
+      "DriverClass": "SonarRunIntervention",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-bullhorn",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001B-4000-8000-00000000001B"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ConfigJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON: { modelId, segment:{name,filter:{bandId?,minScore?,maxScore?}}, intervention:{name,holdoutPercent}, action:{actionId,params[]}, cap, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON InterventionRunResult: { cohortSize, alreadyAssigned, eligible, capped, treated, held, sent, failed, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Intervention run (or previewed) successfully."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ConfigJSON missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The run failed (segment/intervention create or engine error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
   }
 ]

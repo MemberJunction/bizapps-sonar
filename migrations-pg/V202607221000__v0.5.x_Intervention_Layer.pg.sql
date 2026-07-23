@@ -65,7 +65,7 @@ COMMENT ON COLUMN __mj_bizappssonar."Intervention"."Status" IS 'Lifecycle state:
 CREATE TABLE __mj_bizappssonar."InterventionAssignment" (
     "ID" uuid DEFAULT gen_random_uuid() NOT NULL,
     "InterventionID" uuid NOT NULL,
-    "AnchorRecordID" character varying(100) NOT NULL,
+    "AnchorRecordID" character varying(450) NOT NULL, -- matches Score.AnchorRecordID (widened for composite anchor keys)
     "AnchorRecordKeyJSON" text,
     "Cohort" character varying(10) NOT NULL,
     "AssignedAt" timestamp with time zone DEFAULT (now() AT TIME ZONE 'UTC'::text) NOT NULL,
