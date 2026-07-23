@@ -9,6 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult } from "../../core/services/intervention.service";
 
 
 /**
@@ -18,8 +19,9 @@ import { toCsv, downloadCsv } from "../../core/services/csv.util";
  * factor contributions. DriverClass = 'SonarEngagementManagerResource'.
  *
  * Reads PERSISTED scores via {@link ScoreReadService} (written by Recompute). Triage + the
- * explainability drawer + cohort CSV export ship in v1; the action/intervention layer is Phase 2+
- * (un-shipped — its engine/action code stays dormant behind the dropped Action Layer migration).
+ * explainability drawer + cohort CSV export, plus the action layer (plan §5.6): launch an
+ * intervention on the filtered cohort (preview → commit with an automatic holdout via
+ * `Sonar: Run Intervention`) and track launched plays in the Interventions tab.
  */
 @RegisterClass(BaseResourceComponent, "SonarEngagementManagerResource")
 @Component({
@@ -33,9 +35,24 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly factorService = inject(FactorService);
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
+    private readonly interventionService = inject(InterventionService);
 
     // --- active view tab ---
-    public readonly activeTab = signal<'triage' | 'movers'>('triage');
+    public readonly activeTab = signal<'triage' | 'movers' | 'interventions'>('triage');
+
+    // --- action layer: launch panel (in-context, over the triage cohort) + interventions tab ---
+    public readonly showLaunch = signal(false);
+    public readonly fireable = signal<FireableAction[]>([]);
+    public readonly launchName = signal("");
+    public readonly launchActionId = signal<string | null>(null);
+    public readonly launchHoldout = signal(20);
+    public readonly launchCap = signal(100);
+    public readonly launchPreview = signal<LaunchResult | null>(null);
+    public readonly launchBusy = signal<"preview" | "commit" | null>(null);
+    public readonly launchError = signal<string | null>(null);
+    public readonly launchDone = signal<LaunchResult | null>(null);
+    public readonly interventions = signal<InterventionSummary[]>([]);
+    public readonly loadingInterventions = signal(false);
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -149,6 +166,11 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
         this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
         this.showMovers.set(false);
+        this.showLaunch.set(false);
+        this.launchPreview.set(null);
+        this.launchDone.set(null);
+        this.interventions.set([]);
+        if (this.activeTab() === "interventions") this.activeTab.set("triage");
         const [dist, rubric, movers] = await Promise.all([
             this.scoreRead.distributionForModel(id),
             this.factorService.rubricForModel(id),
@@ -229,6 +251,110 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             this.error.set("Couldn't export the cohort. Please retry.");
         } finally {
             this.exporting.set(false);
+        }
+    }
+
+    // ---- action layer: launch an intervention on the filtered cohort (plan §5.6) ----
+
+    /** Open the in-context launch panel for the CURRENT triage filter; loads the play catalog once. */
+    public async openLaunch(): Promise<void> {
+        this.activeTab.set("triage");
+        this.launchError.set(null);
+        this.launchPreview.set(null);
+        this.launchDone.set(null);
+        this.launchName.set(this.defaultLaunchName());
+        this.showLaunch.set(true);
+        if (this.fireable().length === 0) {
+            this.fireable.set(await this.interventionService.fireableActions());
+        }
+    }
+
+    public closeLaunch(): void { this.showLaunch.set(false); }
+
+    /** A human name for the play, derived from what the operator is looking at. */
+    private defaultLaunchName(): string {
+        const band = this.selectedBand();
+        const range = this.minScore() != null || this.maxScore() != null
+            ? ` ${this.minScore() ?? 0}-${this.maxScore() ?? 100}`
+            : "";
+        return `${band ? band.label : "All bands"}${range} outreach`;
+    }
+
+    /** Build the ConfigJSON payload from the active triage filter. */
+    private launchConfig(preview: boolean): LaunchConfig | null {
+        const modelId = this.current.modelId();
+        const actionId = this.launchActionId();
+        if (!modelId || !actionId) return null;
+        const band = this.selectedBand();
+        return {
+            modelId,
+            segment: {
+                name: this.launchName().trim() || this.defaultLaunchName(),
+                filter: { bandId: band?.bandId ?? null, minScore: this.minScore(), maxScore: this.maxScore() },
+            },
+            intervention: { name: this.launchName().trim() || this.defaultLaunchName(), holdoutPercent: this.launchHoldout() },
+            action: { actionId, params: [] },
+            cap: this.launchCap(),
+            preview,
+        };
+    }
+
+    /** Dry-run: resolve the cohort + treated/held split, write and fire NOTHING. */
+    public async previewLaunch(): Promise<void> {
+        const cfg = this.launchConfig(true);
+        if (!cfg || this.launchBusy()) return;
+        this.launchBusy.set("preview");
+        this.launchError.set(null);
+        this.launchDone.set(null);
+        try {
+            const res = await this.interventionService.run(cfg);
+            if (res.ok && res.result) this.launchPreview.set(res.result);
+            else this.launchError.set(res.error ?? "Preview failed.");
+        } finally {
+            this.launchBusy.set(null);
+        }
+    }
+
+    /** Commit: write one assignment per member (treatment/control) and fire the play for treated. */
+    public async commitLaunch(): Promise<void> {
+        const cfg = this.launchConfig(false);
+        if (!cfg || this.launchBusy() || !this.launchPreview()) return;
+        this.launchBusy.set("commit");
+        this.launchError.set(null);
+        try {
+            const res = await this.interventionService.run(cfg);
+            if (res.ok && res.result) {
+                this.launchDone.set(res.result);
+                this.launchPreview.set(null);
+                await this.loadInterventions();
+            } else {
+                this.launchError.set(res.error ?? "Launch failed.");
+            }
+        } finally {
+            this.launchBusy.set(null);
+        }
+    }
+
+    /** Numeric field setters ([value]+(input) style — this surface doesn't use ngModel). */
+    public setLaunchHoldout(v: string): void { const n = Number(v); this.launchHoldout.set(Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 20); this.launchPreview.set(null); }
+    public setLaunchCap(v: string): void { const n = Number(v); this.launchCap.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 100); this.launchPreview.set(null); }
+    public setLaunchAction(id: string): void { this.launchActionId.set(id || null); this.launchPreview.set(null); }
+    public setLaunchName(v: string): void { this.launchName.set(v); }
+
+    /** Open the Interventions tab (loads the summaries lazily). */
+    public async showInterventions(): Promise<void> {
+        this.activeTab.set("interventions");
+        await this.loadInterventions();
+    }
+
+    private async loadInterventions(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id) { this.interventions.set([]); return; }
+        this.loadingInterventions.set(true);
+        try {
+            this.interventions.set(await this.interventionService.summaries(id));
+        } finally {
+            this.loadingInterventions.set(false);
         }
     }
 

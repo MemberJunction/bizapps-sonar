@@ -360,3 +360,34 @@
    triage nav + member drill-down. Rather than crush those panes at tablet, hold a comfortable
    min-width and let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
 .sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
+
+/* ── Action layer: launch panel + interventions tab ─────────────────────── */
+.sonar-launch { flex: 0 0 auto; }
+.sonar-launch__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-launch__scope { margin: 0 0 0.75rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.55; }
+/* Horizontal-first form row: labels+inputs flow left→right, wrapping to a stacked column when narrow. */
+.sonar-launch__form { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
+.sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 240px; min-width: 0; }
+.sonar-launch__field--num { flex: 0 1 120px; }
+.sonar-launch__label { font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-ink); }
+.sonar-launch__field .sonar-input { width: 100%; font: inherit; }
+.sonar-launch__field--num .sonar-input { text-align: right; font-variant-numeric: tabular-nums; }
+.sonar-launch__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-launch__counts { font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-launch__counts strong { color: var(--sonar-ink); }
+.sonar-launch__counts--done { color: var(--sonar-ink); }
+.sonar-launch__counts--done i { margin-right: 0.25rem; }
+.sonar-launch__error { font-size: var(--sonar-font-sm); color: var(--sonar-critical); }
+.sonar-launch__link { background: none; border: none; padding: 0; font: inherit; color: var(--sonar-brand); cursor: pointer; text-decoration: underline; }
+@media (max-width: 1075px) {
+    .sonar-launch__form { flex-direction: column; }
+    .sonar-launch__field, .sonar-launch__field--num { flex: 1 1 auto; }
+}
+
+/* Interventions table: hairline dividers, right-aligned tabular numerics, no full grid borders. */
+.sonar-iv-table { width: 100%; border-collapse: collapse; font-size: var(--sonar-font-sm); }
+.sonar-iv-table th { text-align: left; font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--sonar-border); }
+.sonar-iv-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--sonar-border); vertical-align: middle; }
+.sonar-iv-table tbody tr:last-child td { border-bottom: none; }
+.sonar-iv-table__num { text-align: right; font-variant-numeric: tabular-nums; }
+.sonar-iv-table__name { font-weight: 600; color: var(--sonar-ink); }

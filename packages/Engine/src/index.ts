@@ -25,3 +25,4 @@ export * from "./orchestration/ScoreWriter";
 export * from "./orchestration/SegmentEvaluator";
 export * from "./orchestration/InterventionRunner";
 export * from "./orchestration/interventionInvoker";
+export * from "./orchestration/TransitionInterventionDispatcher";

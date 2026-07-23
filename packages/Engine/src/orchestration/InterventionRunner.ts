@@ -15,7 +15,9 @@ export interface InterventionActionConfig {
 }
 
 /** A run request. `preview` resolves + splits but writes/fires nothing (the dry-run gate). `cap`
- *  bounds how many members are assigned this run (a real-fire safety limit for the demo). */
+ *  bounds how many members are assigned this run (a real-fire safety limit for the demo).
+ *  `onlyAnchorIds` restricts the resolved cohort to a subset — the OnEnterSegment path targets
+ *  ONLY the members whose band transition just entered the segment, not the whole standing cohort. */
 export interface InterventionRunRequest {
     interventionId: string;
     modelId: string;
@@ -24,6 +26,7 @@ export interface InterventionRunRequest {
     action: InterventionActionConfig;
     cap: number;
     preview: boolean;
+    onlyAnchorIds?: ReadonlySet<string>;
 }
 
 /** What happened (or would happen, in preview). Counts only — the honest summary the UI shows. */
@@ -103,7 +106,10 @@ export class InterventionRunner {
     constructor(private readonly invoker?: InterventionActionInvoker) {}
 
     public async run(req: InterventionRunRequest, contextUser: UserInfo): Promise<InterventionRunResult> {
-        const members = await this.segments.resolve(req.modelId, req.segmentFilter, contextUser);
+        const resolved = await this.segments.resolve(req.modelId, req.segmentFilter, contextUser);
+        // OnEnterSegment targeting: keep only the members that just transitioned in (still resolved
+        // through the segment so a stale/mismatched entrant can never be fired outside the filter).
+        const members = req.onlyAnchorIds ? resolved.filter((m) => req.onlyAnchorIds!.has(m.anchorRecordId)) : resolved;
         const assigned = await this.loadAssignedAnchorIds(req.interventionId, contextUser);
         const plan = planAssignments(members, assigned, req.holdoutPercent, req.cap);
 

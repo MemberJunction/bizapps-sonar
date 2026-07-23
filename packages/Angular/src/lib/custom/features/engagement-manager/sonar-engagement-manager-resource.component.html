@@ -20,6 +20,10 @@
                     <i class="fa-solid fa-file-csv"></i> Export cohort
                 }
             </button>
+            <button class="sonar-btn sonar-btn--primary" [disabled]="!hasModel() || total() === 0" (click)="openLaunch()"
+                    title="Launch an intervention on the filtered cohort — a holdout is kept automatically so lift is measured">
+                <i class="fa-solid fa-bullhorn"></i> Launch intervention
+            </button>
         </div>
     </div>
 
@@ -58,12 +62,85 @@
                             <span class="sonar-chip sonar-chip--small">{{ movers().fallers.length + movers().risers.length }}</span>
                         }
                     </button>
+                    <button type="button" class="sonar-mgr-sidebar__item"
+                            [class.sonar-mgr-sidebar__item--active]="activeTab() === 'interventions'"
+                            (click)="showInterventions()">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <div class="sonar-mgr-sidebar__item-text">
+                            <span class="sonar-mgr-sidebar__item-title">Interventions</span>
+                            <span class="sonar-mgr-sidebar__item-subtitle">Launched plays &amp; holdouts</span>
+                        </div>
+                        @if (interventions().length) {
+                            <span class="sonar-chip sonar-chip--small">{{ interventions().length }}</span>
+                        }
+                    </button>
                 </aside>
 
                 <!-- Workspace content area -->
                 <div class="sonar-mgr-content">
                     @if (activeTab() === 'triage') {
                         <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
+
+                            <!-- ── Launch intervention: in-context panel over the CURRENT cohort filter.
+                                 Preview is the honest gate — nothing is written or fired until commit. ── -->
+                            @if (showLaunch()) {
+                                <section class="sonar-card sonar-launch" aria-label="Launch intervention">
+                                    <div class="sonar-card__head sonar-launch__head">
+                                        <h2 class="sonar-card__title"><i class="fa-solid fa-bullhorn"></i> Launch intervention</h2>
+                                        <button class="sonar-btn sonar-btn--ghost" (click)="closeLaunch()" aria-label="Close launch panel"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    <p class="sonar-launch__scope">
+                                        Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
+                                        @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
+                                        · <strong class="sonar-mono">{{ total() }}</strong> member{{ total() === 1 ? "" : "s" }} match.
+                                        A random <strong>{{ launchHoldout() }}%</strong> is held back as the control group so lift is measured, not assumed.
+                                    </p>
+                                    <div class="sonar-launch__form">
+                                        <label class="sonar-launch__field">
+                                            <span class="sonar-launch__label">Name</span>
+                                            <input class="sonar-input" type="text" [value]="launchName()" (input)="setLaunchName($any($event.target).value)" aria-label="Intervention name" />
+                                        </label>
+                                        <label class="sonar-launch__field">
+                                            <span class="sonar-launch__label">Play (MJ Action)</span>
+                                            <select class="sonar-input" [value]="launchActionId() ?? ''" (change)="setLaunchAction($any($event.target).value)" aria-label="Action to fire">
+                                                <option value="" disabled>Pick the action to fire…</option>
+                                                @for (a of fireable(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
+                                            </select>
+                                        </label>
+                                        <label class="sonar-launch__field sonar-launch__field--num">
+                                            <span class="sonar-launch__label">Holdout %</span>
+                                            <input class="sonar-input" type="number" min="0" max="100" [value]="launchHoldout()" (change)="setLaunchHoldout($any($event.target).value)" aria-label="Holdout percent" />
+                                        </label>
+                                        <label class="sonar-launch__field sonar-launch__field--num">
+                                            <span class="sonar-launch__label">Cap</span>
+                                            <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" aria-label="Max members this run" />
+                                        </label>
+                                    </div>
+                                    <div class="sonar-launch__foot">
+                                        <button class="sonar-btn" [disabled]="!launchActionId() || launchBusy() !== null" (click)="previewLaunch()">
+                                            @if (launchBusy() === 'preview') { <i class="fa-solid fa-circle-notch fa-spin"></i> Previewing… } @else { <i class="fa-solid fa-eye"></i> Preview }
+                                        </button>
+                                        <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchBusy() !== null" (click)="commitLaunch()"
+                                                [title]="launchPreview() ? 'Write assignments and fire the play for the treatment group' : 'Preview first — nothing launches unseen'">
+                                            @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> Launch }
+                                        </button>
+                                        @if (launchPreview(); as p) {
+                                            <span class="sonar-launch__counts">
+                                                Would treat <strong class="sonar-mono">{{ p.treated }}</strong> · hold <strong class="sonar-mono">{{ p.held }}</strong>
+                                                @if (p.alreadyAssigned) { · {{ p.alreadyAssigned }} already assigned }
+                                                @if (p.capped) { · capped at {{ launchCap() }} of {{ p.eligible }} eligible }
+                                            </span>
+                                        }
+                                        @if (launchDone(); as d) {
+                                            <span class="sonar-launch__counts sonar-launch__counts--done">
+                                                <i class="fa-solid fa-circle-check sonar-pos"></i> Fired {{ d.sent }} · held {{ d.held }}@if (d.failed) { · <span class="sonar-neg">{{ d.failed }} failed</span> }.
+                                                Tracked under <button type="button" class="sonar-launch__link" (click)="showInterventions()">Interventions</button>.
+                                            </span>
+                                        }
+                                        @if (launchError(); as err) { <span class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</span> }
+                                    </div>
+                                </section>
+                            }
                             <div class="sonar-split sonar-triage-split">
                                 <!-- Triage list -->
                                 <section class="sonar-card sonar-triage-card">
@@ -295,6 +372,57 @@
                                         </div>
                                     </div>
                                 </div>
+                            </section>
+                        </div>
+                    }
+
+                    @if (activeTab() === 'interventions') {
+                        <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
+                            <section class="sonar-card">
+                                <div class="sonar-card__head">
+                                    <h2 class="sonar-card__title"><i class="fa-solid fa-bullhorn"></i> Interventions</h2>
+                                    <p class="sonar-faint" style="margin: 0; font-size: var(--sonar-font-sm);">Every launched play keeps a random holdout, so outcome lift is measured against a real control group.</p>
+                                </div>
+                                @if (loadingInterventions()) {
+                                    <div class="sonar-skeleton" style="height: 6rem;"></div>
+                                } @else if (interventions().length === 0) {
+                                    <div class="sonar-empty">
+                                        <i class="fa-solid fa-bullhorn"></i>
+                                        <h2>No interventions yet</h2>
+                                        <p>Filter the triage list to the cohort you care about, then <strong>Launch intervention</strong>. A control group is held back automatically.</p>
+                                    </div>
+                                } @else {
+                                    <table class="sonar-iv-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Play</th>
+                                                <th>Segment</th>
+                                                <th>Trigger</th>
+                                                <th class="sonar-iv-table__num">Holdout</th>
+                                                <th class="sonar-iv-table__num">Treated</th>
+                                                <th class="sonar-iv-table__num">Fired</th>
+                                                <th class="sonar-iv-table__num">Held</th>
+                                                <th class="sonar-iv-table__num">Failed</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (iv of interventions(); track iv.id) {
+                                                <tr>
+                                                    <td class="sonar-iv-table__name">{{ iv.name }}</td>
+                                                    <td class="sonar-faint">{{ iv.segmentName }}</td>
+                                                    <td><span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span></td>
+                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.holdoutPercent ?? 0 }}%</td>
+                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.treated }}</td>
+                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.sent }}</td>
+                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.held }}</td>
+                                                    <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="iv.failed > 0">{{ iv.failed }}</td>
+                                                    <td><span class="sonar-chip sonar-chip--small">{{ iv.status }}</span></td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
                             </section>
                         </div>
                     }

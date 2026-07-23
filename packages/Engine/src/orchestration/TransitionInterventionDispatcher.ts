@@ -1,0 +1,198 @@
+import { LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { mjBizAppsSonarScoreBandTransitionEntity } from "@mj-biz-apps/sonar-entities";
+import { SegmentFilter } from "./SegmentEvaluator";
+import { InterventionRunner, InterventionRunResult } from "./InterventionRunner";
+import { createInterventionInvoker } from "./interventionInvoker";
+
+const TRANSITION_ENTITY = "MJ_BizApps_Sonar: Score Band Transitions";
+const SEGMENT_ENTITY = "MJ_BizApps_Sonar: Score Segments";
+const INTERVENTION_ENTITY = "MJ_BizApps_Sonar: Interventions";
+
+/** Per-run safety bound on how many entrants one OnEnterSegment intervention may assign — a
+ *  recompute that flips a huge cohort shouldn't silently fan out thousands of Action calls. */
+const ON_ENTER_CAP = 200;
+
+/** One Active OnEnterSegment intervention + the segment it watches (denormalized for the dispatch). */
+interface WatchingIntervention {
+    interventionId: string;
+    name: string;
+    holdoutPercent: number;
+    actionId: string;
+    segmentFilter: SegmentFilter;
+    segmentBandId: string | null;
+}
+
+/** What one dispatch did — surfaced to the run log, never thrown. */
+export interface TransitionDispatchSummary {
+    transitions: number;
+    interventionsMatched: number;
+    assigned: number;
+    sent: number;
+    failed: number;
+}
+
+/**
+ * The post-recompute consumer of ScoreBandTransition (plan §5.6): after a persisted run writes its
+ * transitions, this dispatcher fires every Active `OnEnterSegment` intervention whose segment the
+ * transitioning member just ENTERED, then marks those transitions Handled.
+ *
+ * v1 semantics — deliberate and narrow:
+ * - "Entering" is keyed on the BAND: a transition matches a segment when `ToBandID` equals the
+ *   segment filter's `bandId`. Score-range-only segments (no bandId) are skipped for OnEnterSegment
+ *   (logged once) — a band boundary is the crisp "state changed" event; a pure range has no
+ *   entered/left edge in the transition row.
+ * - Entrants still resolve THROUGH the segment (InterventionRunner.onlyAnchorIds), so a member whose
+ *   score doesn't actually satisfy the full filter can never be fired.
+ * - Transitions are marked Handled only when at least one OnEnterSegment intervention watches this
+ *   model — an unconfigured deployment keeps today's behavior (rows stay queued for later consumers,
+ *   e.g. write-back).
+ * - Failures NEVER propagate: the scoring run already succeeded; a broken intervention is logged and
+ *   the transitions stay unhandled for a retry on the next run.
+ * - The fired Action gets NO params in v1: the Intervention row stores only ActionID (no
+ *   ActionParamsJSON column yet), so autonomous firing suits param-less/defaulted actions. Adding a
+ *   persisted params column (+ the `{{member}}` token fill) is a flagged follow-up.
+ */
+export class TransitionInterventionDispatcher {
+    public async dispatch(
+        modelId: string,
+        recomputeRunId: string,
+        contextUser: UserInfo,
+    ): Promise<TransitionDispatchSummary> {
+        const summary: TransitionDispatchSummary = { transitions: 0, interventionsMatched: 0, assigned: 0, sent: 0, failed: 0 };
+        try {
+            const watchers = await this.loadWatchers(modelId, contextUser);
+            if (watchers.length === 0) return summary; // nothing configured — leave transitions queued
+
+            const transitions = await this.loadUnhandledTransitions(modelId, recomputeRunId, contextUser);
+            summary.transitions = transitions.length;
+            if (transitions.length === 0) return summary;
+
+            const runner = new InterventionRunner(createInterventionInvoker());
+            for (const w of watchers) {
+                if (!w.segmentBandId) {
+                    LogStatus(`Sonar: OnEnterSegment intervention '${w.name}' watches a segment with no bandId — skipped (band-entry only in v1).`);
+                    continue;
+                }
+                const entrants = new Set(transitions.filter((t) => t.ToBandID === w.segmentBandId).map((t) => t.AnchorRecordID));
+                if (entrants.size === 0) continue;
+                summary.interventionsMatched++;
+                const result = await this.fireForEntrants(runner, modelId, w, entrants, contextUser);
+                summary.assigned += result.treated + result.held;
+                summary.sent += result.sent;
+                summary.failed += result.failed;
+            }
+            await this.markHandled(transitions, contextUser);
+            if (summary.interventionsMatched > 0) {
+                LogStatus(
+                    `Sonar: OnEnterSegment dispatch — ${summary.transitions} transition(s), ` +
+                        `${summary.interventionsMatched} intervention(s) matched, ${summary.assigned} assigned, ` +
+                        `${summary.sent} fired, ${summary.failed} failed.`,
+                );
+            }
+        } catch (e: unknown) {
+            // The recompute already succeeded — a dispatch failure is logged, never rethrown.
+            LogError(`Sonar: OnEnterSegment dispatch failed (transitions left unhandled for retry): ${e instanceof Error ? e.message : String(e)}`);
+        }
+        return summary;
+    }
+
+    /** Active OnEnterSegment interventions watching this model's segments. */
+    private async loadWatchers(modelId: string, contextUser: UserInfo): Promise<WatchingIntervention[]> {
+        const rv = new RunView();
+        const segs = await rv.RunView<{ ID: string; FilterExpression: string | null }>(
+            { EntityName: SEGMENT_ENTITY, ExtraFilter: `ScoreModelID='${modelId}'`, Fields: ["ID", "FilterExpression"], ResultType: "simple" },
+            contextUser,
+        );
+        const segments = segs.Success ? (segs.Results ?? []) : [];
+        if (segments.length === 0) return [];
+        const idList = segments.map((s) => `'${s.ID}'`).join(",");
+        const ivs = await rv.RunView<{ ID: string; Name: string; ScoreSegmentID: string; ActionID: string; ControlGroupPercent: number | null }>(
+            {
+                EntityName: INTERVENTION_ENTITY,
+                ExtraFilter: `ScoreSegmentID IN (${idList}) AND TriggerType='OnEnterSegment' AND Status='Active'`,
+                Fields: ["ID", "Name", "ScoreSegmentID", "ActionID", "ControlGroupPercent"],
+                ResultType: "simple",
+            },
+            contextUser,
+        );
+        const bySegment = new Map(segments.map((s) => [s.ID, this.parseFilter(s.FilterExpression)]));
+        return (ivs.Success ? (ivs.Results ?? []) : []).map((i) => {
+            const filter = bySegment.get(i.ScoreSegmentID) ?? {};
+            return {
+                interventionId: i.ID,
+                name: i.Name,
+                holdoutPercent: i.ControlGroupPercent ?? 0,
+                actionId: i.ActionID,
+                segmentFilter: filter,
+                segmentBandId: filter.bandId ?? null,
+            };
+        });
+    }
+
+    /** A segment's stored FilterExpression is the JSON SegmentFilter; unparseable → empty filter. */
+    private parseFilter(raw: string | null): SegmentFilter {
+        if (!raw) return {};
+        try {
+            const parsed: unknown = JSON.parse(raw);
+            return parsed && typeof parsed === "object" ? (parsed as SegmentFilter) : {};
+        } catch {
+            return {};
+        }
+    }
+
+    /** This run's unhandled band transitions (entity objects — we flip Handled on them after). */
+    private async loadUnhandledTransitions(
+        modelId: string,
+        recomputeRunId: string,
+        contextUser: UserInfo,
+    ): Promise<mjBizAppsSonarScoreBandTransitionEntity[]> {
+        const res = await new RunView().RunView<mjBizAppsSonarScoreBandTransitionEntity>(
+            {
+                EntityName: TRANSITION_ENTITY,
+                ExtraFilter: `ScoreModelID='${modelId}' AND RecomputeRunID='${recomputeRunId}' AND Handled=0`,
+                IgnoreMaxRows: true,
+                ResultType: "entity_object",
+            },
+            contextUser,
+        );
+        return res.Success ? (res.Results ?? []) : [];
+    }
+
+    /** Fire one intervention for its entrants — commit mode, entrant-targeted, capped. */
+    private async fireForEntrants(
+        runner: InterventionRunner,
+        modelId: string,
+        w: WatchingIntervention,
+        entrants: ReadonlySet<string>,
+        contextUser: UserInfo,
+    ): Promise<InterventionRunResult> {
+        return runner.run(
+            {
+                interventionId: w.interventionId,
+                modelId,
+                segmentFilter: w.segmentFilter,
+                holdoutPercent: w.holdoutPercent,
+                action: { actionId: w.actionId, params: [] },
+                cap: ON_ENTER_CAP,
+                preview: false,
+                onlyAnchorIds: entrants,
+            },
+            contextUser,
+        );
+    }
+
+    /** Flip Handled on the processed transitions (row-by-row via entities — transition counts per
+     *  run are band-crossings only, not the population, so this stays small). */
+    private async markHandled(
+        transitions: mjBizAppsSonarScoreBandTransitionEntity[],
+        contextUser: UserInfo,
+    ): Promise<void> {
+        const md = new Metadata();
+        for (const t of transitions) {
+            const row = await md.GetEntityObject<mjBizAppsSonarScoreBandTransitionEntity>(TRANSITION_ENTITY, contextUser);
+            if (!(await row.Load(t.ID))) continue;
+            row.Handled = true;
+            await row.Save();
+        }
+    }
+}
