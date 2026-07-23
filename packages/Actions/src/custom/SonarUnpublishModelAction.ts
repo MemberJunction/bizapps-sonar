@@ -71,7 +71,7 @@ export class SonarUnpublishModelAction extends SonarActionBase {
             return model.IsSaved ? model : null;
         }
         const res = await new RunView().RunView<mjBizAppsSonarScoreModelEntity>(
-            { EntityName: SCORE_MODEL, ExtraFilter: `Name='${(modelName ?? "").replace(/'/g, "''")}'`, MaxRows: 1, ResultType: "entity_object" },
+            { EntityName: SCORE_MODEL, ExtraFilter: `Name='${this.sqlString(modelName ?? "")}'`, MaxRows: 1, ResultType: "entity_object" },
             contextUser,
         );
         return res.Success && res.Results.length ? res.Results[0] : null;

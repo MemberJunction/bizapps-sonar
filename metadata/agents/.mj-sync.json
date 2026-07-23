@@ -1,0 +1,18 @@
+{
+  "entity": "MJ: AI Agents",
+  "filePattern": "**/.*.json",
+  "pull": {
+    "createNewFileIfNotFound": true,
+    "newFileName": ".sonar-agent.json",
+    "appendRecordsToExistingFile": true,
+    "updateExistingRecords": true,
+    "mergeStrategy": "merge",
+    "ignoreNullFields": true,
+    "ignoreVirtualFields": true,
+    "filter": "Name = 'Sonar Authoring Agent'",
+    "relatedEntities": {
+      "MJ: AI Agent Prompts": { "entity": "MJ: AI Agent Prompts", "foreignKey": "AgentID" },
+      "MJ: AI Agent Actions": { "entity": "MJ: AI Agent Actions", "foreignKey": "AgentID" }
+    }
+  }
+}

@@ -55,6 +55,10 @@ export class SonarDescribeModelAction extends SonarActionBase {
         if (!modelID && !name) {
             return this.fail(params, "VALIDATION_ERROR", "Provide ModelID or Name.");
         }
+        if (modelID && !this.isGuid(modelID)) {
+            return this.failWithFix(params, "VALIDATION_ERROR", `ModelID '${modelID}' is not a valid GUID.`,
+                "pass the model's GUID id, or look it up by Name instead.");
+        }
 
         try {
             const model = await this.loadModel(modelID, name, params.ContextUser);
@@ -70,7 +74,7 @@ export class SonarDescribeModelAction extends SonarActionBase {
 
     /** Load the model by ID (preferred) or exact name. */
     private async loadModel(modelID: string | null, name: string | null, user?: UserInfo): Promise<mjBizAppsSonarScoreModelEntity | null> {
-        const filter = modelID ? `ID='${modelID}'` : `Name='${(name ?? "").replace(/'/g, "''")}'`;
+        const filter = modelID ? `ID='${this.sqlString(modelID)}'` : `Name='${this.sqlString(name ?? "")}'`;
         const res = await new RunView().RunView<mjBizAppsSonarScoreModelEntity>(
             { EntityName: SCORE_MODEL, ExtraFilter: filter, MaxRows: 1, ResultType: "entity_object" },
             user,
@@ -117,9 +121,9 @@ export class SonarDescribeModelAction extends SonarActionBase {
     ): Promise<[mjBizAppsSonarModelRelatedEntityEntity[], mjBizAppsSonarFactorEntity[], mjBizAppsSonarModelFactorEntity[]]> {
         const [src, fac, mf] = await new RunView().RunViews(
             [
-                { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${modelID}'`, ResultType: "entity_object" },
-                { EntityName: FACTOR, ExtraFilter: `ScoreModelID='${modelID}'`, ResultType: "entity_object" },
-                { EntityName: MODEL_FACTOR, ExtraFilter: `ScoreModelID='${modelID}'`, ResultType: "entity_object" },
+                { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
+                { EntityName: FACTOR, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
+                { EntityName: MODEL_FACTOR, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
             ],
             user,
         );
@@ -138,7 +142,7 @@ export class SonarDescribeModelAction extends SonarActionBase {
 
     private async bandSetName(bandSetID: string, user?: UserInfo): Promise<string | null> {
         const res = await new RunView().RunView(
-            { EntityName: BAND_SET, ExtraFilter: `ID='${bandSetID}'`, MaxRows: 1, ResultType: "simple", Fields: ["Name"] },
+            { EntityName: BAND_SET, ExtraFilter: `ID='${this.sqlString(bandSetID)}'`, MaxRows: 1, ResultType: "simple", Fields: ["Name"] },
             user,
         );
         const row = res.Success && res.Results.length ? (res.Results[0] as { Name?: unknown }) : null;

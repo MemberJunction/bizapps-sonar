@@ -1,21 +1,16 @@
 <div class="sonar-vh">
-    <div class="sonar-vh__bar">
-        <div>
-            <div class="sonar-vh__title">Version history</div>
-            <p class="sonar-vh__sub">Each published version froze the model's configuration — scores produced under it stay reproducible.</p>
-        </div>
-        <button class="sonar-btn" (click)="close.emit()">Close</button>
-    </div>
+    <p class="sonar-vh__sub">Each published version froze the model&rsquo;s configuration &mdash; scores produced under it stay reproducible.</p>
 
     @if (loading()) {
-        <p class="sonar-faint" style="font-size:0.85rem">Loading versions…</p>
+        <p class="sonar-faint sonar-vh__state">Loading versions&hellip;</p>
     } @else if (versions().length === 0) {
-        <p class="sonar-faint" style="font-size:0.85rem">No versions yet — publishing this model creates version 1.</p>
+        <p class="sonar-faint sonar-vh__state">No versions yet &mdash; publishing this model creates version 1.</p>
     } @else {
-        <div class="sonar-split sonar-vh__body">
-            <!-- Timeline -->
-            <section class="sonar-card">
-                <div class="sonar-card__label">Versions</div>
+        <div class="sonar-vh__body">
+
+            <!-- Left: scrollable timeline -->
+            <div class="sonar-vh__timeline">
+                <div class="sonar-vh__col-head">Versions</div>
                 <div class="sonar-stack">
                     @for (v of versions(); track v.id) {
                         <div class="sonar-vh__row-wrap">
@@ -24,13 +19,13 @@
                                     <span class="sonar-vh__item-title">{{ v.title }}</span>
                                     <span class="sonar-faint sonar-vh__item-sub">{{ v.sub }}</span>
                                 </span>
-                                @if (v.isCurrent) { <span class="sonar-chip sonar-chip--watch">live now</span> }
+                                @if (v.isCurrent) { <span class="sonar-chip sonar-chip--watch">live</span> }
                             </button>
                             @if (!v.isCurrent) {
                                 @if (pendingRestoreId() === v.id) {
                                     <div class="sonar-vh__confirm">
                                         <span class="sonar-faint">Roll back to v{{ v.number }}? Publishes a new version.</span>
-                                        <button class="sonar-btn sonar-btn--primary" [disabled]="restoring()" (click)="confirmRestore(v.id)">{{ restoring() ? 'Rolling back…' : 'Confirm' }}</button>
+                                        <button class="sonar-btn sonar-btn--primary" [disabled]="restoring()" (click)="confirmRestore(v.id)">{{ restoring() ? 'Rolling back&hellip;' : 'Confirm' }}</button>
                                         <button class="sonar-btn" [disabled]="restoring()" (click)="cancelRestore()">Cancel</button>
                                     </div>
                                 } @else {
@@ -40,96 +35,100 @@
                         </div>
                     }
                 </div>
-            </section>
+            </div>
 
-            <!-- Selected version: changes vs a baseline, then its frozen config. -->
-            <div class="sonar-stack">
-            @if (compareOptions().length > 0) {
-                <section class="sonar-card sonar-vh__diff">
-                    <div class="sonar-vh__compare">
-                        <span class="sonar-card__label">Changes vs</span>
-                        <select class="sonar-token" [ngModel]="compareToId()" (ngModelChange)="compareToId.set($event)">
-                            <option [ngValue]="null">(none)</option>
-                            @for (v of compareOptions(); track v.id) { <option [ngValue]="v.id">v{{ v.number }}</option> }
-                        </select>
-                    </div>
-                    @if (diff(); as d) {
-                        @if (d.unchanged) {
-                            <p class="sonar-faint" style="font-size:0.82rem">No configuration differences between these versions.</p>
+            <!-- Right: anchored detail pane with its own scroll -->
+            <div class="sonar-vh__detail">
+
+                <!-- Diff card -->
+                @if (compareOptions().length > 0) {
+                    <section class="sonar-card sonar-vh__diff">
+                        <div class="sonar-vh__compare">
+                            <span class="sonar-card__label">Changes vs</span>
+                            <select class="sonar-token" [ngModel]="compareToId()" (ngModelChange)="compareToId.set($event)">
+                                <option [ngValue]="null">(none)</option>
+                                @for (v of compareOptions(); track v.id) { <option [ngValue]="v.id">v{{ v.number }}</option> }
+                            </select>
+                        </div>
+                        @if (diff(); as d) {
+                            @if (d.unchanged) {
+                                <p class="sonar-faint" style="font-size:0.82rem">No configuration differences between these versions.</p>
+                            } @else {
+                                @if (d.model.length) {
+                                    <div class="sonar-vh__diff-group">
+                                        <div class="sonar-faint sonar-vh__diff-head">Model</div>
+                                        @for (l of d.model; track l.label) {
+                                            <div class="sonar-vh__diff-line"><span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span></div>
+                                        }
+                                    </div>
+                                }
+                                @if (d.factors.length) {
+                                    <div class="sonar-vh__diff-group">
+                                        <div class="sonar-faint sonar-vh__diff-head">Signals</div>
+                                        @for (l of d.factors; track l.label) {
+                                            <div class="sonar-vh__diff-line">
+                                                <span class="sonar-vh__diff-mark sonar-vh__diff-mark--{{ l.kind }}">{{ l.kind === 'added' ? '+' : l.kind === 'removed' ? '−' : '~' }}</span>
+                                                <span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                @if (d.bands.length) {
+                                    <div class="sonar-vh__diff-group">
+                                        <div class="sonar-faint sonar-vh__diff-head">Bands</div>
+                                        @for (l of d.bands; track l.label) {
+                                            <div class="sonar-vh__diff-line">
+                                                <span class="sonar-vh__diff-mark sonar-vh__diff-mark--{{ l.kind }}">{{ l.kind === 'added' ? '+' : l.kind === 'removed' ? '−' : '~' }}</span>
+                                                <span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
                         } @else {
-                            @if (d.model.length) {
-                                <div class="sonar-vh__diff-group">
-                                    <div class="sonar-faint sonar-vh__diff-head">Model</div>
-                                    @for (l of d.model; track l.label) {
-                                        <div class="sonar-vh__diff-line"><span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span></div>
-                                    }
-                                </div>
-                            }
-                            @if (d.factors.length) {
-                                <div class="sonar-vh__diff-group">
-                                    <div class="sonar-faint sonar-vh__diff-head">Signals</div>
-                                    @for (l of d.factors; track l.label) {
-                                        <div class="sonar-vh__diff-line">
-                                            <span class="sonar-vh__diff-mark sonar-vh__diff-mark--{{ l.kind }}">{{ l.kind === 'added' ? '+' : l.kind === 'removed' ? '−' : '~' }}</span>
-                                            <span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                            @if (d.bands.length) {
-                                <div class="sonar-vh__diff-group">
-                                    <div class="sonar-faint sonar-vh__diff-head">Bands</div>
-                                    @for (l of d.bands; track l.label) {
-                                        <div class="sonar-vh__diff-line">
-                                            <span class="sonar-vh__diff-mark sonar-vh__diff-mark--{{ l.kind }}">{{ l.kind === 'added' ? '+' : l.kind === 'removed' ? '−' : '~' }}</span>
-                                            <span class="sonar-ink">{{ l.label }}</span> <span class="sonar-faint">{{ l.detail }}</span>
-                                        </div>
-                                    }
-                                </div>
-                            }
+                            <p class="sonar-faint" style="font-size:0.82rem">Pick a baseline version to see what changed.</p>
                         }
+                    </section>
+                }
+
+                <!-- Frozen config snapshot -->
+                <section class="sonar-card">
+                    <div class="sonar-card__label">Configuration <span class="sonar-faint">(read-only snapshot)</span></div>
+                    @if (parseError()) {
+                        <p class="sonar-neg" style="font-size:0.85rem">This version&rsquo;s snapshot couldn&rsquo;t be read.</p>
+                    } @else if (selectedSnapshot(); as s) {
+                        <div class="sonar-stack sonar-vh__snap">
+                            <div class="sonar-vh__row"><span class="sonar-faint">Anchor</span><span class="sonar-ink">{{ s.anchor }}</span></div>
+                            <div class="sonar-vh__row"><span class="sonar-faint">Population</span><span class="sonar-ink">{{ s.population }}</span></div>
+                            <div class="sonar-vh__row"><span class="sonar-faint">Combine</span><span class="sonar-ink">{{ s.combine }}</span></div>
+
+                            <div class="sonar-card__label sonar-vh__section">Rubric &mdash; {{ s.factors.length }} {{ s.factors.length === 1 ? 'signal' : 'signals' }}</div>
+                            @for (f of s.factors; track f.name) {
+                                <div class="sonar-vh__factor">
+                                    <div class="sonar-vh__factor-head">
+                                        <span class="sonar-ink sonar-vh__factor-name">{{ f.name }}</span>
+                                        <span class="sonar-mono sonar-vh__factor-weight">
+                                            weight {{ (f.weightPct / 100) | number:'1.2-2' }}@if (f.penalty) { <span class="sonar-chip sonar-chip--critical">penalty</span> }
+                                        </span>
+                                    </div>
+                                    <div class="sonar-mono sonar-faint sonar-vh__factor-detail">{{ f.measure }} &middot; {{ f.window }} &middot; {{ f.normalization }}</div>
+                                </div>
+                            }
+                            @if (s.factors.length === 0) { <p class="sonar-faint" style="font-size:0.82rem">No signals in this version.</p> }
+
+                            <div class="sonar-card__label sonar-vh__section">Bands</div>
+                            <div class="sonar-vh__bands">
+                                @for (b of s.bands; track b.label) {
+                                    <span class="sonar-chip">{{ b.label }} <span class="sonar-faint sonar-mono">{{ b.range }}</span></span>
+                                }
+                                @if (s.bands.length === 0) { <span class="sonar-faint" style="font-size:0.82rem">No bands.</span> }
+                            </div>
+                        </div>
                     } @else {
-                        <p class="sonar-faint" style="font-size:0.82rem">Pick a baseline version to see what changed.</p>
+                        <p class="sonar-faint" style="font-size:0.85rem">Select a version to view its configuration.</p>
                     }
                 </section>
-            }
 
-            <section class="sonar-card">
-                <div class="sonar-card__label">Configuration <span class="sonar-faint">(read-only snapshot)</span></div>
-                @if (parseError()) {
-                    <p class="sonar-neg" style="font-size:0.85rem">This version's snapshot couldn't be read.</p>
-                } @else if (selectedSnapshot(); as s) {
-                    <div class="sonar-stack sonar-vh__snap">
-                        <div class="sonar-vh__row"><span class="sonar-faint">Anchor</span><span class="sonar-ink">{{ s.anchor }}</span></div>
-                        <div class="sonar-vh__row"><span class="sonar-faint">Population</span><span class="sonar-ink">{{ s.population }}</span></div>
-                        <div class="sonar-vh__row"><span class="sonar-faint">Combine</span><span class="sonar-ink">{{ s.combine }}</span></div>
-
-                        <div class="sonar-card__label sonar-vh__section">Rubric — {{ s.factors.length }} {{ s.factors.length === 1 ? 'signal' : 'signals' }}</div>
-                        @for (f of s.factors; track f.name) {
-                            <div class="sonar-vh__factor">
-                                <div class="sonar-vh__factor-head">
-                                    <span class="sonar-ink sonar-vh__factor-name">{{ f.name }}</span>
-                                    <span class="sonar-mono sonar-vh__factor-weight">
-                                        weight {{ (f.weightPct / 100) | number:'1.2-2' }}@if (f.penalty) { <span class="sonar-chip sonar-chip--critical">penalty</span> }
-                                    </span>
-                                </div>
-                                <div class="sonar-mono sonar-faint sonar-vh__factor-detail">{{ f.measure }} · {{ f.window }} · {{ f.normalization }}</div>
-                            </div>
-                        }
-                        @if (s.factors.length === 0) { <p class="sonar-faint" style="font-size:0.82rem">No signals in this version.</p> }
-
-                        <div class="sonar-card__label sonar-vh__section">Bands</div>
-                        <div class="sonar-vh__bands">
-                            @for (b of s.bands; track b.label) {
-                                <span class="sonar-chip">{{ b.label }} <span class="sonar-faint sonar-mono">{{ b.range }}</span></span>
-                            }
-                            @if (s.bands.length === 0) { <span class="sonar-faint" style="font-size:0.82rem">No bands.</span> }
-                        </div>
-                    </div>
-                } @else {
-                    <p class="sonar-faint" style="font-size:0.85rem">Select a version to view its configuration.</p>
-                }
-            </section>
             </div>
         </div>
     }

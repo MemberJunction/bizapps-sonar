@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { CompositeKey, Metadata, RunView } from "@memberjunction/core";
 import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreFactorContributionEntity } from "@mj-biz-apps/sonar-entities";
+import { sqlString } from "./sql.util";
 
 const FACTOR = "MJ_BizApps_Sonar: Factors";
 const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
@@ -113,7 +114,7 @@ export class FactorService {
     public async listForModel(modelId: string): Promise<mjBizAppsSonarModelFactorEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarModelFactorEntity>({
             EntityName: MODEL_FACTOR,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             OrderBy: "DisplayOrder ASC",
             ResultType: "entity_object",
         });
@@ -125,7 +126,7 @@ export class FactorService {
         const modelFactors = await this.listForModel(modelId);
         if (modelFactors.length === 0) return [];
 
-        const ids = modelFactors.map((m) => `'${m.FactorID}'`).join(",");
+        const ids = modelFactors.map((m) => `'${sqlString(m.FactorID)}'`).join(",");
         const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
             EntityName: FACTOR,
             ExtraFilter: `ID IN (${ids})`,
@@ -349,7 +350,7 @@ export class FactorService {
     private async clearContributions(modelFactorId: string): Promise<void> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
             EntityName: CONTRIBUTION,
-            ExtraFilter: `ModelFactorID='${modelFactorId}'`,
+            ExtraFilter: `ModelFactorID='${sqlString(modelFactorId)}'`,
             ResultType: "entity_object",
         });
         for (const row of result.Success ? result.Results ?? [] : []) {

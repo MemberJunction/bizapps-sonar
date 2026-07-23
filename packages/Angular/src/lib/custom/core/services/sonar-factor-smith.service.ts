@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
-import { Metadata, RunView } from "@memberjunction/core";
+import { EntityInfo, Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
@@ -87,11 +88,14 @@ export interface AnchorField { name: string; value: string }
 export class SonarFactorSmithService {
     private readonly actionIdCache = new Map<string, string>();
 
-    /** Commission a signal: fire ActionSmith detached and return its AgentRunID to track. */
-    public async startJob(description: string, context?: string | null): Promise<{ ok: boolean; agentRunId?: string; error?: string }> {
+    /** Commission a signal: fire ActionSmith detached and return its AgentRunID to track. The signal is
+     *  BOUND to `anchorEntityID` — we hand the agent that anchor's schema (entity + related sources + link
+     *  fields) as Context so it authors against the real graph instead of guessing which entity to Load. */
+    public async startJob(description: string, anchorEntityID?: string | null): Promise<{ ok: boolean; agentRunId?: string; error?: string }> {
         const id = await this.resolveActionId(START_JOB_ACTION);
         if (!id) return { ok: false, error: "The factor-job action isn't available." };
         const params: { Name: string; Value: string; Type: "Input" }[] = [{ Name: "Description", Value: description, Type: "Input" }];
+        const context = anchorEntityID ? this.buildAnchorContext(anchorEntityID) : null;
         if (context) params.push({ Name: "Context", Value: context, Type: "Input" });
         const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return { ok: false, error: res.Message || "Couldn't start the job." };
@@ -147,7 +151,7 @@ export class SonarFactorSmithService {
     private async latestStep(agentRunId: string): Promise<string | null> {
         const res = await new RunView().RunView<StepRow>({
             EntityName: "MJ: AI Agent Run Steps",
-            ExtraFilter: `AgentRunID='${agentRunId}'`,
+            ExtraFilter: `AgentRunID='${sqlString(agentRunId)}'`,
             OrderBy: "__mj_CreatedAt DESC",
             MaxRows: 1,
             Fields: ["StepName"],
@@ -160,7 +164,7 @@ export class SonarFactorSmithService {
     public async jobSteps(agentRunId: string): Promise<JobStep[]> {
         const res = await new RunView().RunView<StepTimelineRow>({
             EntityName: "MJ: AI Agent Run Steps",
-            ExtraFilter: `AgentRunID='${agentRunId}'`,
+            ExtraFilter: `AgentRunID='${sqlString(agentRunId)}'`,
             OrderBy: "__mj_CreatedAt ASC",
             MaxRows: 50,
             Fields: ["StepName", "Status", "__mj_CreatedAt"],
@@ -291,7 +295,7 @@ export class SonarFactorSmithService {
         const q = query.trim().replace(/'/g, "''");
         const res = await new RunView().RunView({
             EntityName: entity.Name,
-            ExtraFilter: q ? `${nameField} LIKE '%${q}%'` : "",
+            ExtraFilter: q ? `${nameField} LIKE '%${sqlString(q)}%'` : "",
             OrderBy: `${nameField} ASC`,
             MaxRows: limit,
             Fields: nameField === pk ? [pk] : [pk, nameField],
@@ -304,6 +308,39 @@ export class SonarFactorSmithService {
         });
     }
 
+    /** Resolve a batch of anchor record IDs to display names in one query. Used to humanize test results
+     *  which come back as raw UUIDs. Falls back to the raw ID for any record that can't be resolved. */
+    public async resolveAnchorNames(anchorEntityID: string, ids: string[]): Promise<Map<string, string>> {
+        const map = new Map<string, string>();
+        if (!ids.length) return map;
+        const entity = new Metadata().Entities.find((e) => e.ID === anchorEntityID);
+        if (!entity) return map;
+        const pk = entity.FirstPrimaryKey?.Name ?? "ID";
+        const nameField = entity.NameField?.Name ?? null;
+        const entityCols = new Set(entity.Fields.map((f) => f.Name));
+        const fields = [...new Set([pk, nameField, "FirstName", "LastName", "Name", "Email"].filter((f): f is string => !!f && entityCols.has(f)))];
+        const inList = ids.map((id) => `'${sqlString(id)}'`).join(",");
+        const res = await new RunView().RunView({
+            EntityName: entity.Name,
+            ExtraFilter: `${pk} IN (${inList})`,
+            Fields: fields,
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        for (const r of rows) {
+            const rec = r as Record<string, unknown>;
+            const id = String(rec[pk]);
+            const pick = (k: string): string | null => { const v = rec[k]; return v != null && v !== "" ? String(v) : null; };
+            const firstName = pick("FirstName");
+            const lastName = pick("LastName");
+            let name: string;
+            if (firstName && lastName) name = `${firstName} ${lastName}`;
+            else name = (nameField ? pick(nameField) : null) || firstName || lastName || pick("Name") || pick("Email") || `Record ${id.slice(0, 8)}`;
+            map.set(id, name);
+        }
+        return map;
+    }
+
     /** The fields of the record being scored — the "what data is this signal looking at" view for a single
      *  record. Returns the record's columns as label/value pairs (the anchor-level underlying data). */
     public async loadAnchorFields(anchorEntityID: string, recordId: string): Promise<AnchorField[]> {
@@ -312,7 +349,7 @@ export class SonarFactorSmithService {
         const pk = entity.FirstPrimaryKey?.Name ?? "ID";
         const res = await new RunView().RunView({
             EntityName: entity.Name,
-            ExtraFilter: `${pk}='${recordId.replace(/'/g, "''")}'`,
+            ExtraFilter: `${pk}='${sqlString(recordId)}'`,
             MaxRows: 1,
             ResultType: "simple",
         });
@@ -330,7 +367,7 @@ export class SonarFactorSmithService {
      * per-record results in a Both `Result` that round-trips to the browser. One call covers all samples.
      * `asOf` (ISO date) tests the signal as of a historical instant; omit for "now".
      */
-    public async testSignal(actionId: string, anchorRecordIds: string[], asOf?: string | null): Promise<SignalSampleRow[]> {
+    public async testSignal(actionId: string, anchorRecordIds: string[], asOf?: string | null, anchorEntityId?: string | null): Promise<SignalSampleRow[]> {
         if (!anchorRecordIds.length) return [];
         const id = await this.resolveActionId(TEST_SIGNAL_ACTION);
         const fail = (error: string): SignalSampleRow[] =>
@@ -341,6 +378,7 @@ export class SonarFactorSmithService {
             { Name: "AnchorRecordIDs", Value: JSON.stringify(anchorRecordIds), Type: "Input" as const },
         ];
         if (asOf) params.push({ Name: "AsOf", Value: asOf, Type: "Input" as const });
+        if (anchorEntityId) params.push({ Name: "AnchorEntityID", Value: anchorEntityId, Type: "Input" as const });
         const res = await this.actionClient().RunAction(id, params);
         if (!res.Success) return fail(res.Message || "Test run failed.");
         const out = extractActionResult<{ rows?: SignalSampleRow[] }>(res) ?? {};
@@ -359,6 +397,55 @@ export class SonarFactorSmithService {
         action.CodeApprovedByUserID = md.CurrentUser.ID;
         action.CodeApprovedAt = new Date();
         return (await action.Save()) ? { ok: true } : { ok: false, error: action.LatestResult?.Message || "Approve failed." };
+    }
+
+    /** Cap columns listed per related entity so a wide table can't bloat the prompt. */
+    private static readonly MAX_CONTEXT_COLUMNS = 24;
+
+    /** Describe the anchor's schema for ActionSmith: the anchor entity (whose PK is AnchorRecordID) plus
+     *  every business entity that references it, with the link field + columns. This is the grounding that
+     *  stops the agent guessing which entity to Load. Returns null if the anchor can't be resolved. */
+    private buildAnchorContext(anchorEntityID: string): string | null {
+        const md = new Metadata();
+        const anchor = md.Entities.find((e) => e.ID === anchorEntityID);
+        if (!anchor) return null;
+        const pk = anchor.FirstPrimaryKey?.Name ?? "ID";
+        const related = this.relatedSources(md, anchorEntityID);
+        const lines = [
+            `ANCHOR ENTITY: '${anchor.Name}'. AnchorRecordID is this entity's '${pk}' (its primary key).`,
+            `Start from the anchor: utilities.entity.Load('${anchor.Name}', AnchorRecordID).`,
+        ];
+        if (related.length) {
+            lines.push(
+                `Related entities that reference this anchor (read them with utilities.rv.RunView where the link field = AnchorRecordID; do NOT Load them by AnchorRecordID — it is not their key):`,
+                ...related.map((r) => `- '${r.entityName}' (link field: ${r.viaField}) — columns: ${r.columns.join(", ")}`),
+            );
+        } else {
+            lines.push(`No child entities reference this anchor directly — read the fields off the anchor record itself.`);
+        }
+        return lines.join("\n");
+    }
+
+    /** Business entities with a foreign key pointing at the anchor (the one-to-many sources a signal reads),
+     *  each with its link field + columns. Mirrors the server-side List Related Entities scoping: skips the
+     *  MJ system schemas so only real business data is offered. */
+    private relatedSources(md: Metadata, anchorEntityID: string): { entityName: string; viaField: string; columns: string[] }[] {
+        const sources: { entityName: string; viaField: string; columns: string[] }[] = [];
+        for (const entity of md.Entities) {
+            if (entity.ID === anchorEntityID || (entity.SchemaName ?? "").startsWith("__mj")) continue;
+            const link = entity.Fields.find((f) => f.RelatedEntityID === anchorEntityID);
+            if (!link) continue;
+            sources.push({ entityName: entity.Name, viaField: link.Name, columns: this.columnNames(entity) });
+        }
+        return sources.sort((a, b) => a.entityName.localeCompare(b.entityName));
+    }
+
+    /** Non-system column names on an entity, capped so a wide table can't blow up the prompt. */
+    private columnNames(entity: EntityInfo): string[] {
+        const cols = entity.Fields.filter((f) => !f.Name.startsWith("__mj_")).map((f) => f.Name);
+        return cols.length > SonarFactorSmithService.MAX_CONTEXT_COLUMNS
+            ? [...cols.slice(0, SonarFactorSmithService.MAX_CONTEXT_COLUMNS), `…(+${cols.length - SonarFactorSmithService.MAX_CONTEXT_COLUMNS} more)`]
+            : cols;
     }
 
     private async loadAction(actionId: string): Promise<MJActionEntity | null> {

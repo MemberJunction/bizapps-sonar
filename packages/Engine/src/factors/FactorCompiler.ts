@@ -207,8 +207,11 @@ export class FactorCompiler {
             factor.AnchorEntityID,
         );
         const validColumns = leafEntity.Fields.map((f) => f.Name);
+        // The leaf table's handle — every leaf column (aggregate/window/filter) is qualified with it
+        // so a multi-hop join never hits an ambiguous-column error on a shared column name.
+        const leafTable = `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`;
         const window = await this.resolveWindow(factor, validColumns, contextUser);
-        const filter = this.resolveFilter(factor, validColumns);
+        const filter = this.resolveFilter(factor, validColumns, leafTable);
         const anchorJoin = windowNeedsAnchorJoin(window)
             ? this.resolveAnchorTable(factor.AnchorEntityID)
             : { table: null, pkColumn: null };
@@ -224,7 +227,7 @@ export class FactorCompiler {
 
         const spec: CompiledFactorSpec = {
             factorId: factor.ID,
-            relatedTable: `[${leafEntity.SchemaName}].[${leafEntity.BaseTable}]`,
+            relatedTable: leafTable,
             anchorKeyColumns,
             joins,
             window,
@@ -236,6 +239,7 @@ export class FactorCompiler {
                 factor.Aggregation,
                 factor.AggregateFieldName,
                 validColumns,
+                leafTable,
             ),
             filterClause: filter.clause,
             filterParams: filter.params,
@@ -264,6 +268,7 @@ export class FactorCompiler {
     private resolveFilter(
         factor: mjBizAppsSonarFactorEntity,
         validColumns: string[],
+        leafQualifier: string,
     ): CompiledFilter {
         if (!factor.FilterExpression) {
             return { clause: null, params: {} };
@@ -278,7 +283,8 @@ export class FactorCompiler {
                 `FactorCompiler: factor ${factor.ID} has invalid FilterExpression JSON.`,
             );
         }
-        return compileFilter(parsed, validColumns);
+        // Qualify filter columns with the leaf table so the fragment survives multi-hop joins.
+        return compileFilter(parsed, validColumns, leafQualifier);
     }
 
     /** Fail loud on factor kinds outside the v1 slice (aggregation support is enforced in buildAggregateExpression). */
@@ -291,7 +297,7 @@ export class FactorCompiler {
     }
 
     /** Build an Action-backed evaluator: bind the Action + its I/O contract from ActionParamsJSON,
-     *  wire the real ActionEngineServer runner. PerRecord only (Batch deferred). */
+     *  wire the injected ActionEngineServer runner. PerRecord only (Batch deferred). */
     private compileActionFactor(factor: mjBizAppsSonarFactorEntity): IFactorEvaluator {
         if (!factor.ActionID) {
             throw new Error(
@@ -308,13 +314,14 @@ export class FactorCompiler {
                 `FactorCompiler: no ActionRunner configured — cannot compile Action-backed factor ${factor.ID}.`,
             );
         }
-        const { anchorParam, outputParam, staticParams } = parseActionParams(
+        const { anchorParam, asOfParam, outputParam, staticParams } = parseActionParams(
             factor.ActionParamsJSON,
         );
         const spec: ActionFactorSpec = {
             factorId: factor.ID,
             actionId: factor.ActionID,
             anchorParam,
+            asOfParam,
             outputParam,
             staticParams,
             maxConcurrency: factor.MaxConcurrency ?? DEFAULT_MAX_CONCURRENCY,
@@ -335,8 +342,15 @@ export class FactorCompiler {
         contextUser: UserInfo,
     ): Promise<{ leafEntity: EntityInfo; relationshipPath: string | null }> {
         if (!factor.SourceRelatedEntityID) {
+            // A declarative factor reads through a model data source (SourceRelatedEntityID ->
+            // ModelRelatedEntity). Distinguish the two null cases so the message is actionable:
+            // a model-owned factor with no source is a misconfigured/orphaned factor (created
+            // without a data source), NOT a shared "library" factor (those are ScoreModelID = NULL,
+            // a deferred feature).
             throw new Error(
-                `FactorCompiler: factor ${factor.ID} has no SourceRelatedEntityID (library factors not supported yet).`,
+                factor.ScoreModelID
+                    ? `FactorCompiler: factor '${factor.Name}' (${factor.ID}) has no data source — its SourceRelatedEntityID is not set. Link it to one of the model's related entities (ModelRelatedEntity); it was likely created without a source.`
+                    : `FactorCompiler: factor ${factor.ID} has no ScoreModelID (shared/library factor); library factors are not supported yet.`,
             );
         }
         const md = new Metadata();

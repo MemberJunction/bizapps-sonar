@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
-import { Metadata, RunView } from "@memberjunction/core";
+import { Metadata, RunQuery, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import {
     mjBizAppsSonarScoreEntity,
     mjBizAppsSonarScoreBandEntity,
@@ -22,7 +23,7 @@ export type TrendDirection = "Up" | "Flat" | "Down";
 /** Band identity used for color coding across every Sonar surface. */
 export type BandKey = "healthy" | "watch" | "atrisk" | "critical";
 
-/** Map an arbitrary band label to a color key (single source of truth for label→key inference). */
+/** Map an arbitrary band label to a color key (label-only fallback when no severity context exists). */
 export function bandKey(label: string): BandKey {
     const l = label.toLowerCase();
     if (l.includes("healthy")) return "healthy";
@@ -31,11 +32,41 @@ export function bandKey(label: string): BandKey {
     return "watch";
 }
 
+/** Rank-based color key — preferred over bandKey() whenever severity context is available.
+ *  Pass the target band's severity and the full set of severities in the band set.
+ *  Lowest severity rank → healthy (green); highest → critical (red). */
+export function bandKeyFromSeverity(targetSeverity: number, allSeverities: number[]): BandKey {
+    const SCALE: readonly BandKey[] = ["healthy", "watch", "atrisk", "critical"];
+    const sorted = [...new Set(allSeverities)].sort((a, b) => a - b);
+    const rank = sorted.indexOf(targetSeverity);
+    if (rank < 0) return bandKey("");
+    const idx = sorted.length <= 1 ? 0 : Math.round((rank / (sorted.length - 1)) * 3);
+    return SCALE[Math.min(idx, 3)] as BandKey;
+}
+
 /** One slice of a model's persisted band distribution. */
 export interface BandSlice { bandId: string | null; label: string; key: BandKey; count: number; pct: number; }
 /** Population band distribution at one point in time — one per distinct AsOfDate in ScoreHistory.
  *  Drives the Overview engagement-trend chart (band mix over recomputes). */
 export interface BandTrendPoint { asOf: Date; counts: Record<BandKey, number>; total: number; }
+/** A cohort that changed band between two recompute snapshots (e.g. 12 members Watch → At Risk).
+ *  `worse` = the move is toward the unhealthy end (drives red-vs-green treatment everywhere). */
+export interface BandFlow { fromKey: BandKey; fromLabel: string; toKey: BandKey; toLabel: string; count: number; worse: boolean; }
+/**
+ * The Overview's trend read: band mix per snapshot day, aggregated SERVER-SIDE by the stored
+ * "Sonar: Band Trend" query — the browser receives days × bands rows, never the raw history.
+ * `days` (sorted yyyy-MM-dd keys, oldest → newest) index 1:1 into `points` and are the valid
+ * inputs to {@link ScoreReadService.flowsBetween} / `moversBetween`.
+ */
+export interface OverviewTrend { points: BandTrendPoint[]; days: string[]; }
+/** Full history object returned by overviewHistoryForModel — trend + raw byDay map for flows/movers. */
+export interface OverviewHistory { points: BandTrendPoint[]; days: string[]; byDay: Map<string, { asOf: Date; members: Map<string, { key: BandKey; label: string; score: number }> }> }
+/** One row of a window-based movers list (score change between two snapshots). */
+export interface WindowMover { anchorRecordId: string; delta: number; score: number; bandKey: BandKey; bandLabel: string; }
+
+/** Severity order for band keys (healthy end → critical end) — used to decide whether a band
+ *  change is a decline or a recovery. */
+const BAND_SEVERITY: Record<BandKey, number> = { healthy: 0, watch: 1, atrisk: 2, critical: 3 };
 /** A scored anchor record (a persisted Score row), with its display name + band resolved. */
 export interface ScoredMember {
     scoreId: string;
@@ -115,6 +146,9 @@ export interface MemberSuggestion {
  * Overview distribution, the Engagement Manager triage list, and the per-member explainability
  * drawer. Resolves band labels + anchor display names so callers get presentation-ready rows.
  */
+interface MemberSnapshot { key: BandKey; label: string; score: number; }
+interface DaySnapshot { asOf: Date; members: Map<string, MemberSnapshot>; }
+
 @Injectable({ providedIn: "root" })
 export class ScoreReadService {
     /** Persisted band distribution for a model (counts per band + percentages). */
@@ -129,58 +163,136 @@ export class ScoreReadService {
         const total = scores.length;
         const slices: BandSlice[] = [...counts.entries()].map(([bandId, count]) => {
             const label = bandId ? bandById.get(bandId)?.Label ?? "Unbanded" : "Unbanded";
-            return { bandId: bandId || null, label, key: bandKey(label), count, pct: Math.round((count / total) * 100) };
+            return { bandId: bandId || null, label, key: this.keyFromBandMap(bandId || null, bandById), count, pct: Math.round((count / total) * 100) };
         });
         slices.sort((a, b) => b.count - a.count);
         return { slices, total };
     }
 
     /**
-     * Population band distribution OVER TIME — one point per distinct AsOfDate in ScoreHistory,
-     * counting members per band at each date. Drives the Overview engagement-trend chart. Capped
-     * to the most recent `maxPoints` dates so a long history stays readable and the transfer
-     * bounded. Reads only the three columns the chart needs (simple result, not entity objects).
+     * The Overview's band-mix trend, aggregated by the stored "Sonar: Band Trend" query — SQL
+     * dedupes per member per day (a same-day re-run writes twice; the later row wins) and the
+     * browser receives days × bands rows, never the raw history. Points cap at `maxPoints`;
+     * `days` keeps the full range so long look-back windows still have a baseline.
      */
-    public async distributionTrendForModel(modelId: string, maxPoints = 12): Promise<BandTrendPoint[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
-            EntityName: SCORE_HISTORY,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
-            Fields: ["AsOfDate", "ComputedAt", "BandID"],
-            OrderBy: "AsOfDate ASC, ComputedAt ASC",
-            ResultType: "simple",
-            IgnoreMaxRows: true,
-        });
-        const rows = result.Success ? result.Results ?? [] : [];
-        if (rows.length === 0) return [];
+    public async overviewTrendForModel(modelId: string, maxPoints = 12): Promise<OverviewTrend> {
+        interface TrendRow { SnapshotDay: string; BandID: string | null; BandLabel: string; MemberCount: number; }
+        const rows = await this.runSonarQuery<TrendRow>("Sonar: Band Trend", { ModelID: modelId });
+        if (rows.length === 0) return { points: [], days: [] };
         const bandById = await this.loadBandsByIds(rows.map((r) => r.BandID));
-        return this.bucketTrend(rows, bandById, maxPoints);
-    }
 
-    /** Bucket history rows by AsOfDate (day granularity) into per-band counts, keep the most
-     *  recent `maxPoints` dates. AsOfDate is the trajectory axis; fall back to ComputedAt if null. */
-    private bucketTrend(
-        rows: mjBizAppsSonarScoreHistoryEntity[],
-        bandById: Map<string, mjBizAppsSonarScoreBandEntity>,
-        maxPoints: number,
-    ): BandTrendPoint[] {
         const byDay = new Map<string, BandTrendPoint>();
         for (const r of rows) {
-            const when = r.AsOfDate ?? r.ComputedAt;
-            if (!when) continue;
-            const date = new Date(when);
-            const dayKey = date.toISOString().slice(0, 10);
-            const point = byDay.get(dayKey) ?? { asOf: date, counts: this.emptyCounts(), total: 0 };
-            const label = r.BandID ? bandById.get(r.BandID)?.Label ?? "Unbanded" : "Unbanded";
-            point.counts[bandKey(label)] += 1;
-            point.total += 1;
-            byDay.set(dayKey, point);
+            const point = byDay.get(r.SnapshotDay) ?? { asOf: this.parseDay(r.SnapshotDay), counts: this.emptyCounts(), total: 0 };
+            point.counts[this.keyFromBandMap(r.BandID, bandById)] += Number(r.MemberCount);
+            point.total += Number(r.MemberCount);
+            byDay.set(r.SnapshotDay, point);
         }
-        const ordered = [...byDay.values()].sort((a, b) => a.asOf.getTime() - b.asOf.getTime());
-        return ordered.slice(-maxPoints);
+        const days = [...byDay.keys()].sort();
+        return { days, points: days.slice(-maxPoints).map((d) => byDay.get(d)!) };
+    }
+
+    /** Band-change cohorts between two snapshot days, biggest first — aggregated by the stored
+     *  "Sonar: Band Flows" query (one row per from→to pair, not per member). Members present at
+     *  only one of the two days aren't a band CHANGE, so SQL skips them. */
+    public async flowsBetween(modelId: string, fromDay: string, toDay: string): Promise<BandFlow[]> {
+        interface FlowRow { FromBandID: string | null; FromBand: string; ToBandID: string | null; ToBand: string; MemberCount: number; }
+        const rows = await this.runSonarQuery<FlowRow>("Sonar: Band Flows", { ModelID: modelId, FromDay: fromDay, ToDay: toDay });
+        if (rows.length === 0) return [];
+        const bandById = await this.loadBandsByIds(rows.flatMap((r) => [r.FromBandID, r.ToBandID]));
+        return rows.map((r) => {
+            const fromKey = this.keyFromBandMap(r.FromBandID, bandById);
+            const toKey = this.keyFromBandMap(r.ToBandID, bandById);
+            // Worse = moved toward higher severity. Compare real band severities when both bands
+            // resolve; fall back to color-key rank for unbanded ends.
+            const fromSev = r.FromBandID ? bandById.get(r.FromBandID)?.Severity : undefined;
+            const toSev = r.ToBandID ? bandById.get(r.ToBandID)?.Severity : undefined;
+            const worse = fromSev != null && toSev != null ? toSev > fromSev : BAND_SEVERITY[toKey] > BAND_SEVERITY[fromKey];
+            return { fromKey, fromLabel: r.FromBand, toKey, toLabel: r.ToBand, count: Number(r.MemberCount), worse } satisfies BandFlow;
+        });
+    }
+
+    /** Biggest score movers between two snapshot days: top `limit` risers and fallers by signed
+     *  score change, via the stored "Sonar: Score Movers" query. Derived from history snapshots,
+     *  so it works for any look-back window and doesn't depend on the stored Score.Delta (which
+     *  a no-op re-run resets to zero). */
+    public async moversBetween(
+        modelId: string,
+        fromDay: string,
+        toDay: string,
+        limit: number,
+    ): Promise<{ risers: WindowMover[]; fallers: WindowMover[] }> {
+        interface MoverRow { AnchorRecordID: string; Delta: number; CurrentScore: number; BandID: string | null; BandLabel: string; Direction: "riser" | "faller"; }
+        const rows = await this.runSonarQuery<MoverRow>("Sonar: Score Movers", { ModelID: modelId, FromDay: fromDay, ToDay: toDay, MaxEach: limit });
+        if (rows.length === 0) return { risers: [], fallers: [] };
+        const bandById = await this.loadBandsByIds(rows.map((r) => r.BandID));
+        const toMover = (r: MoverRow): WindowMover => ({
+            anchorRecordId: r.AnchorRecordID,
+            delta: Number(r.Delta),
+            score: Number(r.CurrentScore),
+            bandKey: this.keyFromBandMap(r.BandID, bandById),
+            bandLabel: r.BandLabel,
+        });
+        // Rows arrive Delta DESC; fallers re-sort ascending so the biggest drop leads its column.
+        return {
+            risers: rows.filter((r) => r.Direction === "riser").map(toMover),
+            fallers: rows.filter((r) => r.Direction === "faller").map(toMover).sort((a, b) => a.delta - b.delta),
+        };
+    }
+
+    /** Run one of the stored Sonar queries (seeded from metadata/queries) and return its rows.
+     *  Failures log and return [] — the Overview degrades to its empty states, never throws. */
+    private async runSonarQuery<T>(queryName: string, parameters: Record<string, string | number>): Promise<T[]> {
+        const result = await new RunQuery().RunQuery({ QueryName: queryName, Parameters: parameters });
+        if (!result.Success) {
+            console.error(`ScoreReadService: query "${queryName}" failed: ${result.ErrorMessage ?? "unknown"}`);
+            return [];
+        }
+        return (result.Results ?? []) as T[];
+    }
+
+    /** A yyyy-MM-dd day key → local Date (avoids the UTC shift `new Date(string)` would apply). */
+    private parseDay(day: string): Date {
+        const [y, m, d] = day.split("-").map(Number);
+        return new Date(y, (m ?? 1) - 1, d ?? 1);
+    }
+
+    /** Display names for a set of anchor records (single RunView, IN clause) — for lists built
+     *  from history snapshots, which only carry IDs. */
+    public async namesForAnchors(anchorEntityId: string, anchorRecordIds: string[]): Promise<Map<string, string>> {
+        const ent = new Metadata().Entities.find((e) => e.ID === anchorEntityId);
+        if (!ent || anchorRecordIds.length === 0) return new Map();
+        const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
+        const ids = [...new Set(anchorRecordIds)].map((id) => `'${sqlString(id)}'`).join(",");
+        const result = await new RunView().RunView<Record<string, unknown>>({
+            EntityName: ent.Name,
+            ExtraFilter: `${pk} IN (${ids})`,
+            ResultType: "simple",
+        });
+        const nameField = ent.Fields.find((f) => f.IsNameField)?.Name ?? null;
+        const names = new Map<string, string>();
+        for (const row of result.Success ? result.Results ?? [] : []) {
+            names.set(String(row[pk]), this.composeName(row, nameField, pk));
+        }
+        return names;
     }
 
     private emptyCounts(): Record<BandKey, number> {
         return { healthy: 0, watch: 0, atrisk: 0, critical: 0 };
+    }
+
+    /** Derive a band's CSS color key from its severity rank within the full band set.
+     *  Uses the same rank→SCALE mapping as the band builder, so colors stay in sync. */
+    private keyFromBandMap(bandId: string | null, bandById: Map<string, mjBizAppsSonarScoreBandEntity>): BandKey {
+        const SCALE: readonly BandKey[] = ["healthy", "watch", "atrisk", "critical"];
+        if (!bandId) return "watch";
+        const band = bandById.get(bandId);
+        if (!band) return "watch";
+        const sorted = [...bandById.values()].sort((a, b) => a.Severity - b.Severity);
+        const rank = sorted.findIndex((b) => b.ID === bandId);
+        if (rank < 0) return "watch";
+        const idx = sorted.length <= 1 ? 0 : Math.round((rank / (sorted.length - 1)) * 3);
+        return SCALE[Math.min(idx, 3)] as BandKey;
     }
 
     /**
@@ -257,7 +369,7 @@ export class ScoreReadService {
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
             OrderBy: `Delta ${dir === "desc" ? "DESC" : "ASC"}`,
             MaxRows: limit,
             ResultType: "entity_object",
@@ -274,7 +386,7 @@ export class ScoreReadService {
     public async historyForMember(modelId: string, anchorRecordId: string): Promise<ScoreHistoryPoint[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
             EntityName: SCORE_HISTORY,
-            ExtraFilter: `ScoreModelID='${modelId}' AND AnchorRecordID='${anchorRecordId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID='${sqlString(anchorRecordId)}'`,
             // Order by the business "as of" date (the trajectory's time axis), then ComputedAt to
             // break ties — a backfill writes several rows at the same wall-clock but distinct AsOf.
             OrderBy: "AsOfDate ASC, ComputedAt ASC",
@@ -291,7 +403,7 @@ export class ScoreReadService {
                 asOf: r.AsOfDate ?? null,
                 normalizedScore: Math.round(r.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: bandKey(label),
+                bandKey: this.keyFromBandMap(r.BandID ?? null, bandById),
             } satisfies ScoreHistoryPoint;
         });
     }
@@ -310,7 +422,7 @@ export class ScoreReadService {
                 name: names.get(s.AnchorRecordID) ?? s.AnchorRecordID,
                 normalizedScore: Math.round(s.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: bandKey(label),
+                bandKey: this.keyFromBandMap(s.BandID ?? null, bandById),
                 computedAt: s.ComputedAt ?? null,
                 delta: s.Delta != null ? Math.round(s.Delta) : null,
                 trendDirection: s.TrendDirection ?? null,
@@ -325,7 +437,7 @@ export class ScoreReadService {
         if (!versionId) return null;
         const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
             EntityName: SCORE_MODEL_VERSION,
-            ExtraFilter: `ID='${versionId}'`,
+            ExtraFilter: `ID='${sqlString(versionId)}'`,
             ResultType: "entity_object",
         });
         const v = result.Success ? result.Results?.[0] : null;
@@ -339,7 +451,7 @@ export class ScoreReadService {
         if (ids.length === 0) return new Map();
         const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
             EntityName: SCORE_MODEL_VERSION,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${id}'`).join(",")})`,
+            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
             ResultType: "entity_object",
         });
         return new Map((result.Results ?? []).map((v) => [v.ID, v.VersionNumber]));
@@ -362,7 +474,7 @@ export class ScoreReadService {
         const CHUNK = 200; // keep the IN(...) list well under SQL limits on large cohorts
         const rows: mjBizAppsSonarScoreFactorContributionEntity[] = [];
         for (let i = 0; i < scoreIds.length; i += CHUNK) {
-            const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${id}'`).join(",");
+            const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${sqlString(id)}'`).join(",");
             const res = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
                 EntityName: CONTRIBUTION,
                 ExtraFilter: `ScoreID IN (${ids})`,
@@ -373,7 +485,7 @@ export class ScoreReadService {
         }
         if (rows.length === 0) return byScore;
 
-        const factorIds = [...new Set(rows.map((r) => `'${r.FactorID}'`))].join(",");
+        const factorIds = [...new Set(rows.map((r) => `'${sqlString(r.FactorID)}'`))].join(",");
         const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
             EntityName: FACTOR,
             ExtraFilter: `ID IN (${factorIds})`,
@@ -419,7 +531,7 @@ export class ScoreReadService {
     private async loadAllScores(modelId: string): Promise<mjBizAppsSonarScoreEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             ResultType: "entity_object",
             IgnoreMaxRows: true,
         });
@@ -433,12 +545,12 @@ export class ScoreReadService {
         modelId: string,
         opts: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; anchorIds?: string[]; anchorRecordId?: string },
     ): string {
-        const parts = [`ScoreModelID='${modelId}'`];
-        if (opts.anchorRecordId) parts.push(`AnchorRecordID='${opts.anchorRecordId}'`);
-        if (opts.bandId !== undefined) parts.push(opts.bandId === null || opts.bandId === "" ? "BandID IS NULL" : `BandID='${opts.bandId}'`);
+        const parts = [`ScoreModelID='${sqlString(modelId)}'`];
+        if (opts.anchorRecordId) parts.push(`AnchorRecordID='${sqlString(opts.anchorRecordId)}'`);
+        if (opts.bandId !== undefined) parts.push(opts.bandId === null || opts.bandId === "" ? "BandID IS NULL" : `BandID='${sqlString(opts.bandId)}'`);
         if (opts.minScore != null) parts.push(`NormalizedScore >= ${opts.minScore}`);
         if (opts.maxScore != null) parts.push(`NormalizedScore <= ${opts.maxScore}`);
-        if (opts.anchorIds) parts.push(opts.anchorIds.length ? `AnchorRecordID IN (${opts.anchorIds.map((id) => `'${id}'`).join(",")})` : "1=0");
+        if (opts.anchorIds) parts.push(opts.anchorIds.length ? `AnchorRecordID IN (${opts.anchorIds.map((id) => `'${sqlString(id)}'`).join(",")})` : "1=0");
         return parts.join(" AND ");
     }
 
@@ -468,7 +580,7 @@ export class ScoreReadService {
      *  multi-word query like "Eric Smith" matches FirstName='Eric' + LastName='Smith' (a single
      *  `col LIKE '%Eric Smith%'` never would). Quotes are escaped. */
     private buildNameWhere(cols: string[], query: string): string {
-        const tokens = query.split(/\s+/).filter(Boolean).map((t) => t.replace(/'/g, "''"));
+        const tokens = query.split(/\s+/).filter(Boolean).map((t) => sqlString(t));
         if (tokens.length === 0) return "1=1";
         return tokens.map((tok) => `(${cols.map((c) => `${c} LIKE '%${tok}%'`).join(" OR ")})`).join(" AND ");
     }
@@ -478,16 +590,27 @@ export class ScoreReadService {
         return this.loadBandsByIds(scores.map((s) => s.BandID));
     }
 
-    /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID. */
+    /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID.
+     *  Expands to the full band set for each resolved band so rank-based color
+     *  mapping always has the complete context (not just the bands present on the
+     *  current page of scores). */
     private async loadBandsByIds(rawIds: (string | null)[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
         const ids = [...new Set(rawIds.filter((id): id is string => !!id))];
         if (ids.length === 0) return new Map();
-        const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
+        const seedResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
             EntityName: SCORE_BAND,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${id}'`).join(",")})`,
+            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
             ResultType: "entity_object",
         });
-        return new Map((result.Results ?? []).map((b) => [b.ID, b]));
+        const seedBands = seedResult.Results ?? [];
+        const bandSetIds = [...new Set(seedBands.map((b) => b.BandSetID).filter(Boolean))];
+        if (bandSetIds.length === 0) return new Map(seedBands.map((b) => [b.ID, b]));
+        const fullResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
+            EntityName: SCORE_BAND,
+            ExtraFilter: `BandSetID IN (${bandSetIds.map((id) => `'${sqlString(id)}'`).join(",")})`,
+            ResultType: "entity_object",
+        });
+        return new Map((fullResult.Results ?? []).map((b) => [b.ID, b]));
     }
 
     /** Batch-resolve anchor display names for a set of scores (single RunView, IN clause). */
@@ -497,7 +620,7 @@ export class ScoreReadService {
         if (!ent) return new Map();
 
         const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
-        const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${id}'`).join(",");
+        const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${sqlString(id)}'`).join(",");
         const result = await new RunView().RunView<Record<string, unknown>>({
             EntityName: ent.Name,
             ExtraFilter: `${pk} IN (${ids})`,
@@ -511,11 +634,14 @@ export class ScoreReadService {
         return names;
     }
 
-    /** Best display name for an anchor row: its name field, else FirstName+LastName, else Name/Email/PK. */
+    /** Best display name for an anchor row: FirstName+LastName when both present, else nameField, else Name/Email/PK. */
     private composeName(row: Record<string, unknown>, nameField: string | null, pk: string): string {
         const pick = (k: string): string | null => { const v = row[k]; return v != null && v !== "" ? String(v) : null; };
-        const composed = [pick("FirstName"), pick("LastName")].filter(Boolean).join(" ");
-        return (nameField ? pick(nameField) : null) || composed || pick("Name") || pick("Email") || String(row[pk]);
+        const firstName = pick("FirstName");
+        const lastName = pick("LastName");
+        if (firstName && lastName) return `${firstName} ${lastName}`;
+        const named = nameField ? pick(nameField) : null;
+        return named || firstName || lastName || pick("Name") || pick("Email") || String(row[pk]);
     }
 
     /** Up to `limit` SCORED members matching `query`, each with name + score + band so same-named
@@ -548,10 +674,10 @@ export class ScoreReadService {
         }]));
 
         // 2) Their persisted scores for this model (worst-first, limited).
-        const ids = [...byId.keys()].map((id) => `'${id}'`).join(",");
+        const ids = [...byId.keys()].map((id) => `'${sqlString(id)}'`).join(",");
         const scoreRes = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
             EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${modelId}' AND AnchorRecordID IN (${ids})`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID IN (${ids})`,
             OrderBy: "NormalizedScore ASC",
             MaxRows: limit,
             ResultType: "entity_object",
@@ -569,7 +695,7 @@ export class ScoreReadService {
                 secondary: a?.email ?? null,
                 normalizedScore: Math.round(s.NormalizedScore ?? 0),
                 bandLabel: label,
-                bandKey: bandKey(label),
+                bandKey: this.keyFromBandMap(s.BandID ?? null, bandById),
             } satisfies MemberSuggestion;
         });
     }

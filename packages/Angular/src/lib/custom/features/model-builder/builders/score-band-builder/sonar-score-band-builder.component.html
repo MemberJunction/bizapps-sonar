@@ -1,83 +1,96 @@
 <div class="sonar-sb">
-    <!-- pick which set to edit/use, or start a new one -->
-    <div class="sonar-sb__setbar">
-        <span class="sonar-card__label">Band set</span>
-        <select class="sonar-field sonar-sb__setpick" [ngModel]="resolvedSetId()" (ngModelChange)="selectSet($event)">
-            @if (!resolvedSetId()) { <option [ngValue]="null">{{ setName() }} — new (unsaved)</option> }
-            @for (s of allSets(); track s.ID) { <option [ngValue]="s.ID">{{ s.Name }}</option> }
-        </select>
-        <button class="sonar-btn" (click)="newSet()">+ New band set</button>
-        <span class="sonar-faint sonar-fb__hint">Sets are shared — editing one updates every model that uses it.</span>
-    </div>
 
-    <div class="sonar-fb__bar">
-        <div class="sonar-fb__title">
-            <input class="sonar-fb__name" [ngModel]="setName()" (ngModelChange)="setName.set($event)" placeholder="Band set name" />
-            <p class="sonar-fb__sub">Bands turn a 0–100 score into a label like “At-Risk”.</p>
+    <!-- Left sidebar: set picker, name, preview, save actions -->
+    <div class="sonar-sb__sidebar">
+
+        <div class="sonar-sb__sidebar-section">
+            <label class="sonar-card__label">Band set</label>
+            <div class="sonar-sb__setpick-row">
+                <select class="sonar-field sonar-sb__setpick" [ngModel]="resolvedSetId()" (ngModelChange)="selectSet($event)">
+                    @if (!resolvedSetId()) { <option [ngValue]="null">{{ setName() }} &mdash; new (unsaved)</option> }
+                    @for (s of allSets(); track s.ID) { <option [ngValue]="s.ID">{{ s.Name }}</option> }
+                </select>
+                <button class="sonar-btn" (click)="newSet()">+ New</button>
+            </div>
         </div>
-        <div class="sonar-fb__actions">
-            @if (!coverageOk()) { <span class="sonar-faint sonar-fb__hint">⚠ bands have a gap or overlap</span> }
+
+        <div class="sonar-sb__sidebar-section">
+            <label class="sonar-card__label">Set name</label>
+            <input class="sonar-field sonar-fb__name-field" [ngModel]="setName()" (ngModelChange)="setName.set($event)" placeholder="Band set name" />
+            <p class="sonar-fb__sub">Shared across models &mdash; edits apply everywhere.</p>
+        </div>
+
+        <!-- Number-line preview -->
+        <div class="sonar-sb__preview-card">
+            <div class="sonar-card__label">Preview &middot; {{ scaleMin }}&ndash;{{ scaleMax }}</div>
+            <div class="sonar-sb__line">
+                @for (s of segments(); track s.label) {
+                    <div [class]="'sonar-sb__seg sonar-sb__seg--' + s.cssKey" [style.width.%]="s.widthPct">{{ s.label }}</div>
+                }
+            </div>
+            <div class="sonar-sb__marker-track">
+                <div class="sonar-sb__marker" [style.left.%]="markerPct()">
+                    <span [class]="'sonar-chip sonar-chip--' + sampleBandKey()">{{ sampleScore() }} &rarr; {{ sampleBand().label }}</span>
+                </div>
+            </div>
+            <div class="sonar-sb__try">
+                <span class="sonar-faint sonar-fb__hint">Test a score:</span>
+                <input type="range" min="0" max="100" [ngModel]="sampleScore()" (ngModelChange)="sampleScore.set(+$event)" />
+                <span class="sonar-mono">{{ sampleScore() }}</span>
+            </div>
+        </div>
+
+        <!-- Push actions to bottom -->
+        <div class="sonar-sb__sidebar-grow"></div>
+
+        @if (!coverageOk()) {
+            <span class="sonar-faint sonar-fb__hint sonar-sb__coverage-warn">&#x26A0; bands have a gap or overlap</span>
+        }
+
+        <div class="sonar-sb__sidebar-actions">
             <button class="sonar-btn sonar-btn--primary" [disabled]="!canSave()" (click)="save()">
-                {{ saving() ? "Saving…" : "Save bands" }}
+                {{ saving() ? "Saving&hellip;" : "Save bands" }}
             </button>
             <button class="sonar-btn" (click)="close.emit()">Cancel</button>
         </div>
+
     </div>
 
-    <!-- live number-line preview -->
-    <section class="sonar-card">
-        <div class="sonar-card__label">Preview · {{ scaleMin }}–{{ scaleMax }} scale</div>
-        <div class="sonar-sb__line">
-            @for (s of segments(); track s.label) {
-                <div class="sonar-sb__seg" [style.width.%]="s.widthPct" [style.background]="s.color">{{ s.label }}</div>
-            }
-        </div>
-        <div class="sonar-sb__marker-track">
-            <div class="sonar-sb__marker" [style.left.%]="markerPct()">
-                <span class="sonar-chip sonar-chip--atrisk">{{ sampleScore() }} → {{ sampleBand().label }}</span>
-            </div>
-        </div>
-        <div class="sonar-sb__try">
-            <span class="sonar-faint sonar-fb__hint">Drag to test a score:</span>
-            <input type="range" min="0" max="100" [ngModel]="sampleScore()" (ngModelChange)="sampleScore.set(+$event)" />
-            <span class="sonar-mono">{{ sampleScore() }}</span>
-        </div>
-    </section>
+    <!-- Right main: column headers + scrollable band rows -->
+    <div class="sonar-sb__main">
 
-    <!-- band rows -->
-    <section class="sonar-card">
-        <div class="sonar-card__head">
+        <div class="sonar-sb__rows-header">
             <div class="sonar-card__label">Bands</div>
             <button class="sonar-btn" (click)="addBand()">+ Add band</button>
         </div>
 
         <div class="sonar-sb__grid sonar-sb__grid--head">
-            <div>Label</div><div>From</div><div>To</div><div>Severity</div><div>Color</div><div>Final</div><div></div>
+            <div>Label</div><div>From</div><div>To</div><div>Severity</div><div>Final</div><div></div>
         </div>
 
-        <div class="sonar-stack">
-            @for (b of bands(); track $index) {
-                <div class="sonar-sb__grid sonar-sb__row">
-                    <input class="sonar-field" [ngModel]="b.label" (ngModelChange)="patchBand($index, { label: $event })" />
-                    <input class="sonar-field sonar-mono" type="number" [ngModel]="b.min" (ngModelChange)="patchBand($index, { min: +$event })" />
-                    <input class="sonar-field sonar-mono" type="number" [ngModel]="b.max" (ngModelChange)="patchBand($index, { max: +$event })" />
-                    <input class="sonar-field sonar-mono" type="number" [ngModel]="b.severity" (ngModelChange)="patchBand($index, { severity: +$event })" />
-                    <div class="sonar-sb__color">
-                        <input type="color" [ngModel]="b.color" (ngModelChange)="patchBand($index, { color: $event })" />
-                        <span class="sonar-mono sonar-faint">{{ b.color }}</span>
+        <div class="sonar-sb__rows-body">
+            <div class="sonar-stack">
+                @for (b of bands(); track $index) {
+                    <div class="sonar-sb__grid sonar-sb__row">
+                        <div class="sonar-sb__label-cell">
+                            <span class="sonar-sb__band-swatch" [class]="'sonar-sb__band-swatch--' + segments()[$index].cssKey"></span>
+                            <input class="sonar-field" [ngModel]="b.label" (ngModelChange)="patchBand($index, { label: $event })" />
+                        </div>
+                        <input class="sonar-field sonar-mono" type="number" [ngModel]="b.min" (ngModelChange)="patchBand($index, { min: +$event })" />
+                        <input class="sonar-field sonar-mono" type="number" [ngModel]="b.max" (ngModelChange)="patchBand($index, { max: +$event })" />
+                        <input class="sonar-field sonar-mono" type="number" [ngModel]="b.severity" (ngModelChange)="patchBand($index, { severity: +$event })" />
+                        <label class="sonar-sb__term"><input type="checkbox" [ngModel]="b.isTerminal" (ngModelChange)="patchBand($index, { isTerminal: $event })" /></label>
+                        <button class="sonar-sb__del" (click)="removeBand($index)" title="Remove band">&#x2715;</button>
                     </div>
-                    <label class="sonar-sb__term"><input type="checkbox" [ngModel]="b.isTerminal" (ngModelChange)="patchBand($index, { isTerminal: $event })" /></label>
-                    <button class="sonar-sb__del" (click)="removeBand($index)" title="Remove band">✕</button>
-                </div>
-            }
+                }
+            </div>
+
+            <p class="sonar-faint sonar-fb__hint sonar-sb__rows-note">
+                <strong class="sonar-ink">Severity</strong> ranks bands worst&rarr;best (1 is best).
+                A <strong class="sonar-ink">Final</strong> band marks a state members don&rsquo;t bounce back from.
+            </p>
         </div>
 
-        <p class="sonar-faint sonar-fb__hint" style="margin-top:0.75rem">
-            <strong class="sonar-ink">Severity</strong> ranks bands worst→best (1 is best). A <strong class="sonar-ink">Final</strong> band marks a state members don’t bounce back from on their own.
-        </p>
-    </section>
+    </div>
 
-    <section class="sonar-card sonar-note">
-        Bands are reusable: many models can share one set. A model just picks which band set to use, then every score gets the matching label.
-    </section>
 </div>

@@ -10,20 +10,29 @@
             <div>
                 <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
                     {{ selectedModel()?.Name || 'Model Builder' }}
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.45em; margin-left: 0.35rem; vertical-align: middle; color: var(--sonar-faint);"></i>
                 </h1>
-                <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} · {{ population() === null ? '—' : (population() | number) }} in population · {{ versionLabel() }}</p>
+                <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} &middot; {{ population() === null ? '&mdash;' : (population() | number) }} in population &middot; {{ versionLabel() }}</p>
             </div>
         </div>
         <div class="sonar-page__actions">
-            <button class="sonar-btn sonar-btn--hotkey" [disabled]="!selectedModelId() || simulating()" (click)="simulate()" title="Re-run the live preview (S or ⌘S)">
-                <i class="fa-solid fa-bolt"></i> {{ simulating() ? "Simulating…" : "Simulate" }} <kbd class="sonar-kbd">⌘S</kbd>
+            @if (selectedModelId() && canArchive()) {
+                @if (archiveConfirming()) {
+                    <button class="sonar-btn sonar-btn--archive sonar-btn--archive--confirming" [disabled]="archiving()" (click)="archiveRequest()">
+                        <i class="fa-solid fa-box-archive"></i> {{ archiving() ? 'Archiving&hellip;' : 'Confirm archive?' }}
+                    </button>
+                    <button class="sonar-btn sonar-btn--ghost" (click)="cancelArchive()">Cancel</button>
+                } @else {
+                    <button class="sonar-btn sonar-btn--archive" [disabled]="archiving()" (click)="archiveRequest()" title="Archive this model (must unpublish first if active)">
+                        <i class="fa-solid fa-box-archive"></i> Archive
+                    </button>
+                }
+            }
+            <button class="sonar-btn sonar-btn--run sonar-btn--hotkey" [disabled]="!selectedModelId() || simulating()" (click)="simulate()" title="Re-run the live preview (S or &#x2318;S)">
+                <i class="fa-solid fa-bolt"></i> {{ simulating() ? "Simulating&hellip;" : "Simulate" }} <kbd class="sonar-kbd">&#x2318;S</kbd>
             </button>
             @if (canRecompute()) {
-                <button class="sonar-btn" [disabled]="recomputing()" (click)="recompute()">{{ recomputing() ? "Recomputing…" : "Recompute" }}</button>
+                <button class="sonar-btn" [disabled]="recomputing()" (click)="recompute()">{{ recomputeLabel() }}</button>
             }
-            <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('bands')">Bands</button>
-            <button class="sonar-btn" [disabled]="!selectedModelId()" (click)="activeView.set('versions')">Versions</button>
             <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('publish')">Publish version</button>
         </div>
     </div>
@@ -34,247 +43,276 @@
         <button class="sonar-mobile-tab-bar__btn" [class.sonar-mobile-tab-bar__btn--active]="mobileTab() === 'sandbox'" (click)="mobileTab.set('sandbox')">Preview</button>
     </div>
 
-    <!-- Three-column grid: [rail | deck | sandbox] -->
+    <!-- Three-column cockpit: [rail | deck | sandbox] — always rendered -->
     <div class="sonar-page__body sonar-cockpit" [class.sonar-cockpit--collapsed]="!current.sidebarExpanded()">
+
+        <!-- Col 1: Model rail -->
         <div class="sonar-cockpit__rail">
             <sonar-model-sidebar #sidebar (select)="selectModel($event)" (create)="activeView.set('newModel')"></sonar-model-sidebar>
         </div>
 
-        <!-- Col 2: Engineering deck (Rubric top, Data Sources + Population bottom) -->
+        <!-- Col 2: Deck — flat tab bar, one content area per tab -->
         <div class="sonar-cockpit__deck"
              #deckRef
              [class.sonar-cockpit__deck--wiring]="wiringSourceId() !== null"
              (click)="wiringSourceId() ? cancelWiring() : null">
 
-            <!-- Patch Bay wire overlay — spans entire deck, pointer-events:none so rows stay interactive -->
-            <svg class="pb-overlay" aria-hidden="true">
-                @for (w of wireGeometry(); track w.modelFactorId) {
-                    <g class="pb-wire-group"
-                       [class.pb-wire-group--active]="hoveredSourceEntityId() === w.sourceEntityId || hoveredWireFactorId() === w.modelFactorId"
-                       [class.pb-wire-group--dim]="(hoveredSourceId() !== null || hoveredWireFactorId() !== null) && hoveredSourceEntityId() !== w.sourceEntityId && hoveredWireFactorId() !== w.modelFactorId"
-                       (mouseenter)="hoveredWireFactorId.set(w.modelFactorId)"
-                       (mouseleave)="hoveredWireFactorId.set(null)"
-                       style="pointer-events: stroke;">
-                        <path class="pb-wire-hit"
-                              [attr.d]="'M' + w.x1 + ',' + w.y1 + ' H' + ((w.x1 + w.x2) / 2) + ' V' + w.y2 + ' H' + w.x2"
-                              fill="none" stroke="transparent" stroke-width="12" style="pointer-events: stroke;"/>
-                        <path class="pb-wire"
-                              [attr.d]="'M' + w.x1 + ',' + w.y1 + ' H' + ((w.x1 + w.x2) / 2) + ' V' + w.y2 + ' H' + w.x2"
-                              fill="none"/>
-                        @if (hoveredWireFactorId() === w.modelFactorId && !isPublished()) {
-                            <g class="pb-wire-disconnect"
-                               [attr.transform]="'translate(' + w.midX + ',' + w.midY + ')'"
-                               (click)="disconnectFactor(getRubricRow(w.modelFactorId)!, $event)"
-                               style="pointer-events: all; cursor: pointer;">
-                                <circle r="7" class="pb-disconnect-bg"/>
-                                <line x1="-3" y1="-3" x2="3" y2="3" class="pb-disconnect-x"/>
-                                <line x1="3" y1="-3" x2="-3" y2="3" class="pb-disconnect-x"/>
-                            </g>
-                        }
-                    </g>
-                }
-            </svg>
+            <!-- Wire overlay — only rendered while Factors tab is active -->
+            @if (activeTab() === 'factors') {
+                <svg class="pb-overlay" aria-hidden="true">
+                    @for (w of wireGeometry(); track w.modelFactorId) {
+                        <g class="pb-wire-group"
+                           [class.pb-wire-group--active]="hoveredSourceEntityId() === w.sourceEntityId || hoveredWireFactorId() === w.modelFactorId"
+                           [class.pb-wire-group--dim]="(hoveredSourceId() !== null || hoveredWireFactorId() !== null) && hoveredSourceEntityId() !== w.sourceEntityId && hoveredWireFactorId() !== w.modelFactorId"
+                           (mouseenter)="hoveredWireFactorId.set(w.modelFactorId)"
+                           (mouseleave)="hoveredWireFactorId.set(null)"
+                           style="pointer-events: stroke;">
+                            <path class="pb-wire-hit"
+                                  [attr.d]="'M' + w.x1 + ',' + w.y1 + ' H' + ((w.x1 + w.x2) / 2) + ' V' + w.y2 + ' H' + w.x2"
+                                  fill="none" stroke="transparent" stroke-width="12" style="pointer-events: stroke;"/>
+                            <path class="pb-wire"
+                                  [attr.d]="'M' + w.x1 + ',' + w.y1 + ' H' + ((w.x1 + w.x2) / 2) + ' V' + w.y2 + ' H' + w.x2"
+                                  fill="none"/>
+                            @if (hoveredWireFactorId() === w.modelFactorId && !isPublished()) {
+                                <g class="pb-wire-disconnect"
+                                   [attr.transform]="'translate(' + w.midX + ',' + w.midY + ')'"
+                                   (click)="disconnectFactor(getRubricRow(w.modelFactorId)!, $event)"
+                                   style="pointer-events: all; cursor: pointer;">
+                                    <circle r="7" class="pb-disconnect-bg"/>
+                                    <line x1="-3" y1="-3" x2="3" y2="3" class="pb-disconnect-x"/>
+                                    <line x1="3" y1="-3" x2="-3" y2="3" class="pb-disconnect-x"/>
+                                </g>
+                            }
+                        </g>
+                    }
+                </svg>
+            }
 
-            @if (isPublished()) {
-                <div class="sonar-lock-banner">
-                    <i class="fa-solid fa-lock"></i>
-                    <span>Published &amp; locked —
-                        <button class="sonar-lock-banner__link" [disabled]="unpublishing()" (click)="unpublishToEdit()">{{ unpublishing() ? "Unpublishing…" : "Unpublish to edit" }}</button>
-                    </span>
+            <!-- Tab bar: Factors · Data Sources · Population · Score Bands · Versions -->
+            @if (selectedModelId()) {
+                <mj-tab-nav
+                    [Tabs]="modelBuilderTabs"
+                    [ActiveKey]="activeTab()"
+                    (TabChange)="selectTab($any($event))">
+                </mj-tab-nav>
+            }
+
+            <!-- ── Factors tab ─────────────────────────────────────────────────── -->
+            @if (activeTab() === 'factors') {
+
+                @if (isPublished()) {
+                    <mj-alert Variant="warning" Size="sm">
+                        <i class="fa-solid fa-lock"></i>
+                        Published &amp; locked &mdash;
+                        <button class="sonar-lock-banner__link" [disabled]="unpublishing()" (click)="unpublishToEdit()">{{ unpublishing() ? "Unpublishing&hellip;" : "Unpublish to edit" }}</button>
+                    </mj-alert>
+                }
+
+                <div class="sonar-deck__rubric" (scroll)="recomputeWires()">
+                    <div class="sonar-deck__panel-head">
+                        <span class="sonar-deck__panel-label">RUBRIC <span class="sonar-deck__panel-count">{{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</span></span>
+                        <button class="sonar-deck__add-btn" [disabled]="!selectedModelId() || isPublished()" (click)="openFactorCreate()" title="Add a signal (press A)">
+                            <i class="fa-solid fa-plus"></i> Add factor <kbd class="sonar-kbd">A</kbd>
+                        </button>
+                    </div>
+
+                    <div class="sonar-rubric-list">
+                        @for (f of rubric(); track f.modelFactorId; let i = $index) {
+                            <div class="sonar-factor-row"
+                                 [attr.data-factor-id]="f.modelFactorId"
+                                 [class.sonar-factor-row--penalty]="f.mode === 'penalty'"
+                                 [class.sonar-factor-row--lineage]="f.sourceRelatedEntityID && (f.sourceRelatedEntityID === hoveredSourceEntityId() || f.sourceRelatedEntityID === hoveredSourceId())"
+                                 [class.sonar-factor-row--wiring-target]="wiringSourceId() !== null && !isPublished()"
+                                 [class.sonar-factor-row--dragging]="dragIndex() === i"
+                                 [class.sonar-factor-row--dragover]="dragOverIndex() === i && dragIndex() !== i"
+                                 (dragover)="onFactorDragOver(i, $event)"
+                                 (drop)="onFactorDragEnd()">
+                                <button class="pb-socket pb-socket--factor"
+                                        [class.pb-socket--lit]="wiringSourceId() !== null && !isPublished()"
+                                        [class.pb-socket--connected]="f.sourceRelatedEntityID !== null"
+                                        [disabled]="!wiringSourceId() || isPublished() || wiringBusy()"
+                                        (click)="connectFactor(f, $event)"
+                                        title="Connect a data source to this signal"></button>
+                                <span class="sonar-factor-row__grip" title="Drag to reorder"
+                                      [attr.draggable]="!isPublished()"
+                                      (dragstart)="onFactorDragStart(i)"
+                                      (dragend)="onFactorDragEnd()"><i class="fa-solid fa-grip-vertical"></i></span>
+                                <div class="sonar-factor-row__body">
+                                    <span class="sonar-factor-row__name">{{ f.name }}</span>
+                                    <span class="sonar-factor-row__meta">{{ f.detail }}</span>
+                                </div>
+                                <div class="sonar-factor-row__weight">
+                                    <input class="sonar-factor-row__slider" type="range" min="0" max="100" step="1"
+                                           [disabled]="isPublished()" [ngModel]="f.weight"
+                                           (ngModelChange)="onWeightInput(f.modelFactorId, +$event)" />
+                                    <span class="sonar-factor-row__pct">{{ f.weight }}%</span>
+                                </div>
+                                <div class="sonar-factor-row__actions">
+                                    <button class="sonar-factor-row__btn" title="Edit signal" [disabled]="factorBusy() || isPublished()" (click)="openFactorEdit(f.modelFactorId)"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="sonar-factor-row__btn sonar-factor-row__btn--del" title="Remove signal" [disabled]="factorBusy() || isPublished()" (click)="removeFactor(f.modelFactorId)"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                        }
+                        @if (rubric().length === 0) {
+                            <p class="sonar-deck__empty">No signals yet &mdash; add one above to start scoring.</p>
+                        }
+                    </div>
                 </div>
             }
 
-            <!-- Rubric panel: grows to fill, scrolls independently -->
-            <div class="sonar-deck__rubric" (scroll)="recomputeWires()">
-                <div class="sonar-deck__panel-head">
-                    <span class="sonar-deck__panel-label">RUBRIC <span class="sonar-deck__panel-count">{{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</span></span>
-                    <button class="sonar-deck__add-btn" [disabled]="!selectedModelId() || isPublished()" (click)="openFactorCreate()" title="Add a signal (press A)">
-                        <i class="fa-solid fa-plus"></i> Add factor <kbd class="sonar-kbd">A</kbd>
-                    </button>
-                </div>
+            <!-- ── Data Sources tab ────────────────────────────────────────────── -->
+            @if (activeTab() === 'sources') {
+                <div class="sonar-deck__tab-body sonar-deck__tab-body--padded">
+                    <div class="sonar-deck__panel-head">
+                        <span class="sonar-deck__panel-label">DATA SOURCES</span>
+                        @if (!isPublished() && !addingSource()) {
+                            <button class="sonar-deck__add-btn" (click)="openAddSource()"><i class="fa-solid fa-plus"></i> Add source</button>
+                        }
+                    </div>
 
-                <div class="sonar-rubric-list">
-                    @for (f of rubric(); track f.modelFactorId; let i = $index) {
-                        <div class="sonar-factor-row"
-                             [attr.data-factor-id]="f.modelFactorId"
-                             [class.sonar-factor-row--penalty]="f.mode === 'penalty'"
-                             [class.sonar-factor-row--lineage]="f.sourceRelatedEntityID && (f.sourceRelatedEntityID === hoveredSourceEntityId() || f.sourceRelatedEntityID === hoveredSourceId())"
-                             [class.sonar-factor-row--wiring-target]="wiringSourceId() !== null && !isPublished()"
-                             [class.sonar-factor-row--dragging]="dragIndex() === i"
-                             [class.sonar-factor-row--dragover]="dragOverIndex() === i && dragIndex() !== i"
-                             (dragover)="onFactorDragOver(i, $event)"
-                             (drop)="onFactorDragEnd()">
-                            <!-- Input socket for patch bay wiring -->
-                            <button class="pb-socket pb-socket--factor"
-                                    [class.pb-socket--lit]="wiringSourceId() !== null && !isPublished()"
-                                    [class.pb-socket--connected]="f.sourceRelatedEntityID !== null"
-                                    [disabled]="!wiringSourceId() || isPublished() || wiringBusy()"
-                                    (click)="connectFactor(f, $event)"
-                                    title="Connect a data source to this signal"></button>
-                            <!-- ONLY the grip starts a drag — the slider/inputs in the row stay interactive
-                                 (a row-wide draggable would hijack the slider thumb on mousedown). -->
-                            <span class="sonar-factor-row__grip" title="Drag to reorder"
-                                  [attr.draggable]="!isPublished()"
-                                  (dragstart)="onFactorDragStart(i)"
-                                  (dragend)="onFactorDragEnd()"><i class="fa-solid fa-grip-vertical"></i></span>
-                            <div class="sonar-factor-row__body">
-                                <span class="sonar-factor-row__name">{{ f.name }}</span>
-                                <span class="sonar-factor-row__meta">{{ f.detail }}</span>
+                    @if (addingSource()) {
+                        <div class="sonar-srcsearch">
+                            <div class="sonar-srcsearch__bar">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input class="sonar-srcsearch__input" type="text" placeholder="Search entities to map&hellip;"
+                                       [ngModel]="sourceQuery()" (ngModelChange)="sourceQuery.set($event)"
+                                       (keydown.escape)="closeAddSource()" />
+                                <button class="sonar-srcsearch__close" (click)="closeAddSource()">&#x2715;</button>
                             </div>
-                            <div class="sonar-factor-row__weight">
-                                <input class="sonar-factor-row__slider" type="range" min="0" max="100" step="1"
-                                       [disabled]="isPublished()" [ngModel]="f.weight"
-                                       (ngModelChange)="onWeightInput(f.modelFactorId, +$event)" />
-                                <span class="sonar-factor-row__pct">{{ f.weight }}%</span>
+                            <div class="sonar-srcsearch__results">
+                                @for (e of filteredAvailable(); track e.id) {
+                                    <span class="sonar-srcsearch__chip" draggable="true"
+                                          [class.sonar-srcsearch__chip--anchor]="e.isAnchor"
+                                          (dragstart)="onSourceDragStart(e.id, $event)"
+                                          (click)="onAddSourceSelect(e.id)"
+                                          [attr.title]="e.isAnchor ? 'Score on anchor fields (no hop)' : e.ambiguous ? 'Reachable several ways' : ('Drag or click to map ' + e.name)">
+                                        <i class="fa-solid" [class.fa-table]="!e.isAnchor" [class.fa-bullseye]="e.isAnchor"></i> {{ e.name }}
+                                        @if (e.isAnchor) {
+                                            <span class="sonar-srcsearch__tag">anchor fields</span>
+                                        } @else if (e.ambiguous) {
+                                            <i class="fa-solid fa-code-branch sonar-srcsearch__tie" aria-label="multiple paths"></i>
+                                        }
+                                    </span>
+                                } @empty {
+                                    <span class="sonar-deck__empty-sm">{{ availableEntities().length === 0 ? 'All entities mapped.' : 'No matches.' }}</span>
+                                }
                             </div>
-                            <div class="sonar-factor-row__actions">
-                                <button class="sonar-factor-row__btn" title="Edit signal" [disabled]="factorBusy() || isPublished()" (click)="openFactorEdit(f.modelFactorId)"><i class="fa-solid fa-pen"></i></button>
-                                <button class="sonar-factor-row__btn sonar-factor-row__btn--del" title="Remove signal" [disabled]="factorBusy() || isPublished()" (click)="removeFactor(f.modelFactorId)"><i class="fa-solid fa-xmark"></i></button>
+                            @if (availableEntities().length > filteredAvailable().length) {
+                                <span class="sonar-srcsearch__more">+{{ availableEntities().length - filteredAvailable().length }} more &mdash; type to narrow</span>
+                            }
+                        </div>
+                    }
+
+                    @if (pendingSourceTie(); as tie) {
+                        <div class="sonar-srctie">
+                            <div class="sonar-srctie__head">
+                                <i class="fa-solid fa-code-branch"></i>
+                                <span><strong class="sonar-ink">{{ tie.entityName }}</strong> connects to {{ anchorName() }} several ways &mdash; pick the path:</span>
+                                <button class="sonar-srcsearch__close" (click)="cancelSourceTie()" title="Cancel">&#x2715;</button>
+                            </div>
+                            <div class="sonar-srctie__opts">
+                                @for (o of tie.options; track o.relationshipPath) {
+                                    <button type="button" class="sonar-srctie__opt" [disabled]="sourceBusy()" (click)="confirmSourcePath(o.relationshipPath)">
+                                        <i class="fa-solid fa-diagram-project"></i> {{ o.label }}
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
-                    @if (rubric().length === 0) {
-                        <p class="sonar-deck__empty">No signals yet — add one above to start scoring.</p>
-                    }
-                </div>
-            </div>
 
-            <!-- Deck hairline -->
-            <div class="sonar-deck__divider"></div>
-
-            <!-- Bottom panel: Data Sources (flat table) + Population (Tabbed layout) -->
-            <div class="sonar-deck__bottom-panel">
-                <div class="sonar-deck__sources-tabs">
-                    <button type="button" class="sonar-deck__sources-tab"
-                            [class.sonar-deck__sources-tab--active]="activeBottomTab() === 'sources'"
-                            (click)="selectBottomTab('sources')">
-                        Data Sources
-                    </button>
-                    <button type="button" class="sonar-deck__sources-tab"
-                            [class.sonar-deck__sources-tab--active]="activeBottomTab() === 'population'"
-                            (click)="selectBottomTab('population')">
-                        Population Filter
-                    </button>
-                    @if (activeBottomTab() === 'sources' && !isPublished() && !addingSource()) {
-                        <button class="sonar-deck__add-btn" (click)="openAddSource()"><i class="fa-solid fa-plus"></i> Add source</button>
-                    }
-                </div>
-
-                @if (activeBottomTab() === 'sources') {
-                    <div class="sonar-deck__sources" (scroll)="recomputeWires()">
-                        @if (addingSource()) {
-                            <div class="sonar-srcsearch">
-                                <div class="sonar-srcsearch__bar">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                    <input class="sonar-srcsearch__input" type="text" placeholder="Search entities to map…"
-                                           [ngModel]="sourceQuery()" (ngModelChange)="sourceQuery.set($event)"
-                                           (keydown.escape)="closeAddSource()" />
-                                    <button class="sonar-srcsearch__close" (click)="closeAddSource()">✕</button>
-                                </div>
-                                <div class="sonar-srcsearch__results">
-                                    @for (e of filteredAvailable(); track e.id) {
-                                        <span class="sonar-srcsearch__chip" draggable="true"
-                                              [class.sonar-srcsearch__chip--anchor]="e.isAnchor"
-                                              (dragstart)="onSourceDragStart(e.id, $event)"
-                                              (click)="onAddSourceSelect(e.id)"
-                                              [attr.title]="e.isAnchor ? ('Score on ' + e.name + '\'s own fields (no hop)') : e.ambiguous ? ('Reachable several ways — you\'ll pick the path for ' + e.name) : ('Drag or click to map ' + e.name)">
-                                            <i class="fa-solid" [class.fa-table]="!e.isAnchor" [class.fa-bullseye]="e.isAnchor"></i> {{ e.name }}
-                                            @if (e.isAnchor) {
-                                                <span class="sonar-srcsearch__tag">anchor fields</span>
-                                            } @else if (e.ambiguous) {
-                                                <i class="fa-solid fa-code-branch sonar-srcsearch__tie" aria-label="multiple paths"></i>
-                                            }
-                                        </span>
-                                    } @empty {
-                                        <span class="sonar-deck__empty-sm">{{ availableEntities().length === 0 ? 'All entities mapped.' : 'No matches.' }}</span>
-                                    }
-                                </div>
-                                @if (availableEntities().length > filteredAvailable().length) {
-                                    <span class="sonar-srcsearch__more">+{{ availableEntities().length - filteredAvailable().length }} more — type to narrow</span>
+                    <div class="sonar-src-table" [class.sonar-src-table--droptarget]="graphDropActive()"
+                         (dragover)="onGraphDragOver($event)" (dragleave)="onGraphDragLeave()" (drop)="onGraphDrop($event)">
+                        @for (r of relatedEntities(); track r.id) {
+                            <div class="sonar-src-row"
+                                 [attr.data-source-entity]="r.relatedEntityID"
+                                 [class.sonar-src-row--hot]="r.id === hoveredSourceId()"
+                                 [class.sonar-src-row--wiring]="wiringSourceId() === r.id"
+                                 (mouseenter)="hoverSource(r)" (mouseleave)="clearHoverSource()">
+                                <button class="pb-socket pb-socket--source"
+                                        [class.pb-socket--active]="wiringSourceId() === r.id"
+                                        [disabled]="isPublished() || wiringBusy()"
+                                        (click)="startWiring(r.id, r.relatedEntityID, $event)"
+                                        title="Click to wire this source to a factor"></button>
+                                <i class="fa-solid fa-table sonar-src-row__icon"></i>
+                                <span class="sonar-src-row__name">{{ r.label }}</span>
+                                <span class="sonar-src-row__alias">{{ r.alias }}</span>
+                                @if (!isPublished()) {
+                                    <button class="sonar-src-row__remove" [disabled]="sourceBusy()" (click)="removeSource(r.id)">&#x2715;</button>
                                 }
                             </div>
                         }
-
-                        <!-- Structured join-path picker: an ambiguous source's path is CHOSEN here at
-                             wire time (no free-text), before it's added. -->
-                        @if (pendingSourceTie(); as tie) {
-                            <div class="sonar-srctie">
-                                <div class="sonar-srctie__head">
-                                    <i class="fa-solid fa-code-branch"></i>
-                                    <span><strong class="sonar-ink">{{ tie.entityName }}</strong> connects to {{ anchorName() }} several ways — pick the path:</span>
-                                    <button class="sonar-srcsearch__close" (click)="cancelSourceTie()" title="Cancel">✕</button>
-                                </div>
-                                <div class="sonar-srctie__opts">
-                                    @for (o of tie.options; track o.relationshipPath) {
-                                        <button type="button" class="sonar-srctie__opt" [disabled]="sourceBusy()" (click)="confirmSourcePath(o.relationshipPath)">
-                                            <i class="fa-solid fa-diagram-project"></i> {{ o.label }}
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        <!-- Flat source table (replaces the SVG graph; still a drop target) -->
-                        <div class="sonar-src-table" [class.sonar-src-table--droptarget]="graphDropActive()"
-                             (dragover)="onGraphDragOver($event)" (dragleave)="onGraphDragLeave()" (drop)="onGraphDrop($event)">
-                            @for (r of relatedEntities(); track r.id) {
-                                <div class="sonar-src-row"
-                                     [attr.data-source-entity]="r.relatedEntityID"
-                                     [class.sonar-src-row--hot]="r.id === hoveredSourceId()"
-                                     [class.sonar-src-row--wiring]="wiringSourceId() === r.id"
-                                     (mouseenter)="hoverSource(r)" (mouseleave)="clearHoverSource()">
-                                    <!-- Output socket: clicking enters wiring mode -->
-                                    <button class="pb-socket pb-socket--source"
-                                            [class.pb-socket--active]="wiringSourceId() === r.id"
-                                            [disabled]="isPublished() || wiringBusy()"
-                                            (click)="startWiring(r.id, r.relatedEntityID, $event)"
-                                            title="Click to wire this source to a factor"></button>
-                                    <i class="fa-solid fa-table sonar-src-row__icon"></i>
-                                    <span class="sonar-src-row__name">{{ r.label }}</span>
-                                    <span class="sonar-src-row__alias">{{ r.alias }}</span>
-                                    @if (!isPublished()) {
-                                        <button class="sonar-src-row__remove" [disabled]="sourceBusy()" (click)="removeSource(r.id)">✕</button>
-                                    }
-                                </div>
-                            }
-                            @if (relatedEntities().length === 0) {
-                                <div class="sonar-src-empty">{{ graphDropActive() ? 'Drop to wire this entity' : 'No sources mapped — drag an entity or click Add source' }}</div>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @if (activeBottomTab() === 'population') {
-                    <div class="sonar-deck__population">
-                        <div class="sonar-scope-seg">
-                            <button type="button" class="sonar-scope-seg__btn" [class.sonar-scope-seg__btn--active]="scoreEveryone()" [disabled]="isPublished()" (click)="setScoreEveryone(true)">
-                                <i class="fa-solid fa-users"></i> Everyone
-                            </button>
-                            <button type="button" class="sonar-scope-seg__btn" [class.sonar-scope-seg__btn--active]="!scoreEveryone()" [disabled]="isPublished()" (click)="setScoreEveryone(false)">
-                                <i class="fa-solid fa-filter"></i> Filtered subset
-                            </button>
-                        </div>
-                        @if (!scoreEveryone()) {
-                            <div class="sonar-scope-filter-builder-wrap" [class.sonar-locked__field]="isPublished()">
-                                <mj-filter-builder
-                                    [fields]="populationFilterFields"
-                                    [filter]="populationFilter"
-                                    [showSummary]="true"
-                                    (filterChange)="onPopulationFilterChange($event)">
-                                </mj-filter-builder>
-                            </div>
+                        @if (relatedEntities().length === 0) {
+                            <div class="sonar-src-empty">{{ graphDropActive() ? 'Drop to wire this entity' : 'No sources mapped' }}</div>
                         }
                     </div>
-                }
-            </div>
+                </div>
+            }
+
+            <!-- ── Population tab ─────────────────────────────────────────────── -->
+            @if (activeTab() === 'population') {
+                <div class="sonar-deck__tab-body sonar-deck__tab-body--padded">
+                    <div class="sonar-deck__panel-head">
+                        <span class="sonar-deck__panel-label">POPULATION FILTER</span>
+                    </div>
+                    <div class="sonar-scope-seg">
+                        <button type="button" class="sonar-scope-seg__btn" [class.sonar-scope-seg__btn--active]="scoreEveryone()" [disabled]="isPublished()" (click)="setScoreEveryone(true)">
+                            <i class="fa-solid fa-users"></i> Everyone
+                        </button>
+                        <button type="button" class="sonar-scope-seg__btn" [class.sonar-scope-seg__btn--active]="!scoreEveryone()" [disabled]="isPublished()" (click)="setScoreEveryone(false)">
+                            <i class="fa-solid fa-filter"></i> Filtered subset
+                        </button>
+                    </div>
+                    @if (!scoreEveryone()) {
+                        <div class="sonar-scope-filter-builder-wrap" [class.sonar-locked__field]="isPublished()">
+                            <mj-filter-builder
+                                [fields]="populationFilterFields"
+                                [filter]="populationFilter"
+                                [showSummary]="true"
+                                (filterChange)="onPopulationFilterChange($event)">
+                            </mj-filter-builder>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- ── Score Bands tab ─────────────────────────────────────────────── -->
+            @if (activeTab() === 'bands') {
+                <div class="sonar-deck__tab-body">
+                    @if (!selectedModelId()) {
+                        <p class="sonar-deck__empty-sm">Select or create a model first.</p>
+                    } @else {
+                        <sonar-score-band-builder
+                            [bandSetId]="selectedModel()?.BandSetID ?? null"
+                            (saved)="onBandsSaved($event)"
+                            (close)="selectTab('factors')">
+                        </sonar-score-band-builder>
+                    }
+                </div>
+            }
+
+            <!-- ── Versions tab ────────────────────────────────────────────────── -->
+            @if (activeTab() === 'versions') {
+                <div class="sonar-deck__tab-body">
+                    @if (!selectedModelId()) {
+                        <p class="sonar-deck__empty-sm">Select or create a model first.</p>
+                    } @else {
+                        <sonar-version-history
+                            [modelId]="selectedModelId()"
+                            [windows]="timeWindows()"
+                            (restored)="onVersionRestored()"
+                            (close)="selectTab('factors')">
+                        </sonar-version-history>
+                    }
+                </div>
+            }
+
         </div>
 
-        <!-- Col 3: Unified sandbox rail — Band Distribution + Member Preview, no cards -->
+        <!-- Col 3: Sandbox preview — always visible -->
         <div class="sonar-cockpit__sandbox"
              [class.sonar-flash]="flashing()"
              [class.sonar-cockpit__sandbox--mobile-hidden]="mobileTab() === 'deck'">
 
-            <!-- Band Distribution section -->
             <div class="sonar-sandbox__section">
                 <div class="sonar-deck__panel-head">
                     <span class="sonar-deck__panel-label">
@@ -287,26 +325,26 @@
                 </div>
 
                 @if (previewError()) {
-                    <p class="sonar-sandbox__error">⚠ {{ previewError() }}</p>
+                    <p class="sonar-sandbox__error">&#x26A0; {{ previewError() }}</p>
                 }
 
                 @if (!previewed()) {
                     @if (simulating()) {
-                        <p class="sonar-deck__empty-sm">Computing preview…</p>
+                        <p class="sonar-deck__empty-sm">Computing preview&hellip;</p>
                     } @else {
                         <p class="sonar-deck__empty-sm">Add signals and a band set, then Simulate.</p>
                         @if (!selectedModel()?.BandSetID && !isPublished()) {
-                            <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="activeView.set('bands')">Set up bands</button>
+                            <button class="sonar-btn sonar-btn--primary" [disabled]="!selectedModelId()" (click)="selectTab('bands')">Set up bands</button>
                         }
                     }
                 } @else if (bandDist().length === 0) {
-                    <p class="sonar-deck__empty-sm">No scores yet — add signals to the rubric, then Simulate.</p>
+                    <p class="sonar-deck__empty-sm">No scores yet &mdash; add signals, then Simulate.</p>
                 } @else {
                     <div class="sonar-band-dist" [class.sonar-band-dist--syncing]="recomputingPreview()">
                         <svg class="sonar-donut" viewBox="0 0 42 42">
                             <circle class="sonar-donut__track" cx="21" cy="21" r="15.915" fill="none" stroke-width="3.5"></circle>
                             @for (s of donutSegments(); track s.label) {
-                                <circle class="sonar-donut__seg sonar-donut__seg--{{ s.band }}" cx="21" cy="21" r="15.915"
+                                <circle [class]="'sonar-donut__seg sonar-donut__seg--' + s.band" cx="21" cy="21" r="15.915"
                                     fill="none" stroke-width="3.5" transform="rotate(-90 21 21)"
                                     [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"></circle>
                             }
@@ -321,15 +359,15 @@
                                             [class.sonar-bandrow--open]="editingBandKey() === b.band"
                                             (click)="openBandEditor(b.band)"
                                             [title]="isPublished() ? '' : 'Click to edit this band'">
-                                        <span class="sonar-donut__dot sonar-donut__dot--{{ b.band }}"></span>
+                                        <span [class]="'sonar-donut__dot sonar-donut__dot--' + b.band"></span>
                                         <span class="sonar-bandrow__name">{{ b.label }}</span>
                                         @if (bandFor(b.band); as bd) {
-                                            <span class="sonar-bandrow__range">{{ bd.min }}–{{ bd.max }}</span>
+                                            <span class="sonar-bandrow__range">{{ bd.min }}&ndash;{{ bd.max }}</span>
                                         }
                                         <div class="sonar-legend__progress-track">
-                                            <div class="sonar-legend__progress-bar sonar-legend__progress-bar--{{ b.band }}" [style.width.%]="b.pct"></div>
+                                            <div [class]="'sonar-legend__progress-bar sonar-legend__progress-bar--' + b.band" [style.width.%]="b.pct"></div>
                                         </div>
-                                        <span class="sonar-bandrow__pct sonar-text--{{ b.band }}">{{ b.pct }}%</span>
+                                        <span [class]="'sonar-bandrow__pct sonar-text--' + b.band">{{ b.pct }}%</span>
                                     </button>
                                     @if (editingBandKey() === b.band) {
                                         <div class="sonar-bandpop" (click)="$event.stopPropagation()">
@@ -341,13 +379,13 @@
                                                 <label class="sonar-bandpop__field">Min
                                                     <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMin()" (ngModelChange)="bandDraftMin.set(+$event)" (keydown.enter)="saveBandRange()" (keydown.escape)="closeBandEditor()" />
                                                 </label>
-                                                <span class="sonar-bandpop__dash">–</span>
+                                                <span class="sonar-bandpop__dash">&ndash;</span>
                                                 <label class="sonar-bandpop__field">Max
                                                     <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMax()" (ngModelChange)="bandDraftMax.set(+$event)" (keydown.enter)="saveBandRange()" (keydown.escape)="closeBandEditor()" />
                                                 </label>
                                             </div>
                                             <div class="sonar-bandpop__actions">
-                                                <button class="sonar-btn sonar-btn--primary" [disabled]="bandSaving()" (click)="saveBandRange()">{{ bandSaving() ? 'Saving…' : 'Save' }}</button>
+                                                <button class="sonar-btn sonar-btn--primary" [disabled]="bandSaving()" (click)="saveBandRange()">{{ bandSaving() ? 'Saving&hellip;' : 'Save' }}</button>
                                                 <button class="sonar-btn" (click)="closeBandEditor()">Cancel</button>
                                                 <button class="sonar-btn sonar-bandpop__delete" [disabled]="bandSaving()" (click)="deleteBand()"><i class="fa-solid fa-trash"></i></button>
                                             </div>
@@ -372,13 +410,13 @@
                                         <label class="sonar-bandpop__field">Min
                                             <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMin()" (ngModelChange)="bandDraftMin.set(+$event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
                                         </label>
-                                        <span class="sonar-bandpop__dash">–</span>
+                                        <span class="sonar-bandpop__dash">&ndash;</span>
                                         <label class="sonar-bandpop__field">Max
                                             <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMax()" (ngModelChange)="bandDraftMax.set(+$event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
                                         </label>
                                     </div>
                                     <div class="sonar-bandpop__actions">
-                                        <button class="sonar-btn sonar-btn--primary" [disabled]="bandSaving()" (click)="createBand()">{{ bandSaving() ? 'Adding…' : 'Add band' }}</button>
+                                        <button class="sonar-btn sonar-btn--primary" [disabled]="bandSaving()" (click)="createBand()">{{ bandSaving() ? 'Adding&hellip;' : 'Add band' }}</button>
                                         <button class="sonar-btn" (click)="closeAddBand()">Cancel</button>
                                     </div>
                                 </div>
@@ -388,10 +426,8 @@
                 }
             </div>
 
-            <!-- Divider between band dist and member preview -->
             <div class="sonar-sandbox__divider"></div>
 
-            <!-- Sample Member Preview -->
             @if (sampleMember(); as sample) {
                 <div class="sonar-sandbox__section">
                     <div class="sonar-deck__panel-head">
@@ -401,10 +437,10 @@
                         <div class="sonar-member-preview__head">
                             <div class="sonar-member-preview__identity">
                                 <span class="sonar-member-preview__name">{{ sample.name }}</span>
-                                <span class="sonar-chip sonar-chip--{{ sample.band }}">{{ sample.bandLabel }}</span>
+                                <span [class]="'sonar-chip sonar-chip--' + sample.band">{{ sample.bandLabel }}</span>
                             </div>
                             <div class="sonar-member-preview__score">
-                                <span class="sonar-member-preview__num sonar-text--{{ sample.band }}">{{ sample.score }}</span>
+                                <span [class]="'sonar-member-preview__num sonar-text--' + sample.band">{{ sample.score }}</span>
                                 <span class="sonar-member-preview__denom">/100</span>
                             </div>
                         </div>
@@ -424,14 +460,14 @@
                 </div>
             } @else {
                 <div class="sonar-sandbox__section">
-                    <p class="sonar-deck__empty-sm">No sample member — run Simulate to populate.</p>
+                    <p class="sonar-deck__empty-sm">No sample member &mdash; run Simulate to populate.</p>
                 </div>
             }
 
         </div>
     </div>
 
-    <!-- Builders open in a modal over the cockpit -->
+    <!-- Modals: Factor builder · Publish · New model -->
     @if (activeView() !== 'rubric') {
         <div class="sonar-modal">
             <div class="sonar-modal__scrim" (click)="closeFactorBuilder()"></div>
@@ -450,12 +486,6 @@
                         (close)="closeFactorBuilder()">
                     </sonar-factor-builder>
                 }
-                @if (activeView() === 'bands') {
-                    <sonar-score-band-builder [bandSetId]="selectedModel()?.BandSetID ?? null" (saved)="onBandsSaved($event)" (close)="activeView.set('rubric')"></sonar-score-band-builder>
-                }
-                @if (activeView() === 'versions') {
-                    <sonar-version-history [modelId]="selectedModelId()" [windows]="timeWindows()" (restored)="onVersionRestored()" (close)="activeView.set('rubric')"></sonar-version-history>
-                }
                 @if (activeView() === 'publish') {
                     <sonar-publish-snapshot
                         [model]="selectedModel()"
@@ -471,5 +501,5 @@
 
 </div>
 
-<!-- Floating Sonar Assistant copilot (available on every surface) -->
+<!-- Floating Sonar Assistant copilot -->
 <sonar-copilot-launcher></sonar-copilot-launcher>

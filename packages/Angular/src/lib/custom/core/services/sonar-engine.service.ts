@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Metadata } from "@memberjunction/core";
+import { BaseRemotableOperation, Metadata, RemoteOpExecMode } from "@memberjunction/core";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 import { extractActionResult, extractActionParam } from "./action-result.util";
@@ -7,9 +7,7 @@ import { extractActionResult, extractActionParam } from "./action-result.util";
 /** Actions are invoked by their registered Name — the engine resolves the ID at runtime
  *  (RunAction needs the ID, but we key on the stable name, not a hardcoded UUID). */
 const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
-const ACTION_RECOMPUTE_MODEL = "Sonar: Recompute Model";
 const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
-const ACTION_RUN_INTERVENTION = "Sonar: Run Intervention";
 const ACTION_GET_PROMPT = "Sonar: Get Prompt";
 const ACTION_UPDATE_PROMPT = "Sonar: Update Prompt";
 
@@ -26,31 +24,32 @@ export interface PreviewModelResult {
     sampleMember: PreviewSample | null;
     errors: string[];
 }
-/** Result of a full recompute ("Sonar: Recompute Model"). */
+/** Result of a full recompute (the `Sonar.RecomputeModel` Remote Operation). */
 export interface RecomputeResult { runId: string; status: string; recordsScored: number; errors: string[]; }
+/** Progress sink for a running recompute: (members scored so far, total to score). */
+export type RecomputeProgress = (processed: number, total: number) => void;
+
+/** Stable key of the LongRunning Remote Operation (matches its `MJ: Remote Operations` row). */
+const REMOTE_OP_RECOMPUTE = "Sonar.RecomputeModel";
+interface SonarRecomputeModelInput { modelID: string; }
+interface SonarRecomputeModelOutput { runID: string; status: string; recordsScored: number; errorMessage?: string; }
+
+/**
+ * Client-safe contract for the `Sonar.RecomputeModel` Remote Operation: OperationKey + types only,
+ * no server body (the real implementation — SonarRecomputeModelServerOperation — lives in
+ * sonar-actions and pulls in the engine, which can't run in the browser). Calling Execute() routes
+ * the request through the active GraphQL provider by key; `attached` mode streams progress back
+ * over the provider's subscription. Extending BaseRemotableOperation directly is the sanctioned
+ * lightweight path (the alternative is a CodeGen-emitted base — see the server op's docs).
+ */
+class SonarRecomputeModelClientOperation extends BaseRemotableOperation<SonarRecomputeModelInput, SonarRecomputeModelOutput> {
+    public readonly OperationKey = REMOTE_OP_RECOMPUTE;
+    public readonly ExecutionMode: RemoteOpExecMode = "LongRunning";
+}
 
 /** Result of validating/previewing a single draft factor ("Sonar: Validate Factor"). */
 export interface ValidateFactorResult { valid: boolean; errors: string[]; matching: number; strength: number; explanation: string; anchorId: string | null; membersWithData: number; }
 
-/** The counts an intervention run (or preview) returns — the engine's InterventionRunResult. */
-export interface InterventionRunCounts {
-    cohortSize: number; alreadyAssigned: number; eligible: number; capped: boolean;
-    treated: number; held: number; sent: number; failed: number; preview: boolean;
-}
-/** What the Engagement Manager sends to fire (or preview) an on-the-fly intervention. */
-export interface RunInterventionInput {
-    modelId: string;
-    segmentName: string;
-    /** Score-evaluable cohort filter (band + score range) — the score-only subset of the EM view. */
-    filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null };
-    interventionName: string;
-    holdoutPercent: number;
-    /** Registered name of the MJ Action to fire (e.g. "Slack Webhook"). */
-    actionName: string;
-    /** Static params for that action (e.g. WebhookURL + Message; "{{member}}" → each member's id). */
-    actionParams: { name: string; value: string }[];
-    cap: number;
-}
 /** The editable prompt behind an LLM-backed factor-action (from "Sonar: Get Prompt"). */
 export interface FactorPrompt { promptId: string | null; templateContentId: string | null; text: string; error?: string; }
 /** Result of running a factor-action for one sample member (the prompt "test"). */
@@ -126,18 +125,30 @@ export class SonarEngineService {
         return payload ? { ...payload, errors: [] } : empty;
     }
 
-    /** Recompute a model: compute AND persist a full run (requires a published model). */
-    public async recompute(modelId: string): Promise<RecomputeResult> {
-        const actionId = await this.resolveActionId(ACTION_RECOMPUTE_MODEL);
-        if (!actionId) return { runId: "", status: "Failed", recordsScored: 0, errors: [`Action '${ACTION_RECOMPUTE_MODEL}' not found.`] };
-        const result = await this.actionClient().RunAction(actionId, [
-            { Name: "ModelID", Value: modelId, Type: "Input" },
-        ]);
-        if (!result.Success) {
-            return { runId: "", status: "Failed", recordsScored: 0, errors: [result.Message || "Recompute failed."] };
+    /**
+     * Recompute a model: compute AND persist a full run (requires a published model). Invokes the
+     * `Sonar.RecomputeModel` LongRunning Remote Operation in `attached` mode, streaming per-member
+     * progress to `onProgress`. Unlike the old RunAction path, this returns a result object even
+     * when the API dies mid-run (Success:false) instead of hanging forever.
+     */
+    public async recompute(modelId: string, onProgress?: RecomputeProgress): Promise<RecomputeResult> {
+        const op = new SonarRecomputeModelClientOperation();
+        const res = await op.Execute(
+            { modelID: modelId },
+            {
+                mode: "attached",
+                onProgress: (p) => {
+                    if (onProgress && p.Processed != null && p.Total != null) onProgress(p.Processed, p.Total);
+                },
+            },
+        );
+        if (!res.Success) {
+            return { runId: "", status: "Failed", recordsScored: 0, errors: [res.ErrorMessage || "Recompute failed."] };
         }
-        const payload = this.extractResult<{ runId: string; status: string; recordsScored: number }>(result);
-        return payload ? { ...payload, errors: [] } : { runId: "", status: "Unknown", recordsScored: 0, errors: [] };
+        const out = res.Output;
+        return out
+            ? { runId: out.runID, status: out.status, recordsScored: out.recordsScored, errors: out.errorMessage ? [out.errorMessage] : [] }
+            : { runId: "", status: "Unknown", recordsScored: 0, errors: [] };
     }
 
     /**
@@ -171,38 +182,6 @@ export class SonarEngineService {
             anchorId: payload.sampleAnchorId,
             membersWithData: payload.membersWithData,
         };
-    }
-
-    /**
-     * Run (or preview) an on-the-fly intervention via "Sonar: Run Intervention". `preview: true`
-     * resolves the cohort + treated/held split and fires NOTHING (the dry-run gate); `preview: false`
-     * commits — writes assignments + fires the chosen action for treated members. Resolves both the
-     * Run-Intervention action and the chosen messaging action (e.g. Slack Webhook) by name.
-     */
-    public async runIntervention(
-        input: RunInterventionInput,
-        preview: boolean,
-    ): Promise<{ counts: InterventionRunCounts | null; errors: string[] }> {
-        const runId = await this.resolveActionId(ACTION_RUN_INTERVENTION);
-        if (!runId) return { counts: null, errors: [`Action '${ACTION_RUN_INTERVENTION}' not found.`] };
-        const actionId = await this.resolveActionId(input.actionName);
-        if (!actionId) return { counts: null, errors: [`Action '${input.actionName}' not found.`] };
-
-        const config = {
-            modelId: input.modelId,
-            segment: { name: input.segmentName, filter: input.filter },
-            intervention: { name: input.interventionName, holdoutPercent: input.holdoutPercent },
-            action: { actionId, params: input.actionParams },
-            cap: input.cap,
-            preview,
-        };
-        const result = await this.actionClient().RunAction(runId, [
-            { Name: "ConfigJSON", Value: JSON.stringify(config), Type: "Input" },
-        ]);
-        if (!result.Success) {
-            return { counts: null, errors: [result.Message || "Intervention run failed."] };
-        }
-        return { counts: this.extractResult<InterventionRunCounts>(result), errors: [] };
     }
 
     /** Load an LLM-backed factor-action's editable prompt text (via "Sonar: Get Prompt"). */

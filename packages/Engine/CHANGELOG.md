@@ -1,0 +1,168 @@
+# @mj-biz-apps/sonar-engine
+
+## 0.4.0
+
+### Minor Changes
+
+- b0ec9d3: Sonar Authoring Agent reliability: validate authored factors (data source + aggregate field), clearer compiler error, higher iteration limits.
+
+  - **Factor authoring is validated against the real schema.** `Sonar: Build Model` and `Sonar: Create Factor` created declarative factors even when (1) no data source was resolved — yielding orphaned factors (`SourceRelatedEntityID = NULL`) — or (2) a column-referencing field (`aggregateFieldName` or `dateField`) wasn't a real column on the source entity (weak models hallucinate names like `TotalAmount` for a `TotalGross` column, or `duration_days` for a column that doesn't exist). Both cases only surfaced at compile/recompute time. Both actions now reject them up front with actionable errors (valid source aliases / valid columns), so the agent self-corrects in-run instead of shipping an uncompilable model. (FilterExpression is free-form SQL — left to the engine, not column-parsed.)
+  - **Prompt hint.** The agent's system prompt now tells it to take the exact `aggregateFieldName`/`dateField` from the columns `Sonar: List Related Entities` returns, never invent one — so it leans on the new column data deliberately. Delivered as a forward migration (SQL Server + PG) patching the seeded `TemplateContent`; the frozen seed is untouched.
+  - **Column visibility for the agent.** `Sonar: List Related Entities` now returns each candidate source's `columns` (name + type + a `numeric` flag), so the agent picks a real `aggregateFieldName` from the list instead of guessing one — attacking the hallucination at the source (proactive), where the validation above is the reactive backstop.
+  - **Clearer FactorCompiler error.** A model-owned factor with no source now reports "no data source — link it to a model related entity," instead of the misleading "library factors not supported yet" (which properly refers only to shared `ScoreModelID = NULL` factors).
+  - **A bound, code-approved signal no longer blocks publishing.** `Sonar: Bind Signal To Model` only proceeds when the signal's code is Approved (or it's a trusted codebase action), but it created the ActionBacked factor at `PromotionState='Draft'` — and the model publishability gate rejects any un-Approved action factor. So a signal you fully approved in the Studio still couldn't be published, with a confusing block. The bound factor is now born `PromotionState='Approved'`, since the code approval it already required IS the factor's promotion gate.
+  - **Signal Studio signals are now bound to an anchor.** Custom (code-backed) signals were commissioned with only a text description — ActionSmith never knew which entity `AnchorRecordID` belonged to, so it guessed and authored code that `Load`ed the wrong entity by the wrong key (e.g. loading Member Profiles by a Person id → null for every record). The commission form now requires picking the anchor the signal scores, and the kickoff hands ActionSmith that anchor's schema (the anchor entity, its related sources, and each one's link field + columns) as Context. The factor brief spells out the contract: `AnchorRecordID` is the anchor entity's primary key; start from the anchor and reach related data by following its foreign keys, never by loading another entity by `AnchorRecordID`.
+  - **Higher agent run limits (12/18 → 36/64).** Real, MoreCheese-scale authoring legitimately exceeds 12 Loop iterations; runs were aborting at the cap mid-authoring (verified in AIAgentRun logs). Delivered as forward migrations (SQL Server + PG); the seed stays frozen.
+
+### Patch Changes
+
+- Updated dependencies [b0ec9d3]
+  - @mj-biz-apps/sonar-entities@0.4.0
+
+## 0.3.0
+
+### Minor Changes
+
+- 744778a: Move the Sonar Authoring Agent tool-surface seed (AIAgentAction links) out of the released seed migration and into a new forward migration, to fix the v0.2.0 -> v0.3.0 upgrade path.
+
+  The agent-tools fix (#24) and its ordering fix (#27) had edited `V202607142340__…_Seed_App_Metadata.sql`, which shipped in v0.2.0. Editing an applied migration changes its Flyway checksum: a fresh install works, but a v0.2.0 -> v0.3.0 upgrade fails validation (checksum mismatch) — and even relaxed, Flyway never re-runs an applied version, so the links would never reach the upgraded install. The seed is now restored byte-for-byte to its v0.2.0 content, and the idempotent AIAgentAction block lives in `V202607202300__v0.3.x_Agent_Tool_Surface.sql`. Running after the seed, the Actions it FK-references already exist (no ordering hazard), and `WHERE NOT EXISTS` makes it safe for fresh installs, upgrades, and re-runs. The seed-lint now checks links across all migrations in execution order.
+
+- 2ca57ac: Wire the Sonar Authoring Agent to its action tool surface so fresh `mj app install` seeds a working agent.
+
+  The agent shipped with zero `AIAgentAction` links, so the Loop runtime built an empty toolbox and every action call (e.g. `Sonar: Find Models`) reported "unavailable". Root cause: `metadata/agents/.mj-sync.json` allow-listed only `MJ: AI Agent Prompts` under `pull.relatedEntities`, so mj-sync silently dropped the agent's action links; the empty snapshot generated an empty seed, and `mj app install` (migrations only, never `metadata/`) shipped the gap to every installer.
+
+  - **`.mj-sync.json`:** add `MJ: AI Agent Actions` to the capture allowlist (root cause fix).
+  - **`.sonar-agent.json`:** restore the 22 action links (all Sonar tools except `Run Authoring Agent`) to the agent snapshot.
+  - **Seed migration:** idempotent `INSERT ... WHERE NOT EXISTS` so fresh installs seed the agent's tools.
+
+- a38ee7c: PostgreSQL parity for the Sonar Authoring Agent tool surface.
+
+  The PG baseline seeds the agent and all 23 actions but zero AIAgentAction links, so a Postgres install got a toolless agent — the same bug #24 fixed for SQL Server, on the other platform. Adds `migrations-pg/V202607202301__v0.3.x_Agent_Tool_Surface.pg.sql` with the 22 links (agent + action IDs are seed-hardcoded, identical across dialects; idempotent WHERE NOT EXISTS; runs after the baseline so the FK-referenced actions exist). The seed-lint now validates BOTH migrations/ (SQL Server) and migrations-pg/ (PostgreSQL). Verified end-to-end on a fresh MJ-core-on-Postgres-17: full baseline + queries + agent-tools applied clean, agent has 22 tools, 0 orphan FK links.
+
+- 7c38f38: Bring the 3 Overview stored Queries (Band Trend / Band Flows / Score Movers) to PostgreSQL, closing the parity gap documented in the PG baseline.
+
+  These queries' bodies were T-SQL and were deliberately excluded from the PG baseline (`B202607171700`), so a Postgres install had broken Overview analytics while everything else worked. New incremental migration `migrations-pg/V202607201200__v0.3.x_Overview_Queries.pg.sql` seeds all three (Query + parameters + fields + query-entities) with PostgreSQL-dialect SQL and the PostgreSQL `SQLDialectID`. Idempotent (`INSERT ... ON CONFLICT DO NOTHING`). SQL Server is unchanged.
+
+  Entity foreign keys (`QueryEntity.EntityID`, `QueryField.SourceEntityID`) are resolved by entity **Name** via subquery, not hardcoded id — the Sonar entity IDs differ between the SQL Server seed and the PG baseline (CodeGen minted fresh ids on PG), so a literal id would FK-violate on a PG install. Names are stable across both.
+
+- e0894b0: Fix a fresh-install failure introduced by the agent tool-surface seed (#24): the `AIAgentAction` insert block was placed right after the agent/prompt seeding, but the `Sonar:` Action rows it references (via the enforced `ActionID` foreign key) aren't created until later in the same migration. On an already-populated dev DB the actions existed so it passed, but on a clean `mj app install` the block ran first and hit a FK violation, aborting the whole seed.
+
+  Moved the block to the end of the seed migration (after all agents and actions are created) with a placement-guard comment. Verified: a from-scratch FK-ordering repro fails in the old order and succeeds in the new order.
+
+- 8c46c2b: Add PostgreSQL install support, following the bizapps family convention (bizapps-common, issues, tasks, forms all ship `migrations-pg/`).
+
+  - **`migrations-pg/B202607142340...` one-shot baseline** (`B…__Schema_and_Tables.pg.sql`): the full `__mj_BizAppsSonar` schema + CRUD functions + views + triggers + entity registration + app-level seed (score bands, time windows, 23 actions, remote op, authoring agent), extracted from a post-codegen + post-seed PostgreSQL database (CodeGen's fixed point). Installs one-shot via `mj migrate` alone — verified on a fresh PG core (14 tables, 42 functions, 14 views, 14 registered entities, full seed) with no `mj codegen` step.
+  - **`mj:migrate:convert` / `mj:migrate:pg`** scripts wired into package.json.
+  - **Known gap:** the 3 Sonar Overview stored Queries are T-SQL and are not yet ported to PostgreSQL (documented in the baseline header); PG rewrites are a follow-up.
+
+### Patch Changes
+
+- Updated dependencies [744778a]
+- Updated dependencies [2ca57ac]
+- Updated dependencies [a38ee7c]
+- Updated dependencies [7c38f38]
+- Updated dependencies [e0894b0]
+- Updated dependencies [8c46c2b]
+  - @mj-biz-apps/sonar-entities@0.3.0
+
+## 0.2.0
+
+### Minor Changes
+
+- b3ed75b: Open App release readiness: make Sonar cleanly installable via `mj app install`.
+
+  - **Seed migration.** `mj app install` runs migrations only (it does not process `metadata/`), so a clean install previously got the schema but no app-level config. Added `V202607142340__v0.1.x_Seed_App_Metadata.sql` seeding all 182 app-metadata records (score band sets/bands, time windows, 23 actions + params + result codes, 3 queries, 1 remote operation, and the Sonar Authoring Agent). Verified end-to-end on a fresh core.
+  - **Portable AI model.** The authoring agent ships without a pinned model (`RequireSpecificModels=0`), so it runs on whatever AI model the host has configured instead of a hardcoded vendor.
+  - **Caret peer ranges.** MJ peer dependencies moved from exact `5.45.0` to `^5.45.0` across all packages, so the app installs against any compatible `5.45.x`+ host without forcing a duplicate MJ install.
+  - **Honest version range.** `mjVersionRange` corrected to `>=5.45.0 <6.0.0`, the version Sonar was actually built and verified against.
+
+- d13067b: Engine v1 feature layer + `Factor.DateField` schema.
+
+  Adds the engine capabilities the Sonar app needs on top of the action-factor engine, plus the one v1 schema change:
+
+  - **Composite / entity-agnostic anchor keys** — `anchorKey.ts` builds identity on MJ's `CompositeKey` (collision-safe canonical string + type-faithful JSON + per-column values for OPENJSON), so single- AND multi-column-PK anchors both score end-to-end. `resolvePopulation` drops the single-column guard; the set-based factor query stages the population via a temp table instead of an inline `IN (…)` list (kills the ~2100-value ceiling + the string-interpolation workaround); `ScoreWriter` persists `AnchorRecordKeyJSON`.
+  - **`Factor.DateField`** — new nullable column (migration `V202606241200`) naming the related-entity activity-date column a windowed factor filters on. Frees `TimeWindow.AnchorDateField` to mean only the anchor boundary date; wires `SinceEvent`/`RenewalRelative` windows.
+  - **Action-output clamping** (`clampToRange`) — an action factor's value is clamped to its declared output range, flagging contract drift.
+  - **Explainability threading** — a factor's "why" rides `FactorResult.explanation` → contribution → persisted `ScoreFactorContribution.DetailJSON`.
+  - **Score trend + history persistence** — every recompute writes an immutable `ScoreHistory` snapshot and, when an anchor's band changes, a `ScoreBandTransition` row; the current `Score` also carries `Delta` / `TrendDirection` / `DataCompleteness` vs. the trend-window baseline. This is what backs the Overview trend, per-anchor sparklines, and the "movers" feed. The trend math (delta, direction deadband, baseline reduction, band-change detection) lives in a pure, unit-tested `scoreTrend` module — `ScoreWriter` just does the entity plumbing.
+
+  Generated entities/resolvers/forms + the GraphQL schema are regenerated for the DateField column (clean — no intervention/demo entities). The CodeGen SQL (regenerated `vwFactors` view, Factor CRUD procs, FK indexes, and the DateField EntityField metadata) is appended into the migration file per convention. Verified end-to-end: Initial + DateField migrations apply cleanly on a fresh clean-MJ database.
+
+### Patch Changes
+
+- 7faa852: Add Action-backed factors to the engine (the escape hatch, plan §5.2/§7.2): a factor whose value is produced by an MJ Action instead of set-based SQL, behind the same `IFactorEvaluator` seam so scoring/normalization/explainability never branch on factor kind. Plus the `Exists` / `Recency` declarative aggregations.
+
+  - `ActionFactorEvaluator` (pure, unit-tested via an injected `ActionRunner`) — PerRecord execution with a bounded-concurrency pool and per-record error isolation (a per-anchor failure = no-data, not a dead run). `actionRunner.ts` is the one I/O seam (wraps `ActionEngineServer`).
+  - Promotion gate: an Action-backed factor must be `PromotionState='Approved'` to move PERSISTED scores (recompute); a no-persist preview runs un-approved drafts so authors can test first.
+
+  **⚠ SCALE CEILING — read before running action factors on real populations.** An Action-backed factor fires **one Action call per anchor** (PerRecord; MJ has no batch RunAction). Once full-population scoring is in, a model with an LLM-/external-API-backed factor makes **N = entire population** calls per recompute (10k members ⇒ 10k calls). The concurrency cap bounds _parallelism only_ — **not total cost or latency**. Cross-run result caching (`CacheTTLSeconds`), `IsExpensive` budgeting, and rate limiting are **NOT implemented yet**. The orchestrator now emits a loud `LogStatus` when a single action factor's fan-out exceeds `ACTION_FACTOR_POPULATION_SOFT_CAP` (1000), so an expensive run can't happen silently — but treat that as a warning, not a guard. **Do not run external-API/LLM action factors against large non-demo populations until a real budget/cache guard lands.** (Combined with the inline-`IN`-list ceiling from the scoring-pipeline PR, an action-backed model has two independent scale limits to clear before it's production-safe.)
+
+  **Review follow-ups (this revision):**
+
+  - **Publish-time governance gate (#2):** `ScoreModelEntityServer.validatePublishable` now blocks publishing a model whose rubric contains a non-Approved Action-backed factor. Previously such a model could publish and then throw on _every_ persisted recompute (the engine requires Approved action factors), surfacing the failure at run time instead of publish time. This keeps the two consistent: if it published, a recompute won't fail the whole run on an un-promoted action factor. **All-or-nothing is intentional** (matches the engine) — silently excluding an un-approved factor would change the model's scoring behind the operator's back; the gate is loud, not lossy.
+  - **Configurable `asOfParam` (#4):** the as-of input name is no longer hardcoded `"AsOf"` — it's read from `ActionParamsJSON.asOfParam` (default `"AsOf"`), alongside `anchorParam`/`outputParam`. A bound Action must declare this input.
+  - **Output coercion contract (#5):** the Action output → numeric raw value mapping is now an explicit, unit-tested `coerceOutput`: number passthrough (NaN/Infinity → null), boolean → 1/0 (Exists-style), **empty/whitespace string → null = no-data** (not a hard 0 — it now falls to the missing-data policy), other non-numeric → null.
+  - **Merge-order coordination with the full-population scoring PR (#3):** that PR changed `score(spec, factors)` → `score(spec, factors, population)` and added missing-data fields to `WeightedFactor`, editing the same `buildWeightedFactors`/`computeForModel` this PR touches. Merged `next` in: the resolution preserves BOTH the missing-data threading (per-factor `missingDataPolicy`/`outputMin`/`outputMax`, 3-arg `score`) AND this PR's `requireApprovedActionFactors` gate + cost-ceiling warning in the same loop. The integration test (`actionFactor.test.ts` → "action factor + missing-data policy → scoring") now asserts the actual `MissingDataPolicy` (Zero fills 0 in-denominator; Exclude drops the factor from the anchor's denominator).
+
+- b0508e8: Add the sonar-engine scoring pipeline (compute stages, plan §6.1):
+
+  - `IFactorEvaluator` / `FactorResult` — the single contract through which every factor (declarative or Action-backed) is evaluated.
+  - `FactorCompiler` + `CompiledFactorEvaluator` — translate a declarative factor's config into one set-based SQL query and run it (v1: Count/Sum/Avg/Min/Max/DistinctCount aggregations with config-field validation, single-hop foreign-key join, rolling + all-time time windows).
+  - `compileFilter` — compiles a `FilterExpression` (Kendo-compatible filter descriptors, matching `UserView.FilterState`) into a **parameterized** WHERE fragment, validating every field against the related entity's columns (typo + injection guard).
+  - `NormalizationEngine` — fills `normalizedContribution`: `None` passthrough plus the population-relative `MinMax`, `Percentile` (rank with midpoint tie-handling), and `ZScore` (standardized, clamped to ±3) — with direction (`HigherIsBetter`) and output-range scaling.
+  - `ScoringEngine` — combines normalized contributions via rubric weights into a 0–100 score, assigns a band, and emits a per-factor contribution breakdown for explainability (v1: WeightedSum, missing-factor-as-zero).
+
+  - `RecomputeOrchestrator` + `ScoreWriter` — the conductor. `computeScores` runs the full pipeline (resolve population → evaluate + normalize each factor → combine) and returns scores; `recompute` additionally persists them: records a `ScoreRecomputeRun`, upserts each `Score` (keyed by model+anchor), and replaces its `ScoreFactorContribution` rows (requires a published model — stamps `ScoreModelVersionID`). `previewFactor` evaluates a single _unsaved draft_ factor over the population without persisting, reusing the same compile→normalize path so a builder's live preview matches the eventual score.
+
+  The pure stages are unit-tested (vitest). v1 scope is deliberately narrow and fails loud outside it: WeightedSum models, full-population scoring from live config, row-by-row persistence (the scale path is set-based stage→MERGE + change-only diffing, not workers). Deferred: multi-hop joins, calendar/renewal-relative time windows, the remaining normalization methods (`Logistic`/`Banded`/`Lookup`), Action-backed/derived factors, `ScoreHistory`/`ScoreBandTransition`, scheduling.
+
+  **Review follow-ups (this revision):**
+
+  - Band assignment is now deterministic at shared boundaries: `ScoringEngine.assignBand` uses half-open ranges `[min, max)` with the top band inclusive, so a score on an adjacent-band edge always resolves to the upper band regardless of band query order (`loadBands` also orders `MinScore ASC`).
+  - `resolvePopulation` explicitly rejects composite (multi-column) primary-key anchors rather than silently truncating to the first PK column.
+  - Anchor IDs inlined into the `IN (…)` list are single-quote-escaped, closing a SQL-injection surface for string/varchar anchor PKs. (The full table-valued-parameter swap — true parameterization, honest non-UUID-PK typing, and the ~2100-parameter limit — remains a follow-up, as does computing from the immutable version snapshot rather than live config.)
+  - Rolling windows now accept a length in **months** (`LengthMonths`), not just days: when set, the predicate uses `DATEADD(month, -N, @asOf)` and months take precedence over days. It uses `DATEADD(month)` rather than an `N×30`-day approximation, so a "Trailing 12 Months" window lands on the exact calendar date regardless of how long the intervening months are. Previously a month-based window threw (the code only read `LengthDays`). NOTE: this is only the window _length_ — _which date column_ a Rolling window filters on is the separate `Factor.DateField` decision, roadmapped for the next major migration (the `AnchorDateField` bridge is the interim).
+
+- ea53114: Score the full population, with a per-factor missing-data policy and a model-level population filter.
+
+  The engine pipeline (#2) scored only anchors that had data for at least one factor, and a missing factor silently contributed 0. That conflates "no engagement" with "not in scope" and makes fully-inactive members vanish from the results instead of surfacing at the floor. This PR makes scoring population-complete and gives missing data an explicit, configurable meaning:
+
+  - **Full-population scoring** — `ScoringEngine.score` takes the resolved population and scores _every_ anchor, not just those with data. An anchor with no countable factors returns null (nothing to score) rather than being silently dropped.
+  - **Missing-data policy** (per factor, from `Factor.MissingDataPolicy`): `Zero` counts an absent factor as 0, `NeutralMidpoint` as 0.5 (both keep the weight in the denominator, so missing data pulls the score), and `Exclude` drops the factor from both numerator and denominator (the anchor is scored only on the factors it has). Each contribution records whether it was measured or filled by policy, for explainability.
+  - **Population filter** — `ScoreModel.PopulationFilter` narrows which anchors get scored (e.g. "active members only"), compiled to a validated WHERE fragment via a new `compileFilterInline` (same field-whitelisting + parameterization guarantees as the factor filter compiler).
+
+  Pure stages stay unit-tested (`ScoringEngine` + `filter` suites). Engine-only; no schema, action, or UI changes — `Factor.MissingDataPolicy` and `ScoreModel.PopulationFilter` are existing columns this PR begins honoring.
+
+- 069db79: Upgrade all `@memberjunction/*` dependencies to exact `5.45.0` (latest), moving Sonar onto the current MemberJunction platform.
+
+  **Requires the database core to be at MJ 5.45.** Packages and the `__mj` core schema must match — the server generates its GraphQL from DB metadata and the AI engine reads agent config from core tables. Bring a database up with:
+
+  ```
+  mj migrate --tag v5.45.0        # __mj core -> 5.45 (Skyway baseline + delta)
+  mj migrate --schema __mj_BizAppsSonar --dir ./migrations   # Sonar app schema
+  mj codegen                      # register entities, build views/sprocs
+  ```
+
+  Notes:
+
+  - **Exact pins, not caret** — MJ publishes exact sibling versions, so a single `^` cascades the whole tree (and creates nested dual-core copies). Every `@memberjunction/*` is `"5.45.0"`.
+  - Verified end-to-end against a freshly-provisioned 5.45 database (clean boot with no metadata skew, all surfaces render, copilot agent runs and replies).
+  - Supersedes the interim 5.41.0 alignment (which matched an older demo DB). 5.45 is the current platform; the DB is migrated forward to match rather than pinning packages back.
+
+- e0ae207: Add Tier-B normalization methods (`Logistic`, `Banded`, `Lookup`) behind a strategy registry.
+
+  The four population-relative methods shipped with the engine pipeline (`None`/`MinMax`/`Percentile`/`ZScore`) cover "scale relative to the group," but some signals need a fixed, configured shape independent of the population:
+
+  - **Logistic** — squashes a raw value through a logistic curve (configurable midpoint + steepness); good for "diminishing returns" signals where the first few events matter most.
+  - **Banded** — maps raw-value ranges to fixed output points (a step function); good when the business defines explicit tiers.
+  - **Lookup** — maps discrete raw values to output points via an explicit table; good for categorical/coded inputs.
+
+  To add these without a growing `switch`, `NormalizationEngine` is refactored into a thin dispatcher over an `INormalizationStrategy` registry — each method is a self-contained strategy (population-relative ones consume the whole population in one pass; fixed-shape ones are per-record). Per-method config is parsed and validated up front (`parseNormalizationParams`), so malformed config fails loud rather than silently mis-scaling. Pure (no I/O), fully unit-tested.
+
+  The public normalization surface (`NormalizationEngine`, `NormalizationSpec`, param types, the parser) is unchanged for consumers — the registry split is internal.
+
+- Updated dependencies [86a6697]
+- Updated dependencies [069db79]
+- Updated dependencies [b3ed75b]
+- Updated dependencies [d13067b]
+  - @mj-biz-apps/sonar-entities@0.2.0

@@ -370,6 +370,9 @@ This repo uses MemberJunction's CodeGen system to generate entity and action sub
 - Never include `__mj_CreatedAt`/`__mj_UpdatedAt` columns in CREATE TABLE - CodeGen handles them
 - Never create indexes for foreign key columns - CodeGen creates them automatically
 - Use hardcoded UUIDs in seed/metadata migrations, never NEWID()
+- **App config in `metadata/` is dual-sourced.** `mj app install` runs migrations only (not `metadata/`), so the config those dirs hold (bands, windows, actions, queries, remote ops, the authoring agent) must also reach the DB via migrations. `metadata/` stays the editable dev source of truth (round-trips via `mj sync`).
+- **⚠️ The seed migration `V202607142340__…_Seed_App_Metadata.sql` is FROZEN — it shipped in v0.2.0. Never edit or regenerate it.** Changing a released migration changes its Flyway checksum, which aborts every upgrade (and Flyway never re-runs an applied version, so the change wouldn't land anyway). This is exactly what broke the v0.2.0 → v0.3.0 upgrade (PR #29). The old "if you edit `metadata/`, regenerate the seed" workflow is retired — it is now a footgun.
+- **To add or change installed config, write a NEW forward migration** with idempotent inserts (`IF NOT EXISTS` / `WHERE NOT EXISTS`), placed after the rows it FK-references: `migrations/V<newer>__….sql` **and, for PostgreSQL parity, `migrations-pg/V<newer>__….pg.sql`**. See `V202607202300__v0.3.x_Agent_Tool_Surface.sql` (+ the `.pg.sql` twin) as the template. Caveat: `metadata/agents/.sonar-agent.json` still describes the agent's 22 `AIAgentAction` links, but those are seeded by those forward migrations, NOT the frozen seed — a naive seed regen would wrongly re-add them and re-break upgrades. See [`migrations/README.md`](migrations/README.md).
 
 ---
 

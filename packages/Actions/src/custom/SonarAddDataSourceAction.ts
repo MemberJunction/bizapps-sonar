@@ -1,4 +1,4 @@
-import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
+import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
@@ -75,7 +75,7 @@ export class SonarAddDataSourceAction extends SonarActionBase {
     /** Is this alias already wired into the model? (case-insensitive — aliases are identifiers.) */
     private async aliasInUse(modelId: string, alias: string, contextUser?: UserInfo): Promise<boolean> {
         const res = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>(
-            { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${modelId}' AND LOWER(Alias)='${alias.trim().toLowerCase().replace(/'/g, "''")}'`, MaxRows: 1, ResultType: "simple" },
+            { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${this.sqlString(modelId)}' AND LOWER(Alias)='${this.sqlString(alias.trim().toLowerCase())}'`, MaxRows: 1, ResultType: "simple" },
             contextUser,
         );
         return res.Success && res.Results.length > 0;

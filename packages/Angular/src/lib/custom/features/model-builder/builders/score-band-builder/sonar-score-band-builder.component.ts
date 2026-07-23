@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, input, output, signal } from "@angular/core";
 import { mjBizAppsSonarScoreBandSetEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreBandService } from "../../../../core/services/score-band.service";
+import { BandKey, bandKey } from "../../../../core/services/score-read.service";
 
 /** One editable band row. `id` is present once the row exists in the DB (drives create vs update). */
 interface ScoreBand {
@@ -45,9 +46,10 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     private static readonly NEW_SET_NAME = "New band set";
     private static readonly NEW_SET_DESC = "0–100 health scale.";
     private static readonly NEW_SET_BANDS: ScoreBand[] = [
-        { label: "Critical", min: 0, max: 40, severity: 3, color: "#ef7d74", isTerminal: true },
-        { label: "At-Risk", min: 40, max: 70, severity: 2, color: "#e6ab52", isTerminal: false },
-        { label: "Healthy", min: 70, max: 100, severity: 1, color: "#3ddc97", isTerminal: false },
+        { label: "Critical", min: 0,  max: 30, severity: 4, color: "#ef7d74", isTerminal: true  },
+        { label: "At-Risk",  min: 30, max: 55, severity: 3, color: "#e6ab52", isTerminal: false },
+        { label: "Watch",    min: 55, max: 75, severity: 2, color: "#f5c542", isTerminal: false },
+        { label: "Healthy",  min: 75, max: 100, severity: 1, color: "#3ddc97", isTerminal: false },
     ];
 
     public readonly setName = signal("Default Health Bands");
@@ -70,10 +72,30 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     /** A sample score, to show where it lands on the bands. */
     public readonly sampleScore = signal(73);
 
-    /** Bands widened to render proportionally on the 0–100 number line. */
-    public readonly segments = computed(() =>
-        this.bands().map((b) => ({ ...b, widthPct: ((b.max - b.min) / (this.scaleMax - this.scaleMin)) * 100 })),
-    );
+    /** Bands widened to render proportionally on the 0–100 number line; includes a CSS key for
+     *  standardized coloring. Color is derived from severity rank (worst→best maps to
+     *  critical→atrisk→watch→healthy) so arbitrary labels always get the right token. */
+    public readonly segments = computed(() => {
+        const bs = this.bands();
+        const SCALE: readonly BandKey[] = ["healthy", "watch", "atrisk", "critical"];
+        const sorted = [...bs].sort((a, b) => a.severity - b.severity);
+        return bs.map(b => {
+            const rank = sorted.indexOf(b);
+            const idx = sorted.length <= 1 ? 0 : Math.round((rank / (sorted.length - 1)) * 3);
+            return {
+                ...b,
+                widthPct: ((b.max - b.min) / (this.scaleMax - this.scaleMin)) * 100,
+                cssKey: SCALE[Math.min(idx, 3)] as BandKey,
+            };
+        });
+    });
+
+    /** CSS key for the band the sample score falls in — reuses segment mapping for consistency. */
+    public readonly sampleBandKey = computed(() => {
+        const s = this.sampleBand();
+        if (!s) return "watch" as BandKey;
+        return this.segments().find(seg => seg.label === s.label && seg.min === s.min)?.cssKey ?? bandKey(s.label);
+    });
 
     /** Marker position (%) for the sample score. */
     public readonly markerPct = computed(() => (this.sampleScore() / (this.scaleMax - this.scaleMin)) * 100);
@@ -158,10 +180,12 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     }
 
     public addBand(): void {
-        const last = this.bands()[this.bands().length - 1];
+        const bs = this.bands();
+        const last = bs[bs.length - 1];
+        const maxSeverity = bs.reduce((m, b) => Math.max(m, b.severity), 0);
         this.bands.set([
-            ...this.bands(),
-            { label: "New band", min: last ? last.max : this.scaleMin, max: this.scaleMax, severity: 0, color: "#94A3B8", isTerminal: false },
+            ...bs,
+            { label: "New band", min: last ? last.max : this.scaleMin, max: this.scaleMax, severity: maxSeverity + 1, color: "#94A3B8", isTerminal: false },
         ]);
     }
 

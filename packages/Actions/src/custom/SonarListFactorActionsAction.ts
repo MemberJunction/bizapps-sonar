@@ -162,7 +162,7 @@ export class SonarListFactorActionsAction extends SonarActionBase {
 
     /** Active MJ Action records whose DriverClass matches a registered factor-action. */
     private async loadActions(drivers: string[], params: RunActionParams): Promise<ActionRow[]> {
-        const list = drivers.map((d) => `'${d}'`).join(",");
+        const list = drivers.map((d) => `'${this.sqlString(d)}'`).join(",");
         const res = await new RunView().RunView<ActionRow>(
             {
                 EntityName: ACTION_ENTITY,
@@ -184,7 +184,7 @@ export class SonarListFactorActionsAction extends SonarActionBase {
         actionIds: string[],
         params: RunActionParams,
     ): Promise<Map<string, ActionParamRow[]>> {
-        const list = actionIds.map((id) => `'${id}'`).join(",");
+        const list = actionIds.map((id) => `'${this.sqlString(id)}'`).join(",");
         const res = await new RunView().RunView<ActionParamRow>(
             {
                 EntityName: ACTION_PARAM_ENTITY,

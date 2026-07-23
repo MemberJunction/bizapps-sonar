@@ -9,15 +9,16 @@
 export * from "./SonarFactorAction";
 export * from "./SonarPreviewModelAction";
 export * from "./SonarRecomputeModelAction";
+// Remote Operation (not an Action) — the LongRunning, progress-streaming peer of the recompute
+// Action. Lives here because this package already owns the RecomputeOrchestrator dependency and is
+// side-effect-imported by the server bootstrap, so its @RegisterClass fires with the rest.
+export * from "./SonarRecomputeModelOperation";
 export * from "./SonarValidateFactorAction";
 export * from "./SonarCreateFactorAction";
 export * from "./SonarCreateModelAction";
 export * from "./SonarAddDataSourceAction";
 export * from "./SonarSetBandSetAction";
-export * from "./SonarMemberActivityStreakAction";
 export * from "./SonarListFactorActionsAction";
-export * from "./SonarRunInterventionAction";
-export * from "./SonarReviewSentimentAction";
 export * from "./SonarGetPromptAction";
 export * from "./SonarUpdatePromptAction";
 export * from "./SonarRunAuthoringAgentAction";

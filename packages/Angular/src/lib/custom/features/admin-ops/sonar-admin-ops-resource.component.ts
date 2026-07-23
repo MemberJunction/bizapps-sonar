@@ -11,18 +11,20 @@ interface RunRow {
     scored: number; changed: number; moves: number;
     duration: string; cost: string; ok: boolean; statusLabel: string;
 }
-/** A published version (maps to MJ_BizApps_Sonar: Score Model Versions). */
-interface VersionRow { label: string; by: string; when: string; current: boolean; diff: string; }
+/** A published version (maps to MJ_BizApps_Sonar: Score Model Versions). `snapshot` is the version's
+ *  immutable ConfigSnapshotJSON, pretty-printed; `modelId`/`versionNumber` locate the prior version to
+ *  diff against. */
+interface VersionRow { label: string; by: string; when: string; current: boolean; modelId: string; versionNumber: number; snapshot: string; }
+/** One line of the real config diff between a version and its predecessor. */
+interface DiffRow { type: "add" | "del" | "normal"; text: string; }
 /** A config-change audit entry (maps to MJ_BizApps_Sonar: Score Model Audit Events). */
 interface AuditRow { what: string; change: string; by: string; when: string; }
 
 /**
- * Admin & Ops — the operational surface: recompute-run health, published version history,
- * and the config audit trail; plus Phase 2+ placeholders for write-back, Action promotion,
- * and the calibration network. DriverClass = 'SonarAdminOpsResource'.
- *
- * Run health, versions, and the audit trail are wired to real data. "Run now" is inert —
- * recompute runs server-side via the engine Action and is triggered from the Model Builder.
+ * Admin & Ops — the operational surface for v1: recompute-run health and published-version
+ * governance (version history + config audit trail), both wired to real data.
+ * DriverClass = 'SonarAdminOpsResource'. (Phase 2+ surfaces — write-back, Action promotion,
+ * calibration, cost metering — are out of v1 and were removed.)
  */
 @RegisterClass(BaseResourceComponent, "SonarAdminOpsResource")
 @Component({
@@ -32,10 +34,6 @@ interface AuditRow { what: string; change: string; by: string; when: string; }
     styleUrls: ["../../shared/styles/sonar-shell.css", "./sonar-admin-ops-resource.component.css"],
 })
 export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
-    /** Gates MOCK preview markup (the "All models healthy" chip + the compute/token/rate gauges) that
-     *  has no backing metering. Kept in the template for later — flip to true once wired to real data. */
-    public readonly showPreview = false;
-
     /** Recompute runs across all models, newest first — wired to real ScoreRecomputeRun rows. */
     public readonly runs = signal<RunRow[]>([]);
     /** Published versions across all models — wired to real ScoreModelVersion rows. */
@@ -45,16 +43,33 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
     /** Config-change audit trail — wired to real ScoreModelAuditEvent rows. */
     public readonly audit = signal<AuditRow[]>([]);
 
-    /** Active operational tab: 'health' | 'governance' | 'future' */
-    public readonly activeTab = signal<'health' | 'governance' | 'future'>('health');
+    /** Active operational tab: 'health' | 'governance' */
+    public readonly activeTab = signal<'health' | 'governance'>('health');
 
-    public setTab(tab: 'health' | 'governance' | 'future'): void {
+    public setTab(tab: 'health' | 'governance'): void {
         this.activeTab.set(tab);
     }
 
     public selectVersion(v: VersionRow): void {
         this.selectedVersion.set(v);
     }
+
+    /** The REAL config diff for the selected version: an LCS line diff of its immutable
+     *  ConfigSnapshotJSON against the previous version of the SAME model. Empty for the first version
+     *  (nothing to compare) — the template shows an "initial version" note in that case. */
+    public readonly diffLines = computed<DiffRow[]>(() => {
+        const sel = this.selectedVersion();
+        if (!sel) return [];
+        const prior = this.versions().find((v) => v.modelId === sel.modelId && v.versionNumber === sel.versionNumber - 1);
+        if (!prior) return [];
+        return this.computeDiff(prior.snapshot, sel.snapshot);
+    });
+
+    /** True when the selected version is a model's first (no prior to diff against). */
+    public readonly selectedIsInitial = computed(() => {
+        const sel = this.selectedVersion();
+        return !!sel && !this.versions().some((v) => v.modelId === sel.modelId && v.versionNumber === sel.versionNumber - 1);
+    });
 
     /** Compute dynamic statistics from runs */
     public readonly successRate = computed(() => {
@@ -160,26 +175,14 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
             ResultType: "entity_object",
         });
         if (!result.Success) return;
-        const rows = (result.Results ?? []).map((v) => ({
+        const rows: VersionRow[] = (result.Results ?? []).map((v) => ({
             label: `${v.ScoreModel ?? "Model"} · v${v.VersionNumber}${v.VersionLabel ? ` — ${v.VersionLabel}` : ""}`,
             by: v.PublishedByUser ?? "—",
             when: this.formatWhen(v.PublishedAt),
             current: v.IsCurrent ?? false,
-            diff: `diff --git a/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json b/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json
---- b/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json (v${v.VersionNumber - 1 || 0})
-+++ a/rubric/${(v.ScoreModel ?? "model").toLowerCase().replace(/[^a-z0-9]+/g, "_")}.json (v${v.VersionNumber})
-@@ -10,8 +10,8 @@
-   "anchor": "${v.ScoreModel ?? "Member"}",
-   "factors": [
-     {
--      "name": "Login Frequency",
--      "weight": ${v.VersionNumber === 1 ? '0.20' : '0.35'},
--      "normalization": "${v.VersionNumber === 1 ? 'MinMax' : 'Percentile'}"
-+      "name": "Login Frequency",
-+      "weight": 0.50,
-+      "normalization": "Percentile"
-     }
-   ]`
+            modelId: v.ScoreModelID,
+            versionNumber: v.VersionNumber,
+            snapshot: this.prettySnapshot(v.ConfigSnapshotJSON),
         }));
         this.versions.set(rows);
         if (rows.length > 0) {
@@ -187,22 +190,45 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
         }
     }
 
-    public getDiffLines(diffText: string): { type: "add" | "del" | "normal" | "header"; text: string }[] {
-        if (!diffText) return [];
-        return diffText.split("\n").map((line) => {
-            if (line.startsWith("+") && !line.startsWith("+++")) return { type: "add", text: line };
-            if (line.startsWith("-") && !line.startsWith("---")) return { type: "del", text: line };
-            if (line.startsWith("@@") || line.startsWith("diff") || line.startsWith("---") || line.startsWith("+++")) return { type: "header", text: line };
-            return { type: "normal", text: line };
-        });
+    /** Pretty-print a version's immutable ConfigSnapshotJSON for the diff view (empty string when
+     *  absent/unparseable, so the diff just shows nothing rather than throwing). */
+    private prettySnapshot(json: string | null): string {
+        if (!json) return "";
+        try {
+            return JSON.stringify(JSON.parse(json), null, 2);
+        } catch {
+            return json; // already a string; show as-is rather than lose it
+        }
+    }
+
+    /**
+     * Unified line diff (LCS) between two config snapshots — added/removed/context rows. Inputs are a
+     * model's snapshot JSON (small), so the O(n·m) table is fine. Same algorithm as the Signal Studio's
+     * code diff; kept local to avoid a shared-util dependency for one screen.
+     */
+    private computeDiff(oldText: string, newText: string): DiffRow[] {
+        const a = oldText.split("\n");
+        const b = newText.split("\n");
+        const lcs: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+        for (let i = a.length - 1; i >= 0; i--) {
+            for (let j = b.length - 1; j >= 0; j--) {
+                lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+            }
+        }
+        const rows: DiffRow[] = [];
+        let i = 0, j = 0;
+        while (i < a.length && j < b.length) {
+            if (a[i] === b[j]) { rows.push({ type: "normal", text: a[i] }); i++; j++; }
+            else if (lcs[i + 1][j] >= lcs[i][j + 1]) { rows.push({ type: "del", text: a[i] }); i++; }
+            else { rows.push({ type: "add", text: b[j] }); j++; }
+        }
+        while (i < a.length) rows.push({ type: "del", text: a[i++] });
+        while (j < b.length) rows.push({ type: "add", text: b[j++] });
+        return rows;
     }
 
     /** Short "Mon D" label for a publish date (em dash when absent). */
     private formatWhen(date: Date | null): string {
         return date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";
     }
-
-    // TODO wire: trigger a Manual recompute — needs a server-side engine Action
-    // (RecomputeOrchestrator.recompute runs raw SQL server-side). Inert for now.
-    public runNow(): void { /* no-op until the engine Action lands */ }
 }

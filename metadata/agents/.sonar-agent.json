@@ -1,0 +1,98 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar Authoring Agent",
+      "Description": "Builds Sonar scoring config (models/factors/bands) from natural language via the tool surface. Declarative-first; produces drafts for human review.",
+      "ExposeAsAction": false,
+      "ExecutionOrder": 0,
+      "ExecutionMode": "Sequential",
+      "EnableContextCompression": false,
+      "TypeID": "F7926101-5099-4FA5-836A-479D9707C818",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-wand-magic-sparkles",
+      "ModelSelectionMode": "Agent",
+      "PayloadDownstreamPaths": "[\"*\"]",
+      "PayloadUpstreamPaths": "[\"*\"]",
+      "FinalPayloadValidationMode": "Retry",
+      "FinalPayloadValidationMaxRetries": 3,
+      "MaxIterationsPerRun": 36,
+      "MaxExecutionsPerRun": 64,
+      "StartingPayloadValidationMode": "Fail",
+      "OwnerUserID": "ECAFCCEC-6A37-EF11-86D4-000D3A4E707E",
+      "InvocationMode": "Any",
+      "ArtifactCreationMode": "Always",
+      "InjectNotes": true,
+      "MaxNotesToInject": 5,
+      "NoteInjectionStrategy": "Relevant",
+      "InjectExamples": false,
+      "MaxExamplesToInject": 3,
+      "ExampleInjectionStrategy": "Semantic",
+      "IsRestricted": false,
+      "MessageMode": "None",
+      "NoteRetentionDays": 90,
+      "ExampleRetentionDays": 180,
+      "AutoArchiveEnabled": true,
+      "AllowEphemeralClientTools": true,
+      "SearchScopeAccess": "None",
+      "AcceptUnregisteredFiles": false,
+      "AllowMemoryWrite": true,
+      "SupportsPlanMode": true,
+      "AcceptsSkills": "None",
+      "SkillActivationMode": "RequestedOnly",
+      "RequirePlanMode": false,
+      "SkipEmbeddings": false
+    },
+    "relatedEntities": {
+      "MJ: AI Agent Prompts": [
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "PromptID": "3A70C8FF-B823-4491-8B3D-3BC258C82AEB",
+            "ExecutionOrder": 1,
+            "Status": "Active",
+            "ContextBehavior": "Complete",
+            "SkipEmbeddings": false
+          },
+          "primaryKey": {
+            "ID": "50583FD9-19F9-4ED8-9B22-2DF9D4733D3F"
+          },
+          "sync": {
+            "lastModified": "2026-07-14T23:34:29.008Z",
+            "checksum": "e5de9486ae0ebbcb3063a7ec24053c25961fe4e1c48e161fbc1378b6db548d82"
+          }
+        }
+      ],
+      "MJ: AI Agent Actions": [
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0009-4000-8000-000000000009", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0009-4000-8000-000000000009" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0012-4000-8000-000000000012", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0012-4000-8000-000000000012" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-001A-4000-8000-00000000001A", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-001A-4000-8000-00000000001A" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000F-4000-8000-00000000000F", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000F-4000-8000-00000000000F" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0019-4000-8000-000000000019", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0019-4000-8000-000000000019" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0008-4000-8000-000000000008", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0008-4000-8000-000000000008" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000A-4000-8000-00000000000A", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000A-4000-8000-00000000000A" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0010-4000-8000-000000000010", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0010-4000-8000-000000000010" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0016-4000-8000-000000000016", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0016-4000-8000-000000000016" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0017-4000-8000-000000000017", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0017-4000-8000-000000000017" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000C-4000-8000-000000000008", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000C-4000-8000-000000000008" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0005-4000-8000-000000000005", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0005-4000-8000-000000000005" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0011-4000-8000-000000000011", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0011-4000-8000-000000000011" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0001-4000-8000-000000000001", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0001-4000-8000-000000000001" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0002-4000-8000-000000000002", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0002-4000-8000-000000000002" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0014-4000-8000-000000000014", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0014-4000-8000-000000000014" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000B-4000-8000-00000000000B", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000B-4000-8000-00000000000B" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0013-4000-8000-000000000013", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0013-4000-8000-000000000013" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0018-4000-8000-000000000018", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0018-4000-8000-000000000018" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0015-4000-8000-000000000015", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0015-4000-8000-000000000015" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000D-4000-8000-000000000009", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000D-4000-8000-000000000009" } },
+        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0003-4000-8000-000000000003", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0003-4000-8000-000000000003" } }
+      ]
+    },
+    "primaryKey": {
+      "ID": "CF1D58BA-451E-4515-89BD-AC3F16A19534"
+    },
+    "sync": {
+      "lastModified": "2026-07-14T23:34:28.985Z",
+      "checksum": "969f634390a932a764a839fb2a27504d9c333d5e3217fb53efe8132b4b7df039"
+    }
+  }
+]

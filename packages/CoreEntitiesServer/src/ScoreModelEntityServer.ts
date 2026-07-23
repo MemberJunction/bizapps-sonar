@@ -21,12 +21,9 @@ import {
 import {
     appendPublishLockFailure,
     failPublishLock,
-    GUARDED_SCORE_MODEL_FIELDS,
+    isScoringEditBlocked,
+    isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
 } from "./publishLock";
-
-/** Statuses whose config is frozen — mirrors publishLock.LOCKED_STATUSES (kept local to avoid widening
- *  that module's export surface for one hub-side check). */
-const LOCKED_STATUSES: readonly string[] = ["Active", "Paused"];
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -54,9 +51,16 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
 
         // Hard invariant: editing the published model's OWN scoring fields drifts the live config away
         // from the snapshot. Block it here (in Save, not just ValidateAsync) so SkipAsyncValidation can't
-        // bypass it. The publish path re-snapshots, so it's exempt; unpublishing (→ Draft) clears the lock.
-        if (!publishing && this.isScoringEditLocked()) {
+        // bypass it. isScoringEditLocked() already exempts the publish transition (it re-snapshots) and a
+        // same-save unpublish (→ Draft clears the lock), so the bare check is sufficient.
+        if (this.isScoringEditLocked()) {
             return failPublishLock(this, "update");
+        }
+
+        // Hard invariant: only Draft models may be archived. Enforce in Save() so callers
+        // that pass SkipAsyncValidation=true (e.g. bulk operations) can't bypass the gate.
+        if (this.isInvalidArchiveTransition()) {
+            return this.rejectArchiveTransition();
         }
 
         if (!publishing) {
@@ -67,16 +71,17 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     }
 
     /**
-     * True when this save would mutate a frozen scoring field on a still-published model: current Status
-     * is Active/Paused and at least one GUARDED_SCORE_MODEL_FIELDS field is dirty. Name/Description/owner/
-     * scheduling fields stay editable; changing Status itself (e.g. unpublish → Draft) flips this.Status
-     * out of the locked set, so a same-save unlock-and-edit is allowed.
+     * True when this save would mutate a frozen scoring field on a still-published model. Delegates to
+     * the pure {@link isScoringEditBlocked} rule (publish transition exempt; a same-save unpublish →
+     * Draft is allowed because this.Status has flipped out of the locked set; only fields OUTSIDE the
+     * editable allowlist trip it — safe-by-default). Reads the dirty set straight off the entity fields.
      */
     private isScoringEditLocked(): boolean {
-        if (!LOCKED_STATUSES.includes(this.Status)) {
-            return false;
-        }
-        return GUARDED_SCORE_MODEL_FIELDS.some((f) => this.GetFieldByName(f)?.Dirty === true);
+        return isScoringEditBlocked({
+            status: this.Status,
+            publishing: this.isPublishTransition(),
+            dirtyFields: this.Fields.filter((f) => f.Dirty).map((f) => f.Name),
+        });
     }
 
     /**
@@ -102,9 +107,20 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             await this.validatePublishable(result);
         }
         // Friendly message for the interactive path when editing a frozen scoring field (the Save()
-        // override is the actual enforcement). Skip on the publish transition, which re-snapshots.
-        if (!this.isPublishTransition() && this.isScoringEditLocked()) {
+        // override is the actual enforcement). isScoringEditLocked() already exempts the publish
+        // transition, so no separate guard is needed here.
+        if (this.isScoringEditLocked()) {
             appendPublishLockFailure(result, "Status");
+        }
+        // Archive gate: only Draft models may be archived. The Save() override is the hard block;
+        // this surfaces a clear error message through the normal validation path.
+        if (this.isInvalidArchiveTransition()) {
+            const from = String(this.GetFieldByName("Status")?.OldValue ?? "unknown");
+            this.addFailure(
+                result,
+                "Status",
+                `Cannot archive a model that is currently '${from}'. Unpublish it to Draft first.`,
+            );
         }
         return result;
     }
@@ -169,6 +185,57 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 "CombineExpression is required when CombineStrategy is 'ExpressionDriven'.",
             );
         }
+        await this.validateActionFactorsApproved(result);
+    }
+
+    /**
+     * Publishability check: every Action-backed factor in the rubric must be `PromotionState='Approved'`.
+     * Closes the governance gap (PR review #2) where a model with a Draft action factor could be published
+     * and then throw on EVERY persisted recompute — the engine's persist path requires Approved action
+     * factors (RecomputeOrchestrator), and that failure would otherwise surface at run time, not publish
+     * time. Enforcing it here keeps the two consistent: if it published, a recompute won't fail the whole
+     * run on an un-promoted action factor.
+     *
+     * All-or-nothing is intentional (matches the engine): silently EXCLUDING an un-approved factor would
+     * change the model's scoring behind the operator's back. The gate is loud, not lossy — approve the
+     * factor or remove it from the rubric.
+     */
+    private async validateActionFactorsApproved(result: ValidationResult): Promise<void> {
+        const rv = new RunView();
+        const rubric = await rv.RunView<{ FactorID: string }>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Model Factors",
+                ExtraFilter: `ScoreModelID='${this.ID}'`,
+                Fields: ["FactorID"],
+                ResultType: "simple",
+            },
+            this.ContextCurrentUser,
+        );
+        const ids = (rubric.Results ?? []).map((r) => r.FactorID).filter(Boolean);
+        if (ids.length === 0) {
+            return; // no rubric → the factor-count check above already blocks the publish
+        }
+        const idList = ids.map((id) => `'${id}'`).join(",");
+        const unapproved = await rv.RunView<{ Name: string }>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Factors",
+                ExtraFilter:
+                    `ID IN (${idList}) AND FactorType='ActionBacked' ` +
+                    `AND (PromotionState IS NULL OR PromotionState <> 'Approved')`,
+                Fields: ["Name"],
+                ResultType: "simple",
+            },
+            this.ContextCurrentUser,
+        );
+        const names = (unapproved.Results ?? []).map((r) => r.Name);
+        if (names.length > 0) {
+            this.addFailure(
+                result,
+                "ModelFactors",
+                `Every action-backed factor must be Approved before publishing — not yet approved: ${names.join(", ")}. ` +
+                    `Approve them (or remove them from the rubric); otherwise a published model would fail every recompute.`,
+            );
+        }
     }
 
     /** True when an existence-check view (MaxRows:1) returned at least one row. */
@@ -197,6 +264,25 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     private isPublishTransition(): boolean {
         const statusDirty = this.GetFieldByName("Status")?.Dirty === true;
         return statusDirty && this.Status === "Active";
+    }
+
+    /** True when this save transitions Status to 'Archived' from a non-Draft state.
+     *  Only Draft → Archived is permitted; Active → Archived must go via Draft first. */
+    private isInvalidArchiveTransition(): boolean {
+        const statusField = this.GetFieldByName("Status");
+        return isInvalidArchiveTransitionPure({
+            newStatus: this.Status,
+            previousStatus: String(statusField?.OldValue ?? ""),
+            statusDirty: statusField?.Dirty === true,
+        });
+    }
+
+    /** Populate LatestResult with a rejection message and return false — same contract as failPublishLock(). */
+    private rejectArchiveTransition(): boolean {
+        const from = String(this.GetFieldByName("Status")?.OldValue ?? "unknown");
+        const message = `Cannot archive a model that is currently '${from}'. Unpublish it to Draft first, then archive.`;
+        LogError(`ScoreModelEntityServer: rejected invalid archive transition for ${this.ID}: ${message}`);
+        return false;
     }
 
     /**

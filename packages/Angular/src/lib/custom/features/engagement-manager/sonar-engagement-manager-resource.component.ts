@@ -17,8 +17,9 @@ import { toCsv, downloadCsv } from "../../core/services/csv.util";
  * (worst first), and a per-member explainability drawer driven by the persisted score's
  * factor contributions. DriverClass = 'SonarEngagementManagerResource'.
  *
- * Reads PERSISTED scores via {@link ScoreReadService} (written by Recompute). The action
- * buttons (Export / intervention) stay inert — the action/lift layer is Phase 2+.
+ * Reads PERSISTED scores via {@link ScoreReadService} (written by Recompute). Triage + the
+ * explainability drawer + cohort CSV export ship in v1; the action/intervention layer is Phase 2+
+ * (un-shipped — its engine/action code stays dormant behind the dropped Action Layer migration).
  */
 @RegisterClass(BaseResourceComponent, "SonarEngagementManagerResource")
 @Component({
@@ -35,27 +36,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     // --- active view tab ---
     public readonly activeTab = signal<'triage' | 'movers'>('triage');
-
-    // --- playbook enroller states ---
-    public readonly playbookModalOpen = signal(false);
-
-    public openPlaybookModal(): void {
-        this.playbookModalOpen.set(true);
-    }
-
-    public closePlaybookModal(): void {
-        this.playbookModalOpen.set(false);
-    }
-
-    /** Row shortcut: select the member (so the drawer + modal reflect them), then jump straight to
-     *  the playbook enroller — no mouse trip to the far-right drill-down panel. */
-    public async quickLaunch(m: ScoredMember, ev: Event): Promise<void> {
-        ev.stopPropagation();
-        await this.select(m);
-        this.openPlaybookModal();
-    }
-
-
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -328,6 +308,12 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.sortDir.set(dir === "desc" ? "desc" : "asc");
         this.page.set(0);
         await this.loadMembers();
+    }
+
+    /** Flip the score sort from the Score column header (replaces the standalone sort toggle,
+     *  so the filter bar stays a single line). asc = worst (lowest) first. */
+    public async toggleScoreSort(): Promise<void> {
+        await this.onSortChange(this.sortDir() === "asc" ? "desc" : "asc");
     }
 
     /** Debounced search query from the FilterBar — reload the page and refresh typeahead suggestions. */

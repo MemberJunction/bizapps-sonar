@@ -8,7 +8,6 @@
             <div>
                 <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
                     {{ modelName() }}
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.45em; margin-left: 0.35rem; vertical-align: middle; color: var(--sonar-faint);"></i>
                 </h1>
                 <p class="sonar-page__subtitle">Engagement Manager · who to prioritize, and why</p>
             </div>
@@ -21,7 +20,6 @@
                     <i class="fa-solid fa-file-csv"></i> Export cohort
                 }
             </button>
-            <button class="sonar-btn sonar-btn--primary" [disabled]="!hasModel() || members().length === 0" (click)="openPlaybookModal()">Launch playbook</button>
         </div>
     </div>
 
@@ -66,30 +64,28 @@
                 <div class="sonar-mgr-content">
                     @if (activeTab() === 'triage') {
                         <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
-                            <!-- Band distribution — one compact segmented stat row (doubles as the triage filter).
-                                 Flattened from full stat cards to win back vertical space above the table. -->
-                            <section class="sonar-mgr__bandstrip" role="group" aria-label="Score distribution — click a band to filter the triage list">
-                                @for (t of tiles(); track t.label) {
-                                    <button type="button" class="sonar-mgr__band"
-                                            [class.sonar-mgr__band--active]="selectedBand()?.bandId === t.bandId"
-                                            (click)="filterByBand(t)"
-                                            [title]="selectedBand()?.bandId === t.bandId ? 'Clear filter' : 'Filter triage to ' + t.label">
-                                        <span class="sonar-mgr__band-dot sonar-mgr__band-dot--{{ t.key }}"></span>
-                                        <span class="sonar-mgr__band-label">{{ t.label }}</span>
-                                        <span class="sonar-mgr__band-pct sonar-text--{{ t.key }}">{{ t.pct }}%</span>
-                                        <span class="sonar-mono sonar-mgr__band-count">{{ t.count }}</span>
-                                    </button>
-                                }
-                            </section>
-
                             <div class="sonar-split sonar-triage-split">
                                 <!-- Triage list -->
                                 <section class="sonar-card sonar-triage-card">
-                                    <div class="sonar-card__head">
-                                        <div class="sonar-card__label">
-                                            Triage · lowest scores first
+                                    <!-- Compact head: title (left) + band distribution chips that double as filters
+                                         (right). The old full-width band strip folded in here to reclaim a whole row. -->
+                                    <div class="sonar-card__head sonar-triage__bar">
+                                        <div class="sonar-card__label sonar-triage__title">
+                                            Triage · lowest first
                                             @if (selectedBand(); as b) {
                                                 <button type="button" class="sonar-chip sonar-chip--{{ b.key }}" (click)="filterByBand(b)" title="Clear filter">{{ b.label }} ✕</button>
+                                            }
+                                        </div>
+                                        <div class="sonar-mgr__bandchips" role="group" aria-label="Score distribution — click a band to filter">
+                                            @for (t of tiles(); track t.label) {
+                                                <button type="button" class="sonar-mgr__bandchip"
+                                                        [class.sonar-mgr__bandchip--active]="selectedBand()?.bandId === t.bandId"
+                                                        (click)="filterByBand(t)"
+                                                        [title]="(selectedBand()?.bandId === t.bandId ? 'Clear filter' : 'Filter to ' + t.label) + ' · ' + t.pct + '%'">
+                                                    <span class="sonar-mgr__band-dot sonar-mgr__band-dot--{{ t.key }}"></span>
+                                                    <span class="sonar-mgr__bandchip-label">{{ t.label }}</span>
+                                                    <span class="sonar-mono sonar-mgr__bandchip-count">{{ t.count }}</span>
+                                                </button>
                                             }
                                         </div>
                                     </div>
@@ -109,21 +105,16 @@
                                         </sonar-search-field>
                                         <sonar-range-filter label="score" [value]="{ min: minScore(), max: maxScore() }" [min]="0" [max]="100"
                                             (valueChange)="onScoreRange($event)"></sonar-range-filter>
-                                        <sonar-toggle-filter [value]="sortDir()" [on]="sortAsc" [off]="sortDesc"
-                                            (valueChange)="onSortChange($event)"></sonar-toggle-filter>
-                                        @if (total() > 0 && !loadingMembers() && !error()) {
-                                            <span class="sonar-mgr__track-pager">
-                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasPrev()" (click)="prevPage()" title="Previous page" aria-label="Previous page">‹</button>
-                                                <span class="sonar-mono sonar-mgr__count">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
-                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasNext()" (click)="nextPage()" title="Next page" aria-label="Next page">›</button>
-                                            </span>
-                                        }
                                     </sonar-filter-bar>
-                                    @if (!error() && !loadingMembers() && members().length > 0) {
+                                    @if (!error() && members().length > 0) {
                                         <!-- Table header anchor: column labels over the data they head. -->
                                         <div class="sonar-triage__head">
                                             <span class="sonar-triage__head-member">Member</span>
-                                            <span class="sonar-triage__head-score">Score</span>
+                                            <button type="button" class="sonar-triage__head-score sonar-triage__sortbtn" (click)="toggleScoreSort()"
+                                                    [title]="sortDir() === 'asc' ? 'Worst first — click for best first' : 'Best first — click for worst first'">
+                                                Score
+                                                <i class="fa-solid sonar-triage__sortarrow" [ngClass]="sortDir() === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+                                            </button>
                                         </div>
                                     }
                                     @if (error()) {
@@ -134,8 +125,9 @@
                                             <p>{{ error() }}</p>
                                             <button class="sonar-btn sonar-btn--primary" (click)="retry()">Retry</button>
                                         </div>
-                                    } @else if (loadingMembers()) {
-                                        <!-- Loading skeleton — mirrors the triage row layout (avatar · name/score · chip). -->
+                                    } @else if (loadingMembers() && members().length === 0) {
+                                        <!-- Skeleton ONLY on the first load (no rows yet). Paging/filtering keeps the
+                                             current rows in place (dimmed) so the list doesn't flash/refresh. -->
                                         <div class="sonar-stack" aria-busy="true" aria-label="Loading members">
                                             @for (i of skeletonRows; track i) {
                                                 <div class="sonar-dropper sonar-dropper--skeleton">
@@ -156,10 +148,10 @@
                                             <p>No scored members fit the current search, score range, or band. Adjust or clear the filters.</p>
                                         </div>
                                     } @else {
-                                        <div class="sonar-stack sonar-triage__rows">
+                                        <div class="sonar-stack sonar-triage__rows" [class.sonar-triage__rows--busy]="loadingMembers()">
                                             @for (m of members(); track m.scoreId) {
                                                 <div class="sonar-dropper" [class.sonar-dropper--active]="m.scoreId === selected()?.scoreId">
-                                                    <!-- Whole-row click opens the drill-down; the quick button is a sibling so we don't nest buttons. -->
+                                                    <!-- Whole-row click opens the drill-down. -->
                                                     <button type="button" class="sonar-dropper__open" (click)="select(m)">
                                                         <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
                                                         <span class="sonar-dropper__main">
@@ -173,13 +165,19 @@
                                                             <span class="sonar-mono sonar-dropper__num">{{ m.normalizedScore }}</span><span class="sonar-dropper__denom">/100</span>
                                                         </span>
                                                     </button>
-                                                    <!-- Hover/focus execution shortcut — launch a playbook without traveling to the panel. -->
-                                                    <button type="button" class="sonar-dropper__quick" (click)="quickLaunch(m, $event)"
-                                                            [title]="'Launch playbook for ' + m.name" [attr.aria-label]="'Launch playbook for ' + m.name">
-                                                        <i class="fa-solid fa-bolt"></i>
-                                                    </button>
                                                 </div>
                                             }
+                                        </div>
+                                    }
+                                    <!-- Pagination pinned to the card foot (moved off the filter track so filters
+                                         stay on one line and the count sits under the data it pages). -->
+                                    @if (total() > 0 && members().length > 0 && !error()) {
+                                        <div class="sonar-triage__foot">
+                                            <span class="sonar-mono sonar-mgr__count">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
+                                            <span class="sonar-mgr__track-pager">
+                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasPrev()" (click)="prevPage()" title="Previous page" aria-label="Previous page">‹</button>
+                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasNext()" (click)="nextPage()" title="Next page" aria-label="Next page">›</button>
+                                            </span>
                                         </div>
                                     }
                                 </section>
@@ -255,15 +253,6 @@
                                                     </p>
                                                 }
                                             </div>
-
-                                            <div class="sonar-drill__actions">
-                                                <button class="sonar-btn sonar-btn--primary" (click)="openPlaybookModal()">Launch playbook</button>
-                                                <button class="sonar-btn" disabled title="Phase 2+ — action layer">Route to rep</button>
-                                            </div>
-                                        </div>
-                                        <div class="sonar-card sonar-note">
-                                            <strong class="sonar-ink">Action layer:</strong> launching a playbook will hold back a control
-                                            group automatically, so reactivation lift is <em>measured</em>, not assumed.
                                         </div>
                                     }
                                 </section>
@@ -310,18 +299,6 @@
                         </div>
                     }
                 </div>
-            }
-
-            <!-- Playbook Enroller Modal -->
-            @if (playbookModalOpen()) {
-                <sonar-playbook-enroller
-                    [totalMembers]="total()"
-                    [modelId]="current.modelId()"
-                    [bandId]="selectedBand()?.bandId ?? null"
-                    [minScore]="minScore()"
-                    [maxScore]="maxScore()"
-                    [cohortLabel]="selectedBand()?.label ?? 'all members'"
-                    (close)="closePlaybookModal()"></sonar-playbook-enroller>
             }
         </div>
     </div>

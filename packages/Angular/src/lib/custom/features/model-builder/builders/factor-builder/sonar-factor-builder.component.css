@@ -230,7 +230,7 @@
 
 .sonar-norm-card--active .sonar-norm-card__icon {
     background: var(--sonar-accent);
-    color: #ffffff;
+    color: var(--sonar-on-accent);
 }
 
 .sonar-norm-card__body {

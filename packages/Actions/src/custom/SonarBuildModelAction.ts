@@ -13,9 +13,6 @@ const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 const AGGREGATIONS = ["Count", "Sum", "Avg", "Min", "Max", "DistinctCount"] as const;
 const NORMALIZATIONS = ["MinMax", "Percentile", "ZScore", "None", "Logistic", "Banded", "Lookup"] as const;
 const WEIGHT_MODES = ["Additive", "Penalty"] as const;
-type Aggregation = (typeof AGGREGATIONS)[number];
-type NormalizationMethod = (typeof NORMALIZATIONS)[number];
-type WeightMode = (typeof WEIGHT_MODES)[number];
 
 /** A data source in the build spec — `alias` is how factors reference it (no IDs to thread). */
 interface SourceSpec {
@@ -154,9 +151,31 @@ export class SonarBuildModelAction extends SonarActionBase {
             const aggGap = this.aggregateFieldGap(f.aggregation, f.aggregateFieldName);
             if (aggGap) return new Error(`factor '${f.name}': ${aggGap}`);
             const sourceRelatedEntityID = f.sourceAlias ? sourceIds[f.sourceAlias] : f.sourceRelatedEntityID ?? null;
-            if (f.sourceAlias && !sourceRelatedEntityID) {
+            // Every factor here is Declarative, which MUST read through a data source
+            // (SourceRelatedEntityID). Reject an unresolved source now with an actionable error
+            // instead of silently creating an orphaned factor the engine can't compile.
+            if (!sourceRelatedEntityID) {
                 const valid = Object.keys(sourceIds);
-                return new Error(`factor '${f.name}' references unknown source alias '${f.sourceAlias}'. Valid aliases (from this spec's sources): ${valid.length ? valid.join(", ") : "(none — add the source to spec.sources first)"}.`);
+                const hint = valid.length ? valid.join(", ") : "(none — add the source to spec.sources first)";
+                return f.sourceAlias
+                    ? new Error(`factor '${f.name}' references unknown source alias '${f.sourceAlias}'. Valid aliases (from this spec's sources): ${hint}.`)
+                    : new Error(`factor '${f.name}' has no data source. Set its 'sourceAlias' to one of the model's sources: ${hint}.`);
+            }
+
+            const aggregation = this.asEnum(f.aggregation, AGGREGATIONS) ?? "Count";
+            const aggregateFieldName = aggregation === "Count" ? null : (f.aggregateFieldName ?? null);
+            const dateField = f.dateField ?? null;
+            // Column-referencing fields (aggregate field + date field) must be REAL columns on the
+            // source entity — weak models hallucinate names ('TotalAmount' for a 'TotalGross' column).
+            // Catch it here with the valid columns so the agent self-corrects instead of failing at
+            // compile. (FilterExpression is free-form SQL — left to the engine, not parsed here.)
+            if (aggregateFieldName || dateField) {
+                const cols = await this.sourceColumns(md, sourceRelatedEntityID, user);
+                const bad = cols ? [aggregateFieldName, dateField].find((c) => c && !cols.includes(c)) : null;
+                if (bad && cols) {
+                    const which = bad === aggregateFieldName ? "aggregate field" : "date field";
+                    return new Error(`factor '${f.name}': ${which} '${bad}' is not a column on the source entity. Valid columns: ${cols.join(", ")}.`);
+                }
             }
 
             const factor = await md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, user);
@@ -167,11 +186,11 @@ export class SonarBuildModelAction extends SonarActionBase {
             factor.AnchorEntityID = anchorEntityID;
             factor.ScoreModelID = modelId;
             factor.SourceRelatedEntityID = sourceRelatedEntityID;
-            factor.Aggregation = this.asEnum(f.aggregation, AGGREGATIONS) ?? "Count";
-            factor.AggregateFieldName = factor.Aggregation === "Count" ? null : (f.aggregateFieldName ?? null);
+            factor.Aggregation = aggregation;
+            factor.AggregateFieldName = aggregateFieldName;
             factor.FilterExpression = f.filterExpression ?? null;
             factor.TimeWindowID = f.timeWindowID ?? null;
-            factor.DateField = f.dateField ?? null;
+            factor.DateField = dateField;
             factor.NormalizationMethod = this.asEnum(f.normalizationMethod, NORMALIZATIONS) ?? "MinMax";
             factor.NormalizationParamsJSON = f.normalizationParamsJSON ?? null;
             factor.HigherIsBetter = f.higherIsBetter ?? true;
@@ -202,6 +221,14 @@ export class SonarBuildModelAction extends SonarActionBase {
     private clampWeight(weight: number | undefined): number {
         if (typeof weight !== "number" || Number.isNaN(weight)) return 0.25;
         return Math.min(1, Math.max(0, weight));
+    }
+    /** Column names on a data source's related entity, for validating aggregate fields.
+     *  Returns null if the source/entity can't be resolved (validation is then skipped). */
+    private async sourceColumns(md: Metadata, sourceRelatedEntityID: string, user?: UserInfo): Promise<string[] | null> {
+        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, user);
+        if (!(await mre.Load(sourceRelatedEntityID))) return null;
+        const ent = md.EntityByID(mre.RelatedEntityID);
+        return ent ? ent.Fields.map((fld) => fld.Name) : null;
     }
     private slugify(name: string): string {
         return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");

@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, input, output, signal, WritableSignal } from "@angular/core";
-import { BaseEntity, Metadata, RunView } from "@memberjunction/core";
+import { Metadata } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSpec } from "../../../../core/services/action-catalog.service";

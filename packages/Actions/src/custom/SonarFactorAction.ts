@@ -1,5 +1,4 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
-import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { UserInfo } from "@memberjunction/core";
 
@@ -271,8 +270,5 @@ export abstract class SonarFactorAction extends SonarActionBase {
         const d = raw ? new Date(raw) : new Date();
         return Number.isNaN(d.getTime()) ? null : d;
     }
-
-    protected isGuid(v: string): boolean {
-        return /^[0-9a-fA-F-]{32,36}$/.test(v);
-    }
+    // isGuid is inherited from SonarActionBase (strict canonical-UUID check).
 }

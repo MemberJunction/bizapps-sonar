@@ -1,4 +1,4 @@
-import { EntityInfo, LogError, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { EntityInfo, LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
     compileFilterInline,
     CompositeFilterDescriptor,
@@ -14,10 +14,10 @@ import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvalu
 import { FactorCompiler } from "../factors/FactorCompiler";
 import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
 import { createActionRunner } from "../factors/actionRunner";
+import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
     NormalizationEngine,
-    NormalizationSpec,
-    parseNormalizationParams,
+    resolveNormalizationSpec,
 } from "../normalization/NormalizationEngine";
 import {
     EffectiveMissingDataPolicy,
@@ -27,7 +27,7 @@ import {
     ScoringSpec,
     WeightedFactor,
 } from "../scoring/ScoringEngine";
-import { ScoreWriter } from "./ScoreWriter";
+import { ScoreWriter, ScoreWriteProgress } from "./ScoreWriter";
 
 /** Summary of a persisted recompute run. */
 export interface RecomputeRunResult {
@@ -111,7 +111,7 @@ export class RecomputeOrchestrator {
         const factor = await this.buildDraftFactor(model, draft, contextUser);
         const evaluator = await this.compiler.compile(factor, contextUser);
         const results = await evaluator.evaluateBatch(anchors, asOf, { contextUser });
-        this.normalizer.normalize(this.resolveNormalizationSpec(factor), results);
+        this.normalizer.normalize(resolveNormalizationSpec(factor), results);
         return this.summarizeFactorPreview(results);
     }
 
@@ -172,6 +172,7 @@ export class RecomputeOrchestrator {
         modelId: string,
         asOf: Date,
         contextUser: UserInfo,
+        onProgress?: ScoreWriteProgress,
     ): Promise<RecomputeRunResult> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
@@ -181,7 +182,11 @@ export class RecomputeOrchestrator {
             );
         }
 
-        const run = await this.startRun(model, contextUser);
+        // Capture the start instant ONCE, in memory, and reuse it for both StartedAt and the
+        // duration. Reading it back off the saved run is unsafe — the datetimeoffset round-trips
+        // through the DB and reparses tz-shifted, which made DurationMs come out negative.
+        const startedAt = new Date();
+        const run = await this.startRun(model, startedAt, contextUser);
         try {
             // Persisting run: an Action-backed factor must be Approved (false = enforce the gate).
             const { scores, anchorKeys } = await this.computeForModel(model, asOf, contextUser, false);
@@ -193,12 +198,14 @@ export class RecomputeOrchestrator {
                 contextUser,
                 run.ID,
                 anchorKeys,
+                onProgress,
             );
-            await this.finishRun(run, "Succeeded", recordsScored);
+            await this.finishRun(run, startedAt, "Succeeded", recordsScored);
             return { runId: run.ID, status: "Succeeded", recordsScored };
         } catch (e: unknown) {
             await this.finishRun(
                 run,
+                startedAt,
                 "Failed",
                 0,
                 e instanceof Error ? e.message : String(e),
@@ -233,9 +240,10 @@ export class RecomputeOrchestrator {
         return { scores, anchorKeys };
     }
 
-    /** Open a ScoreRecomputeRun in the Running state. */
+    /** Open a ScoreRecomputeRun in the Running state, stamped with the caller's start instant. */
     private async startRun(
         model: mjBizAppsSonarScoreModelEntity,
+        startedAt: Date,
         contextUser: UserInfo,
     ): Promise<mjBizAppsSonarScoreRecomputeRunEntity> {
         const md = new Metadata();
@@ -248,24 +256,32 @@ export class RecomputeOrchestrator {
         run.ScoreModelVersionID = model.CurrentVersionID;
         run.TriggerType = "Manual";
         run.Scope = "FullPopulation";
-        run.StartedAt = new Date();
+        run.StartedAt = startedAt;
         run.Status = "Running";
         await run.Save();
         return run;
     }
 
-    /** Close out a run with its final status and counts. */
+    /** Close out a run with its final status and counts. `startedAt` is the caller's in-memory
+     *  start instant — used for DurationMs so we never diff against the DB-reparsed StartedAt
+     *  (a datetimeoffset that round-trips tz-shifted, which drove DurationMs negative). */
     private async finishRun(
         run: mjBizAppsSonarScoreRecomputeRunEntity,
+        startedAt: Date,
         status: "Succeeded" | "Failed",
         recordsScored: number,
         errorMessage?: string,
     ): Promise<void> {
         const completedAt = new Date();
         run.Status = status;
+        // Re-stamp StartedAt from the authoritative in-memory instant. It was written once at INSERT
+        // (startRun); left alone, this UPDATE would re-persist the value the entity reloaded from the
+        // datetime2 column, which comes back tz-shifted — so StartedAt would drift out of sync with
+        // CompletedAt. Writing both from fresh in-memory Dates in this one UPDATE keeps them consistent.
+        run.StartedAt = startedAt;
         run.CompletedAt = completedAt;
         run.RecordsScored = recordsScored;
-        run.DurationMs = completedAt.getTime() - run.StartedAt.getTime();
+        run.DurationMs = completedAt.getTime() - startedAt.getTime();
         if (errorMessage) {
             run.ErrorsJSON = JSON.stringify({ message: errorMessage });
         }
@@ -402,10 +418,24 @@ export class RecomputeOrchestrator {
                     `RecomputeOrchestrator: Action-backed factor '${factor.Name}' must be Approved before scoring (PromotionState is '${factor.PromotionState ?? "Draft"}').`,
                 );
             }
+            // ⚠ Cost ceiling (see ACTION_FACTOR_POPULATION_SOFT_CAP). An action factor fires one Action
+            // call per anchor with no cross-run caching/budgeting yet, so make a large fan-out LOUD rather
+            // than let an expensive recompute happen silently.
+            if (
+                factor.FactorType === "ActionBacked" &&
+                anchors.length > ACTION_FACTOR_POPULATION_SOFT_CAP
+            ) {
+                LogStatus(
+                    `⚠ Sonar: action-backed factor '${factor.Name}' will make ${anchors.length} Action ` +
+                        `calls this recompute (one per anchor; >${ACTION_FACTOR_POPULATION_SOFT_CAP} soft cap). ` +
+                        `Result caching / IsExpensive budgeting / rate limiting are not implemented yet — ` +
+                        `expect proportional cost + latency.`,
+                );
+            }
             const evaluator = await this.compiler.compile(factor, contextUser);
             const results = await evaluator.evaluateBatch(anchors, asOf, ctx);
             this.normalizer.normalize(
-                this.resolveNormalizationSpec(factor),
+                resolveNormalizationSpec(factor),
                 results,
             );
             weighted.push({
@@ -458,22 +488,6 @@ export class RecomputeOrchestrator {
             byId.set(factor.ID, factor);
         }
         return byId;
-    }
-
-    /** Resolve a factor's normalization config. Parameterized methods (Logistic/Banded/Lookup)
-     *  read + validate NormalizationParamsJSON; the pure methods take no params. parse* throws
-     *  loud on missing/malformed config rather than letting a bad shape mis-score. */
-    private resolveNormalizationSpec(
-        factor: mjBizAppsSonarFactorEntity,
-    ): NormalizationSpec {
-        const method = factor.NormalizationMethod ?? "None";
-        return {
-            method,
-            outputMin: factor.OutputMin ?? 0,
-            outputMax: factor.OutputMax ?? 1,
-            higherIsBetter: factor.HigherIsBetter ?? true,
-            params: parseNormalizationParams(method, factor.NormalizationParamsJSON),
-        };
     }
 
     /** Resolve a factor's missing-data policy. The schema default "ModelDefault" resolves to

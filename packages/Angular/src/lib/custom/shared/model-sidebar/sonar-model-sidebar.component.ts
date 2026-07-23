@@ -7,8 +7,8 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 /** A model row in the rail (enriched with the context an operator scans for). */
 interface SidebarModel { id: string; name: string; status: string; anchorName: string; signals: number; }
 
-/** Rank for status ordering — published models float to the top of the rail. */
-const STATUS_RANK: Record<string, number> = { Active: 0, Paused: 1, Draft: 2 };
+/** Rank for status ordering — published models float to the top, archived sink to the bottom. */
+const STATUS_RANK: Record<string, number> = { Active: 0, Paused: 1, Draft: 2, Archived: 99 };
 
 /**
  * The Sonar model rail — the app's primary navigation. Scores are per-model, so picking a
@@ -47,13 +47,25 @@ export class SonarModelSidebarComponent implements OnInit {
     public readonly selectedId = this.current.modelId;
     /** Whether the models selector sidebar is expanded. */
     public readonly sidebarExpanded = this.current.sidebarExpanded;
+    /** Whether the archived section is expanded in the sidebar. */
+    public readonly showArchived = signal(false);
 
-    /** Models after the name filter is applied. */
+    /** Active (non-archived) models after the name filter is applied. */
     public readonly visibleModels = computed(() => {
         const q = this.query().trim().toLowerCase();
-        const all = this.models();
+        const all = this.models().filter((m) => m.status !== "Archived");
         return q ? all.filter((m) => m.name.toLowerCase().includes(q)) : all;
     });
+
+    /** Archived models after the name filter is applied. */
+    public readonly visibleArchivedModels = computed(() => {
+        const q = this.query().trim().toLowerCase();
+        const archived = this.models().filter((m) => m.status === "Archived");
+        return q ? archived.filter((m) => m.name.toLowerCase().includes(q)) : archived;
+    });
+
+    /** Total count of archived models (unfiltered, for the toggle badge). */
+    public readonly archivedCount = computed(() => this.models().filter((m) => m.status === "Archived").length);
 
     public ngOnInit(): void {
         void this.refresh();
@@ -111,11 +123,16 @@ export class SonarModelSidebarComponent implements OnInit {
         return "";
     }
 
-    /** Band-tone key for the compact status dot (Active=healthy, Draft=watch, Paused=atrisk). */
+    /** Band-tone key for the compact status dot. */
     public statusTone(status: string): string {
         if (status === "Active") return "healthy";
         if (status === "Draft") return "watch";
         if (status === "Paused") return "atrisk";
+        if (status === "Archived") return "archived";
         return "watch";
+    }
+
+    public toggleArchived(): void {
+        this.showArchived.update((v) => !v);
     }
 }

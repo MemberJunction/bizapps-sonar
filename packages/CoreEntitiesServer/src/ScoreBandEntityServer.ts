@@ -5,6 +5,7 @@ import {
     appendPublishLockFailure,
     failPublishLock,
     isBandSetConfigLocked,
+    isBandSetConfigWriteBlocked,
 } from "./publishLock";
 
 /**
@@ -20,7 +21,7 @@ export class ScoreBandEntityServer extends mjBizAppsSonarScoreBandEntity {
     }
 
     public override async Save(options?: EntitySaveOptions): Promise<boolean> {
-        if (await isBandSetConfigLocked(this.BandSetID, this.ContextCurrentUser)) {
+        if (await isBandSetConfigWriteBlocked(this.BandSetID, this.ContextCurrentUser)) {
             return failPublishLock(this, this.IsSaved ? "update" : "create");
         }
         return super.Save(options);
@@ -35,7 +36,7 @@ export class ScoreBandEntityServer extends mjBizAppsSonarScoreBandEntity {
     }
 
     public override async Delete(options?: EntityDeleteOptions): Promise<boolean> {
-        if (await isBandSetConfigLocked(this.BandSetID, this.ContextCurrentUser)) {
+        if (await isBandSetConfigWriteBlocked(this.BandSetID, this.ContextCurrentUser)) {
             return failPublishLock(this, "delete");
         }
         return super.Delete(options);

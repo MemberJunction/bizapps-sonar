@@ -15,9 +15,9 @@
   <!-- Font Awesome 6 (free) via cdnjs. The app is written in FA6 syntax (`fa-solid` + FA6
        icon names). We previously loaded an FA5 stylesheet (wrong syntax → uniform fallback)
        alongside a FA6 *kit* script whose runtime never loaded in this environment
-       (window.FontAwesome was undefined → blank icons). This single webfont stylesheet renders
-       fa-solid + FA6 names for the whole app, including dynamically-rendered Angular icons,
-       with no JS-kit dependency. -->
+       (kit domain-locked → 403, window.FontAwesome undefined → blank icons). This single webfont
+       stylesheet renders fa-solid + FA6 names for the whole app, including dynamically-rendered
+       Angular icons, with no JS-kit dependency. -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>

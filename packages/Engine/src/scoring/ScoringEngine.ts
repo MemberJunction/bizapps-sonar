@@ -18,8 +18,9 @@ export interface ScoringSpec {
     bands: ScoreBandDef[];
 }
 
-/** How an anchor missing a factor's data is scored on it. Resolved from Factor.MissingDataPolicy
- *  upstream ("ModelDefault" resolves to "Zero"). */
+/** How an anchor missing a factor's data is scored on it. Resolved from ModelFactor.MissingDataPolicy
+ *  (the rubric binding — not Factor itself, so the same factor can carry different policies across
+ *  models). "ModelDefault" resolves to "Zero" upstream. */
 export type EffectiveMissingDataPolicy = "Zero" | "NeutralMidpoint" | "Exclude";
 
 /** One factor's rubric binding plus its normalized results across the population. */
@@ -147,6 +148,9 @@ export class ScoringEngine {
                 // range (e.g. 0..100) fills 50 — not a hardcoded 0.5 that would read as the floor. On the
                 // standard [0,1] scale this is 0.5, unchanged. Zero stays a literal 0 (its namesake — a
                 // hard zero contribution / deliberate penalty for missing data), independent of range.
+                // Note: Zero deliberately lands BELOW outputMin for any non-zero floor (e.g. [0.2, 1] →
+                // fills 0, below the worst measured value). That asymmetry is intentional: NeutralMidpoint
+                // is range-aware; Zero is not — it is a hard floor penalty, not a range-relative fill.
                 const lo = f.outputMin ?? 0;
                 const hi = f.outputMax ?? 1;
                 normalized = f.missingDataPolicy === "NeutralMidpoint" ? (lo + hi) / 2 : 0;

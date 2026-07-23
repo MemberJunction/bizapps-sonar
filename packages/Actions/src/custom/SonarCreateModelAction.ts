@@ -1,4 +1,4 @@
-import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
+import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
@@ -66,15 +66,6 @@ export class SonarCreateModelAction extends SonarActionBase {
         if (await model.Save()) return model;
         this.saveError = model.LatestResult?.Message || JSON.stringify(model.LatestResult?.Errors ?? []) || "unknown";
         return null;
-    }
-
-    private parseSpec(json: string): CreateModelSpec | null {
-        try {
-            const parsed: unknown = JSON.parse(json);
-            return parsed && typeof parsed === "object" ? (parsed as CreateModelSpec) : null;
-        } catch {
-            return null;
-        }
     }
 
     private slugify(name: string): string {

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject, signal, untracked } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -7,33 +7,64 @@ import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
 import { ScoreBandService } from "../../core/services/score-band.service";
-import { BandKey, BandSlice, BandTrendPoint, ScoredMember, ScoreReadService } from "../../core/services/score-read.service";
+import { BandFlow, BandKey, BandSlice, BandTrendPoint, OverviewTrend, ScoreReadService, WindowMover } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 
-/** Built geometry for the single-line trend chart (null when there's < 2 dates to draw through).
- *  One emphasized series — the headline band's share of the population over time — on a neutral
- *  card, per the "color only the main point" principle. */
-interface TrendGeometry {
-    line: string;
-    area: string;
-    gridlines: { y: number; label: string }[];
-    labels: { x: number; text: string }[];
-    endX: number;
-    endY: number;
-    endPct: number;
-    bandKey: BandKey;
-    bandLabel: string;
-    width: number;
-    height: number;
+/** The hero's three lenses on the same population. Persisted so a user's preferred default sticks. */
+export type HeroView = "insight" | "flow" | "mix";
+const HERO_VIEW_KEY = "sonar.overviewHeroView";
+
+/** The action card's look-back window: since the previous recompute, or a days-based window
+ *  resolved against history snapshots (so it works regardless of the stored Score.Delta). */
+export type ActionWindow = "run" | 30 | 90 | 365;
+const MS_PER_DAY = 86_400_000;
+
+/** Band-key severity order, healthy end first — drives row order and worse/better judgments. */
+const BAND_ORDER: BandKey[] = ["healthy", "watch", "atrisk", "critical"];
+
+/** One row of the insight table: a band's current share, prev → curr counts, and its share
+ *  sparkline. All sparklines share ONE y-scale so a 0.3% wiggle can't masquerade as a collapse. */
+interface InsightRow {
+    key: BandKey;
+    label: string;
+    count: number;
+    pct: number;
+    prev: number | null;
+    delta: number | null;
+    /** Whether the count change is a good or bad sign for THIS band (growth in At Risk is bad,
+     *  growth in Healthy is good, middle bands stay neutral). */
+    tone: "worse" | "better" | "flat";
+    spark: { line: string; area: string; endX: number; endY: number } | null;
+}
+
+/** One side of the migration diagram: a band node with its member count at that date. */
+interface FlowNode { key: BandKey; label: string; count: number; }
+/** A ribbon between two band nodes (real movement between the last two recomputes). */
+interface FlowLink { d: string; width: number; worse: boolean; count: number; labelX: number; labelY: number; }
+
+/** One column of the band-mix chart: a recompute date with its per-band share segments. */
+interface MixColumn { dateLabel: string; segments: { key: BandKey; pct: number }[]; }
+
+/** The hero's plain-language headline, in one of three shapes. */
+interface Headline {
+    kind: "first" | "steady" | "moved";
+    declined: number;
+    improved: number;
+    movedPct: number;
+    worstLabel: string;
+    topFlow: BandFlow | null;
+    prevDate: string;
+    currDate: string;
 }
 
 /**
  * Sonar Overview — the at-a-glance dashboard for the CURRENT model (scores are per-model, so
  * the overview is strongest scoped to one). The shared model rail picks the model; this surface
- * shows its identity, config stats, persisted band distribution (donut), and a "needs attention"
- * nudge. Reached via the nav item whose DriverClass = 'SonarOverviewResource'.
+ * leads with a plain-language "what changed" headline over a switchable visualization (insight
+ * table / migration flow / band mix), then a full-width "who needs action" card. Reached via the
+ * nav item whose DriverClass = 'SonarOverviewResource'.
  */
-@RegisterClass(BaseResourceComponent, "SonarOverviewResource")
+@RegisterClass(BaseResourceComponent, "SonarModelDetailResource")
 @Component({
     standalone: false,
     selector: "sonar-overview-resource",
@@ -47,10 +78,6 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
 
-    /** Gates MOCK preview markup (the hardcoded AI briefing cards) that isn't wired to real analytics
-     *  yet. Kept in the template for later — flip to true to show it once it's backed by real data. */
-    public readonly showPreview = false;
-
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
     public readonly loadingModel = signal(false);
@@ -62,136 +89,314 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     public readonly bandCount = signal(0);
     public readonly scoredCount = signal(0);
     public readonly distribution = signal<BandSlice[]>([]);
-    /** Biggest risers / fallers since the previous recompute — the "what changed" rail. */
-    public readonly movers = signal<{ risers: ScoredMember[]; fallers: ScoredMember[] }>({ risers: [], fallers: [] });
-    public readonly hasMovers = computed(() => this.movers().risers.length > 0 || this.movers().fallers.length > 0);
-    /** Band distribution over recomputes — drives the engagement-trend chart. */
-    public readonly trend = signal<BandTrendPoint[]>([]);
+    /** Server-aggregated band mix per snapshot day (SQL does the heavy lifting — the browser
+     *  never sees raw history rows). `days` are the valid baselines for the windowed queries. */
+    public readonly history = signal<OverviewTrend | null>(null);
+    public readonly trend = computed<BandTrendPoint[]>(() => this.history()?.points ?? []);
+    /** The hero's flows: band changes between the last two recomputes (fixed lens — the
+     *  action card below has its own adjustable window). Loaded alongside the trend. */
+    public readonly flows = signal<BandFlow[]>([]);
 
-    /** The dominant band (largest share) — the hero's headline metric. */
-    public readonly headlineBand = computed<BandSlice | null>(() => {
+    /** Which hero lens is showing. Hydrated from localStorage so the preference sticks. */
+    public readonly heroView = signal<HeroView>(this.readHeroViewPreference());
+
+    public setHeroView(view: HeroView): void {
+        this.heroView.set(view);
+        try { localStorage.setItem(HERO_VIEW_KEY, view); } catch { /* private browsing — in-memory only */ }
+    }
+
+    private readHeroViewPreference(): HeroView {
+        try {
+            const stored = localStorage.getItem(HERO_VIEW_KEY);
+            if (stored === "insight" || stored === "flow" || stored === "mix") return stored;
+        } catch { /* localStorage unavailable — fall through to default */ }
+        return "insight";
+    }
+
+    // ── Action card: adjustable look-back window ────────────────────────────────
+
+    /** Picker options for the action card's timeframe. */
+    public readonly windowOptions: { id: ActionWindow; label: string }[] = [
+        { id: "run", label: "Last recompute" },
+        { id: 30, label: "30d" },
+        { id: 90, label: "90d" },
+        { id: 365, label: "1y" },
+    ];
+    public readonly actionWindow = signal<ActionWindow>("run");
+
+    /** The snapshot day the action card compares against. Days-based windows resolve to the
+     *  latest snapshot at/before (newest − N days); asking further back than history exists
+     *  clamps to the oldest snapshot (flagged so the UI can say so instead of pretending). */
+    public readonly actionBaseline = computed<{ day: string; clamped: boolean } | null>(() => {
+        const h = this.history();
+        if (!h || h.days.length < 2) return null;
+        const w = this.actionWindow();
+        if (w === "run") return { day: h.days[h.days.length - 2], clamped: false };
+        const newest = this.parseDay(h.days[h.days.length - 1]).getTime();
+        const cutoff = newest - w * MS_PER_DAY;
+        const eligible = h.days.slice(0, -1).filter((d: string) => this.parseDay(d).getTime() <= cutoff);
+        if (eligible.length > 0) return { day: eligible[eligible.length - 1], clamped: false };
+        return { day: h.days[0], clamped: true };
+    });
+
+    /** Display date of the baseline snapshot (e.g. "May 22"). */
+    public readonly actionBaselineLabel = computed<string | null>(() => {
+        const b = this.actionBaseline();
+        return b ? this.fmtDate(this.parseDay(b.day)) : null;
+    });
+
+    /** Band-change cohorts over the chosen window (the action card's chips) and the biggest
+     *  individual movers — both fetched from the stored SQL queries whenever the baseline
+     *  changes. Derived from history snapshots server-side, so they survive the no-op-re-run
+     *  case that zeroes the stored Score.Delta. */
+    public readonly actionFlows = signal<BandFlow[]>([]);
+    public readonly actionMovers = signal<{ risers: WindowMover[]; fallers: WindowMover[] }>({ risers: [], fallers: [] });
+    public readonly hasMovers = computed(() => this.actionMovers().risers.length > 0 || this.actionMovers().fallers.length > 0);
+
+    /** Monotonic token so a slow response for an abandoned window can't overwrite a newer one. */
+    private actionFetchToken = 0;
+    /** Re-fetch the action card whenever the model or the chosen baseline changes. Previous
+     *  content stays on screen until the (fast, aggregated) queries land — no layout flicker. */
+    private readonly loadActionCard = effect(() => {
+        const model = this.model();
+        const h = this.history();
+        const b = this.actionBaseline();
+        if (!model || !h || !b) {
+            this.actionFlows.set([]);
+            this.actionMovers.set({ risers: [], fallers: [] });
+            return;
+        }
+        const toDay = h.days[h.days.length - 1];
+        const token = ++this.actionFetchToken;
+        void Promise.all([
+            this.scoreRead.flowsBetween(model.ID, b.day, toDay),
+            this.scoreRead.moversBetween(model.ID, b.day, toDay, 4),
+        ]).then(([flows, movers]) => {
+            if (token !== this.actionFetchToken) return; // a newer window superseded this fetch
+            this.actionFlows.set(flows);
+            this.actionMovers.set(movers);
+        });
+    });
+
+    /** A yyyy-MM-dd day key → local Date (avoids the UTC shift `new Date(string)` applies). */
+    private parseDay(day: string): Date {
+        const [y, m, d] = day.split("-").map(Number);
+        return new Date(y, (m ?? 1) - 1, d ?? 1);
+    }
+
+    /** anchorRecordId → display name cache for mover rows (snapshots only carry IDs). */
+    private readonly moverNames = signal<Map<string, string>>(new Map());
+    public moverName(anchorRecordId: string): string {
+        return this.moverNames().get(anchorRecordId) ?? "…";
+    }
+    /** Resolve names for whichever movers are showing; merges into the cache so switching
+     *  windows back and forth doesn't re-fetch. untracked() on the cache keeps this from
+     *  retriggering itself when it writes. */
+    private readonly resolveMoverNames = effect(() => {
+        const movers = this.actionMovers();
+        const anchorEntityId = this.model()?.AnchorEntityID;
+        const ids = [...movers.risers, ...movers.fallers].map((m) => m.anchorRecordId);
+        if (!anchorEntityId || ids.length === 0) return;
+        const missing = ids.filter((id) => !untracked(this.moverNames).has(id));
+        if (missing.length === 0) return;
+        void this.scoreRead.namesForAnchors(anchorEntityId, missing).then((names) => {
+            if (names.size === 0) return;
+            const merged = new Map(untracked(this.moverNames));
+            for (const [id, name] of names) merged.set(id, name);
+            this.moverNames.set(merged);
+        });
+    });
+
+    // ── Derived: recompute dates + headline ─────────────────────────────────────
+
+    /** The last two trend points (previous and current recompute), when they exist. */
+    private readonly currPoint = computed<BandTrendPoint | null>(() => this.trend().at(-1) ?? null);
+    private readonly prevPoint = computed<BandTrendPoint | null>(() => (this.trend().length >= 2 ? this.trend().at(-2)! : null));
+
+    /** Short display date (e.g. "Jun 22"). */
+    public fmtDate(d: Date | null | undefined): string {
+        return d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—";
+    }
+
+    /** The plain-language "what changed" facts the hero leads with. */
+    public readonly headline = computed<Headline | null>(() => {
+        if (this.distribution().length === 0) return null;
+        const curr = this.currPoint();
+        const prev = this.prevPoint();
+        const flows = this.flows();
+        const declined = flows.filter((f) => f.worse).reduce((s, f) => s + f.count, 0);
+        const improved = flows.filter((f) => !f.worse).reduce((s, f) => s + f.count, 0);
+        const total = this.scoredCount() || 1;
+        return {
+            kind: !prev ? "first" : flows.length === 0 ? "steady" : "moved",
+            declined,
+            improved,
+            movedPct: Math.round(((declined + improved) / total) * 1000) / 10,
+            worstLabel: this.worstSlice()?.label ?? "the lowest band",
+            topFlow: flows[0] ?? null,
+            prevDate: this.fmtDate(prev?.asOf),
+            currDate: this.fmtDate(curr?.asOf),
+        };
+    });
+
+    /** The most severe band that currently has members — the standing cohort worth working. */
+    public readonly worstSlice = computed<BandSlice | null>(() => {
         const slices = this.distribution();
         if (slices.length === 0) return null;
-        return slices.reduce((max, b) => (b.count > max.count ? b : max), slices[0]);
+        return [...slices].sort((a, b) => BAND_ORDER.indexOf(b.key) - BAND_ORDER.indexOf(a.key))[0];
     });
 
-    /** Band distribution as donut arc segments (circumference-100 ring). */
-    public readonly donutSegments = computed(() => {
-        let acc = 0;
-        return this.distribution().map((b) => {
-            const seg = { key: b.key, label: b.label, pct: b.pct, dash: `${b.pct} ${100 - b.pct}`, offset: -acc };
-            acc += b.pct;
-            return seg;
+    /** Eyebrow caption for the active hero view (plain identity when there's nothing plotted). */
+    public readonly heroEyebrow = computed<string>(() => {
+        const h = this.headline();
+        if (!h) return "Population health";
+        const view = this.heroView();
+        if (view === "flow" && h.kind !== "first") return `Band migration · ${h.prevDate} → ${h.currDate}`;
+        if (view === "mix" && this.trend().length >= 2) return `Band mix · last ${this.trend().length} recomputes`;
+        return h.kind === "first" ? "Population health" : `Population health · since ${h.prevDate}`;
+    });
+
+    // ── Derived: insight table ───────────────────────────────────────────────────
+
+    /** Insight rows keyed by band severity. Counts aggregate by band KEY (the same keying the
+     *  trend uses), so prev→curr deltas line up with the sparklines by construction. */
+    public readonly insightRows = computed<InsightRow[]>(() => {
+        const slices = this.distribution();
+        if (slices.length === 0) return [];
+        const curr = this.currPoint();
+        const prev = this.prevPoint();
+        const total = this.scoredCount() || 1;
+        const sparkMax = this.sharedSparkMax();
+        return this.aggregateByKey(slices).map((s) => {
+            const prevCount = prev ? prev.counts[s.key] : null;
+            const delta = prevCount != null ? s.count - prevCount : null;
+            return {
+                key: s.key, label: s.label, count: s.count,
+                pct: Math.round((s.count / total) * 100),
+                prev: prevCount, delta,
+                tone: this.deltaTone(s.key, delta),
+                spark: curr ? this.buildSpark(s.key, sparkMax) : null,
+            };
         });
     });
 
-    /** Stacked-area geometry for the engagement-trend chart (null until ≥ 2 dated snapshots). */
-    public readonly trendGeometry = computed<TrendGeometry | null>(() => this.buildTrend(this.trend()));
-
-    public readonly criticalCount = computed(() => {
-        return this.distribution().find(d => d.key === "critical")?.count ?? 0;
-    });
-
-    public readonly migrationLinks = computed(() => {
-        const current = this.distribution();
-        const total = this.scoredCount();
-        if (current.length === 0 || !total) return [];
-        
-        const bandsOrder: BandKey[] = ["healthy", "watch", "atrisk", "critical"];
-        const bandIndex = new Map(bandsOrder.map((key, i) => [key, i]));
-        const sliceMap = new Map(current.map(s => [s.key, s]));
-        
-        const hCount = sliceMap.get("healthy")?.count ?? 0;
-        const wCount = sliceMap.get("watch")?.count ?? 0;
-        const aCount = sliceMap.get("atrisk")?.count ?? 0;
-        const cCount = sliceMap.get("critical")?.count ?? 0;
-        
-        const rawLinks = [
-            { from: "healthy" as BandKey, to: "healthy" as BandKey, count: Math.round(hCount * 0.88) },
-            { from: "healthy" as BandKey, to: "watch" as BandKey, count: Math.round(hCount * 0.12) },
-            
-            { from: "watch" as BandKey, to: "healthy" as BandKey, count: Math.round(wCount * 0.10) },
-            { from: "watch" as BandKey, to: "watch" as BandKey, count: Math.round(wCount * 0.75) },
-            { from: "watch" as BandKey, to: "atrisk" as BandKey, count: Math.round(wCount * 0.15) },
-            
-            { from: "atrisk" as BandKey, to: "watch" as BandKey, count: Math.round(aCount * 0.08) },
-            { from: "atrisk" as BandKey, to: "atrisk" as BandKey, count: Math.round(aCount * 0.72) },
-            { from: "atrisk" as BandKey, to: "critical" as BandKey, count: Math.round(aCount * 0.20) },
-            
-            { from: "critical" as BandKey, to: "atrisk" as BandKey, count: Math.round(cCount * 0.05) },
-            { from: "critical" as BandKey, to: "critical" as BandKey, count: Math.round(cCount * 0.95) }
-        ].filter(l => l.count > 0);
-        
-        return rawLinks.map(link => {
-            const idxFrom = bandIndex.get(link.from) ?? 0;
-            const idxTo = bandIndex.get(link.to) ?? 0;
-            const y1 = 30 + idxFrom * 60;
-            const y2 = 30 + idxTo * 60;
-            
-            const width = Math.max(1.5, Math.min(18, (link.count / total) * 50));
-            const d = `M 0,${y1} C 100,${y1} 100,${y2} 200,${y2}`;
-            const label = `${link.count} members drifted from ${link.from} to ${link.to}`;
-            return { from: link.from, to: link.to, d, width, label };
-        });
-    });
-
-    /** Build the trajectory of the HEADLINE band's share of the population over time — one
-     *  emphasized line + soft gradient fade on a neutral card, with faint 25/50/75% gridlines.
-     *  The donut already shows the full mix; this answers "which way is it heading?" cleanly. */
-    private buildTrend(points: BandTrendPoint[]): TrendGeometry | null {
-        const hb = this.headlineBand();
-        if (points.length < 2 || !hb) return null;
-        const key = hb.key;
-        const W = 620, H = 200, padL = 4, padR = 32, padTop = 14, padBottom = 22;
-        const plotW = W - padL - padR, plotH = H - padTop - padBottom, baseline = padTop + plotH;
-        const x = (i: number): number => padL + (i / (points.length - 1)) * plotW;
-        const pct = (p: BandTrendPoint): number => (p.total > 0 ? (p.counts[key] / p.total) * 100 : 0);
-        const y = (v: number): number => padTop + (1 - v / 100) * plotH;
-        const coords = points.map((p, i) => ({ x: x(i), y: y(pct(p)) }));
-        const line = this.smoothPath(coords);
-        const last = coords[coords.length - 1];
-        const area = `${line} L${last.x.toFixed(1)},${baseline.toFixed(1)} L${coords[0].x.toFixed(1)},${baseline.toFixed(1)} Z`;
-        const gridlines = [75, 50, 25].map((v) => ({ y: y(v), label: `${v}%` }));
-        return {
-            line, area, gridlines, labels: this.trendLabels(points, x),
-            endX: last.x, endY: last.y, endPct: Math.round(pct(points[points.length - 1])),
-            bandKey: key, bandLabel: hb.label, width: W, height: H,
-        };
-    }
-
-    /** A smooth (Catmull-Rom → cubic-Bézier) path through the points — the gentle curve premium
-     *  area charts use, instead of hard polyline kinks. Tension 1/6 keeps it close to the data. */
-    private smoothPath(pts: { x: number; y: number }[]): string {
-        if (pts.length < 2) return "";
-        let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const p0 = pts[i === 0 ? 0 : i - 1];
-            const p1 = pts[i];
-            const p2 = pts[i + 1];
-            const p3 = pts[i + 2 < pts.length ? i + 2 : pts.length - 1];
-            const cp1x = p1.x + (p2.x - p0.x) / 6, cp1y = p1.y + (p2.y - p0.y) / 6;
-            const cp2x = p2.x - (p3.x - p1.x) / 6, cp2y = p2.y - (p3.y - p1.y) / 6;
-            d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    /** Collapse slices sharing a band key (e.g. two labels both mapping to "watch") into one row,
+     *  since trend counts are keyed by BandKey. Rows come out in severity order. */
+    private aggregateByKey(slices: BandSlice[]): { key: BandKey; label: string; count: number }[] {
+        const byKey = new Map<BandKey, { key: BandKey; label: string; count: number }>();
+        for (const s of slices) {
+            const row = byKey.get(s.key);
+            if (row) { row.count += s.count; row.label = `${row.label} / ${s.label}`; }
+            else byKey.set(s.key, { key: s.key, label: s.label, count: s.count });
         }
-        return d;
+        return BAND_ORDER.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
     }
 
-    /** Share of the population that's been scored (coverage) — a real, distinct supporting metric
-     *  for the "Members scored" tile. Null when population is unknown. */
+    /** Growth in an unhealthy band is bad; growth in Healthy is good; middle bands stay neutral
+     *  (a Watch member may have come from either direction, so no color judgment). */
+    private deltaTone(key: BandKey, delta: number | null): "worse" | "better" | "flat" {
+        if (delta == null || delta === 0) return "flat";
+        if (key === "healthy") return delta > 0 ? "better" : "worse";
+        if (key === "atrisk" || key === "critical") return delta > 0 ? "worse" : "better";
+        return "flat";
+    }
+
+    /** Largest share (%) any band reaches across the trend — ONE y-domain for every sparkline. */
+    private sharedSparkMax(): number {
+        let max = 0;
+        for (const p of this.trend()) {
+            if (p.total === 0) continue;
+            for (const k of BAND_ORDER) max = Math.max(max, (p.counts[k] / p.total) * 100);
+        }
+        return Math.max(max, 1);
+    }
+
+    /** SVG path for one band's share-over-recomputes sparkline (shared 0..max y-domain). */
+    private buildSpark(key: BandKey, maxShare: number): InsightRow["spark"] {
+        const points = this.trend();
+        if (points.length < 2) return null;
+        const W = 120, H = 28, padY = 3;
+        const x = (i: number): number => 2 + (i * (W - 8)) / (points.length - 1);
+        const y = (share: number): number => padY + (1 - share / maxShare) * (H - padY * 2);
+        const coords = points.map((p, i) => ({ x: x(i), y: y(p.total > 0 ? (p.counts[key] / p.total) * 100 : 0) }));
+        const line = "M " + coords.map((c) => `${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" L ");
+        const last = coords[coords.length - 1];
+        const area = `${line} L ${last.x.toFixed(1)} ${H - 1} L ${coords[0].x.toFixed(1)} ${H - 1} Z`;
+        return { line, area, endX: last.x, endY: last.y };
+    }
+
+    // ── Derived: migration flow (real transitions, not synthetic percentages) ───
+
+    /** Bands present at either of the last two recomputes, severity-ordered — the node column. */
+    private readonly flowKeys = computed<BandKey[]>(() => {
+        const prev = this.prevPoint(), curr = this.currPoint();
+        return BAND_ORDER.filter((k) => (prev?.counts[k] ?? 0) > 0 || (curr?.counts[k] ?? 0) > 0);
+    });
+
+    public readonly flowLeftNodes = computed<FlowNode[]>(() => this.flowNodes(this.prevPoint()));
+    public readonly flowRightNodes = computed<FlowNode[]>(() => this.flowNodes(this.currPoint()));
+
+    private flowNodes(point: BandTrendPoint | null): FlowNode[] {
+        const labels = new Map(this.distribution().map((s) => [s.key, s.label]));
+        return this.flowKeys().map((k) => ({
+            key: k,
+            label: labels.get(k) ?? k,
+            count: point?.counts[k] ?? 0,
+        }));
+    }
+
+    /** Ribbons for the real movement cohorts, colored by direction (decline vs recovery). */
+    public readonly flowLinks = computed<FlowLink[]>(() => {
+        const keys = this.flowKeys();
+        const total = this.prevPoint()?.total ?? this.scoredCount() ?? 1;
+        if (keys.length === 0 || total === 0) return [];
+        // SVG canvas is 640×240 (viewBox); node columns are in HTML, canvas draws ribbons only.
+        // Wide viewBox matches typical rendered width so preserveAspectRatio="none" barely distorts text.
+        const yFor = (k: BandKey): number => (240 / keys.length) * (keys.indexOf(k) + 0.5);
+        return this.flows().map((f) => {
+            const y1 = yFor(f.fromKey), y2 = yFor(f.toKey);
+            const width = Math.max(2, Math.min(20, (f.count / total) * 60));
+            // Labels at t=0.75 on the cubic (CPs at x=320, endpoint x=640): x ≈ 450, y ≈ 0.156·y1 + 0.844·y2.
+            return {
+                d: `M 0,${y1} C 320,${y1} 320,${y2} 640,${y2}`,
+                width,
+                worse: f.worse,
+                count: f.count,
+                labelX: 450,
+                labelY: 0.156 * y1 + 0.844 * y2 - width / 2 - 4,
+            };
+        });
+    });
+
+    // ── Derived: band mix (discrete stacked columns — scores step per recompute,
+    //    they don't drift between them, so no continuous-curve implication) ──────
+
+    public readonly mixColumns = computed<MixColumn[]>(() =>
+        this.trend().map((p) => ({
+            dateLabel: this.fmtDate(p.asOf),
+            segments: BAND_ORDER
+                .filter((k) => p.counts[k] > 0)
+                .map((k) => ({ key: k, pct: p.total > 0 ? (p.counts[k] / p.total) * 100 : 0 })),
+        })),
+    );
+
+    /** Legend rows for the mix view — the CURRENT distribution, severity-ordered. */
+    public readonly mixLegend = computed(() => this.insightRows().map((r) => ({ key: r.key, label: r.label, count: r.count, pct: r.pct })));
+
+    // ── Derived: header metadata + attention ───────────────────────────────────
+
+    /** Share of the population that's been scored (coverage). Null when population is unknown. */
     public readonly coveragePct = computed<number | null>(() => {
         const pop = this.population();
         if (!pop || pop <= 0) return null;
         return Math.round((this.scoredCount() / pop) * 100);
     });
 
-    /** First and last date labels (direct labeling, no legend). */
-    private trendLabels(points: BandTrendPoint[], x: (i: number) => number): { x: number; text: string }[] {
-        const fmt = (d: Date): string => `${d.getMonth() + 1}/${d.getDate()}`;
-        return [
-            { x: x(0), text: fmt(points[0].asOf) },
-            { x: x(points.length - 1), text: fmt(points[points.length - 1].asOf) },
-        ];
-    }
+    /** The last recompute's display date for the header metadata line ("—" until scored). */
+    public readonly lastRecomputeLabel = computed<string | null>(() => {
+        const curr = this.currPoint();
+        return curr ? this.fmtDate(curr.asOf) : null;
+    });
 
     /** Delta pill class + signed label for a mover (only ever called with a real, non-null delta). */
     public deltaClass(delta: number | null): string {
@@ -249,17 +454,25 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
             const anchor = new Metadata().Entities.find((e) => e.ID === model.AnchorEntityID);
             this.anchorName.set(anchor?.DisplayName || anchor?.Name || "—");
 
-            const [rubric, dist, movers, trend] = await Promise.all([
+            const [rubric, dist, trend] = await Promise.all([
                 this.factorService.rubricForModel(model.ID),
                 this.scoreRead.distributionForModel(model.ID),
-                this.scoreRead.moversForModel(model.ID, 4),
-                this.scoreRead.distributionTrendForModel(model.ID),
+                this.scoreRead.overviewTrendForModel(model.ID),
             ]);
             this.signalCount.set(rubric.length);
             this.distribution.set(dist.slices);
             this.scoredCount.set(dist.total);
-            this.movers.set(movers);
-            this.trend.set(trend);
+            this.history.set(trend);
+            // Hero flows are the fixed last-two-recomputes lens (the action card's window varies).
+            this.flows.set(
+                trend.days.length >= 2
+                    ? await this.scoreRead.flowsBetween(model.ID, trend.days[trend.days.length - 2], trend.days[trend.days.length - 1])
+                    : [],
+            );
+            // The model's TrendWindowDays is the DEFAULT lens for the action card (when it
+            // matches a picker option); the user can still flip timeframes freely from there.
+            const tw = model.TrendWindowDays;
+            this.actionWindow.set(tw === 30 || tw === 90 || tw === 365 ? tw : "run");
             this.bandCount.set(model.BandSetID ? (await this.bandService.getBands(model.BandSetID)).length : 0);
 
             this.population.set(null);
@@ -279,8 +492,10 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
         this.bandCount.set(0);
         this.scoredCount.set(0);
         this.distribution.set([]);
-        this.movers.set({ risers: [], fallers: [] });
-        this.trend.set([]);
+        this.history.set(null);
+        this.flows.set([]);
+        this.actionWindow.set("run");
+        this.moverNames.set(new Map());
     }
 
     /** Chip class for the model's status. */

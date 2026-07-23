@@ -7,10 +7,14 @@
     "schema-info",
     "entities",
     "applications",
+    "templates",
+    "prompts",
+    "agents",
     "time-windows",
     "score-band-sets",
     "score-bands",
-    "actions"
+    "actions",
+    "remote-operations"
   ],
   "sqlLogging": {
     "enabled": true,

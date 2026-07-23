@@ -1,5 +1,6 @@
 import { Injectable } from "@angular/core";
 import { BaseEntity, CompositeKey, Metadata, RunView } from "@memberjunction/core";
+import { sqlString } from "./sql.util";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelRelatedEntityEntity,
@@ -29,8 +30,10 @@ const MRE_FIELDS: readonly (keyof SnapMRE)[] = ["RelatedEntityID", "Alias", "Rel
 const FACTOR_FIELDS: readonly (keyof SnapFactor)[] = ["Name", "Slug", "Description", "FactorType", "AnchorEntityID", "SourceEntityID", "FilterExpression", "Aggregation", "AggregateFieldName", "TimeWindowID", "RecencyDecayHalfLifeDays", "NormalizationMethod", "NormalizationParamsJSON", "OutputMin", "OutputMax", "HigherIsBetter"];
 const BINDING_FIELDS: readonly (keyof SnapModelFactor)[] = ["Weight", "WeightMode", "ContributionCap", "ContributionFloor", "TrendWeight", "MissingDataPolicy", "IsRequired", "DisplayLabel", "DisplayOrder"];
 
-/** Fields needed to create a draft model. AnchorEntityID is NOT NULL in the schema. */
-export interface CreateModelInput { name: string; anchorEntityID: string; }
+/** Fields needed to create a draft model. AnchorEntityID is NOT NULL in the schema.
+ *  trendWindowDays: how far back Delta/Trend compare (null = "since the previous recompute",
+ *  which a no-op re-run zeroes out — window-based is the robust choice). */
+export interface CreateModelInput { name: string; anchorEntityID: string; trendWindowDays?: number | null; }
 /** Fields needed to wire a data source (related entity) into a model. */
 export interface AddDataSourceInput {
     modelId: string;
@@ -74,6 +77,7 @@ export class ScoreModelService {
         model.Slug = this.slugify(input.name);
         model.Status = "Draft";
         model.AnchorEntityID = input.anchorEntityID;
+        model.TrendWindowDays = input.trendWindowDays ?? null;
         return (await model.Save()) ? model : null;
     }
 
@@ -101,6 +105,13 @@ export class ScoreModelService {
         const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
         if (!model?.IsSaved) return false;
         model.Status = "Draft";
+        return model.Save();
+    }
+
+    public async archive(modelId: string): Promise<boolean> {
+        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
+        if (!model?.IsSaved) return false;
+        model.Status = "Archived";
         return model.Save();
     }
 
@@ -261,11 +272,21 @@ export class ScoreModelService {
         return model.Save();
     }
 
+    /** Persist the trend window (ScoreModel.TrendWindowDays): Delta/Trend compare against the
+     *  snapshot ~N days ago instead of the immediately-prior recompute. Null reverts to
+     *  "since last run". Takes effect on the next recompute. Returns true on save. */
+    public async setTrendWindowDays(modelId: string, days: number | null): Promise<boolean> {
+        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(modelId));
+        if (!model?.IsSaved) return false;
+        model.TrendWindowDays = days;
+        return model.Save();
+    }
+
     /** The data sources (related entities) wired into a model. */
     public async dataSources(modelId: string): Promise<mjBizAppsSonarModelRelatedEntityEntity[]> {
         const result = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>({
             EntityName: MODEL_RELATED_ENTITY,
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             OrderBy: "Alias ASC",
             ResultType: "entity_object",
         });
