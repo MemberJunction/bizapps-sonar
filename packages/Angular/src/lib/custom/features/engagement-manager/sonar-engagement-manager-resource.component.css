@@ -410,3 +410,5 @@
     .sonar-movers2__filters { flex-direction: column; align-items: stretch; }
     .sonar-movers2__spacer { display: none; }
 }
+.sonar-movers2__why { font-size: var(--sonar-font-sm); max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sonar-movers2__causechip { margin-left: 0.25rem; }

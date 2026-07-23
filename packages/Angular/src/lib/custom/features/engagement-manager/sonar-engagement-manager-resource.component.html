@@ -91,6 +91,13 @@
                                         @if (launchMode() === 'movers') {
                                             Cohort: members who <strong>{{ launchMoverScopeLabel() }}</strong> since the last recompute
                                             · <strong class="sonar-mono">{{ moverList().length }}</strong> match.
+                                            @if (moverCauseSummary().length) {
+                                                <br />Mostly driven by:
+                                                @for (c of moverCauseSummary(); track c.cause) {
+                                                    <span class="sonar-chip sonar-chip--small sonar-movers2__causechip">{{ c.cause }} · {{ c.count }}</span>
+                                                }
+                                                <br />Pick a play that fits the dominant cause.
+                                            }
                                         } @else {
                                             Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
                                             @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
@@ -397,6 +404,7 @@
                                             <tr>
                                                 <th>Member</th>
                                                 <th>Band</th>
+                                                <th>Why</th>
                                                 <th class="sonar-iv-table__num">Score</th>
                                                 <th class="sonar-iv-table__num">Move</th>
                                             </tr>
@@ -406,6 +414,9 @@
                                                 <tr class="sonar-movers2__row" (click)="select(m); activeTab.set('triage')" [title]="'Open ' + m.name + ' in triage'">
                                                     <td class="sonar-iv-table__name">{{ m.name }}</td>
                                                     <td><span class="sonar-chip sonar-chip--small sonar-chip--{{ m.bandKey }}">{{ m.bandLabel }}</span></td>
+                                                    <td class="sonar-movers2__why">
+                                                        @if (causeFor(m.scoreId); as why) { <span class="sonar-faint">{{ why }}</span> } @else { <span class="sonar-faint">—</span> }
+                                                    </td>
                                                     <td class="sonar-iv-table__num sonar-mono">{{ m.normalizedScore }}</td>
                                                     <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="(m.delta ?? 0) < 0" [class.sonar-pos]="(m.delta ?? 0) > 0">
                                                         {{ (m.delta ?? 0) < 0 ? '↓' : '↑' }} {{ deltaLabel(m.delta) }}

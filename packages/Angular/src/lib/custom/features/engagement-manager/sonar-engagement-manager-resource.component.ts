@@ -59,6 +59,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly moverSummary = signal<{ dropped: number; climbed: number; crossed: number }>({ dropped: 0, climbed: 0, crossed: 0 });
     public readonly moverList = signal<ScoredMember[]>([]);
     public readonly loadingMovers = signal(false);
+    /** Dominant "why they're low" per listed member (scoreId → cause label), from contributions. */
+    public readonly moverCauseById = signal<Map<string, string>>(new Map());
 
     public readonly directionDrops: SonarToggleOption = { value: "drops", label: "↓ Dropping", title: "Members whose score fell" };
     public readonly directionGains: SonarToggleOption = { value: "gains", label: "↑ Climbing", title: "Members whose score rose" };
@@ -425,10 +427,27 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             ]);
             this.moverSummary.set(summary);
             this.moverList.set(list);
+            // Cause-awareness (Rung 1): show WHY each listed member is low, from their contributions.
+            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(list.map((m) => m.scoreId)));
         } finally {
             this.loadingMovers.set(false);
         }
     }
+
+    /** The cause label for a listed member (from the dominant-drag factor), or "" if none. */
+    public causeFor(scoreId: string): string { return this.moverCauseById().get(scoreId) ?? ""; }
+
+    /** Top causes across the current cohort, most common first — the launch panel's "what's driving
+     *  this group" line, so the operator picks a play that fits the actual problem. */
+    public readonly moverCauseSummary = computed<{ cause: string; count: number }[]>(() => {
+        const causes = this.moverCauseById();
+        const tally = new Map<string, number>();
+        for (const m of this.moverList()) {
+            const c = causes.get(m.scoreId);
+            if (c) tally.set(c, (tally.get(c) ?? 0) + 1);
+        }
+        return [...tally.entries()].map(([cause, count]) => ({ cause, count })).sort((a, b) => b.count - a.count).slice(0, 3);
+    });
 
     /** Open the Interventions tab (loads the summaries lazily). */
     public async showInterventions(): Promise<void> {
