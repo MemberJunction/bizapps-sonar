@@ -78,21 +78,23 @@
 
                 <!-- Workspace content area -->
                 <div class="sonar-mgr-content">
-                    @if (activeTab() === 'triage') {
-                        <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
-
-                            <!-- ── Launch intervention: in-context panel over the CURRENT cohort filter.
-                                 Preview is the honest gate — nothing is written or fired until commit. ── -->
-                            @if (showLaunch()) {
+                    <!-- ── Launch intervention: in-context panel over the chosen cohort source —
+                         the triage filter OR the droppers rule (from Movers). Preview is the honest
+                         gate — nothing is written or fired until commit. ── -->
+                    @if (showLaunch() && activeTab() !== 'interventions') {
                                 <section class="sonar-card sonar-launch" aria-label="Launch intervention">
                                     <div class="sonar-card__head sonar-launch__head">
                                         <h2 class="sonar-card__title"><i class="fa-solid fa-bullhorn"></i> Launch intervention</h2>
                                         <button class="sonar-btn sonar-btn--ghost" (click)="closeLaunch()" aria-label="Close launch panel"><i class="fa-solid fa-xmark"></i></button>
                                     </div>
                                     <p class="sonar-launch__scope">
-                                        Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
-                                        @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
-                                        · <strong class="sonar-mono">{{ total() }}</strong> member{{ total() === 1 ? "" : "s" }} match.
+                                        @if (launchMode() === 'droppers') {
+                                            Cohort: members whose score <strong>dropped by {{ launchDrop() }}+</strong> since the last recompute.
+                                        } @else {
+                                            Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
+                                            @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
+                                            · <strong class="sonar-mono">{{ total() }}</strong> member{{ total() === 1 ? "" : "s" }} match.
+                                        }
                                         A random <strong>{{ launchHoldout() }}%</strong> is held back as the control group so lift is measured, not assumed.
                                     </p>
                                     <div class="sonar-launch__form">
@@ -115,6 +117,12 @@
                                             <span class="sonar-launch__label">Cap</span>
                                             <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" aria-label="Max members this run" />
                                         </label>
+                                        @if (launchMode() === 'droppers') {
+                                            <label class="sonar-launch__field sonar-launch__field--num">
+                                                <span class="sonar-launch__label">Min drop</span>
+                                                <input class="sonar-input" type="number" min="1" [value]="launchDrop()" (change)="setLaunchDrop($any($event.target).value)" aria-label="Minimum score drop to qualify" />
+                                            </label>
+                                        }
                                     </div>
                                     <div class="sonar-launch__foot">
                                         <button class="sonar-btn" [disabled]="!launchActionId() || launchBusy() !== null" (click)="previewLaunch()">
@@ -140,7 +148,10 @@
                                         @if (launchError(); as err) { <span class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</span> }
                                     </div>
                                 </section>
-                            }
+                    }
+
+                    @if (activeTab() === 'triage') {
+                        <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
                             <div class="sonar-split sonar-triage-split">
                                 <!-- Triage list -->
                                 <section class="sonar-card sonar-triage-card">
@@ -342,6 +353,10 @@
                             <section class="sonar-card">
                                 <div class="sonar-card__head">
                                     <div class="sonar-card__label">Movers since last run</div>
+                                    <button class="sonar-btn" (click)="openLaunchDroppers()"
+                                            title="Launch an intervention on everyone whose score dropped — a holdout is kept automatically">
+                                        <i class="fa-solid fa-bullhorn"></i> Launch on droppers
+                                    </button>
                                 </div>
                                 <p class="sonar-faint" style="font-size: var(--sonar-font-sm); margin-bottom: 1.5rem;">
                                     These members experienced the largest scoring shifts following the most recent engine recompute.

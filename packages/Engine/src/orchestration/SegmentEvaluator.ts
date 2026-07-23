@@ -16,6 +16,11 @@ export interface SegmentFilter {
     /** Inclusive normalized-score bounds, or null/undefined for unbounded. */
     minScore?: number | null;
     maxScore?: number | null;
+    /** Inclusive bounds on the last-run score DELTA — the plan's "biggest droppers" rule
+     *  (e.g. maxDelta: -5 = "dropped by 5+ since the last recompute"). A first-run score has a
+     *  NULL delta and never matches a delta-bounded segment. */
+    minDelta?: number | null;
+    maxDelta?: number | null;
 }
 
 /** One resolved cohort member — its anchor identity + the score fields that placed it in the segment. */
@@ -70,6 +75,12 @@ export class SegmentEvaluator {
         }
         if (filter.maxScore != null && Number.isFinite(filter.maxScore)) {
             conds.push(`NormalizedScore <= ${Number(filter.maxScore)}`);
+        }
+        if (filter.minDelta != null && Number.isFinite(filter.minDelta)) {
+            conds.push(`Delta >= ${Number(filter.minDelta)}`);
+        }
+        if (filter.maxDelta != null && Number.isFinite(filter.maxDelta)) {
+            conds.push(`Delta <= ${Number(filter.maxDelta)}`);
         }
         return conds.join(" AND ");
     }

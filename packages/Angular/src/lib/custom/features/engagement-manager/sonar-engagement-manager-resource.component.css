@@ -362,7 +362,7 @@
 .sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
 
 /* ── Action layer: launch panel + interventions tab ─────────────────────── */
-.sonar-launch { flex: 0 0 auto; }
+.sonar-launch { flex: 0 0 auto; margin-bottom: 1rem; }
 .sonar-launch__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .sonar-launch__scope { margin: 0 0 0.75rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.55; }
 /* Horizontal-first form row: labels+inputs flow left→right, wrapping to a stacked column when narrow. */

@@ -42,6 +42,11 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     // --- action layer: launch panel (in-context, over the triage cohort) + interventions tab ---
     public readonly showLaunch = signal(false);
+    /** Where the launch cohort comes from: the triage filter (band/score) or the droppers rule
+     *  (score fell by ≥ N since the last recompute — the Movers view's actionable cohort). */
+    public readonly launchMode = signal<"cohort" | "droppers">("cohort");
+    /** Droppers threshold: members whose Delta ≤ -launchDrop qualify. */
+    public readonly launchDrop = signal(5);
     public readonly fireable = signal<FireableAction[]>([]);
     public readonly launchName = signal("");
     public readonly launchActionId = signal<string | null>(null);
@@ -258,7 +263,18 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     /** Open the in-context launch panel for the CURRENT triage filter; loads the play catalog once. */
     public async openLaunch(): Promise<void> {
+        this.launchMode.set("cohort");
         this.activeTab.set("triage");
+        await this.prepareLaunch();
+    }
+
+    /** Open the panel scoped to the DROPPERS rule (Delta ≤ -N) — the Movers view's launch entry. */
+    public async openLaunchDroppers(): Promise<void> {
+        this.launchMode.set("droppers");
+        await this.prepareLaunch();
+    }
+
+    private async prepareLaunch(): Promise<void> {
         this.launchError.set(null);
         this.launchPreview.set(null);
         this.launchDone.set(null);
@@ -273,6 +289,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     /** A human name for the play, derived from what the operator is looking at. */
     private defaultLaunchName(): string {
+        if (this.launchMode() === "droppers") return `Dropped ${this.launchDrop()}+ outreach`;
         const band = this.selectedBand();
         const range = this.minScore() != null || this.maxScore() != null
             ? ` ${this.minScore() ?? 0}-${this.maxScore() ?? 100}`
@@ -280,18 +297,18 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return `${band ? band.label : "All bands"}${range} outreach`;
     }
 
-    /** Build the ConfigJSON payload from the active triage filter. */
+    /** Build the ConfigJSON payload from the active cohort source (triage filter or droppers rule). */
     private launchConfig(preview: boolean): LaunchConfig | null {
         const modelId = this.current.modelId();
         const actionId = this.launchActionId();
         if (!modelId || !actionId) return null;
         const band = this.selectedBand();
+        const filter = this.launchMode() === "droppers"
+            ? { maxDelta: -Math.abs(this.launchDrop()) }
+            : { bandId: band?.bandId ?? null, minScore: this.minScore(), maxScore: this.maxScore() };
         return {
             modelId,
-            segment: {
-                name: this.launchName().trim() || this.defaultLaunchName(),
-                filter: { bandId: band?.bandId ?? null, minScore: this.minScore(), maxScore: this.maxScore() },
-            },
+            segment: { name: this.launchName().trim() || this.defaultLaunchName(), filter },
             intervention: { name: this.launchName().trim() || this.defaultLaunchName(), holdoutPercent: this.launchHoldout() },
             action: { actionId, params: [] },
             cap: this.launchCap(),
@@ -340,6 +357,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public setLaunchCap(v: string): void { const n = Number(v); this.launchCap.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 100); this.launchPreview.set(null); }
     public setLaunchAction(id: string): void { this.launchActionId.set(id || null); this.launchPreview.set(null); }
     public setLaunchName(v: string): void { this.launchName.set(v); }
+    public setLaunchDrop(v: string): void { const n = Number(v); this.launchDrop.set(Number.isFinite(n) && n > 0 ? n : 5); this.launchPreview.set(null); }
 
     /** Open the Interventions tab (loads the summaries lazily). */
     public async showInterventions(): Promise<void> {

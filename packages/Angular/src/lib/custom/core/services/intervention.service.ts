@@ -7,11 +7,14 @@ import { sqlString } from "./sql.util";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 
-/** The score-evaluable segment filter the launch panel builds from the current triage state. */
+/** The score-evaluable segment filter the launch panel builds from the current triage state
+ *  (band/score range) or from the Movers view (a delta threshold — the "biggest droppers" rule). */
 export interface LaunchSegmentFilter {
     bandId?: string | null;
     minScore?: number | null;
     maxScore?: number | null;
+    minDelta?: number | null;
+    maxDelta?: number | null;
 }
 
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */
