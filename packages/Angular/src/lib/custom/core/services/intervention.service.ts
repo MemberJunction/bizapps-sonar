@@ -16,6 +16,8 @@ export interface LaunchSegmentFilter {
     maxScore?: number | null;
     minDelta?: number | null;
     maxDelta?: number | null;
+    /** Restrict to members who changed band on the last run (the Movers "crossed a band" toggle). */
+    crossedBandOnly?: boolean | null;
 }
 
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */

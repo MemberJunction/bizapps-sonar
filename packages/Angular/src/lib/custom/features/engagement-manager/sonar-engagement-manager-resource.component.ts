@@ -9,7 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, MeasureResult } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult } from "../../core/services/intervention.service";
 
 
 /**
@@ -42,11 +42,36 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     // --- action layer: launch panel (in-context, over the triage cohort) + interventions tab ---
     public readonly showLaunch = signal(false);
-    /** Where the launch cohort comes from: the triage filter (band/score) or the droppers rule
-     *  (score fell by ≥ N since the last recompute — the Movers view's actionable cohort). */
-    public readonly launchMode = signal<"cohort" | "droppers">("cohort");
-    /** Droppers threshold: members whose Delta ≤ -launchDrop qualify. */
-    public readonly launchDrop = signal(5);
+    /** Where the launch cohort comes from: the triage filter (band/score) or a mover segment
+     *  (delta rule tuned in the Movers explorer). */
+    public readonly launchMode = signal<"cohort" | "movers">("cohort");
+    /** The segment filter a launch from Movers carries — set from the live explorer filter so the
+     *  cohort launched is EXACTLY the list on screen. */
+    private readonly launchMoverFilter = signal<LaunchSegmentFilter>({});
+    private launchMoverLabel = "Movers";
+
+    // --- Movers explorer: a live segment view (tune the filter → see the members → launch on them) ---
+    public readonly moverDirection = signal<"drops" | "gains">("drops");
+    /** Minimum absolute score move to qualify (points). */
+    public readonly moverMagnitude = signal(5);
+    /** Only members who changed band this run (the meaningful boundary crossing). */
+    public readonly moverCrossedOnly = signal(false);
+    public readonly moverSummary = signal<{ dropped: number; climbed: number; crossed: number }>({ dropped: 0, climbed: 0, crossed: 0 });
+    public readonly moverList = signal<ScoredMember[]>([]);
+    public readonly loadingMovers = signal(false);
+
+    public readonly directionDrops: SonarToggleOption = { value: "drops", label: "↓ Dropping", title: "Members whose score fell" };
+    public readonly directionGains: SonarToggleOption = { value: "gains", label: "↑ Climbing", title: "Members whose score rose" };
+
+    /** The mover filter as an engine SegmentFilter — the ONE definition that drives the list AND a
+     *  launch, so what you see is exactly who you'd act on. Direction picks which delta bound. */
+    public readonly moverFilter = computed<LaunchSegmentFilter>(() => {
+        const mag = Math.abs(this.moverMagnitude());
+        const crossedBandOnly = this.moverCrossedOnly() ? true : null;
+        return this.moverDirection() === "drops"
+            ? { maxDelta: -mag, crossedBandOnly }
+            : { minDelta: mag, crossedBandOnly };
+    });
     public readonly fireable = signal<FireableAction[]>([]);
     public readonly launchName = signal("");
     public readonly launchActionId = signal<string | null>(null);
@@ -90,11 +115,10 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return !!m && m.versionNumber != null && cur != null && m.versionNumber !== cur;
     });
 
-    // --- score history (sparkline) + movers since last run ---
+    // --- score history (sparkline) ---
     public readonly history = signal<ScoreHistoryPoint[]>([]);
-    public readonly movers = signal<{ risers: ScoredMember[]; fallers: ScoredMember[] }>({ risers: [], fallers: [] });
-    public readonly showMovers = signal(false);
-    public readonly hasMovers = computed(() => this.movers().risers.length > 0 || this.movers().fallers.length > 0);
+    /** Any movement at all this run — gates the Movers nav item + drives its count chip. */
+    public readonly hasMovers = computed(() => this.moverSummary().dropped + this.moverSummary().climbed > 0);
 
     /** SVG sparkline geometry from the selected member's history (null if < 2 points to draw). */
     public readonly spark = computed(() => this.buildSpark(this.history()));
@@ -174,25 +198,22 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.pinnedAnchorId.set(null);
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
         this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
-        this.showMovers.set(false);
         this.showLaunch.set(false);
         this.launchPreview.set(null);
         this.launchDone.set(null);
         this.interventions.set([]);
-        if (this.activeTab() === "interventions") this.activeTab.set("triage");
-        const [dist, rubric, movers] = await Promise.all([
+        this.moverList.set([]);
+        if (this.activeTab() === "interventions" || this.activeTab() === "movers") this.activeTab.set("triage");
+        const [dist, rubric, summary] = await Promise.all([
             this.scoreRead.distributionForModel(id),
             this.factorService.rubricForModel(id),
-            this.scoreRead.moversForModel(id),
+            this.scoreRead.moverSummary(id),
         ]);
         this.tiles.set(dist.slices);
         this.rubricNames.set(rubric.map((r) => r.name));
-        this.movers.set(movers);
+        this.moverSummary.set(summary);
         await this.loadMembers();
     }
-
-    /** Show/hide the "movers since last run" panel. */
-    public toggleMovers(): void { this.showMovers.update((v) => !v); }
 
     /** (Re)load the current page of the triage list under the active band filter, then open the
      *  top row's drawer so the surface always lands on something useful. */
@@ -272,9 +293,14 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         await this.prepareLaunch();
     }
 
-    /** Open the panel scoped to the DROPPERS rule (Delta ≤ -N) — the Movers view's launch entry. */
-    public async openLaunchDroppers(): Promise<void> {
-        this.launchMode.set("droppers");
+    /** Open the launch panel scoped to the CURRENT Movers explorer filter — the exact cohort on
+     *  screen. This is the unification: the segment you're viewing is the segment you act on. */
+    public async openLaunchFromMovers(): Promise<void> {
+        this.launchMode.set("movers");
+        this.launchMoverFilter.set(this.moverFilter());
+        const mag = Math.abs(this.moverMagnitude());
+        const verb = this.moverDirection() === "drops" ? "dropped" : "climbed";
+        this.launchMoverLabel = `${verb} ${mag}+${this.moverCrossedOnly() ? " (band cross)" : ""}`;
         await this.prepareLaunch();
     }
 
@@ -291,9 +317,12 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     public closeLaunch(): void { this.showLaunch.set(false); }
 
+    /** Human scope label for a Movers-sourced launch (e.g. "dropped 5+ (band cross)"). */
+    public launchMoverScopeLabel(): string { return this.launchMoverLabel; }
+
     /** A human name for the play, derived from what the operator is looking at. */
     private defaultLaunchName(): string {
-        if (this.launchMode() === "droppers") return `Dropped ${this.launchDrop()}+ outreach`;
+        if (this.launchMode() === "movers") return `${this.launchMoverLabel} outreach`;
         const band = this.selectedBand();
         const range = this.minScore() != null || this.maxScore() != null
             ? ` ${this.minScore() ?? 0}-${this.maxScore() ?? 100}`
@@ -301,14 +330,14 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return `${band ? band.label : "All bands"}${range} outreach`;
     }
 
-    /** Build the ConfigJSON payload from the active cohort source (triage filter or droppers rule). */
+    /** Build the ConfigJSON payload from the active cohort source (triage filter or mover segment). */
     private launchConfig(preview: boolean): LaunchConfig | null {
         const modelId = this.current.modelId();
         const actionId = this.launchActionId();
         if (!modelId || !actionId) return null;
         const band = this.selectedBand();
-        const filter = this.launchMode() === "droppers"
-            ? { maxDelta: -Math.abs(this.launchDrop()) }
+        const filter = this.launchMode() === "movers"
+            ? this.launchMoverFilter()
             : { bandId: band?.bandId ?? null, minScore: this.minScore(), maxScore: this.maxScore() };
         return {
             modelId,
@@ -361,7 +390,45 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public setLaunchCap(v: string): void { const n = Number(v); this.launchCap.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 100); this.launchPreview.set(null); }
     public setLaunchAction(id: string): void { this.launchActionId.set(id || null); this.launchPreview.set(null); }
     public setLaunchName(v: string): void { this.launchName.set(v); }
-    public setLaunchDrop(v: string): void { const n = Number(v); this.launchDrop.set(Number.isFinite(n) && n > 0 ? n : 5); this.launchPreview.set(null); }
+
+    // ---- Movers explorer: tune the segment, see the members, launch on exactly them ----
+
+    /** Open the Movers tab and load its summary + list for the current filter. */
+    public async showMoversTab(): Promise<void> {
+        this.activeTab.set("movers");
+        await this.loadMovers();
+    }
+
+    public async setMoverDirection(dir: string): Promise<void> {
+        this.moverDirection.set(dir === "gains" ? "gains" : "drops");
+        await this.loadMovers();
+    }
+    public async setMoverMagnitude(v: string): Promise<void> {
+        const n = Number(v);
+        this.moverMagnitude.set(Number.isFinite(n) && n > 0 ? n : 1);
+        await this.loadMovers();
+    }
+    public async toggleMoverCrossed(): Promise<void> {
+        this.moverCrossedOnly.update((v) => !v);
+        await this.loadMovers();
+    }
+
+    /** Refresh the summary counts + the filtered member list from the current mover filter. */
+    private async loadMovers(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id) { this.moverList.set([]); this.moverSummary.set({ dropped: 0, climbed: 0, crossed: 0 }); return; }
+        this.loadingMovers.set(true);
+        try {
+            const [summary, list] = await Promise.all([
+                this.scoreRead.moverSummary(id),
+                this.scoreRead.moverMembers(id, this.moverFilter(), this.moverDirection()),
+            ]);
+            this.moverSummary.set(summary);
+            this.moverList.set(list);
+        } finally {
+            this.loadingMovers.set(false);
+        }
+    }
 
     /** Open the Interventions tab (loads the summaries lazily). */
     public async showInterventions(): Promise<void> {

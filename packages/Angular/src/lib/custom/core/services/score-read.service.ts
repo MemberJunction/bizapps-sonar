@@ -365,6 +365,49 @@ export class ScoreReadService {
         return { risers, fallers };
     }
 
+    /** Headline counts for the Movers view: how many dropped, climbed, and crossed a band on the
+     *  last run. Three cheap counts (Delta is scannable). */
+    public async moverSummary(modelId: string): Promise<{ dropped: number; climbed: number; crossed: number }> {
+        const m = `ScoreModelID='${sqlString(modelId)}'`;
+        const count = async (extra: string): Promise<number> => {
+            const r = await new RunView().RunView({ EntityName: SCORE, ExtraFilter: `${m} AND ${extra}`, Fields: ["ID"], IgnoreMaxRows: true, ResultType: "simple" });
+            return r.Success ? (r.Results?.length ?? 0) : 0;
+        };
+        const [dropped, climbed, crossed] = await Promise.all([
+            count("Delta < 0"),
+            count("Delta > 0"),
+            count("PreviousBandID IS NOT NULL AND PreviousBandID <> BandID"),
+        ]);
+        return { dropped, climbed, crossed };
+    }
+
+    /** Members matching a mover SEGMENT FILTER (delta bounds / band / crossed-a-band). Mirrors the
+     *  engine's SegmentEvaluator conditions EXACTLY, so the list a user sees == who a launch on the
+     *  same filter targets. `direction` only sets the sort; the delta bound does the selecting. */
+    public async moverMembers(
+        modelId: string,
+        filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; minDelta?: number | null; maxDelta?: number | null; crossedBandOnly?: boolean | null },
+        direction: "drops" | "gains",
+        limit = 50,
+    ): Promise<ScoredMember[]> {
+        const conds = [`ScoreModelID='${sqlString(modelId)}'`];
+        if (filter.bandId) conds.push(`BandID='${sqlString(filter.bandId)}'`);
+        if (filter.minScore != null && Number.isFinite(filter.minScore)) conds.push(`NormalizedScore >= ${Number(filter.minScore)}`);
+        if (filter.maxScore != null && Number.isFinite(filter.maxScore)) conds.push(`NormalizedScore <= ${Number(filter.maxScore)}`);
+        if (filter.minDelta != null && Number.isFinite(filter.minDelta)) conds.push(`Delta >= ${Number(filter.minDelta)}`);
+        if (filter.maxDelta != null && Number.isFinite(filter.maxDelta)) conds.push(`Delta <= ${Number(filter.maxDelta)}`);
+        if (filter.crossedBandOnly) conds.push(`PreviousBandID IS NOT NULL AND PreviousBandID <> BandID`);
+        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+            EntityName: SCORE,
+            ExtraFilter: conds.join(" AND "),
+            OrderBy: `Delta ${direction === "gains" ? "DESC" : "ASC"}`,
+            MaxRows: limit,
+            ResultType: "entity_object",
+        });
+        const scores = result.Success ? result.Results ?? [] : [];
+        return this.toScoredMembers(scores);
+    }
+
     /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({

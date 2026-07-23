@@ -21,6 +21,10 @@ export interface SegmentFilter {
      *  NULL delta and never matches a delta-bounded segment. */
     minDelta?: number | null;
     maxDelta?: number | null;
+    /** When true, restrict to members who actually CHANGED BAND on the last run (the meaningful
+     *  "crossed a boundary" event, vs an in-band wiggle). A first-run score has no prior band and
+     *  never matches. Combine with maxDelta<0 for "crossed down", minDelta>0 for "crossed up". */
+    crossedBandOnly?: boolean | null;
 }
 
 /** One resolved cohort member — its anchor identity + the score fields that placed it in the segment. */
@@ -81,6 +85,9 @@ export class SegmentEvaluator {
         }
         if (filter.maxDelta != null && Number.isFinite(filter.maxDelta)) {
             conds.push(`Delta <= ${Number(filter.maxDelta)}`);
+        }
+        if (filter.crossedBandOnly) {
+            conds.push(`PreviousBandID IS NOT NULL AND PreviousBandID <> BandID`);
         }
         return conds.join(" AND ");
     }

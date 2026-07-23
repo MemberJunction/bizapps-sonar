@@ -52,14 +52,14 @@
                     <button type="button" class="sonar-mgr-sidebar__item" 
                             [class.sonar-mgr-sidebar__item--active]="activeTab() === 'movers'"
                             [disabled]="!hasMovers()"
-                            (click)="activeTab.set('movers')">
+                            (click)="showMoversTab()">
                         <i class="fa-solid fa-arrow-trend-down"></i>
                         <div class="sonar-mgr-sidebar__item-text">
                             <span class="sonar-mgr-sidebar__item-title">Score Movers</span>
-                            <span class="sonar-mgr-sidebar__item-subtitle">Largest scoring shifts</span>
+                            <span class="sonar-mgr-sidebar__item-subtitle">Tune &amp; act on who shifted</span>
                         </div>
                         @if (hasMovers()) {
-                            <span class="sonar-chip sonar-chip--small">{{ movers().fallers.length + movers().risers.length }}</span>
+                            <span class="sonar-chip sonar-chip--small">{{ moverSummary().dropped + moverSummary().climbed }}</span>
                         }
                     </button>
                     <button type="button" class="sonar-mgr-sidebar__item"
@@ -88,8 +88,9 @@
                                         <button class="sonar-btn sonar-btn--ghost" (click)="closeLaunch()" aria-label="Close launch panel"><i class="fa-solid fa-xmark"></i></button>
                                     </div>
                                     <p class="sonar-launch__scope">
-                                        @if (launchMode() === 'droppers') {
-                                            Cohort: members whose score <strong>dropped by {{ launchDrop() }}+</strong> since the last recompute.
+                                        @if (launchMode() === 'movers') {
+                                            Cohort: members who <strong>{{ launchMoverScopeLabel() }}</strong> since the last recompute
+                                            · <strong class="sonar-mono">{{ moverList().length }}</strong> match.
                                         } @else {
                                             Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
                                             @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
@@ -117,12 +118,6 @@
                                             <span class="sonar-launch__label">Cap</span>
                                             <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" aria-label="Max members this run" />
                                         </label>
-                                        @if (launchMode() === 'droppers') {
-                                            <label class="sonar-launch__field sonar-launch__field--num">
-                                                <span class="sonar-launch__label">Min drop</span>
-                                                <input class="sonar-input" type="number" min="1" [value]="launchDrop()" (change)="setLaunchDrop($any($event.target).value)" aria-label="Minimum score drop to qualify" />
-                                            </label>
-                                        }
                                     </div>
                                     <div class="sonar-launch__foot">
                                         <button class="sonar-btn" [disabled]="!launchActionId() || launchBusy() !== null" (click)="previewLaunch()">
@@ -349,44 +344,77 @@
                     }
 
                     @if (activeTab() === 'movers') {
-                        <div class="sonar-stack" style="flex: 1; min-height: 0; overflow-y: auto;">
-                            <section class="sonar-card">
+                        <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
+                            <section class="sonar-card sonar-movers2">
                                 <div class="sonar-card__head">
-                                    <div class="sonar-card__label">Movers since last run</div>
-                                    <button class="sonar-btn" (click)="openLaunchDroppers()"
-                                            title="Launch an intervention on everyone whose score dropped — a holdout is kept automatically">
-                                        <i class="fa-solid fa-bullhorn"></i> Launch on droppers
+                                    <div>
+                                        <h2 class="sonar-card__title"><i class="fa-solid fa-arrow-trend-down"></i> Score Movers</h2>
+                                        <p class="sonar-faint sonar-movers2__sub">
+                                            Since the last recompute:
+                                            <strong class="sonar-neg">{{ moverSummary().dropped }}</strong> dropped ·
+                                            <strong class="sonar-pos">{{ moverSummary().climbed }}</strong> climbed ·
+                                            <strong>{{ moverSummary().crossed }}</strong> crossed a band.
+                                            Tune the filter, then act on exactly who you see.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Filter bar: direction · magnitude · band-cross. This IS the segment
+                                     definition — the list below and the launch use the same rule. -->
+                                <div class="sonar-movers2__filters">
+                                    <sonar-toggle-filter [on]="directionDrops" [off]="directionGains"
+                                        [value]="moverDirection()" (valueChange)="setMoverDirection($event)"></sonar-toggle-filter>
+                                    <label class="sonar-movers2__mag">
+                                        moved ≥
+                                        <input class="sonar-input" type="number" min="1" [value]="moverMagnitude()"
+                                               (change)="setMoverMagnitude($any($event.target).value)" aria-label="Minimum points moved" />
+                                        pts
+                                    </label>
+                                    <button type="button" class="sonar-chip sonar-movers2__cross"
+                                            [class.sonar-movers2__cross--on]="moverCrossedOnly()" (click)="toggleMoverCrossed()"
+                                            [attr.aria-pressed]="moverCrossedOnly()"
+                                            title="Only members who changed band this run (a real boundary crossing, not an in-band wiggle)">
+                                        <i class="fa-solid" [class.fa-square-check]="moverCrossedOnly()" [class.fa-square]="!moverCrossedOnly()"></i> Crossed a band
+                                    </button>
+                                    <span class="sonar-movers2__spacer"></span>
+                                    <button class="sonar-btn sonar-btn--primary" [disabled]="moverList().length === 0" (click)="openLaunchFromMovers()"
+                                            title="Launch an intervention on exactly these members — a holdout is kept automatically so lift is measured">
+                                        <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverList().length }})
                                     </button>
                                 </div>
-                                <p class="sonar-faint" style="font-size: var(--sonar-font-sm); margin-bottom: 1.5rem;">
-                                    These members experienced the largest scoring shifts following the most recent engine recompute.
-                                </p>
-                                <div class="sonar-movers__cols" style="padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                                    <div class="sonar-movers__col">
-                                        <div class="sonar-movers__col-label sonar-neg" style="font-size: var(--sonar-font-xs); margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-arrow-down"></i> Biggest drops</div>
-                                        <div class="sonar-stack">
-                                            @for (m of movers().fallers; track m.scoreId) {
-                                                <button class="sonar-mover" (click)="select(m); activeTab.set('triage')">
-                                                    <span class="sonar-mover__name">{{ m.name }}</span>
-                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                                    <span class="sonar-trend sonar-trend--neg">↓ {{ deltaLabel(m.delta) }}</span>
-                                                </button>
-                                            } @empty { <span class="sonar-faint sonar-mover__empty">No drops</span> }
-                                        </div>
+
+                                @if (loadingMovers()) {
+                                    <div class="sonar-skeleton" style="height: 8rem;"></div>
+                                } @else if (moverList().length === 0) {
+                                    <div class="sonar-empty">
+                                        <i class="fa-solid fa-arrow-trend-down"></i>
+                                        <h2>No members match</h2>
+                                        <p>No one {{ moverDirection() === 'drops' ? 'dropped' : 'climbed' }} {{ moverMagnitude() }}+ points{{ moverCrossedOnly() ? ' with a band change' : '' }} on the last run. Lower the threshold or flip the direction.</p>
                                     </div>
-                                    <div class="sonar-movers__col">
-                                        <div class="sonar-movers__col-label sonar-pos" style="font-size: var(--sonar-font-xs); margin-bottom: 0.75rem;"><i class="fa-solid fa-circle-arrow-up"></i> Biggest gains</div>
-                                        <div class="sonar-stack">
-                                            @for (m of movers().risers; track m.scoreId) {
-                                                <button class="sonar-mover" (click)="select(m); activeTab.set('triage')">
-                                                    <span class="sonar-mover__name">{{ m.name }}</span>
-                                                    <span class="sonar-mono sonar-mover__score">{{ m.normalizedScore }}</span>
-                                                    <span class="sonar-trend sonar-trend--pos">↑ {{ deltaLabel(m.delta) }}</span>
-                                                </button>
-                                            } @empty { <span class="sonar-faint sonar-mover__empty">No gains</span> }
-                                        </div>
-                                    </div>
-                                </div>
+                                } @else {
+                                    <table class="sonar-iv-table sonar-movers2__list">
+                                        <thead>
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Band</th>
+                                                <th class="sonar-iv-table__num">Score</th>
+                                                <th class="sonar-iv-table__num">Move</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (m of moverList(); track m.scoreId) {
+                                                <tr class="sonar-movers2__row" (click)="select(m); activeTab.set('triage')" [title]="'Open ' + m.name + ' in triage'">
+                                                    <td class="sonar-iv-table__name">{{ m.name }}</td>
+                                                    <td><span class="sonar-chip sonar-chip--small sonar-chip--{{ m.bandKey }}">{{ m.bandLabel }}</span></td>
+                                                    <td class="sonar-iv-table__num sonar-mono">{{ m.normalizedScore }}</td>
+                                                    <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="(m.delta ?? 0) < 0" [class.sonar-pos]="(m.delta ?? 0) > 0">
+                                                        {{ (m.delta ?? 0) < 0 ? '↓' : '↑' }} {{ deltaLabel(m.delta) }}
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
                             </section>
                         </div>
                     }
