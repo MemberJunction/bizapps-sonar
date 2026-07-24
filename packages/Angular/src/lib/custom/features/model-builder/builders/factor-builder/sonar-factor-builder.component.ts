@@ -6,6 +6,7 @@ import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSp
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
+import { IsBusinessEntity } from "../../../../core/entity-scope";
 import { resolveAnchorName } from "../../../../core/services/anchor-name.util";
 
 /** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save).
@@ -591,7 +592,7 @@ export class SonarFactorBuilderComponent {
         const existing = (src.relationshipPath ?? "").trim();
         if (existing && existing !== "[]") return null; // already has an explicit path
         const md = new Metadata();
-        const business = md.Entities.filter((e) => !e.SchemaName?.startsWith("__mj"));
+        const business = md.Entities.filter((e) => IsBusinessEntity(e));
         const nameOf = (id: string): string => md.Entities.find((e) => e.ID === id)?.Name ?? id;
         const paths = candidatePaths(business, anchorId, src.relatedEntityID);
         if (paths.length < 2) return null; // unique or unreachable → no tie to resolve

@@ -2,6 +2,7 @@ import { Component, computed, inject, output, signal } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { reachableFromAnchor } from "../../../../core/entity-graph";
+import { IsBusinessEntity } from "../../../../core/entity-scope";
 
 /** An MJ entity the user can pick as the anchor or a data source. */
 interface EntityOption { id: string; name: string; }
@@ -38,10 +39,8 @@ export class SonarModelSetupComponent {
     public readonly saving = signal(false);
     public readonly error = signal<string | null>(null);
 
-    /** Business entities only (MJ `__mj*` system/infra tables excluded from both pickers). */
-    private readonly businessEntities = new Metadata().Entities.filter(
-        (e) => !e.SchemaName?.startsWith("__mj"),
-    );
+    /** Business entities only (MJ core + Sonar's own config schema excluded from both pickers). */
+    private readonly businessEntities = new Metadata().Entities.filter((e) => IsBusinessEntity(e));
 
     /** Anchor picker: any business entity (reachability is measured FROM the anchor, so it isn't filtered). */
     public readonly anchorOptions: EntityOption[] = this.businessEntities
