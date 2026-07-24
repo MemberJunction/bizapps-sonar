@@ -18,7 +18,9 @@
   "author": "MemberJunction.com",
   "license": "ISC",
   "dependencies": {
-    "@mj-biz-apps/sonar-entities": "0.4.0"
+    "@mj-biz-apps/sonar-entities": "0.4.0",
+    "apexcharts": "^5.16.0",
+    "ng-apexcharts": "^2.4.0"
   },
   "peerDependencies": {
     "@angular/animations": ">=21.0.0 <22.0.0",
