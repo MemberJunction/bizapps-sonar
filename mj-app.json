@@ -30,6 +30,10 @@
         "name": "@mj-biz-apps/sonar-server",
         "role": "bootstrap",
         "startupExport": "LoadSonarServer"
+      },
+      {
+        "name": "@mj-biz-apps/sonar-actions",
+        "role": "actions"
       }
     ],
     "client": [
@@ -42,10 +46,6 @@
     "shared": [
       {
         "name": "@mj-biz-apps/sonar-entities",
-        "role": "library"
-      },
-      {
-        "name": "@mj-biz-apps/sonar-actions",
         "role": "library"
       }
     ]
