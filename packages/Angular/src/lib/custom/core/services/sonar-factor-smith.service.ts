@@ -5,6 +5,7 @@ import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 import { extractActionResult } from "./action-result.util";
+import { IsBusinessEntity } from "../entity-scope";
 
 /** ActionSmith — the agent every factor job runs as. */
 const ACTIONSMITH_AGENT_ID = "AF804075-E543-46E5-8D8F-2A0B8094628C";
@@ -432,7 +433,7 @@ export class SonarFactorSmithService {
     private relatedSources(md: Metadata, anchorEntityID: string): { entityName: string; viaField: string; columns: string[] }[] {
         const sources: { entityName: string; viaField: string; columns: string[] }[] = [];
         for (const entity of md.Entities) {
-            if (entity.ID === anchorEntityID || (entity.SchemaName ?? "").startsWith("__mj")) continue;
+            if (entity.ID === anchorEntityID || !IsBusinessEntity(entity)) continue;
             const link = entity.Fields.find((f) => f.RelatedEntityID === anchorEntityID);
             if (!link) continue;
             sources.push({ entityName: entity.Name, viaField: link.Name, columns: this.columnNames(entity) });

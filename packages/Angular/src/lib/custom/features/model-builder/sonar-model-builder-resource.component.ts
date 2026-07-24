@@ -11,6 +11,7 @@ import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath } from "../../core/entity-graph";
+import { IsBusinessEntity } from "../../core/entity-scope";
 import { ToastService } from "../../core/services/toast.service";
 import { bandKey, bandKeyFromSeverity, BandKey } from "../../core/services/score-read.service";
 import { TabConfig } from "@memberjunction/ng-ui-components";
@@ -133,9 +134,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public readonly availableEntities = computed<EntityOption[]>(() => {
         const wired = new Set(this.factorSources().map((s) => s.relatedEntityID));
         const anchorId = this.selectedModel()?.AnchorEntityID ?? null;
-        const business = new Metadata().Entities.filter(
-            (e) => !e.SchemaName?.startsWith("__mj"),
-        );
+        const business = new Metadata().Entities.filter((e) => IsBusinessEntity(e));
         // Include every entity the engine can reach by ≥1 FK route. count===1 → auto-resolves;
         // count>1 → ambiguous (flagged), so adding it opens the tie chooser instead of failing.
         // The anchor seeds the BFS at count 1, so it survives the filter — kept on purpose (zero-hop
@@ -905,7 +904,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
     /** Build the path options for an ambiguous source and open the picker. */
     private openSourceTie(entityId: string, anchorEntityId: string): void {
-        const business = new Metadata().Entities.filter((e) => !e.SchemaName?.startsWith("__mj"));
+        const business = new Metadata().Entities.filter((e) => IsBusinessEntity(e));
         const nameOf = (id: string): string => business.find((e) => e.ID === id)?.Name ?? id;
         const options = candidatePaths(business, anchorEntityId, entityId)
             .map((p) => ({ label: describePath(p, nameOf), relationshipPath: toRelationshipPath(p) }));
