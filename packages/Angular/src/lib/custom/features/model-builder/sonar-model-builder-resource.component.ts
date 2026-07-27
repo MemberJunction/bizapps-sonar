@@ -280,9 +280,13 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     // filter is persisted to the model and applied by the engine when it resolves the population
     // (RecomputeOrchestrator.compilePopulationFilter).
 
-    /** True when this model scores a filtered subset rather than the whole anchor entity. Drives the
-     *  header wording so `population()` (a whole-entity count) is never read as the scored scope. */
-    public readonly populationIsFiltered = computed(() => !this.scoreEveryone());
+    /** Anchor records in the whole entity, when a filter narrows the scope — so the header can read
+     *  "66 of 2,000 in population". Null when unfiltered (then `population()` IS the total). */
+    public readonly populationTotal = signal<number | null>(null);
+
+    /** True when this model scores a filtered subset rather than the whole anchor entity. Comes from
+     *  the engine's own count, not from the toggle, so it reflects what is actually PERSISTED. */
+    public readonly populationIsFiltered = computed(() => this.populationTotal() !== null);
 
     /** Fields the user can filter the anchor population on — the anchor entity's real columns
      *  (rebuilt in loadModelContext from the selected model's anchor). */
@@ -412,6 +416,29 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
         this.persistedPopulationFilter = json;
         this.bus.publish({ topic: "config", modelId });
+        // The scope just changed — re-ask the engine how many records are actually in it.
+        await this.refreshPopulationCount(modelId);
+    }
+
+    /**
+     * Ask the engine for the model's real scored scope and put it in the header.
+     *
+     * Goes through the "Sonar: Count Population" Action because the population filter is compiled to
+     * SQL server-side (RecomputeOrchestrator.compilePopulationFilter); counting it in the browser would
+     * duplicate that compiler. Two `count_only` reads, so this is cheap enough to run on every save.
+     *
+     * On failure the counts are cleared rather than left stale — a wrong number here is what caused
+     * the original complaint (a flat "2,000 in population" for a model scoping 66).
+     */
+    private async refreshPopulationCount(modelId: string): Promise<void> {
+        const count = await this.engine.countPopulation(modelId);
+        if (count.errors.length > 0) {
+            this.population.set(null);
+            this.populationTotal.set(null);
+            return;
+        }
+        this.population.set(count.scoped);
+        this.populationTotal.set(count.filtered ? count.total : null);
     }
 
     /** Event handler for selecting a data source from the combobox to instantly map it. */
@@ -1105,6 +1132,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.rubric.set([]);
             this.anchorName.set("—");
             this.population.set(null);
+            this.populationTotal.set(null);
             this.populationFilterFields = [];
             this.populationFilter = createEmptyFilter();
             this.authoredPopulationFilter = this.populationFilter;
@@ -1132,17 +1160,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.populationIncomplete.set(false);
         this.scoreEveryone.set(this.populationFilter.filters.length === 0);
 
-        // Total anchor records. NOTE: this is the WHOLE entity, not the filtered scope — the filter is
-        // compiled to SQL server-side (RecomputeOrchestrator.compilePopulationFilter) and duplicating
-        // that compiler in the browser would be both a DRY break and an injection surface. So when a
-        // filter is set we label this as a subset rather than print it as if it were the scope (it
-        // previously read a flat "2,000 in population" while the real scope was 66). The exact scoped
-        // count needs a cheap server-side count entry point; tracked as follow-up.
+        // The REAL scored scope, with the population filter applied, from the engine (which owns the
+        // filter→SQL compiler). This used to be a bare whole-entity count_only printed as the scope,
+        // so a model narrowed to 66 members still read "2,000 in population".
         this.population.set(null);
-        if (anchor) {
-            const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
-            this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
-        }
+        this.populationTotal.set(null);
+        await this.refreshPopulationCount(model.ID);
 
         // Data sources wired into the model (shaped for both the info card and the factor picker).
         const sources = await this.modelService.dataSources(model.ID);
