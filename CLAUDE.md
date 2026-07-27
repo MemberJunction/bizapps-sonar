@@ -9,24 +9,6 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 
 ## Repository Structure
 
-```
-bizapps-sonar/
-  mj-app.json          - MJ Open App manifest (schema __mj_BizAppsSonar, packages, startup exports)
-  mj.config.cjs        - CodeGen configuration (entity name prefix 'Sonar: ')
-  migrations/          - Skyway SQL migrations for the __mj_BizAppsSonar schema
-  metadata/            - mj-sync metadata (schema-info, entities; later: agents, actions, templates)
-  plans/               - Product plan, data model design, and UI mockups
-  apps/
-    MJAPI/             - GraphQL API server (port 4102)
-    MJExplorer/        - Angular UI application (port 4302)
-  packages/
-    Entities/          - @mj-biz-apps/sonar-entities (CodeGen-generated entity subclasses)
-    CoreEntitiesServer/- @mj-biz-apps/sonar-core-entities-server (server-side entity lifecycle hooks)
-    Actions/           - @mj-biz-apps/sonar-actions (CodeGen-generated action subclasses)
-    Server/            - @mj-biz-apps/sonar-server (server bootstrap + GraphQL resolvers)
-    Angular/           - @mj-biz-apps/sonar-ng (Angular bootstrap + form components)
-```
-
 Future packages (per plan §4.5): `sonar-engine` (ScoringEngine, FactorCompiler, RecomputeOrchestrator), `sonar-writeback`, `sonar-calibration`, and surface-specific `sonar-ng-*` packages.
 
 ---
@@ -135,13 +117,7 @@ This repo uses a two-tier branching model (matching bizapps-common, BCSaaS, and 
 ---
 
 ## Build Commands
-- Build all packages: `npm run build` (from repo root, uses Turborepo)
-- Build generated packages: `npm run build:generated`
-- Build API only: `npm run build:api`
-- Build Explorer only: `npm run build:explorer`
-- Start API server: `npm run start:api` (port 4102)
-- Start Explorer UI: `npm run start:explorer` (port 4302)
-- Build specific package: `cd packages/PackageName && npm run build`
+See `package.json` scripts for the full list (root builds run through Turborepo).
 - **IMPORTANT**: When building individual packages for testing/compilation, always use `npm run build` in the specific package directory
 
 ### Build Pipeline
@@ -346,11 +322,7 @@ This repo uses MemberJunction's CodeGen system to generate entity and action sub
 
 ## Debugging
 
-### VSCode Launch Configurations
-- **MJAPI**: Node.js debugger with source maps for local packages
-- **MJExplorer**: Chrome debugger (port 4302) with source maps
-- **MJExplorer (attach)**: Attach to existing Chrome on port 9222
-- **Full Stack**: Compound configuration running both MJAPI + MJExplorer
+Launch configurations live in `.vscode/launch.json` (MJAPI, MJExplorer, attach, and a Full Stack compound).
 
 ### Source Map Scoping
 Source maps are scoped to local packages only (`apps/MJAPI/**`, `packages/Entities/**`, `packages/Actions/**`, `packages/Server/**`, `packages/Angular/**`). Third-party packages and node_modules are excluded to avoid noise.
@@ -381,7 +353,5 @@ Source maps are scoped to local packages only (`apps/MJAPI/**`, `packages/Entiti
 - See "Branching Model" section above for the full flow.
 
 ## Purpose
-
-Sonar is a standalone product (working title) built as an MJ Open App. It scores engagement for **any anchor entity** on the MemberJunction graph — members, donors, volunteers, learners, chapters — using operator-authored models whose configuration lives entirely in the `__mj_BizAppsSonar` schema. Scores are explainable by construction (weighted sums of named factor contributions), tracked over time, written back to source systems, and acted on through MJ Actions with holdout-measured lift.
 
 See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.
