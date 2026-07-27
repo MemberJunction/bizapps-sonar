@@ -16,7 +16,7 @@ const ON_ENTER_CAP = 200;
 interface WatchingIntervention {
     interventionId: string;
     name: string;
-    kind: "Action" | "TrackOnly";
+    kind: "Action" | "TrackOnly" | "BulkSync";
     holdoutPercent: number;
     actionId: string | null;
     /** The play's configured params (from Intervention.ActionParamsJSON) — `{{member}}` tokens are
@@ -149,7 +149,7 @@ export class TransitionInterventionDispatcher {
             return {
                 interventionId: i.ID,
                 name: i.Name,
-                kind: i.Kind === "TrackOnly" ? "TrackOnly" : "Action",
+                kind: i.Kind === "TrackOnly" || i.Kind === "BulkSync" ? i.Kind : "Action",
                 holdoutPercent: i.ControlGroupPercent ?? 0,
                 actionId: i.ActionID,
                 actionParams: this.parseParams(i.ActionParamsJSON),
@@ -220,7 +220,7 @@ export class TransitionInterventionDispatcher {
                 holdoutPercent: w.holdoutPercent,
                 kind: w.kind,
                 // TrackOnly watchers auto-assign on entry but fire nothing; Action watchers fire the play.
-                action: w.kind === "Action" && w.actionId ? { actionId: w.actionId, params: w.actionParams } : undefined,
+                action: w.kind !== "TrackOnly" && w.actionId ? { actionId: w.actionId, params: w.actionParams } : undefined,
                 cap: ON_ENTER_CAP,
                 preview: false,
                 onlyAnchorIds: entrants ?? undefined,

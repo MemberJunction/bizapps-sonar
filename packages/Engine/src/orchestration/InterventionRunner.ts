@@ -23,11 +23,13 @@ export interface InterventionRunRequest {
     modelId: string;
     segmentFilter: SegmentFilter;
     holdoutPercent: number;
-    /** Execution kind. 'Action' fires the play per treated member; 'TrackOnly' writes the
-     *  treatment/control split and fires NOTHING (the treatment happens in the real world; Sonar
-     *  only measures). Defaults to 'Action' when omitted. */
-    kind?: "Action" | "TrackOnly";
-    /** The play to fire — required for kind 'Action', ignored for 'TrackOnly'. */
+    /** Execution kind. 'Action' fires the play once PER TREATED MEMBER; 'BulkSync' fires the play
+     *  ONCE for the whole treated cohort (the play receives the batch — e.g. sync it to an MJ List
+     *  or push it to an external system); 'TrackOnly' writes the treatment/control split and fires
+     *  NOTHING (the treatment happens in the real world; Sonar only measures). Defaults to 'Action'
+     *  when omitted. */
+    kind?: "Action" | "TrackOnly" | "BulkSync";
+    /** The play to fire — required for 'Action' and 'BulkSync', ignored for 'TrackOnly'. */
     action?: InterventionActionConfig;
     cap: number;
     preview: boolean;
@@ -150,6 +152,10 @@ export class InterventionRunner {
             return base;
         }
 
+        if (req.kind === "BulkSync") {
+            return this.commitBulkSync(req, plan.assignments, base, contextUser);
+        }
+
         let sent = 0;
         let failed = 0;
         for (const { member, cohort } of plan.assignments) {
@@ -164,6 +170,61 @@ export class InterventionRunner {
             await this.writeAssignment(req.interventionId, member, cohort, deliveryStatus, contextUser);
         }
         return { ...base, sent, failed };
+    }
+
+    /**
+     * Commit a BulkSync run: ONE play invocation carrying the whole TREATED cohort, then the
+     * assignment rows. Two deliberate asymmetries vs the per-member 'Action' path:
+     *
+     *  - Control members are NEVER in the payload. The play hands the cohort to whatever acts on it
+     *    (an MJ List a staffer works, an external sync) — leaking the held-back members there would
+     *    contaminate the comparison group and void the lift measurement.
+     *  - A failed batch writes NO assignments. Per-member fires record Failed per member because the
+     *    other sends already happened; here the single call failing means NOTHING happened, so
+     *    burning idempotency on it would strand the whole cohort un-retryable. No rows → the next
+     *    commit retries cleanly.
+     */
+    private async commitBulkSync(
+        req: InterventionRunRequest,
+        assignments: { member: SegmentMember; cohort: Cohort }[],
+        base: InterventionRunResult,
+        contextUser: UserInfo,
+    ): Promise<InterventionRunResult> {
+        const treated = assignments.filter((a) => a.cohort === "Treatment").map((a) => a.member);
+        // Nothing to sync (everyone already assigned or held) — succeed as a no-op, write the split.
+        let synced = treated.length === 0;
+        if (!synced && req.action) {
+            if (!this.invoker) {
+                throw new Error("InterventionRunner: no action invoker configured — cannot fire interventions.");
+            }
+            const payload = treated.map((m) => ({
+                anchorRecordId: m.anchorRecordId,
+                anchorRecordKeyJSON: m.anchorRecordKeyJSON,
+                score: m.normalizedScore,
+                bandId: m.bandId,
+            }));
+            // The batch params are RUNNER-OWNED: any same-named value in the operator's config is
+            // dropped, so a play can never receive a spoofed cohort or a mismatched intervention id.
+            const reserved = new Set(["CohortJSON", "ModelID", "InterventionID"]);
+            const params = [
+                ...req.action.params.filter((p) => !reserved.has(p.name)),
+                { name: "CohortJSON", value: JSON.stringify(payload) },
+                { name: "ModelID", value: req.modelId },
+                { name: "InterventionID", value: req.interventionId },
+            ];
+            try {
+                synced = (await this.invoker(req.action.actionId, params, contextUser)).success;
+            } catch {
+                synced = false;
+            }
+        }
+        if (!synced) {
+            return { ...base, failed: base.treated };
+        }
+        for (const { member, cohort } of assignments) {
+            await this.writeAssignment(req.interventionId, member, cohort, cohort === "Treatment" ? "Sent" : null, contextUser);
+        }
+        return { ...base, sent: base.treated };
     }
 
     /** Fire the action for one treated member (token-filled params); a throw/failure → false, never

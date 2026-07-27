@@ -109,11 +109,15 @@
                                         <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'Action'" (click)="setLaunchKind('Action')">
                                             <i class="fa-solid fa-bolt"></i> Fire a play
                                         </button>
+                                        <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'BulkSync'" (click)="setLaunchKind('BulkSync')">
+                                            <i class="fa-solid fa-arrow-right-arrow-left"></i> Sync cohort
+                                        </button>
                                         <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'TrackOnly'" (click)="setLaunchKind('TrackOnly')">
                                             <i class="fa-solid fa-flask"></i> Track only
                                         </button>
                                         <span class="sonar-faint sonar-launch__kindhint">
                                             @if (launchKind() === 'TrackOnly') { The treatment happens elsewhere — Sonar just holds out a control and measures the lift. }
+                                            @else if (launchKind() === 'BulkSync') { Hands the treated cohort to the chosen play in ONE batch (e.g. onto an MJ List); control never leaves Sonar. }
                                             @else { Fires the chosen play for each treated member; control is held out. }
                                         </span>
                                     </div>
@@ -122,7 +126,7 @@
                                             <span class="sonar-launch__label">Name</span>
                                             <input class="sonar-input" type="text" [value]="launchName()" (input)="setLaunchName($any($event.target).value)" aria-label="Intervention name" />
                                         </label>
-                                        @if (launchKind() === 'Action') {
+                                        @if (launchKind() !== 'TrackOnly') {
                                             <label class="sonar-launch__field">
                                                 <span class="sonar-launch__label">Play (MJ Action)</span>
                                                 <select class="sonar-input" [value]="launchActionId() ?? ''" (change)="setLaunchAction($any($event.target).value)" aria-label="Action to fire">
@@ -141,16 +145,16 @@
                                         </label>
                                     </div>
                                     <div class="sonar-launch__foot">
-                                        <button class="sonar-btn" [disabled]="(launchKind() === 'Action' && !launchActionId()) || launchBusy() !== null" (click)="previewLaunch()">
+                                        <button class="sonar-btn" [disabled]="(launchKind() !== 'TrackOnly' && !launchActionId()) || launchBusy() !== null" (click)="previewLaunch()">
                                             @if (launchBusy() === 'preview') { <i class="fa-solid fa-circle-notch fa-spin"></i> Previewing… } @else { <i class="fa-solid fa-eye"></i> Preview }
                                         </button>
                                         <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchPreview()?.playApproved === false || launchBusy() !== null" (click)="commitLaunch()"
-                                                [title]="launchPreview() ? 'Write assignments' + (launchKind() === 'Action' ? ' and fire the play for the treatment group' : ' (track only — nothing fires)') : 'Preview first — nothing launches unseen'">
+                                                [title]="launchPreview() ? 'Write assignments' + (launchKind() === 'Action' ? ' and fire the play for the treatment group' : launchKind() === 'BulkSync' ? ' and sync the treated cohort in one batch' : ' (track only — nothing fires)') : 'Preview first — nothing launches unseen'">
                                             @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> {{ launchKind() === 'TrackOnly' ? 'Start tracking' : 'Launch' }} }
                                         </button>
                                         @if (launchPreview(); as p) {
                                             <span class="sonar-launch__counts">
-                                                Would {{ launchKind() === 'TrackOnly' ? 'track' : 'treat' }} <strong class="sonar-mono">{{ p.treated }}</strong> · hold <strong class="sonar-mono">{{ p.held }}</strong>
+                                                Would {{ launchKind() === 'TrackOnly' ? 'track' : launchKind() === 'BulkSync' ? 'sync' : 'treat' }} <strong class="sonar-mono">{{ p.treated }}</strong> · hold <strong class="sonar-mono">{{ p.held }}</strong>
                                                 @if (p.alreadyAssigned) { · {{ p.alreadyAssigned }} already assigned }
                                                 @if (p.capped) { · capped at {{ launchCap() }} of {{ p.eligible }} eligible }
                                             </span>
@@ -159,6 +163,7 @@
                                             <span class="sonar-launch__counts sonar-launch__counts--done">
                                                 <i class="fa-solid fa-circle-check sonar-pos"></i>
                                                 @if (launchKind() === 'TrackOnly') { Tracking {{ d.treated }} · holding {{ d.held }}. }
+                                                @else if (launchKind() === 'BulkSync') { Synced {{ d.sent }} · held {{ d.held }}@if (d.failed) { · <span class="sonar-neg">{{ d.failed }} not synced</span> }. }
                                                 @else { Fired {{ d.sent }} · held {{ d.held }}@if (d.failed) { · <span class="sonar-neg">{{ d.failed }} failed</span> }. }
                                                 Shown under <button type="button" class="sonar-launch__link" (click)="showInterventions()">Interventions</button>.
                                             </span>
@@ -487,6 +492,7 @@
                                                     <td class="sonar-iv-table__name">
                                                         {{ iv.name }}
                                                         @if (iv.kind === 'TrackOnly') { <span class="sonar-chip sonar-chip--small" title="Track only — no play fires; Sonar measures a real-world treatment">track-only</span> }
+                                                        @if (iv.kind === 'BulkSync') { <span class="sonar-chip sonar-chip--small" title="Bulk sync — the treated cohort was handed to the play in one batch (e.g. onto an MJ List)">synced</span> }
                                                     </td>
                                                     <td class="sonar-faint">{{ iv.segmentName }}</td>
                                                     <td><span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span></td>

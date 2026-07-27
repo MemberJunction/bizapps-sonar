@@ -2980,5 +2980,128 @@
         }
       ]
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Sync Cohort To List",
+      "Description": "Bulk play (Kind=BulkSync): fires once per run and lands the whole treated cohort on an MJ List, with each member's score/band/intervention in ListDetail.AdditionalData. Staff work the list in the Lists app (row status), share it, or bind a connector to it. Control members are never included. Idempotent per member — re-runs only append new names.",
+      "DriverClass": "SonarSyncCohortToList",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-list-ul",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Sonar Plays"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001E-4000-8000-00000000001E"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "CohortJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "Runner-injected: JSON array of the TREATED members ({ anchorRecordId, anchorRecordKeyJSON, score, bandId }). Never includes control members."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "Runner-injected: the Score Model whose anchor entity types the list."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Runner-injected: names the default list (\"Sonar: <intervention name>\") and rides in each row's AdditionalData."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ListName",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional operator override for the target list's name. The list is found-or-created by name, so re-using a name appends to that list."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { listId, listName, added, alreadyOnList }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Cohort synced (or already fully on the list)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "CohortJSON/ModelID missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The list write failed (fully or partially) — the run reports failure so a retry re-syncs; already-synced members are skipped."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
   }
 ]

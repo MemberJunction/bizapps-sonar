@@ -89,8 +89,9 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly liftById = signal<Map<string, MeasureResult>>(new Map());
     public readonly measuringId = signal<string | null>(null);
     public readonly measureError = signal<string | null>(null);
-    /** Launch kind: fire a play per member, or just track a real-world treatment + measure. */
-    public readonly launchKind = signal<"Action" | "TrackOnly">("Action");
+    /** Launch kind: fire a play per member, sync the treated cohort somewhere once (BulkSync),
+     *  or just track a real-world treatment + measure. */
+    public readonly launchKind = signal<"Action" | "TrackOnly" | "BulkSync">("Action");
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -335,13 +336,13 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     }
 
     /** Build the ConfigJSON payload from the active cohort source (triage filter or mover segment).
-     *  Action kind needs a play picked; TrackOnly fires nothing so needs no play. */
+     *  Action and BulkSync need a play picked; TrackOnly fires nothing so needs no play. */
     private launchConfig(preview: boolean): LaunchConfig | null {
         const modelId = this.current.modelId();
         if (!modelId) return null;
         const kind = this.launchKind();
         const actionId = this.launchActionId();
-        if (kind === "Action" && !actionId) return null;
+        if (kind !== "TrackOnly" && !actionId) return null;
         const band = this.selectedBand();
         const filter = this.launchMode() === "movers"
             ? this.launchMoverFilter()
@@ -351,14 +352,14 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             kind,
             segment: { name: this.launchName().trim() || this.defaultLaunchName(), filter },
             intervention: { name: this.launchName().trim() || this.defaultLaunchName(), holdoutPercent: this.launchHoldout() },
-            action: kind === "Action" && actionId ? { actionId, params: [] } : null,
+            action: kind !== "TrackOnly" && actionId ? { actionId, params: [] } : null,
             cap: this.launchCap(),
             preview,
         };
     }
 
     /** Kind toggle: TrackOnly clears any picked play (it fires nothing); resets the preview. */
-    public setLaunchKind(kind: "Action" | "TrackOnly"): void {
+    public setLaunchKind(kind: "Action" | "TrackOnly" | "BulkSync"): void {
         this.launchKind.set(kind);
         if (kind === "TrackOnly") this.launchActionId.set(null);
         this.launchPreview.set(null);

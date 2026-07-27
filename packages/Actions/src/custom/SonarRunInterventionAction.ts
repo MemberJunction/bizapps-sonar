@@ -20,11 +20,12 @@ const INTERVENTION_ENTITY = "MJ_BizApps_Sonar: Interventions";
 /** The on-the-fly run payload the Engagement Manager sends (one ConfigJSON input param). */
 interface RunInterventionConfig {
     modelId: string;
-    /** 'Action' fires a play per treated member; 'TrackOnly' just splits + measures (no play). */
-    kind: "Action" | "TrackOnly";
+    /** 'Action' fires a play per treated member; 'BulkSync' fires the play ONCE with the whole
+     *  treated cohort (e.g. sync it to an MJ List); 'TrackOnly' just splits + measures (no play). */
+    kind: "Action" | "TrackOnly" | "BulkSync";
     segment: { name: string; filter: SegmentFilter };
     intervention: { name: string; holdoutPercent: number };
-    /** Required for kind 'Action'; omitted/ignored for 'TrackOnly'. */
+    /** Required for 'Action' and 'BulkSync'; omitted/ignored for 'TrackOnly'. */
     action: { actionId: string; params: { name: string; value: string }[] } | null;
     cap: number;
     preview: boolean;
@@ -84,12 +85,16 @@ export class SonarRunInterventionAction extends SonarActionBase {
                     "This play isn't cleared to fire: a generated (Runtime) action must be human-Approved (CodeApprovalStatus) first. Nothing was written or fired.",
                 );
             }
+            // Verb per kind, so the message never overstates what happened (a sync isn't a "send",
+            // and TrackOnly touches nobody).
+            const verb = cfg.kind === "BulkSync" ? "sync" : cfg.kind === "TrackOnly" ? "track" : "fire";
+            const done = cfg.kind === "BulkSync" ? "Synced" : cfg.kind === "TrackOnly" ? "Tracking" : "Fired";
             return {
                 Success: true,
                 ResultCode: "SUCCESS",
                 Message: cfg.preview
-                    ? `Preview: would fire ${result.treated} message(s), hold back ${result.held}.${result.playApproved ? "" : " (Play not approved — commit will be blocked.)"}`
-                    : `Fired ${result.sent} message(s), held back ${result.held}, ${result.failed} failed.`,
+                    ? `Preview: would ${verb} ${result.treated} member(s), hold back ${result.held}.${result.playApproved ? "" : " (Play not approved — commit will be blocked.)"}`
+                    : `${done} ${cfg.kind === "TrackOnly" ? result.treated : result.sent} member(s), held back ${result.held}, ${result.failed} failed.`,
                 Params: [...params.Params, { Name: "Result", Value: JSON.stringify(result), Type: "Both" }],
             };
         } catch (e: unknown) {
@@ -104,13 +109,15 @@ export class SonarRunInterventionAction extends SonarActionBase {
             throw new Error("ConfigJSON must be a JSON object.");
         }
         const c = parsed as Partial<RunInterventionConfig>;
-        const kind: "Action" | "TrackOnly" = c.kind === "TrackOnly" ? "TrackOnly" : "Action";
+        const kind: RunInterventionConfig["kind"] =
+            c.kind === "TrackOnly" || c.kind === "BulkSync" ? c.kind : "Action";
         if (!c.modelId || !c.segment || !c.intervention) {
             throw new Error("ConfigJSON requires modelId, segment, and intervention.");
         }
-        // An Action intervention needs a play; TrackOnly must not carry one (it fires nothing).
-        if (kind === "Action" && !c.action?.actionId) {
-            throw new Error("ConfigJSON with kind 'Action' requires action.actionId.");
+        // Action and BulkSync both need a play (per-member vs one batch call); TrackOnly must not
+        // carry one (it fires nothing).
+        if (kind !== "TrackOnly" && !c.action?.actionId) {
+            throw new Error(`ConfigJSON with kind '${kind}' requires action.actionId.`);
         }
         return {
             modelId: c.modelId,
@@ -120,7 +127,7 @@ export class SonarRunInterventionAction extends SonarActionBase {
                 name: c.intervention.name ?? "Ad-hoc intervention",
                 holdoutPercent: this.clampPercent(c.intervention.holdoutPercent),
             },
-            action: kind === "Action" && c.action ? { actionId: c.action.actionId, params: c.action.params ?? [] } : null,
+            action: kind !== "TrackOnly" && c.action ? { actionId: c.action.actionId, params: c.action.params ?? [] } : null,
             cap: Number.isFinite(c.cap) ? Math.max(0, Number(c.cap)) : 10,
             preview: c.preview === true,
         };
@@ -163,9 +170,13 @@ export class SonarRunInterventionAction extends SonarActionBase {
         contextUser: UserInfo,
     ): Promise<string> {
         const pct = cfg.intervention.holdoutPercent;
-        // Dedup key differs by kind: Action de-dups on segment+action+holdout; TrackOnly has no
-        // action, so it de-dups on segment+holdout among TrackOnly rows.
-        const actionFilter = cfg.kind === "Action" && cfg.action ? `ActionID='${cfg.action.actionId}'` : `Kind='TrackOnly'`;
+        // Dedup key differs by kind: Action/BulkSync de-dup on kind+segment+action+holdout (Kind is
+        // in the key so a per-member play and a batch play bound to the SAME action stay separate
+        // interventions); TrackOnly has no action, so it de-dups on segment+holdout among its kind.
+        const actionFilter =
+            cfg.kind !== "TrackOnly" && cfg.action
+                ? `Kind='${cfg.kind}' AND ActionID='${cfg.action.actionId}'`
+                : `Kind='TrackOnly'`;
         const existing = await new RunView().RunView<{ ID: string }>(
             {
                 EntityName: INTERVENTION_ENTITY,
@@ -186,7 +197,7 @@ export class SonarRunInterventionAction extends SonarActionBase {
         iv.Name = cfg.intervention.name;
         iv.TriggerType = "Manual";
         iv.Kind = cfg.kind;
-        iv.ActionID = cfg.kind === "Action" && cfg.action ? cfg.action.actionId : null;
+        iv.ActionID = cfg.kind !== "TrackOnly" && cfg.action ? cfg.action.actionId : null;
         iv.ControlGroupPercent = pct;
         iv.Status = "Active";
         // Persist the play's params so the intervention is self-contained: a later autonomous fire

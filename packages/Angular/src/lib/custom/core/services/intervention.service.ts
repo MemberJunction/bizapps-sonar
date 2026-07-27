@@ -23,11 +23,12 @@ export interface LaunchSegmentFilter {
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */
 export interface LaunchConfig {
     modelId: string;
-    /** 'Action' fires a play per treated member; 'TrackOnly' just splits + measures (no play). */
-    kind: "Action" | "TrackOnly";
+    /** 'Action' fires a play per treated member; 'BulkSync' fires it ONCE with the whole treated
+     *  cohort (e.g. sync to an MJ List); 'TrackOnly' just splits + measures (no play). */
+    kind: "Action" | "TrackOnly" | "BulkSync";
     segment: { name: string; filter: LaunchSegmentFilter };
     intervention: { name: string; holdoutPercent: number };
-    /** Omitted for TrackOnly. */
+    /** Omitted for TrackOnly; required for Action and BulkSync. */
     action: { actionId: string; params: { name: string; value: string }[] } | null;
     cap: number;
     preview: boolean;
