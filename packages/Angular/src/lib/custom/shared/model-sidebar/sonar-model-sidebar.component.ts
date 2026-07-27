@@ -1,8 +1,9 @@
-import { Component, EventEmitter, Input, OnInit, Output, computed, inject, signal } from "@angular/core";
+import { Component, EventEmitter, Input, OnInit, Output, computed, effect, inject, signal } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
 import { mjBizAppsSonarModelFactorEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 
 /** A model row in the rail (enriched with the context an operator scans for). */
 interface SidebarModel { id: string; name: string; status: string; anchorName: string; signals: number; }
@@ -29,6 +30,24 @@ const STATUS_RANK: Record<string, number> = { Active: 0, Paused: 1, Draft: 2, Ar
 export class SonarModelSidebarComponent implements OnInit {
     private readonly modelService = inject(ScoreModelService);
     private readonly current = inject(CurrentModelService);
+    private readonly bus = inject(SonarDataBusService);
+
+    /**
+     * Keep every rail instance in sync, not just the host that made the change.
+     *
+     * Each surface renders its OWN sidebar instance, but only Model Builder called `refresh()` after a
+     * mutation. So publishing or archiving a model left the Overview and Engagement rails showing the
+     * old Status chip and signal count until their tab was rebuilt. Watching the `models` topic (which
+     * a `config` publish also bumps) fixes that without every host having to remember to call refresh.
+     */
+    private seenModelsRevision: number | null = null;
+    private readonly watchModelList = effect(() => {
+        const revision = this.bus.revision({ topic: "models" });
+        const seen = this.seenModelsRevision;
+        this.seenModelsRevision = revision;
+        if (seen === null || seen === revision) return;
+        void this.refresh();
+    });
 
     /** Whether to show the "+ New" affordance. Only the Model Builder can host the create
      *  flow, so read-only surfaces (Overview, Engagement Manager) pass false. */

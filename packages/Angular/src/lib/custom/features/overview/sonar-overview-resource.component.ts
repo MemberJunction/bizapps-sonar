@@ -9,6 +9,7 @@ import { FactorService } from "../../core/services/factor.service";
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { BandFlow, BandKey, BandSlice, BandTrendPoint, OverviewTrend, ScoreReadService, WindowMover } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 
 /** The hero's three lenses on the same population. Persisted so a user's preferred default sticks. */
 export type HeroView = "insight" | "flow" | "mix";
@@ -77,6 +78,32 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     private readonly bandService = inject(ScoreBandService);
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
+    private readonly bus = inject(SonarDataBusService);
+
+    // ── Cross-surface invalidation ─────────────────────────────────────────────
+    /** Bus revision this surface's contents already reflect, per model. Absent = never shown, so its
+     *  first sighting is not a change (its own load path is handling it). */
+    private readonly seenRevision = new Map<string, number>();
+
+    /** Combined revision of everything that would change what this surface shows for a model. */
+    private busRevision(modelId: string): number {
+        return (
+            this.bus.revision({ topic: "scores", modelId }) +
+            this.bus.revision({ topic: "config", modelId })
+        );
+    }
+
+    /** Re-read when a recompute or config change lands for the model on screen — the whole point of
+     *  the bus. See the Engagement Manager's copy for why the `undefined` guard is there. */
+    private readonly watchInvalidations = effect(() => {
+        const id = this.current.modelId();
+        if (!id) return;
+        const revision = this.busRevision(id);
+        const seen = this.seenRevision.get(id);
+        this.seenRevision.set(id, revision);
+        if (seen === undefined || seen === revision) return;
+        void this.refresh();
+    });
 
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
@@ -468,6 +495,9 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
 
     /** Load the selected model's identity, config counts, and persisted distribution. */
     private async loadModel(id: string): Promise<void> {
+        // Baseline the bus BEFORE any await, so the invalidation effect doesn't treat this load's own
+        // model as a pending change and re-read on top of it.
+        this.seenRevision.set(id, this.busRevision(id));
         this.loadingModel.set(true);
         try {
             const model = await this.modelService.get(id);
