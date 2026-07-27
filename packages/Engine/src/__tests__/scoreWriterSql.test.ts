@@ -33,8 +33,11 @@ describe("sqlLiteral (bulk-write injection guard)", () => {
         expect(sqlLiteral(false)).toBe("0");
     });
 
-    it("renders a Date as a datetime2 literal with no timezone suffix", () => {
+    // The timestamp columns are datetimeoffset(7), so a date literal has to carry its offset. The
+    // old form chopped the 'Z' to suit datetime2, leaving SQL Server to infer the zone for what was
+    // already a UTC instant — the exact inference the datetimeoffset conversion removes.
+    it("renders a Date as an offset-aware datetimeoffset literal", () => {
         const d = new Date(Date.UTC(2026, 6, 13, 17, 42, 6, 70)); // 2026-07-13T17:42:06.070Z
-        expect(sqlLiteral(d)).toBe("'2026-07-13T17:42:06.070'");
+        expect(sqlLiteral(d)).toBe("'2026-07-13T17:42:06.070+00:00'");
     });
 });
