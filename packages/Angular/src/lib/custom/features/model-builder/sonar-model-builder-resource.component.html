@@ -11,15 +11,13 @@
                 <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
                     {{ selectedModel()?.Name || 'Model Builder' }}
                 </h1>
-                <!-- population() counts the WHOLE anchor entity. When a population filter is set, the
-                     scored scope is a subset the engine resolves server-side, so word it as such
-                     rather than printing the entity total as if it were the scope. -->
+                <!-- population() is the REAL scored scope (population filter applied), counted by the
+                     engine. When a filter narrows it, show it against the entity total so the number
+                     can't be misread: "66 of 2,000 in population". -->
                 <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} &middot;
-                    @if (populationIsFiltered()) {
-                        filtered subset of {{ population() === null ? '&mdash;' : (population() | number) }}
-                    } @else {
-                        {{ population() === null ? '&mdash;' : (population() | number) }} in population
-                    }
+                    <span [title]="populationIsFiltered() ? 'Population filter applied — ' + (population() | number) + ' of ' + (populationTotal() | number) + ' records are scored' : 'Every record of the anchor entity is scored'">
+                        {{ population() === null ? '&mdash;' : (population() | number) }}@if (populationIsFiltered()) { of {{ populationTotal() | number }}} in population
+                    </span>
                     &middot; {{ versionLabel() }}</p>
             </div>
         </div>
