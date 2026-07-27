@@ -1,5 +1,24 @@
 # @mj-biz-apps/sonar-ng
 
+## 0.4.1
+
+### Patch Changes
+
+- 81dbe6d: Fix Open App install on a host that doesn't already have Sonar's dependencies.
+
+  - `sonar-ng` imported `ng-apexcharts` (and its `apexcharts` peer) without declaring them, so the Sonar client failed to bundle in Explorer on any host that didn't already have them. Added both to `dependencies`.
+  - `sonar-actions` imported `@memberjunction/ai-agents` and `@memberjunction/ai-core-plus` without declaring them. Added both to `peerDependencies` at `^5.45.0`, matching the other MemberJunction peers.
+  - Declared `vitest` in `sonar-actions` devDependencies — its `test` script already invoked `vitest run` without declaring it.
+  - `mj-app.json`: moved `sonar-actions` from `shared` to the `server` package list (`role: "actions"`). It is a server-only package — nothing in `sonar-ng` imports it — but as `shared` the installer wired it into the client's `dynamicPackages`, pulling server-side code (and its Node built-in imports) into the Explorer browser bundle and breaking the client build with `Could not resolve "stream"`.
+
+- 29c6c1b: Stop the anchor and factor-source pickers from hiding other MJ business apps.
+
+  The pickers filtered entities with a `!SchemaName.startsWith("__mj")` prefix test, which excluded every other MJ business app along with MJ core — anything under `__mj_BizApps*` (Committees, Common, Tasks, …) was silently unselectable as an anchor or a factor source.
+
+  The scoring engine and the agent's entity-discovery actions already scoped correctly, excluding an exact list (`__mj` and Sonar's own `__mj_BizAppsSonar`), so the UI was the only place that over-filtered — despite `Engine/src/metadata/entityScope.ts` existing to keep the two from drifting. All five UI call sites now go through a client-side mirror of that helper (`custom/core/entity-scope.ts`, following the existing `entity-graph.ts` pattern, since the engine package is server-only and can't be imported into the browser bundle).
+
+  - @mj-biz-apps/sonar-entities@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-actions",
   "type": "module",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Generated action subclasses maintained by the CodeGen utility.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,11 +20,12 @@
   "license": "ISC",
   "devDependencies": {
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.1.1"
   },
   "dependencies": {
-    "@mj-biz-apps/sonar-engine": "0.4.0",
-    "@mj-biz-apps/sonar-entities": "0.4.0",
+    "@mj-biz-apps/sonar-engine": "0.4.1",
+    "@mj-biz-apps/sonar-entities": "0.4.1",
     "zod": "~3.24.4"
   },
   "peerDependencies": {
@@ -35,7 +36,9 @@
     "@memberjunction/core-entities": "^5.45.0",
     "@memberjunction/core-entities-server": "^5.45.0",
     "@memberjunction/ai": "^5.45.0",
-    "@memberjunction/aiengine": "^5.45.0"
+    "@memberjunction/aiengine": "^5.45.0",
+    "@memberjunction/ai-agents": "^5.45.0",
+    "@memberjunction/ai-core-plus": "^5.45.0"
   },
   "repository": {
     "type": "git",

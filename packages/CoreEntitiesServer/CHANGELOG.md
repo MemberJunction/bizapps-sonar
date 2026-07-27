@@ -1,5 +1,11 @@
 # @mj-biz-apps/sonar-core-entities-server
 
+## 0.4.1
+
+### Patch Changes
+
+- @mj-biz-apps/sonar-entities@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
