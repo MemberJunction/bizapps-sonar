@@ -99,6 +99,8 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     private themeObserver: MutationObserver | null = null;
 
     public readonly loaded = signal(false);
+    /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
+    public readonly refreshing = signal(false);
     public readonly slots = signal<PortfolioSlot[]>([]);
 
     /** Which Marimekko mode is active: proportional (width = member count) or normalized (equal widths). */
@@ -305,9 +307,41 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     // ── Data loading ───────────────────────────────────────────────────────────
 
-    private async loadPortfolio(): Promise<void> {
+    /**
+     * Re-read every model's slot after a Recompute wrote new scores elsewhere. Resource tabs stay
+     * mounted, so ngOnInit never fires a second time and the portfolio would otherwise show
+     * pre-recompute distributions until a browser reload.
+     *
+     * Preserves the rendered slots while the new reads land, so a refresh doesn't blank every
+     * model to a skeleton and flash the whole Marimekko.
+     */
+    public async refresh(): Promise<void> {
+        if (this.refreshing()) return;
+        this.refreshing.set(true);
+        try {
+            await this.loadPortfolio(true);
+        } finally {
+            this.refreshing.set(false);
+        }
+    }
+
+    /**
+     * Load every model's slot. `preserveExisting` keeps the already-rendered slots on screen while
+     * the fresh reads land (loadSlot replaces each one in place by model ID) — without it a refresh
+     * would blank every slot to its skeleton and flash the whole Marimekko. Models that have no
+     * slot yet are still seeded empty so there's a row for loadSlot to fill.
+     */
+    private async loadPortfolio(preserveExisting = false): Promise<void> {
         const models = await this.modelService.list();
-        this.slots.set(models.map(emptySlot));
+        if (preserveExisting) {
+            const known = new Set(this.slots().map(s => s.model.ID));
+            const added = models.filter(m => !known.has(m.ID)).map(emptySlot);
+            // Drop slots for models that no longer exist, keep the rest, append any new ones.
+            const live = new Set(models.map(m => m.ID));
+            this.slots.update(all => [...all.filter(s => live.has(s.model.ID)), ...added]);
+        } else {
+            this.slots.set(models.map(emptySlot));
+        }
         this.loaded.set(true);
         await Promise.all(models.map(m => this.loadSlot(m)));
     }

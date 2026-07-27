@@ -52,6 +52,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly error = signal<string | null>(null);
     /** The cohort CSV export is in flight (drives the Export button's spinner/disabled state). */
     public readonly exporting = signal(false);
+    /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
+    public readonly refreshing = signal(false);
     /** Fixed placeholder rows for the loading skeleton (mirrors the triage list). */
     public readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -158,6 +160,50 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.rubricNames.set(rubric.map((r) => r.name));
         this.movers.set(movers);
         await this.loadMembers();
+    }
+
+    /**
+     * Re-read everything this surface shows for the current model, KEEPING the operator's place
+     * (band tile, score range, name search, sort, page).
+     *
+     * Why this exists: a Recompute runs in Model Builder and writes new Scores behind this
+     * surface's back. Resource tabs stay mounted, so ngOnInit never fires again and the triage
+     * list happily shows pre-recompute numbers until the browser is reloaded. This is the
+     * operator's pull. (`loadModel` is the wrong tool — it resets every filter, which throws
+     * away the cohort they were working.)
+     *
+     * The selected band is RE-POINTED at the fresh slice with the same bandId rather than kept:
+     * its member count just changed, and the tile renders from the held object.
+     */
+    public async refresh(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id || this.refreshing()) return;
+        this.refreshing.set(true);
+        this.error.set(null);
+        try {
+            const model = await this.modelService.get(id);
+            this.modelName.set(model?.Name ?? "—");
+            this.anchorEntityId.set(model?.AnchorEntityID ?? null);
+            this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
+
+            const [dist, rubric, movers] = await Promise.all([
+                this.scoreRead.distributionForModel(id),
+                this.factorService.rubricForModel(id),
+                this.scoreRead.moversForModel(id),
+            ]);
+            this.tiles.set(dist.slices);
+            this.rubricNames.set(rubric.map((r) => r.name));
+            this.movers.set(movers);
+
+            const band = this.selectedBand();
+            if (band) this.selectedBand.set(dist.slices.find((s) => s.bandId === band.bandId) ?? null);
+
+            await this.loadMembers();
+        } catch {
+            this.error.set("Couldn't refresh. Please try again.");
+        } finally {
+            this.refreshing.set(false);
+        }
     }
 
     /** Show/hide the "movers since last run" panel. */

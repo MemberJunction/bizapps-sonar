@@ -81,6 +81,8 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
     public readonly loadingModel = signal(false);
+    /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
+    public readonly refreshing = signal(false);
     /** The selected model (entity) + its derived context. */
     public readonly model = signal<mjBizAppsSonarScoreModelEntity | null>(null);
     public readonly anchorName = signal("—");
@@ -441,6 +443,27 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     /** The sidebar picked a model — load its dashboard. */
     public async onSelect(id: string): Promise<void> {
         await this.loadModel(id);
+    }
+
+    /**
+     * Re-read the current model's dashboard after a Recompute wrote new scores elsewhere. Resource
+     * tabs stay mounted, so ngOnInit never fires a second time and this surface would otherwise
+     * show pre-recompute numbers until a browser reload.
+     *
+     * Keeps the operator's chosen action-card timeframe: loadModel re-derives it from the model's
+     * TrendWindowDays, which would silently yank the lens they were reading.
+     */
+    public async refresh(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id || this.refreshing()) return;
+        this.refreshing.set(true);
+        const window = this.actionWindow();
+        try {
+            await this.loadModel(id);
+            this.actionWindow.set(window);
+        } finally {
+            this.refreshing.set(false);
+        }
     }
 
     /** Load the selected model's identity, config counts, and persisted distribution. */
