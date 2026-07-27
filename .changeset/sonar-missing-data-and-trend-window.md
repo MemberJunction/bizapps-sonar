@@ -1,6 +1,6 @@
 ---
-"@mj-biz-apps/sonar-ng": patch
-"@mj-biz-apps/sonar-actions": patch
+"@mj-biz-apps/sonar-ng": minor
+"@mj-biz-apps/sonar-actions": minor
 ---
 
 Expose a signal's missing-data policy and a model's change window, which the schema and engine already supported but nothing could set.
