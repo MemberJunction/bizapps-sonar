@@ -434,6 +434,18 @@
                             }
                         </div>
                     </section>
+
+                    <section class="sonar-card">
+                        <div class="sonar-card__label">What if a member has no data for this signal?</div>
+                        <div class="sonar-segmented">
+                            @for (o of missingDataOptions; track o.value) {
+                                <button type="button" class="sonar-segmented__opt"
+                                        [class.sonar-segmented__opt--active]="missingDataPolicy() === o.value"
+                                        (click)="missingDataPolicy.set(o.value)">{{ o.label }}</button>
+                            }
+                        </div>
+                        <p class="sonar-fb__hint">{{ missingDataHint() }}</p>
+                    </section>
                 }
             }
         </div>
@@ -453,6 +465,7 @@
                     }
                     <div class="sonar-fb__sum-row"><span class="sonar-faint">Scale</span><span class="sonar-fb__sum-val">{{ summary().scale }}</span></div>
                     <div class="sonar-fb__sum-row"><span class="sonar-faint">Weight</span><span class="sonar-fb__sum-val">{{ summary().weight }}</span></div>
+                    <div class="sonar-fb__sum-row"><span class="sonar-faint">No data</span><span class="sonar-fb__sum-val">{{ summary().noData }}</span></div>
                     <div class="sonar-fb__sum-row"><span class="sonar-faint">Direction</span><span class="sonar-fb__sum-val">{{ summary().direction }}</span></div>
                 </div>
             </section>

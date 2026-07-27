@@ -2,6 +2,8 @@ import { Component, OnInit, computed, inject, input, output, signal } from "@ang
 import { mjBizAppsSonarScoreBandSetEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreBandService } from "../../../../core/services/score-band.service";
 import { BandKey, bandKey } from "../../../../core/services/score-read.service";
+import { bandsCoverScale } from "../../../../core/band-coverage";
+import { ToastService } from "../../../../core/services/toast.service";
 
 /** One editable band row. `id` is present once the row exists in the DB (drives create vs update). */
 interface ScoreBand {
@@ -31,6 +33,7 @@ interface ScoreBand {
 })
 export class SonarScoreBandBuilderComponent implements OnInit {
     private readonly bandService = inject(ScoreBandService);
+    private readonly toast = inject(ToastService);
 
     /** The model's current band set, or null — when null we load the first existing set to edit. */
     public readonly bandSetId = input<string | null>(null);
@@ -39,8 +42,16 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     /** Emits the band set ID that was saved (so the host can point the model at it). */
     public readonly saved = output<string>();
 
-    public readonly scaleMin = 0;
-    public readonly scaleMax = 100;
+    /**
+     * The score scale the bands have to tile. Supplied by the host from the selected model's
+     * ScoreScaleMin/Max rather than assumed to be 0–100, so a model on a different scale is validated
+     * against its own range. Defaults match the schema defaults.
+     *
+     * Caveat worth knowing: band sets are SHARED across models, so a set used by models with
+     * different scales cannot tile both. This validates against the model you're editing from.
+     */
+    public readonly scaleMin = input(0);
+    public readonly scaleMax = input(100);
 
     /** The blank-slate scaffold a brand-new band set starts from (also the very first default). */
     private static readonly NEW_SET_NAME = "New band set";
@@ -84,7 +95,7 @@ export class SonarScoreBandBuilderComponent implements OnInit {
             const idx = sorted.length <= 1 ? 0 : Math.round((rank / (sorted.length - 1)) * 3);
             return {
                 ...b,
-                widthPct: ((b.max - b.min) / (this.scaleMax - this.scaleMin)) * 100,
+                widthPct: ((b.max - b.min) / (this.scaleMax() - this.scaleMin())) * 100,
                 cssKey: SCALE[Math.min(idx, 3)] as BandKey,
             };
         });
@@ -98,7 +109,7 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     });
 
     /** Marker position (%) for the sample score. */
-    public readonly markerPct = computed(() => (this.sampleScore() / (this.scaleMax - this.scaleMin)) * 100);
+    public readonly markerPct = computed(() => (this.sampleScore() / (this.scaleMax() - this.scaleMin())) * 100);
 
     /** Which band the sample score currently falls in (last band is inclusive of the top). */
     public readonly sampleBand = computed(() => {
@@ -107,13 +118,15 @@ export class SonarScoreBandBuilderComponent implements OnInit {
         return bands.find((b) => s >= b.min && s < b.max) ?? bands[bands.length - 1];
     });
 
-    /** Coverage warning: bands should tile [scaleMin, scaleMax] with no gaps/overlaps. */
-    public readonly coverageOk = computed(() => {
-        const sorted = [...this.bands()].sort((a, b) => a.min - b.min);
-        if (sorted.length === 0) return false;
-        if (sorted[0].min !== this.scaleMin || sorted[sorted.length - 1].max !== this.scaleMax) return false;
-        return sorted.every((b, i) => i === 0 || b.min === sorted[i - 1].max);
-    });
+    /** Coverage warning: bands should tile [scaleMin, scaleMax] with no gaps/overlaps. Shares the
+     *  one definition of that invariant with the rail's inline band editor (band-coverage.ts), which
+     *  auto-closes seams rather than just refusing to save. */
+    public readonly coverageOk = computed(() =>
+        bandsCoverScale(
+            this.bands().map((b, i) => ({ id: `${i}`, min: b.min, max: b.max })),
+            { min: this.scaleMin(), max: this.scaleMax() },
+        ),
+    );
 
     /** Save is allowed once loaded, the bands tile the scale, and we're not mid-save. */
     public readonly canSave = computed(() => this.loaded() && this.coverageOk() && !this.saving());
@@ -185,7 +198,7 @@ export class SonarScoreBandBuilderComponent implements OnInit {
         const maxSeverity = bs.reduce((m, b) => Math.max(m, b.severity), 0);
         this.bands.set([
             ...bs,
-            { label: "New band", min: last ? last.max : this.scaleMin, max: this.scaleMax, severity: maxSeverity + 1, color: "#94A3B8", isTerminal: false },
+            { label: "New band", min: last ? last.max : this.scaleMin(), max: this.scaleMax(), severity: maxSeverity + 1, color: "#94A3B8", isTerminal: false },
         ]);
     }
 
@@ -226,10 +239,23 @@ export class SonarScoreBandBuilderComponent implements OnInit {
                 if (savedBand?.ID) keptIds.push(savedBand.ID);
             }
 
-            // Delete bands that were present at load but removed in the editor.
+            // Delete bands that were present at load but removed in the editor. A delete can genuinely
+            // be refused (Score.BandID has an FK to the band, so any band with computed scores on it is
+            // undeletable), so surface that instead of reporting a clean save — otherwise the editor
+            // claims the band is gone while it's still in the set.
             const removed = this.originalBandIds().filter((id) => !keptIds.includes(id));
-            for (const id of removed) await this.bandService.deleteBand(id);
-            this.originalBandIds.set(keptIds);
+            const survived: string[] = [];
+            let firstError: string | null = null;
+            for (const id of removed) {
+                const res = await this.bandService.deleteBand(id);
+                if (!res.ok) {
+                    survived.push(id);
+                    firstError ??= res.error ?? "A band couldn't be deleted.";
+                }
+            }
+            if (firstError) this.toast.warning(firstError);
+            // Track what's actually in the DB now: the saved rows plus anything that refused to delete.
+            this.originalBandIds.set([...keptIds, ...survived]);
 
             // Refresh the picker so a just-created set (or renamed one) shows up.
             this.allSets.set(await this.bandService.listSets());

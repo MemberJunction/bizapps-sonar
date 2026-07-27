@@ -13,5 +13,6 @@
     "strictTemplates": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "// exclude note": "Tests are vitest-only — keep them out of the ngc build so the published dist doesn't ship test code importing vitest, which isn't a runtime dependency.",
+  "exclude": ["node_modules", "src/**/__tests__/**", "src/**/*.test.ts"]
 }

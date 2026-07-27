@@ -11,6 +11,8 @@ const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
 const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 
 const WEIGHT_MODES = ["Additive", "Penalty"] as const;
+/** The three real missing-data behaviours ('ModelDefault' is a legacy alias the engine reads as Zero). */
+const MISSING_DATA_POLICIES = ["Zero", "NeutralMidpoint", "Exclude"] as const;
 const NORMALIZATIONS = ["MinMax", "Percentile", "ZScore", "None", "Logistic", "Banded", "Lookup"] as const;
 type WeightMode = (typeof WEIGHT_MODES)[number];
 
@@ -118,6 +120,10 @@ export class SonarBindSignalToModelAction extends SonarActionBase {
         mf.FactorID = factorId;
         mf.Weight = this.clampWeight(Number(this.getInput(params, "Weight")));
         mf.WeightMode = "Additive" as WeightMode;
+        // Only set when supplied — an unset column stays at the schema default, which honestly records
+        // "nobody chose" rather than implying a deliberate Zero.
+        const missing = this.asEnum(this.getInput(params, "MissingDataPolicy"), MISSING_DATA_POLICIES);
+        if (missing) mf.MissingDataPolicy = missing;
         if (await mf.Save()) return mf;
         this.saveError = this.errOf(mf);
         return null;

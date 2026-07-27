@@ -335,7 +335,7 @@
   {
     "fields": {
       "Name": "Sonar: List Factor Actions",
-      "Description": "Returns the catalog of factor-actions (MJ Actions following the Sonar factor contract) with each action's self-described contract — what it measures, the entities it reads, its output meaning, and cost profile — plus its configurable params. Backs the Model Builder 'custom signal' picker. Read-only.",
+      "Description": "Returns the catalog of factor-actions (MJ Actions following the Sonar factor contract) with each action's self-described contract \u2014 what it measures, the entities it reads, its output meaning, and cost profile \u2014 plus its configurable params. Backs the Model Builder 'custom signal' picker. Read-only.",
       "DriverClass": "SonarListFactorActions",
       "Type": "Custom",
       "Status": "Active",
@@ -445,7 +445,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": true,
-            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode."
+            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode, missingDataPolicy. missingDataPolicy is Zero|NeutralMidpoint|Exclude and decides what an anchor with NO data for this factor scores on it: Zero counts as zero and still weighs against them, NeutralMidpoint fills the factor's own midpoint so it neither helps nor hurts, Exclude drops it from that anchor's total. Omit it only when you have no view; the default behaves as Zero, which on a sparse source scores every anchor with no rows as the worst possible."
           },
           "primaryKey": {
             "ID": "5044A100-0008-4000-8000-0000000000A2"
@@ -911,7 +911,7 @@
   {
     "fields": {
       "Name": "Sonar: Get Prompt",
-      "Description": "Reads an MJ AIPrompt's editable text (resolved via name → template → active template content) for the factor builder's prompt panel. Returns the text plus the ids the editor needs to save back. Read-only.",
+      "Description": "Reads an MJ AIPrompt's editable text (resolved via name \u2192 template \u2192 active template content) for the factor builder's prompt panel. Returns the text plus the ids the editor needs to save back. Read-only.",
       "DriverClass": "SonarGetPrompt",
       "Type": "Custom",
       "Status": "Active",
@@ -1016,7 +1016,7 @@
   {
     "fields": {
       "Name": "Sonar: Update Prompt",
-      "Description": "Saves edited LLM prompt text from the factor builder onto the AIPrompt's TemplateContent row (by TemplateContentID from Sonar: Get Prompt). NOTE: an AIPrompt is shared — editing affects every factor/use that references it.",
+      "Description": "Saves edited LLM prompt text from the factor builder onto the AIPrompt's TemplateContent row (by TemplateContentID from Sonar: Get Prompt). NOTE: an AIPrompt is shared \u2014 editing affects every factor/use that references it.",
       "DriverClass": "SonarUpdatePrompt",
       "Type": "Custom",
       "Status": "Active",
@@ -1292,7 +1292,7 @@
   {
     "fields": {
       "Name": "Sonar: Build Model",
-      "Description": "Builds a COMPLETE draft model (model + sources + factors + band set) from one spec in a single call — factors reference sources by alias; the action threads the IDs. Use this for building a new model; the granular tools (Create Factor / Add Data Source) are for incremental edits. Draft only.",
+      "Description": "Builds a COMPLETE draft model (model + sources + factors + band set) from one spec in a single call \u2014 factors reference sources by alias; the action threads the IDs. Use this for building a new model; the granular tools (Create Factor / Add Data Source) are for incremental edits. Draft only.",
       "DriverClass": "SonarBuildModel",
       "Type": "Custom",
       "Status": "Active",
@@ -1330,7 +1330,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
-            "Description": "JSON: { modelID, sources:{alias→id}, factors:[id], bandSetAttached }."
+            "Description": "JSON: { modelID, sources:{alias\u2192id}, factors:[id], bandSetAttached }."
           },
           "primaryKey": {
             "ID": "5044A100-000F-4000-8000-0000000000A2"
@@ -1655,7 +1655,7 @@
   {
     "fields": {
       "Name": "Sonar: Author Factor Action",
-      "Description": "The §5 escape hatch: when a signal can't be a declarative factor (streaks, decay, sentiment, cross-source ratios), hands a Sonar factor-action brief + the description to the stock ActionSmith agent and returns the Runtime action it authored (CodeApprovalStatus='Pending', a human approves before it scores). ActionSmith is reused untouched.",
+      "Description": "The \u00a75 escape hatch: when a signal can't be a declarative factor (streaks, decay, sentiment, cross-source ratios), hands a Sonar factor-action brief + the description to the stock ActionSmith agent and returns the Runtime action it authored (CodeApprovalStatus='Pending', a human approves before it scores). ActionSmith is reused untouched.",
       "DriverClass": "SonarAuthorFactorAction",
       "Type": "Custom",
       "Status": "Active",
@@ -1773,7 +1773,7 @@
             "ActionID": "@parent:ID",
             "ResultCode": "ERROR",
             "IsSuccess": false,
-            "Description": "ActionSmith did not complete (or errored) — message carries the reason."
+            "Description": "ActionSmith did not complete (or errored) \u2014 message carries the reason."
           },
           "primaryKey": {
             "ID": "5044A100-0012-4000-8000-0000000000C4"
@@ -1849,7 +1849,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
-            "Description": "JSON: { agentRunId } — poll AIAgentRun for status/result."
+            "Description": "JSON: { agentRunId } \u2014 poll AIAgentRun for status/result."
           },
           "primaryKey": {
             "ID": "5044A100-0013-4000-8000-0000000000A3"
@@ -1931,7 +1931,7 @@
   {
     "fields": {
       "Name": "Sonar: Refine Factor Action",
-      "Description": "AI 'improve this signal' loop behind the Signal Studio: fires ActionSmith with the current code + the reviewer's feedback (async, like the commission flow), then transplants the improved+self-tested code back onto the ORIGINAL signal (→ Pending for re-review) and disables the agent's scratch row. The approval gate is never bypassed.",
+      "Description": "AI 'improve this signal' loop behind the Signal Studio: fires ActionSmith with the current code + the reviewer's feedback (async, like the commission flow), then transplants the improved+self-tested code back onto the ORIGINAL signal (\u2192 Pending for re-review) and disables the agent's scratch row. The approval gate is never bypassed.",
       "DriverClass": "SonarRefineFactorAction",
       "Type": "Custom",
       "Status": "Active",
@@ -1987,7 +1987,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
-            "Description": "JSON: { agentRunId } — poll AIAgentRun for status; the signal updates in place when it completes."
+            "Description": "JSON: { agentRunId } \u2014 poll AIAgentRun for status; the signal updates in place when it completes."
           },
           "primaryKey": {
             "ID": "5044A100-0014-4000-8000-0000000000A3"
@@ -2069,7 +2069,7 @@
   {
     "fields": {
       "Name": "Sonar: Unpublish Model",
-      "Description": "Moves a published model (Active/Paused) back to Draft so it can be edited. SAFE direction only — never publishes or activates. Lets the Authoring Agent unlock a model the user asked to edit instead of dead-ending on the lock.",
+      "Description": "Moves a published model (Active/Paused) back to Draft so it can be edited. SAFE direction only \u2014 never publishes or activates. Lets the Authoring Agent unlock a model the user asked to edit instead of dead-ending on the lock.",
       "DriverClass": "SonarUnpublishModel",
       "Type": "Custom",
       "Status": "Active",
@@ -2297,7 +2297,7 @@
   {
     "fields": {
       "Name": "Sonar: Find Models",
-      "Description": "Resolves a score model by PARTIAL name (and lists existing models) → id/name/status/anchor. Lets the Authoring Agent fuzzy-match a vague model reference and enumerate models, instead of needing a near-exact name for Describe Model. Read-only.",
+      "Description": "Resolves a score model by PARTIAL name (and lists existing models) \u2192 id/name/status/anchor. Lets the Authoring Agent fuzzy-match a vague model reference and enumerate models, instead of needing a near-exact name for Describe Model. Read-only.",
       "DriverClass": "SonarFindModels",
       "Type": "Custom",
       "Status": "Active",
@@ -2543,7 +2543,7 @@
   {
     "fields": {
       "Name": "Sonar: Cancel Factor Job",
-      "Description": "Stops an in-flight ActionSmith run (a commission or refine) from the Signal Studio. Aborts the run's cancellation token when this process owns it (a true cancel — the agent loop stops and a refine never transplants), else flips the AIAgentRun row to Cancelled so it leaves the in-flight feed. Powers the Studio's per-job Cancel button.",
+      "Description": "Stops an in-flight ActionSmith run (a commission or refine) from the Signal Studio. Aborts the run's cancellation token when this process owns it (a true cancel \u2014 the agent loop stops and a refine never transplants), else flips the AIAgentRun row to Cancelled so it leaves the in-flight feed. Powers the Studio's per-job Cancel button.",
       "DriverClass": "SonarCancelFactorJob",
       "Type": "Custom",
       "Status": "Active",
@@ -2648,7 +2648,7 @@
   {
     "fields": {
       "Name": "Sonar: Bind Signal To Model",
-      "Description": "Binds an approved custom signal (a Runtime factor-action) into a Draft model's rubric — creates an ActionBacked Factor pointing at the signal + a Model Factor with a weight. Guards: the model must be Draft and the signal's code must be Approved. Powers the Signal Studio's 'Add to a model'.",
+      "Description": "Binds an approved custom signal (a Runtime factor-action) into a Draft model's rubric \u2014 creates an ActionBacked Factor pointing at the signal + a Model Factor with a weight. Guards: the model must be Draft and the signal's code must be Approved. Powers the Signal Studio's 'Add to a model'.",
       "DriverClass": "SonarBindSignalToModel",
       "Type": "Custom",
       "Status": "Active",
@@ -2708,6 +2708,24 @@
           },
           "primaryKey": {
             "ID": "5044A100-001A-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.626Z",
+            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "MissingDataPolicy",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Zero|NeutralMidpoint|Exclude \u2014 what an anchor with NO data for this signal scores on it. Zero counts as zero and still weighs against them; NeutralMidpoint fills the midpoint so it neither helps nor hurts; Exclude drops it from that anchor's total. Omit to leave the default, which behaves as Zero."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A6"
           },
           "sync": {
             "lastModified": "2026-06-30T15:45:42.626Z",
