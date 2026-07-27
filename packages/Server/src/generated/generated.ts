@@ -910,9 +910,9 @@ export class mjBizAppsSonarIntervention_ {
     @MaxLength(20)
     TriggerType: string;
         
-    @Field() 
+    @Field({nullable: true}) 
     @MaxLength(36)
-    ActionID: string;
+    ActionID?: string;
         
     @Field(() => Float, {nullable: true, description: `Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.`}) 
     ControlGroupPercent?: number;
@@ -930,13 +930,17 @@ export class mjBizAppsSonarIntervention_ {
     @Field() 
     _mj__UpdatedAt: Date;
         
+    @Field({description: `Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.`}) 
+    @MaxLength(20)
+    Kind: string;
+        
     @Field() 
     @MaxLength(200)
     ScoreSegment: string;
         
-    @Field() 
+    @Field({nullable: true}) 
     @MaxLength(425)
-    Action: string;
+    Action?: string;
         
     @Field(() => [mjBizAppsSonarInterventionAssignment_])
     mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments_InterventionIDArray: mjBizAppsSonarInterventionAssignment_[]; // Link to mjBizAppsSonarMJ_BizApps_Sonar_InterventionAssignments
@@ -964,7 +968,7 @@ export class CreatemjBizAppsSonarInterventionInput {
     TriggerType?: string;
 
     @Field({ nullable: true })
-    ActionID?: string;
+    ActionID: string | null;
 
     @Field(() => Float, { nullable: true })
     ControlGroupPercent: number | null;
@@ -974,6 +978,9 @@ export class CreatemjBizAppsSonarInterventionInput {
 
     @Field({ nullable: true })
     ActionParamsJSON: string | null;
+
+    @Field({ nullable: true })
+    Kind?: string;
 
     @Field(() => RestoreContextInput, { nullable: true })
     RestoreContext___?: RestoreContextInput;
@@ -1001,7 +1008,7 @@ export class UpdatemjBizAppsSonarInterventionInput {
     TriggerType?: string;
 
     @Field({ nullable: true })
-    ActionID?: string;
+    ActionID?: string | null;
 
     @Field(() => Float, { nullable: true })
     ControlGroupPercent?: number | null;
@@ -1011,6 +1018,9 @@ export class UpdatemjBizAppsSonarInterventionInput {
 
     @Field({ nullable: true })
     ActionParamsJSON?: string | null;
+
+    @Field({ nullable: true })
+    Kind?: string;
 
     @Field(() => [KeyValuePairInput], { nullable: true })
     OldValues___?: KeyValuePairInput[];

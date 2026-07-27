@@ -16,8 +16,9 @@ const ON_ENTER_CAP = 200;
 interface WatchingIntervention {
     interventionId: string;
     name: string;
+    kind: "Action" | "TrackOnly";
     holdoutPercent: number;
-    actionId: string;
+    actionId: string | null;
     /** The play's configured params (from Intervention.ActionParamsJSON) — `{{member}}` tokens are
      *  filled per fire by the runner. Empty = fire with no params. */
     actionParams: { name: string; value: string }[];
@@ -133,11 +134,11 @@ export class TransitionInterventionDispatcher {
         const segments = segs.Success ? (segs.Results ?? []) : [];
         if (segments.length === 0) return [];
         const idList = segments.map((s) => `'${s.ID}'`).join(",");
-        const ivs = await rv.RunView<{ ID: string; Name: string; ScoreSegmentID: string; ActionID: string; ControlGroupPercent: number | null; ActionParamsJSON: string | null }>(
+        const ivs = await rv.RunView<{ ID: string; Name: string; ScoreSegmentID: string; Kind: string; ActionID: string | null; ControlGroupPercent: number | null; ActionParamsJSON: string | null }>(
             {
                 EntityName: INTERVENTION_ENTITY,
                 ExtraFilter: `ScoreSegmentID IN (${idList}) AND TriggerType='OnEnterSegment' AND Status='Active'`,
-                Fields: ["ID", "Name", "ScoreSegmentID", "ActionID", "ControlGroupPercent", "ActionParamsJSON"],
+                Fields: ["ID", "Name", "ScoreSegmentID", "Kind", "ActionID", "ControlGroupPercent", "ActionParamsJSON"],
                 ResultType: "simple",
             },
             contextUser,
@@ -148,6 +149,7 @@ export class TransitionInterventionDispatcher {
             return {
                 interventionId: i.ID,
                 name: i.Name,
+                kind: i.Kind === "TrackOnly" ? "TrackOnly" : "Action",
                 holdoutPercent: i.ControlGroupPercent ?? 0,
                 actionId: i.ActionID,
                 actionParams: this.parseParams(i.ActionParamsJSON),
@@ -216,7 +218,9 @@ export class TransitionInterventionDispatcher {
                 modelId,
                 segmentFilter: w.segmentFilter,
                 holdoutPercent: w.holdoutPercent,
-                action: { actionId: w.actionId, params: w.actionParams },
+                kind: w.kind,
+                // TrackOnly watchers auto-assign on entry but fire nothing; Action watchers fire the play.
+                action: w.kind === "Action" && w.actionId ? { actionId: w.actionId, params: w.actionParams } : undefined,
                 cap: ON_ENTER_CAP,
                 preview: false,
                 onlyAnchorIds: entrants ?? undefined,

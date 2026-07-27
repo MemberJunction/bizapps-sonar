@@ -411,7 +411,7 @@ export const mjBizAppsSonarInterventionSchema = z.object({
     *   * OnEnterSegment
     *   * Scheduled
         * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.`),
-    ActionID: z.string().describe(`
+    ActionID: z.string().nullable().describe(`
         * * Field Name: ActionID
         * * Display Name: Action ID
         * * SQL Data Type: uniqueidentifier
@@ -447,11 +447,22 @@ export const mjBizAppsSonarInterventionSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    Kind: z.union([z.literal('Action'), z.literal('BulkSync'), z.literal('TrackOnly')]).describe(`
+        * * Field Name: Kind
+        * * Display Name: Kind
+        * * SQL Data Type: nvarchar(20)
+        * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+        * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.`),
     ScoreSegment: z.string().describe(`
         * * Field Name: ScoreSegment
         * * Display Name: Score Segment
         * * SQL Data Type: nvarchar(200)`),
-    Action: z.string().describe(`
+    Action: z.string().nullable().describe(`
         * * Field Name: Action
         * * Display Name: Action
         * * SQL Data Type: nvarchar(425)`),
@@ -2703,10 +2714,10 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)
     */
-    get ActionID(): string {
+    get ActionID(): string | null {
         return this.Get('ActionID');
     }
-    set ActionID(value: string) {
+    set ActionID(value: string | null) {
         this.Set('ActionID', value);
     }
 
@@ -2776,6 +2787,25 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
     }
 
     /**
+    * * Field Name: Kind
+    * * Display Name: Kind
+    * * SQL Data Type: nvarchar(20)
+    * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+    * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.
+    */
+    get Kind(): 'Action' | 'BulkSync' | 'TrackOnly' {
+        return this.Get('Kind');
+    }
+    set Kind(value: 'Action' | 'BulkSync' | 'TrackOnly') {
+        this.Set('Kind', value);
+    }
+
+    /**
     * * Field Name: ScoreSegment
     * * Display Name: Score Segment
     * * SQL Data Type: nvarchar(200)
@@ -2789,7 +2819,7 @@ export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarI
     * * Display Name: Action
     * * SQL Data Type: nvarchar(425)
     */
-    get Action(): string {
+    get Action(): string | null {
         return this.Get('Action');
     }
 }

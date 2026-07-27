@@ -4,8 +4,6 @@ import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
 import { extractActionResult } from "./action-result.util";
 import { sqlString } from "./sql.util";
-import { resolveAnchorName } from "./anchor-name.util";
-import { mjBizAppsSonarInterventionAssignmentEntity } from "@mj-biz-apps/sonar-entities";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
@@ -25,9 +23,12 @@ export interface LaunchSegmentFilter {
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */
 export interface LaunchConfig {
     modelId: string;
+    /** 'Action' fires a play per treated member; 'TrackOnly' just splits + measures (no play). */
+    kind: "Action" | "TrackOnly";
     segment: { name: string; filter: LaunchSegmentFilter };
     intervention: { name: string; holdoutPercent: number };
-    action: { actionId: string; params: { name: string; value: string }[] };
+    /** Omitted for TrackOnly. */
+    action: { actionId: string; params: { name: string; value: string }[] } | null;
     cap: number;
     preview: boolean;
 }
@@ -49,9 +50,6 @@ export interface LaunchResult {
 
 /** An MJ Action the operator can pick as the play (what fires per treated member). */
 export interface FireableAction { id: string; name: string; description: string | null }
-
-/** One treated member on an intervention's follow-up worklist. */
-export interface WorklistMember { assignmentId: string; anchorRecordId: string; name: string; status: string }
 
 /** Treatment-vs-control lift for one intervention (engine's MeasureResult.lift). */
 export interface LiftSummary {
@@ -79,6 +77,7 @@ export interface MeasureResult { measured: number; alreadyMeasured: number; unme
 export interface InterventionSummary {
     id: string;
     name: string;
+    kind: string;
     segmentName: string;
     triggerType: string;
     holdoutPercent: number | null;
@@ -90,7 +89,7 @@ export interface InterventionSummary {
     lastAssignedAt: string | null;
 }
 
-interface InterventionRow { ID: string; Name: string; ScoreSegmentID: string; TriggerType: string; ControlGroupPercent: number | null; Status: string }
+interface InterventionRow { ID: string; Name: string; Kind: string; ScoreSegmentID: string; TriggerType: string; ControlGroupPercent: number | null; Status: string }
 interface SegmentRow { ID: string; Name: string; ScoreModelID: string }
 interface AssignmentRow { InterventionID: string; Cohort: string; ActionDeliveryStatus: string | null; AssignedAt: string }
 interface ActionRow { ID: string; Name: string; Description: string | null }
@@ -143,36 +142,6 @@ export class InterventionService {
         return rows.map((r) => ({ id: r.ID, name: r.Name, description: r.Description }));
     }
 
-    /** The treated members of an intervention — the follow-up worklist. Control is excluded (held out,
-     *  never contacted). Names resolved off the anchor entity so it reads as people, not GUIDs. */
-    public async worklistFor(interventionId: string, anchorEntityId: string | null): Promise<WorklistMember[]> {
-        const res = await new RunView().RunView<{ ID: string; AnchorRecordID: string; ActionDeliveryStatus: string | null }>({
-            EntityName: "MJ_BizApps_Sonar: Intervention Assignments",
-            ExtraFilter: `InterventionID='${sqlString(interventionId)}' AND Cohort='Treatment'`,
-            Fields: ["ID", "AnchorRecordID", "ActionDeliveryStatus"],
-            IgnoreMaxRows: true,
-            ResultType: "simple",
-        });
-        const rows = res.Success ? res.Results ?? [] : [];
-        return Promise.all(
-            rows.map(async (r) => ({
-                assignmentId: r.ID,
-                anchorRecordId: r.AnchorRecordID,
-                name: await resolveAnchorName(anchorEntityId, r.AnchorRecordID),
-                status: r.ActionDeliveryStatus ?? "Sent",
-            })),
-        );
-    }
-
-    /** Update one worklist member's status (Sent → Contacted → Done) as the operator works the list. */
-    public async setWorklistStatus(assignmentId: string, status: string): Promise<{ ok: boolean; error?: string }> {
-        const md = new Metadata();
-        const row = await md.GetEntityObject<mjBizAppsSonarInterventionAssignmentEntity>("MJ_BizApps_Sonar: Intervention Assignments");
-        if (!(await row.Load(assignmentId))) return { ok: false, error: "Assignment not found." };
-        row.ActionDeliveryStatus = status;
-        return (await row.Save()) ? { ok: true } : { ok: false, error: row.LatestResult?.Message || "Save failed." };
-    }
-
     /** All interventions on this model's segments, each with its assignment tallies. */
     public async summaries(modelId: string): Promise<InterventionSummary[]> {
         const segRes = await new RunView().RunView<SegmentRow>({
@@ -190,7 +159,7 @@ export class InterventionService {
             EntityName: "MJ_BizApps_Sonar: Interventions",
             ExtraFilter: `ScoreSegmentID IN (${segList})`,
             OrderBy: "__mj_CreatedAt DESC",
-            Fields: ["ID", "Name", "ScoreSegmentID", "TriggerType", "ControlGroupPercent", "Status"],
+            Fields: ["ID", "Name", "Kind", "ScoreSegmentID", "TriggerType", "ControlGroupPercent", "Status"],
             ResultType: "simple",
         });
         const interventions = ivRes.Success ? ivRes.Results ?? [] : [];
@@ -200,6 +169,7 @@ export class InterventionService {
         return interventions.map((i) => ({
             id: i.ID,
             name: i.Name,
+            kind: i.Kind,
             segmentName: segNames.get(i.ScoreSegmentID) ?? "(segment)",
             triggerType: i.TriggerType,
             holdoutPercent: i.ControlGroupPercent,

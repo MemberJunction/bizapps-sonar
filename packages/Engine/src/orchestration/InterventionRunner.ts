@@ -23,7 +23,12 @@ export interface InterventionRunRequest {
     modelId: string;
     segmentFilter: SegmentFilter;
     holdoutPercent: number;
-    action: InterventionActionConfig;
+    /** Execution kind. 'Action' fires the play per treated member; 'TrackOnly' writes the
+     *  treatment/control split and fires NOTHING (the treatment happens in the real world; Sonar
+     *  only measures). Defaults to 'Action' when omitted. */
+    kind?: "Action" | "TrackOnly";
+    /** The play to fire — required for kind 'Action', ignored for 'TrackOnly'. */
+    action?: InterventionActionConfig;
     cap: number;
     preview: boolean;
     onlyAnchorIds?: ReadonlySet<string>;
@@ -123,7 +128,9 @@ export class InterventionRunner {
         const members = req.onlyAnchorIds ? resolved.filter((m) => req.onlyAnchorIds!.has(m.anchorRecordId)) : resolved;
         const assigned = await this.loadAssignedAnchorIds(req.interventionId, contextUser);
         const plan = planAssignments(members, assigned, req.holdoutPercent, req.cap);
-        const playApproved = await this.isPlayApproved(req.action.actionId, contextUser);
+        // TrackOnly fires nothing, so the play gate is n/a (approved). Action must clear the gate.
+        const trackOnly = req.kind === "TrackOnly";
+        const playApproved = trackOnly ? true : req.action ? await this.isPlayApproved(req.action.actionId, contextUser) : false;
 
         const base: InterventionRunResult = {
             cohortSize: members.length,
@@ -137,8 +144,8 @@ export class InterventionRunner {
             preview: req.preview,
             playApproved,
         };
-        // Preview never writes/fires. And an un-approved play is BLOCKED on commit — write no
-        // assignments, fire nothing (the gate is here so it holds for BOTH manual and autonomous callers).
+        // Preview never writes/fires. An un-approved Action play is BLOCKED on commit — write no
+        // assignments, fire nothing (the gate holds for BOTH manual and autonomous callers).
         if (req.preview || !playApproved) {
             return base;
         }
@@ -147,7 +154,9 @@ export class InterventionRunner {
         let failed = 0;
         for (const { member, cohort } of plan.assignments) {
             let deliveryStatus: string | null = null;
-            if (cohort === "Treatment") {
+            // TrackOnly writes the split but never fires — every member (treatment + control) gets an
+            // assignment with no delivery status; the treatment happened out in the world.
+            if (!trackOnly && cohort === "Treatment" && req.action) {
                 const fired = await this.fire(req.action, member.anchorRecordId, contextUser);
                 deliveryStatus = fired ? "Sent" : "Failed";
                 fired ? sent++ : failed++;

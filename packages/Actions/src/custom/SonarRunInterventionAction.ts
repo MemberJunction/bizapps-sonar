@@ -20,9 +20,12 @@ const INTERVENTION_ENTITY = "MJ_BizApps_Sonar: Interventions";
 /** The on-the-fly run payload the Engagement Manager sends (one ConfigJSON input param). */
 interface RunInterventionConfig {
     modelId: string;
+    /** 'Action' fires a play per treated member; 'TrackOnly' just splits + measures (no play). */
+    kind: "Action" | "TrackOnly";
     segment: { name: string; filter: SegmentFilter };
     intervention: { name: string; holdoutPercent: number };
-    action: { actionId: string; params: { name: string; value: string }[] };
+    /** Required for kind 'Action'; omitted/ignored for 'TrackOnly'. */
+    action: { actionId: string; params: { name: string; value: string }[] } | null;
     cap: number;
     preview: boolean;
 }
@@ -64,7 +67,8 @@ export class SonarRunInterventionAction extends SonarActionBase {
                 modelId: cfg.modelId,
                 segmentFilter: cfg.segment.filter,
                 holdoutPercent: cfg.intervention.holdoutPercent,
-                action: cfg.action,
+                kind: cfg.kind,
+                action: cfg.action ?? undefined,
                 cap: cfg.cap,
                 preview: cfg.preview,
             };
@@ -100,17 +104,23 @@ export class SonarRunInterventionAction extends SonarActionBase {
             throw new Error("ConfigJSON must be a JSON object.");
         }
         const c = parsed as Partial<RunInterventionConfig>;
-        if (!c.modelId || !c.segment || !c.intervention || !c.action?.actionId) {
-            throw new Error("ConfigJSON requires modelId, segment, intervention, and action.actionId.");
+        const kind: "Action" | "TrackOnly" = c.kind === "TrackOnly" ? "TrackOnly" : "Action";
+        if (!c.modelId || !c.segment || !c.intervention) {
+            throw new Error("ConfigJSON requires modelId, segment, and intervention.");
+        }
+        // An Action intervention needs a play; TrackOnly must not carry one (it fires nothing).
+        if (kind === "Action" && !c.action?.actionId) {
+            throw new Error("ConfigJSON with kind 'Action' requires action.actionId.");
         }
         return {
             modelId: c.modelId,
+            kind,
             segment: { name: c.segment.name ?? "Ad-hoc cohort", filter: c.segment.filter ?? {} },
             intervention: {
                 name: c.intervention.name ?? "Ad-hoc intervention",
                 holdoutPercent: this.clampPercent(c.intervention.holdoutPercent),
             },
-            action: { actionId: c.action.actionId, params: c.action.params ?? [] },
+            action: kind === "Action" && c.action ? { actionId: c.action.actionId, params: c.action.params ?? [] } : null,
             cap: Number.isFinite(c.cap) ? Math.max(0, Number(c.cap)) : 10,
             preview: c.preview === true,
         };
@@ -153,10 +163,13 @@ export class SonarRunInterventionAction extends SonarActionBase {
         contextUser: UserInfo,
     ): Promise<string> {
         const pct = cfg.intervention.holdoutPercent;
+        // Dedup key differs by kind: Action de-dups on segment+action+holdout; TrackOnly has no
+        // action, so it de-dups on segment+holdout among TrackOnly rows.
+        const actionFilter = cfg.kind === "Action" && cfg.action ? `ActionID='${cfg.action.actionId}'` : `Kind='TrackOnly'`;
         const existing = await new RunView().RunView<{ ID: string }>(
             {
                 EntityName: INTERVENTION_ENTITY,
-                ExtraFilter: `ScoreSegmentID='${segmentId}' AND ActionID='${cfg.action.actionId}' AND ControlGroupPercent=${pct}`,
+                ExtraFilter: `ScoreSegmentID='${segmentId}' AND ${actionFilter} AND ControlGroupPercent=${pct}`,
                 Fields: ["ID"],
                 MaxRows: 1,
                 ResultType: "simple",
@@ -172,12 +185,13 @@ export class SonarRunInterventionAction extends SonarActionBase {
         iv.ScoreSegmentID = segmentId;
         iv.Name = cfg.intervention.name;
         iv.TriggerType = "Manual";
-        iv.ActionID = cfg.action.actionId;
+        iv.Kind = cfg.kind;
+        iv.ActionID = cfg.kind === "Action" && cfg.action ? cfg.action.actionId : null;
         iv.ControlGroupPercent = pct;
         iv.Status = "Active";
         // Persist the play's params so the intervention is self-contained: a later autonomous fire
         // (or a re-run from the record) uses the same params the operator launched with.
-        if (cfg.action.params.length > 0) iv.ActionParamsJSON = JSON.stringify(cfg.action.params);
+        if (cfg.action && cfg.action.params.length > 0) iv.ActionParamsJSON = JSON.stringify(cfg.action.params);
         if (!(await iv.Save())) {
             throw new Error(`Failed to create intervention: ${iv.LatestResult?.CompleteMessage ?? "unknown"}`);
         }

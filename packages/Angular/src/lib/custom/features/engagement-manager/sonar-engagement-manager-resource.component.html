@@ -105,18 +105,32 @@
                                         }
                                         A random <strong>{{ launchHoldout() }}%</strong> is held back as the control group so lift is measured, not assumed.
                                     </p>
+                                    <div class="sonar-launch__kind">
+                                        <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'Action'" (click)="setLaunchKind('Action')">
+                                            <i class="fa-solid fa-bolt"></i> Fire a play
+                                        </button>
+                                        <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'TrackOnly'" (click)="setLaunchKind('TrackOnly')">
+                                            <i class="fa-solid fa-flask"></i> Track only
+                                        </button>
+                                        <span class="sonar-faint sonar-launch__kindhint">
+                                            @if (launchKind() === 'TrackOnly') { The treatment happens elsewhere — Sonar just holds out a control and measures the lift. }
+                                            @else { Fires the chosen play for each treated member; control is held out. }
+                                        </span>
+                                    </div>
                                     <div class="sonar-launch__form">
                                         <label class="sonar-launch__field">
                                             <span class="sonar-launch__label">Name</span>
                                             <input class="sonar-input" type="text" [value]="launchName()" (input)="setLaunchName($any($event.target).value)" aria-label="Intervention name" />
                                         </label>
-                                        <label class="sonar-launch__field">
-                                            <span class="sonar-launch__label">Play (MJ Action)</span>
-                                            <select class="sonar-input" [value]="launchActionId() ?? ''" (change)="setLaunchAction($any($event.target).value)" aria-label="Action to fire">
-                                                <option value="" disabled>Pick the action to fire…</option>
-                                                @for (a of fireable(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
-                                            </select>
-                                        </label>
+                                        @if (launchKind() === 'Action') {
+                                            <label class="sonar-launch__field">
+                                                <span class="sonar-launch__label">Play (MJ Action)</span>
+                                                <select class="sonar-input" [value]="launchActionId() ?? ''" (change)="setLaunchAction($any($event.target).value)" aria-label="Action to fire">
+                                                    <option value="" disabled>Pick the action to fire…</option>
+                                                    @for (a of fireable(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
+                                                </select>
+                                            </label>
+                                        }
                                         <label class="sonar-launch__field sonar-launch__field--num">
                                             <span class="sonar-launch__label">Holdout %</span>
                                             <input class="sonar-input" type="number" min="0" max="100" [value]="launchHoldout()" (change)="setLaunchHoldout($any($event.target).value)" aria-label="Holdout percent" />
@@ -127,24 +141,26 @@
                                         </label>
                                     </div>
                                     <div class="sonar-launch__foot">
-                                        <button class="sonar-btn" [disabled]="!launchActionId() || launchBusy() !== null" (click)="previewLaunch()">
+                                        <button class="sonar-btn" [disabled]="(launchKind() === 'Action' && !launchActionId()) || launchBusy() !== null" (click)="previewLaunch()">
                                             @if (launchBusy() === 'preview') { <i class="fa-solid fa-circle-notch fa-spin"></i> Previewing… } @else { <i class="fa-solid fa-eye"></i> Preview }
                                         </button>
                                         <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchPreview()?.playApproved === false || launchBusy() !== null" (click)="commitLaunch()"
-                                                [title]="launchPreview() ? 'Write assignments and fire the play for the treatment group' : 'Preview first — nothing launches unseen'">
-                                            @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> Launch }
+                                                [title]="launchPreview() ? 'Write assignments' + (launchKind() === 'Action' ? ' and fire the play for the treatment group' : ' (track only — nothing fires)') : 'Preview first — nothing launches unseen'">
+                                            @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> {{ launchKind() === 'TrackOnly' ? 'Start tracking' : 'Launch' }} }
                                         </button>
                                         @if (launchPreview(); as p) {
                                             <span class="sonar-launch__counts">
-                                                Would treat <strong class="sonar-mono">{{ p.treated }}</strong> · hold <strong class="sonar-mono">{{ p.held }}</strong>
+                                                Would {{ launchKind() === 'TrackOnly' ? 'track' : 'treat' }} <strong class="sonar-mono">{{ p.treated }}</strong> · hold <strong class="sonar-mono">{{ p.held }}</strong>
                                                 @if (p.alreadyAssigned) { · {{ p.alreadyAssigned }} already assigned }
                                                 @if (p.capped) { · capped at {{ launchCap() }} of {{ p.eligible }} eligible }
                                             </span>
                                         }
                                         @if (launchDone(); as d) {
                                             <span class="sonar-launch__counts sonar-launch__counts--done">
-                                                <i class="fa-solid fa-circle-check sonar-pos"></i> Fired {{ d.sent }} · held {{ d.held }}@if (d.failed) { · <span class="sonar-neg">{{ d.failed }} failed</span> }.
-                                                Tracked under <button type="button" class="sonar-launch__link" (click)="showInterventions()">Interventions</button>.
+                                                <i class="fa-solid fa-circle-check sonar-pos"></i>
+                                                @if (launchKind() === 'TrackOnly') { Tracking {{ d.treated }} · holding {{ d.held }}. }
+                                                @else { Fired {{ d.sent }} · held {{ d.held }}@if (d.failed) { · <span class="sonar-neg">{{ d.failed }} failed</span> }. }
+                                                Shown under <button type="button" class="sonar-launch__link" (click)="showInterventions()">Interventions</button>.
                                             </span>
                                         }
                                         @if (launchPreview()?.playApproved === false) { <span class="sonar-launch__error"><i class="fa-solid fa-shield-halved"></i> This play needs approval before it can fire (generated actions are gated).</span> }
@@ -469,11 +485,8 @@
                                             @for (iv of interventions(); track iv.id) {
                                                 <tr>
                                                     <td class="sonar-iv-table__name">
-                                                        <button type="button" class="sonar-iv-table__expand" (click)="toggleWorklist(iv.id)"
-                                                                [attr.aria-expanded]="expandedInterventionId() === iv.id" title="Show the follow-up worklist (treated members)">
-                                                            <i class="fa-solid" [class.fa-caret-down]="expandedInterventionId() === iv.id" [class.fa-caret-right]="expandedInterventionId() !== iv.id"></i>
-                                                        </button>
                                                         {{ iv.name }}
+                                                        @if (iv.kind === 'TrackOnly') { <span class="sonar-chip sonar-chip--small" title="Track only — no play fires; Sonar measures a real-world treatment">track-only</span> }
                                                     </td>
                                                     <td class="sonar-faint">{{ iv.segmentName }}</td>
                                                     <td><span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span></td>
@@ -499,35 +512,6 @@
                                                         }
                                                     </td>
                                                 </tr>
-                                                @if (expandedInterventionId() === iv.id) {
-                                                    <tr class="sonar-iv-worklist__row">
-                                                        <td colspan="10">
-                                                            @if (loadingWorklist()) {
-                                                                <div class="sonar-skeleton" style="height: 3rem;"></div>
-                                                            } @else if (worklist().length === 0) {
-                                                                <p class="sonar-faint" style="margin: 0.5rem 0;">No treated members on this play's worklist.</p>
-                                                            } @else {
-                                                                <div class="sonar-iv-worklist">
-                                                                    <div class="sonar-iv-worklist__head"><i class="fa-solid fa-list-check"></i> Follow-up worklist · {{ worklist().length }} to work (control held out)</div>
-                                                                    @for (w of worklist(); track w.assignmentId) {
-                                                                        <div class="sonar-iv-worklist__item">
-                                                                            <span class="sonar-iv-worklist__name">{{ w.name }}</span>
-                                                                            <span class="sonar-chip sonar-chip--small">{{ w.status === 'Sent' ? 'To do' : w.status }}</span>
-                                                                            <span class="sonar-iv-worklist__actions">
-                                                                                @for (s of worklistStatuses; track s) {
-                                                                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-iv-worklist__btn"
-                                                                                            [class.sonar-iv-worklist__btn--on]="w.status === s" (click)="markWorklist(w.assignmentId, s)">
-                                                                                        {{ s === 'Sent' ? 'To do' : s }}
-                                                                                    </button>
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    }
-                                                                </div>
-                                                            }
-                                                        </td>
-                                                    </tr>
-                                                }
                                             }
                                         </tbody>
                                     </table>
