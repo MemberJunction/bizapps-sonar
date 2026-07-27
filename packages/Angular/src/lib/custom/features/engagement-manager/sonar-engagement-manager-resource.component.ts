@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -6,6 +6,7 @@ import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
 import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, ScoreReadService, ScoredMember, TrendDirection } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
@@ -33,6 +34,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly factorService = inject(FactorService);
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
+    private readonly bus = inject(SonarDataBusService);
 
     // --- active view tab ---
     public readonly activeTab = signal<'triage' | 'movers'>('triage');
@@ -113,6 +115,41 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return this.rubricNames().filter((n) => !present.has(n));
     });
 
+    // ── Cross-surface invalidation ─────────────────────────────────────────────
+    /**
+     * Bus revision this surface's contents already reflect, per model. A model absent from the map
+     * has never been shown, so its first sighting is NOT a change — its own load path is handling it.
+     */
+    private readonly seenRevision = new Map<string, number>();
+
+    /** Combined revision of everything that would change what this surface shows for a model. */
+    private busRevision(modelId: string): number {
+        return (
+            this.bus.revision({ topic: "scores", modelId }) +
+            this.bus.revision({ topic: "config", modelId })
+        );
+    }
+
+    /**
+     * Re-read when a recompute or config change lands for the model on screen. This is what makes
+     * Recompute in Model Builder show up here with no manual step.
+     *
+     * Reading `busRevision` is what subscribes; the number's value is meaningless, only its changing.
+     * The `undefined` guard suppresses the first sighting of a model so this never duplicates
+     * `hydrate()` / `loadModel()`. Switching back to a model that changed while you were away DOES
+     * refresh, which is the point — at worst that overlaps the rail's own `loadModel` and costs one
+     * redundant set of read-only queries.
+     */
+    private readonly watchInvalidations = effect(() => {
+        const id = this.current.modelId();
+        if (!id) return;
+        const revision = this.busRevision(id);
+        const seen = this.seenRevision.get(id);
+        this.seenRevision.set(id, revision);
+        if (seen === undefined || seen === revision) return;
+        void this.refresh();
+    });
+
     public async GetResourceDisplayName(_data: ResourceData): Promise<string> { return "Engagement Manager"; }
     public async GetResourceIconClass(_data: ResourceData): Promise<string> { return "fa-solid fa-chart-line"; }
 
@@ -138,6 +175,9 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     /** Load the band summary + first page of the triage list (lowest scores first) for a model. */
     private async loadModel(id: string): Promise<void> {
+        // Baseline the bus BEFORE any await, so the invalidation effect doesn't treat this load's own
+        // model as a pending change and re-read on top of it.
+        this.seenRevision.set(id, this.busRevision(id));
         const model = await this.modelService.get(id);
         this.modelName.set(model?.Name ?? "—");
         this.page.set(0);
