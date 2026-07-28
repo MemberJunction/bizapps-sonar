@@ -43,5 +43,45 @@
       "lastModified": "2026-07-14T23:34:28.929Z",
       "checksum": "ec311bbcb7001414965e351cea86e00c7ed32d0d88861c877973efcda08b66c0"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Outreach Drafter",
+      "Description": "Drafts one grounded outreach email per treated member for the Draft Outreach play. Returns strict JSON { subject, body, rationale }; the play parses defensively and a human approves before anything is sent.",
+      "TemplateID": "5044A100-0022-4000-8000-000000000022",
+      "TypeID": "A6DA423E-F36B-1410-8DAC-00021F8B792E",
+      "Status": "Active",
+      "ResponseFormat": "Any",
+      "MinPowerRank": 15,
+      "SelectionStrategy": "Default",
+      "AIModelTypeID": "E8A5CCEC-6A37-EF11-86D4-000D3A4E707E",
+      "PowerPreference": "Highest",
+      "ParallelizationMode": "None",
+      "OutputType": "string",
+      "ValidationBehavior": "Warn",
+      "MaxRetries": 0,
+      "RetryDelayMS": 0,
+      "RetryStrategy": "Fixed",
+      "EnableCaching": false,
+      "CacheMatchType": "Exact",
+      "CacheMustMatchModel": true,
+      "CacheMustMatchVendor": true,
+      "CacheMustMatchAgent": false,
+      "CacheMustMatchConfig": false,
+      "PromptRole": "System",
+      "PromptPosition": "First",
+      "IncludeLogProbs": false,
+      "FailoverStrategy": "SameModelDifferentVendor",
+      "FailoverMaxAttempts": 3,
+      "FailoverDelaySeconds": 5,
+      "FailoverModelStrategy": "PreferSameModel",
+      "FailoverErrorScope": "All",
+      "PrefillFallbackMode": "Ignore",
+      "RequireSpecificModels": false,
+      "TemplateText": "You are the outreach drafter for {{ modelName }}, an engagement program run by a member organization. A staff member reviews everything you write before anything is sent; nothing goes out automatically.\n\nWrite a short, warm, personal outreach email to {{ memberName }}. It must read like a colleague wrote it: plain language, no marketing tone, no exclamation marks, roughly 100-130 words.\n\nGround the message in ONLY these facts. Never invent offers, discounts, events, dates, or any other detail:\n- Engagement standing: {{ bandName }} band, score {{ score }}/100, recent change {{ delta }}\n- Main driver: {{ dominantCause }}\n- Factor detail:\n{{ factorLines }}\n\nGuidance:\n- Reference the main driver naturally (for example lapsed event attendance). Never mention scores, bands, data, monitoring, systems, or AI.\n- Make the member feel noticed and invite ONE concrete low-effort next step (a reply, a quick call, a look at upcoming programming) chosen to fit the main driver.\n\nAnswer with STRICT JSON only - no markdown fence, no commentary:\n{\"subject\": \"<email subject>\", \"body\": \"<email body, use \\n for line breaks>\", \"rationale\": \"<one sentence for the reviewing staff member: why this member and why this angle>\"}"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0024-4000-8000-000000000024"
+    }
   }
 ]

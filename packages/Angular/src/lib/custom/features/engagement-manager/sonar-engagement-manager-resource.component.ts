@@ -9,7 +9,7 @@ import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, ProposalStatus, ProposalSummary } from "../../core/services/intervention.service";
 
 
 /**
@@ -38,7 +38,31 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly interventionService = inject(InterventionService);
 
     // --- active view tab ---
-    public readonly activeTab = signal<'triage' | 'movers' | 'interventions'>('triage');
+    public readonly activeTab = signal<'triage' | 'movers' | 'interventions' | 'outreach'>('triage');
+
+    // --- Outreach queue: proposals a play drafted, awaiting human review (approve → simulated send) ---
+    public readonly proposals = signal<ProposalSummary[]>([]);
+    public readonly loadingProposals = signal(false);
+    /** Which slice of the queue is shown; 'Proposed' (to review) is the working view. */
+    public readonly proposalFilter = signal<'Proposed' | 'Approved' | 'all'>('Proposed');
+    public readonly selectedProposal = signal<ProposalSummary | null>(null);
+    /** Operator edits to the selected draft (persisted on approve). */
+    public readonly editSubject = signal("");
+    public readonly editBody = signal("");
+    /** The proposal id being saved, or 'bulk' during approve-all / send-approved. */
+    public readonly proposalBusy = signal<string | null>(null);
+    public readonly proposalError = signal<string | null>(null);
+    public readonly visibleProposals = computed<ProposalSummary[]>(() => {
+        const filter = this.proposalFilter();
+        const all = this.proposals();
+        return filter === 'all' ? all : all.filter((p) => p.status === filter);
+    });
+    public readonly proposedCount = computed(() => this.proposals().filter((p) => p.status === 'Proposed').length);
+    public readonly approvedCount = computed(() => this.proposals().filter((p) => p.status === 'Approved').length);
+    /** True when the play picked in the launch panel is the drafting play — drives the
+     *  "review drafts in Outreach" link on the commit success line. */
+    public readonly launchedDraftPlay = computed(() =>
+        this.fireable().find((f) => f.id === this.launchActionId())?.name === 'Sonar: Draft Outreach');
 
     // --- action layer: launch panel (in-context, over the triage cohort) + interventions tab ---
     public readonly showLaunch = signal(false);
@@ -498,6 +522,145 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     }
 
     public liftFor(interventionId: string): MeasureResult | null { return this.liftById().get(interventionId) ?? null; }
+
+    // ---- Outreach queue: review what the drafting play prepared, approve/reject, simulated send ----
+
+    public async showOutreach(): Promise<void> {
+        this.activeTab.set("outreach");
+        await this.loadProposals();
+    }
+
+    private async loadProposals(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id) return;
+        this.loadingProposals.set(true);
+        this.proposalError.set(null);
+        try {
+            const rows = await this.interventionService.proposalsForModel(id);
+            this.proposals.set(rows);
+            // Keep the selection stable across a reload; otherwise open the first visible draft.
+            const selectedId = this.selectedProposal()?.id;
+            const still = selectedId ? rows.find((p) => p.id === selectedId) : undefined;
+            this.selectProposal(still ?? this.visibleProposals()[0] ?? null);
+        } finally {
+            this.loadingProposals.set(false);
+        }
+    }
+
+    public selectProposal(p: ProposalSummary | null): void {
+        this.selectedProposal.set(p);
+        this.editSubject.set(p?.payload.subject ?? "");
+        this.editBody.set(p?.payload.body ?? "");
+    }
+
+    public setProposalFilter(filter: 'Proposed' | 'Approved' | 'all'): void {
+        this.proposalFilter.set(filter);
+        const selected = this.selectedProposal();
+        if (!selected || !this.visibleProposals().some((p) => p.id === selected.id)) {
+            this.selectProposal(this.visibleProposals()[0] ?? null);
+        }
+    }
+
+    /** Approve the selected draft, persisting any subject/body edits made in the editor. */
+    public async approveSelected(): Promise<void> {
+        const p = this.selectedProposal();
+        if (!p || this.proposalBusy()) return;
+        await this.reviewOne(p, "Approved", {
+            ...p.payload,
+            subject: this.editSubject().trim() || p.payload.subject,
+            body: this.editBody(),
+        });
+    }
+
+    public async rejectSelected(): Promise<void> {
+        const p = this.selectedProposal();
+        if (!p || this.proposalBusy()) return;
+        await this.reviewOne(p, "Rejected");
+    }
+
+    private async reviewOne(p: ProposalSummary, status: ProposalStatus, payload?: ProposalSummary["payload"]): Promise<void> {
+        this.proposalBusy.set(p.id);
+        this.proposalError.set(null);
+        try {
+            const res = await this.interventionService.saveProposalReview(p.id, status, payload);
+            if (!res.ok) {
+                this.proposalError.set(res.error ?? "The review could not be saved.");
+                return;
+            }
+            this.applyProposalChange(p.id, status, payload);
+            // Move on to the next draft awaiting review so the queue flows.
+            if (this.proposalFilter() === "Proposed") {
+                this.selectProposal(this.visibleProposals()[0] ?? null);
+            }
+        } finally {
+            this.proposalBusy.set(null);
+        }
+    }
+
+    /** Approve every visible draft still awaiting review (as-drafted — no edits). */
+    public async approveAll(): Promise<void> {
+        if (this.proposalBusy()) return;
+        this.proposalBusy.set("bulk");
+        this.proposalError.set(null);
+        try {
+            for (const p of this.proposals().filter((x) => x.status === "Proposed")) {
+                const res = await this.interventionService.saveProposalReview(p.id, "Approved");
+                if (!res.ok) {
+                    this.proposalError.set(res.error ?? "Approving drafts failed partway — the rest are untouched.");
+                    return;
+                }
+                this.applyProposalChange(p.id, "Approved");
+            }
+            this.selectProposal(this.visibleProposals()[0] ?? null);
+        } finally {
+            this.proposalBusy.set(null);
+        }
+    }
+
+    /** The PoC's send: flip every Approved draft to Executed with a timestamp. Nothing leaves the
+     *  building — the UI labels this "simulated" everywhere it appears. */
+    public async sendApproved(): Promise<void> {
+        if (this.proposalBusy()) return;
+        this.proposalBusy.set("bulk");
+        this.proposalError.set(null);
+        try {
+            for (const p of this.proposals().filter((x) => x.status === "Approved")) {
+                const res = await this.interventionService.saveProposalReview(p.id, "Executed");
+                if (!res.ok) {
+                    this.proposalError.set(res.error ?? "The send stopped partway — remaining drafts are still Approved.");
+                    return;
+                }
+                this.applyProposalChange(p.id, "Executed");
+            }
+        } finally {
+            this.proposalBusy.set(null);
+        }
+    }
+
+    /** Mirror a saved change into the local list (no refetch — the save is the source of truth). */
+    private applyProposalChange(id: string, status: ProposalStatus, payload?: ProposalSummary["payload"]): void {
+        this.proposals.update((list) =>
+            list.map((p) => (p.id === id ? { ...p, status, payload: payload ?? p.payload } : p)));
+        const selected = this.selectedProposal();
+        if (selected?.id === id) {
+            this.selectedProposal.set({ ...selected, status, payload: payload ?? selected.payload });
+        }
+    }
+
+    /** Chip tone per review status (band tones re-used deliberately: to-review = watch, approved =
+     *  healthy, rejected = at-risk, executed = the neutral phase chip). */
+    public proposalChipClass(status: ProposalStatus): string {
+        switch (status) {
+            case "Approved": return "sonar-chip--healthy";
+            case "Rejected": return "sonar-chip--atrisk";
+            case "Executed": return "sonar-chip--phase2";
+            default: return "sonar-chip--watch";
+        }
+    }
+
+    public proposalStatusLabel(status: ProposalStatus): string {
+        return status === "Executed" ? "Sent · simulated" : status === "Proposed" ? "To review" : status;
+    }
 
     /** Signed one-decimal label for lift numbers ("+3.2" / "-1.0"). */
     public liftLabel(v: number | null): string {

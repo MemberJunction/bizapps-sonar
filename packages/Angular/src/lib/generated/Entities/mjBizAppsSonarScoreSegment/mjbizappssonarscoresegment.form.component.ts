@@ -16,8 +16,8 @@ export class mjBizAppsSonarScoreSegmentFormComponent extends BaseFormComponent {
     override async ngOnInit() {
         await super.ngOnInit();
         this.initSections([
-            { sectionKey: 'segmentDefinition', sectionName: 'Segment Definition', isExpanded: true },
-            { sectionKey: 'segmentLogic', sectionName: 'Segment Logic', isExpanded: true },
+            { sectionKey: 'relationshipInformation', sectionName: 'Relationship Information', isExpanded: true },
+            { sectionKey: 'segmentConfiguration', sectionName: 'Segment Configuration', isExpanded: true },
             { sectionKey: 'performanceMetrics', sectionName: 'Performance Metrics', isExpanded: true },
             { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarInterventions', sectionName: 'Interventions', isExpanded: false }

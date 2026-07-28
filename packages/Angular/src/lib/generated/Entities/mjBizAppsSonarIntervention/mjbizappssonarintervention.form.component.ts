@@ -16,11 +16,13 @@ export class mjBizAppsSonarInterventionFormComponent extends BaseFormComponent {
     override async ngOnInit() {
         await super.ngOnInit();
         this.initSections([
-            { sectionKey: 'configuration', sectionName: 'Configuration', isExpanded: true },
-            { sectionKey: 'interventionDetails', sectionName: 'Intervention Details', isExpanded: true },
-            { sectionKey: 'executionRules', sectionName: 'Execution Rules', isExpanded: true },
+            { sectionKey: 'relatedEntities', sectionName: 'Related Entities', isExpanded: true },
+            { sectionKey: 'interventionConfiguration', sectionName: 'Intervention Configuration', isExpanded: true },
+            { sectionKey: 'interventionExecution', sectionName: 'Intervention Execution', isExpanded: true },
+            { sectionKey: 'actionConfiguration', sectionName: 'Action Configuration', isExpanded: true },
             { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
-            { sectionKey: 'mJBizAppsSonarInterventionAssignments', sectionName: 'Intervention Assignments', isExpanded: false }
+            { sectionKey: 'mJBizAppsSonarInterventionAssignments', sectionName: 'Intervention Assignments', isExpanded: false },
+            { sectionKey: 'mJBizAppsSonarInterventionProposals', sectionName: 'Intervention Proposals', isExpanded: false }
         ]);
     }
 }

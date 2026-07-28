@@ -14,7 +14,7 @@
     <mj-collapsible-panel
         SectionKey="interventionDetails"
         SectionName="Intervention Details"
-        Icon="fa fa-project-diagram"
+        Icon="fa fa-info-circle"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -29,11 +29,11 @@
 
     </mj-collapsible-panel>
 
-    <!-- Targeting Information Section -->
+    <!-- Assignment Details Section -->
     <mj-collapsible-panel
-        SectionKey="targetingInformation"
-        SectionName="Targeting Information"
-        Icon="fa fa-bullseye"
+        SectionKey="assignmentDetails"
+        SectionName="Assignment Details"
+        Icon="fa fa-user-tag"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -52,16 +52,6 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-
-    </mj-collapsible-panel>
-
-    <!-- Assignment Details Section -->
-    <mj-collapsible-panel
-        SectionKey="assignmentDetails"
-        SectionName="Assignment Details"
-        Icon="fa fa-user-check"
-        [Form]="this"
-        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -78,9 +68,19 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Delivery Tracking Section -->
+    <mj-collapsible-panel
+        SectionKey="deliveryTracking"
+        SectionName="Delivery Tracking"
+        Icon="fa fa-shipping-fast"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
-            [ShowLabel]="true"
+            [ShowLabel]="false"
             FieldName="ActionDeliveryStatus"
             Type="textbox"
             [EditMode]="EditMode"

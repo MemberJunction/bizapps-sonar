@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cohortFor, hashToPercent, planAssignments } from "../orchestration/InterventionRunner";
+import { cohortFor, fillTokens, hashToPercent, planAssignments } from "../orchestration/InterventionRunner";
 import type { SegmentMember } from "../orchestration/SegmentEvaluator";
 
 const member = (id: string): SegmentMember => ({
@@ -86,5 +86,47 @@ describe("playApprovedFromMeta (fire-time governance gate)", () => {
         expect(playApprovedFromMeta("Runtime", "Approved")).toBe(true);
         expect(playApprovedFromMeta("Runtime", "Pending")).toBe(false);
         expect(playApprovedFromMeta("Runtime", null)).toBe(false);
+    });
+});
+
+describe("fillTokens (fire-time param substitution)", () => {
+    const tokens = { member: "m-42", interventionId: "iv-7", modelId: "mod-1" };
+
+    it("substitutes all three tokens, including several in one value", () => {
+        const filled = fillTokens(
+            [
+                { name: "AnchorRecordID", value: "{{member}}" },
+                { name: "InterventionID", value: "{{interventionId}}" },
+                { name: "ModelID", value: "{{modelId}}" },
+                { name: "Message", value: "member {{member}} of {{member}} (run {{interventionId}})" },
+            ],
+            tokens,
+        );
+        expect(filled).toEqual([
+            { name: "AnchorRecordID", value: "m-42" },
+            { name: "InterventionID", value: "iv-7" },
+            { name: "ModelID", value: "mod-1" },
+            { name: "Message", value: "member m-42 of m-42 (run iv-7)" },
+        ]);
+    });
+
+    it("leaves values without tokens (and unrecognized tokens) untouched", () => {
+        const filled = fillTokens(
+            [
+                { name: "WebhookURL", value: "https://example.test/hook" },
+                { name: "Template", value: "hello {{name}}" },
+            ],
+            tokens,
+        );
+        expect(filled).toEqual([
+            { name: "WebhookURL", value: "https://example.test/hook" },
+            { name: "Template", value: "hello {{name}}" },
+        ]);
+    });
+
+    it("does not mutate the input params", () => {
+        const params = [{ name: "AnchorRecordID", value: "{{member}}" }];
+        fillTokens(params, tokens);
+        expect(params[0].value).toBe("{{member}}");
     });
 });

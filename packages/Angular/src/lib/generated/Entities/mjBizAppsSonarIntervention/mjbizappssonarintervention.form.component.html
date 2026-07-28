@@ -10,11 +10,11 @@
     <!-- ========================================
          FIELD PANELS
          ======================================== -->
-    <!-- Configuration Section -->
+    <!-- Related Entities Section -->
     <mj-collapsible-panel
-        SectionKey="configuration"
-        SectionName="Configuration"
-        Icon="fa fa-cogs"
+        SectionKey="relatedEntities"
+        SectionName="Related Entities"
+        Icon="fa fa-link"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -38,10 +38,10 @@
 
     </mj-collapsible-panel>
 
-    <!-- Intervention Details Section -->
+    <!-- Intervention Configuration Section -->
     <mj-collapsible-panel
-        SectionKey="interventionDetails"
-        SectionName="Intervention Details"
+        SectionKey="interventionConfiguration"
+        SectionName="Intervention Configuration"
         Icon="fa fa-info-circle"
         [Form]="this"
         [FormContext]="formContext">
@@ -69,22 +69,14 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-        <mj-form-field 
-            [Record]="record"
-            [ShowLabel]="true"
-            FieldName="ActionParamsJSON"
-            Type="code"
-            [EditMode]="EditMode"
-            [FormContext]="formContext"
-        ></mj-form-field>
 
     </mj-collapsible-panel>
 
-    <!-- Execution Rules Section -->
+    <!-- Intervention Execution Section -->
     <mj-collapsible-panel
-        SectionKey="executionRules"
-        SectionName="Execution Rules"
-        Icon="fa fa-bolt"
+        SectionKey="interventionExecution"
+        SectionName="Intervention Execution"
+        Icon="fa fa-play-circle"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -114,11 +106,29 @@
 
     </mj-collapsible-panel>
 
+    <!-- Action Configuration Section -->
+    <mj-collapsible-panel
+        SectionKey="actionConfiguration"
+        SectionName="Action Configuration"
+        Icon="fa fa-code"
+        [Form]="this"
+        [FormContext]="formContext">
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="false"
+            FieldName="ActionParamsJSON"
+            Type="code"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+        ></mj-form-field>
+
+    </mj-collapsible-panel>
+
     <!-- System Metadata Section -->
     <mj-collapsible-panel
         SectionKey="systemMetadata"
         SectionName="System Metadata"
-        Icon="fa fa-database"
+        Icon="fa fa-cog"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -165,6 +175,31 @@
                 [ShowToolbar]="false"
                 (Navigate)="OnFormNavigate($event)"
                 (AfterDataLoad)="SetSectionRowCount('mJBizAppsSonarInterventionAssignments', $event.totalRowCount)"
+                >
+            </mj-explorer-entity-data-grid>
+        </div>
+        }
+    </mj-collapsible-panel>
+
+    <!-- Intervention Proposals Section -->
+    <mj-collapsible-panel
+        SectionKey="mJBizAppsSonarInterventionProposals"
+        SectionName="Intervention Proposals"
+        Icon="fa fa-table"
+        Variant="related-entity"
+        [Form]="this"
+        [FormContext]="formContext"
+        [BadgeCount]="GetSectionRowCount('mJBizAppsSonarInterventionProposals')"
+        [DefaultExpanded]="false">
+        @if (record.IsSaved) {
+        <div>
+            <mj-explorer-entity-data-grid
+                [Params]="BuildRelationshipViewParamsByEntityName('MJ_BizApps_Sonar: Intervention Proposals','InterventionID')"
+                [NewRecordValues]="NewRecordValues('MJ_BizApps_Sonar: Intervention Proposals')"
+                [AllowLoad]="IsSectionExpanded('mJBizAppsSonarInterventionProposals')"
+                [ShowToolbar]="false"
+                (Navigate)="OnFormNavigate($event)"
+                (AfterDataLoad)="SetSectionRowCount('mJBizAppsSonarInterventionProposals', $event.totalRowCount)"
                 >
             </mj-explorer-entity-data-grid>
         </div>

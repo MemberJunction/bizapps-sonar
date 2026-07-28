@@ -38,6 +38,7 @@
     "@memberjunction/ai": "^5.45.0",
     "@memberjunction/aiengine": "^5.45.0",
     "@memberjunction/ai-agents": "^5.45.0",
+    "@memberjunction/ai-prompts": "^5.45.0",
     "@memberjunction/ai-core-plus": "^5.45.0"
   },
   "repository": {

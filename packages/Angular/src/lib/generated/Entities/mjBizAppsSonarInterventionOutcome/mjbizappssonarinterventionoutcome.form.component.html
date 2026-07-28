@@ -10,22 +10,32 @@
     <!-- ========================================
          FIELD PANELS
          ======================================== -->
-    <!-- Intervention Details Section -->
+    <!-- Intervention Tracking Section -->
     <mj-collapsible-panel
-        SectionKey="interventionDetails"
-        SectionName="Intervention Details"
+        SectionKey="interventionTracking"
+        SectionName="Intervention Tracking"
         Icon="fa fa-tasks"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
-            [ShowLabel]="true"
+            [ShowLabel]="false"
             FieldName="AssignmentID"
             Type="textbox"
             [EditMode]="EditMode"
             [FormContext]="formContext"
             LinkType="Record"
         ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Outcome Details Section -->
+    <mj-collapsible-panel
+        SectionKey="outcomeDetails"
+        SectionName="Outcome Details"
+        Icon="fa fa-chart-line"
+        [Form]="this"
+        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -34,16 +44,6 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-
-    </mj-collapsible-panel>
-
-    <!-- Intervention Timeline Section -->
-    <mj-collapsible-panel
-        SectionKey="interventionTimeline"
-        SectionName="Intervention Timeline"
-        Icon="fa fa-calendar-alt"
-        [Form]="this"
-        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -55,26 +55,16 @@
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
-            FieldName="MeasuredAt"
-            Type="datepicker"
+            FieldName="ScoreDeltaAfter"
+            Type="number"
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-
-    </mj-collapsible-panel>
-
-    <!-- Performance Metrics Section -->
-    <mj-collapsible-panel
-        SectionKey="performanceMetrics"
-        SectionName="Performance Metrics"
-        Icon="fa fa-tachometer-alt"
-        [Form]="this"
-        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
-            [ShowLabel]="false"
-            FieldName="ScoreDeltaAfter"
-            Type="number"
+            [ShowLabel]="true"
+            FieldName="MeasuredAt"
+            Type="datepicker"
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>

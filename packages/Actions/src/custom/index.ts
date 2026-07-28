@@ -37,3 +37,4 @@ export * from "./SonarBindSignalToModelAction";
 export * from "./SonarRunInterventionAction";
 export * from "./SonarMeasureOutcomesAction";
 export * from "./SonarSyncCohortToListAction";
+export * from "./SonarDraftOutreachAction";

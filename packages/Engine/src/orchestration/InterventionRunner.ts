@@ -7,8 +7,10 @@ const ASSIGNMENT_ENTITY = "MJ_BizApps_Sonar: Intervention Assignments";
 /** Which cohort a member lands in. Control = held back (nothing fires), the comparison baseline. */
 export type Cohort = "Treatment" | "Control";
 
-/** The MJ Action to fire + its static params (e.g. Slack WebhookURL + Message). A `{{member}}` token
- *  in any param value is replaced with the member's anchor id, so each fire names its member. */
+/** The MJ Action to fire + its static params (e.g. Slack WebhookURL + Message). Token placeholders
+ *  in any param value are replaced at fire time ({@link fillTokens}): `{{member}}` → the member's
+ *  anchor id, `{{interventionId}}`/`{{modelId}}` → the firing intervention/model, so a per-member
+ *  play can link what it produces (e.g. a drafted proposal) back to the intervention. */
 export interface InterventionActionConfig {
     actionId: string;
     params: { name: string; value: string }[];
@@ -103,12 +105,30 @@ export function planAssignments(
     };
 }
 
-/** Substitute the `{{member}}` token in each param value with the member's anchor id. */
-function fillMemberToken(
+/** The placeholder values substituted into a play's params at fire time. */
+export interface FireTokens {
+    /** The treated member's anchor record id. */
+    member: string;
+    /** The Intervention row that fired the play. */
+    interventionId: string;
+    /** The ScoreModel the intervention runs against. */
+    modelId: string;
+}
+
+/** Substitute the `{{member}}`/`{{interventionId}}`/`{{modelId}}` tokens in each param value.
+ *  Anything else (including unrecognized `{{…}}` text) passes through untouched — it may be
+ *  meaningful to the play itself. Pure, so it's unit-testable. */
+export function fillTokens(
     params: { name: string; value: string }[],
-    anchorId: string,
+    tokens: FireTokens,
 ): { name: string; value: string }[] {
-    return params.map((p) => ({ name: p.name, value: p.value.split("{{member}}").join(anchorId) }));
+    return params.map((p) => ({
+        name: p.name,
+        value: p.value
+            .split("{{member}}").join(tokens.member)
+            .split("{{interventionId}}").join(tokens.interventionId)
+            .split("{{modelId}}").join(tokens.modelId),
+    }));
 }
 
 /**
@@ -163,7 +183,12 @@ export class InterventionRunner {
             // TrackOnly writes the split but never fires — every member (treatment + control) gets an
             // assignment with no delivery status; the treatment happened out in the world.
             if (!trackOnly && cohort === "Treatment" && req.action) {
-                const fired = await this.fire(req.action, member.anchorRecordId, contextUser);
+                const tokens: FireTokens = {
+                    member: member.anchorRecordId,
+                    interventionId: req.interventionId,
+                    modelId: req.modelId,
+                };
+                const fired = await this.fire(req.action, tokens, contextUser);
                 deliveryStatus = fired ? "Sent" : "Failed";
                 fired ? sent++ : failed++;
             }
@@ -231,14 +256,14 @@ export class InterventionRunner {
      *  aborts the run (one bad send shouldn't strand the rest). */
     private async fire(
         action: InterventionActionConfig,
-        anchorId: string,
+        tokens: FireTokens,
         contextUser: UserInfo,
     ): Promise<boolean> {
         if (!this.invoker) {
             throw new Error("InterventionRunner: no action invoker configured — cannot fire interventions.");
         }
         try {
-            const res = await this.invoker(action.actionId, fillMemberToken(action.params, anchorId), contextUser);
+            const res = await this.invoker(action.actionId, fillTokens(action.params, tokens), contextUser);
             return res.success;
         } catch {
             return false;

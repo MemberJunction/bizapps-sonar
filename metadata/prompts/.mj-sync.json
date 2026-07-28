@@ -9,6 +9,6 @@
     "mergeStrategy": "merge",
     "ignoreNullFields": true,
     "ignoreVirtualFields": true,
-    "filter": "ID = '3A70C8FF-B823-4491-8B3D-3BC258C82AEB'"
+    "filter": "ID IN ('3A70C8FF-B823-4491-8B3D-3BC258C82AEB', '5044A100-0024-4000-8000-000000000024')"
   }
 }

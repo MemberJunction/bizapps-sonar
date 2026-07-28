@@ -17,8 +17,8 @@ export class mjBizAppsSonarInterventionAssignmentFormComponent extends BaseFormC
         await super.ngOnInit();
         this.initSections([
             { sectionKey: 'interventionDetails', sectionName: 'Intervention Details', isExpanded: true },
-            { sectionKey: 'targetingInformation', sectionName: 'Targeting Information', isExpanded: true },
             { sectionKey: 'assignmentDetails', sectionName: 'Assignment Details', isExpanded: true },
+            { sectionKey: 'deliveryTracking', sectionName: 'Delivery Tracking', isExpanded: true },
             { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarInterventionOutcomes', sectionName: 'Intervention Outcomes', isExpanded: false }
         ]);

@@ -2,11 +2,22 @@ import { Injectable } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
+import { mjBizAppsSonarInterventionProposalEntity } from "@mj-biz-apps/sonar-entities";
 import { extractActionResult } from "./action-result.util";
 import { sqlString } from "./sql.util";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
+
+/** Play params the engine can fill from fire-time tokens (InterventionRunner.fillTokens). When a
+ *  chosen play DECLARES one of these inputs and the operator supplied no value, the launch flow
+ *  points it at its token — so a per-member play like Draft Outreach receives the real member/
+ *  intervention/model ids on every fire without any param-editing UI. */
+const TOKEN_PARAM_VALUES: Record<string, string> = {
+    AnchorRecordID: "{{member}}",
+    InterventionID: "{{interventionId}}",
+    ModelID: "{{modelId}}",
+};
 
 /** The score-evaluable segment filter the launch panel builds from the current triage state
  *  (band/score range) or from the Movers view (a delta threshold — the "biggest droppers" rule). */
@@ -90,6 +101,39 @@ export interface InterventionSummary {
     lastAssignedAt: string | null;
 }
 
+/** What an EmailDraft proposal's PayloadJSON holds. */
+export interface ProposalPayload {
+    subject?: string;
+    body?: string;
+    recipientEmail?: string | null;
+}
+
+/** The score facts a proposal was grounded in (GroundingJSON). */
+export interface ProposalGrounding {
+    score?: number;
+    bandName?: string | null;
+    delta?: number | null;
+    dominantCause?: string | null;
+    factors?: { label: string; normalizedValue: number; percentOfTotal: number; hadData: boolean; explanation: string | null }[];
+}
+
+export type ProposalStatus = "Proposed" | "Approved" | "Rejected" | "Executed";
+
+/** One reviewable proposal — an Outreach queue row (payload/grounding pre-parsed for the UI). */
+export interface ProposalSummary {
+    id: string;
+    interventionId: string;
+    interventionName: string;
+    anchorRecordId: string;
+    anchorName: string;
+    proposalType: string;
+    rationale: string | null;
+    payload: ProposalPayload;
+    grounding: ProposalGrounding;
+    status: ProposalStatus;
+    createdAt: string;
+}
+
 interface InterventionRow { ID: string; Name: string; Kind: string; ScoreSegmentID: string; TriggerType: string; ControlGroupPercent: number | null; Status: string }
 interface SegmentRow { ID: string; Name: string; ScoreModelID: string }
 interface AssignmentRow { InterventionID: string; Cohort: string; ActionDeliveryStatus: string | null; AssignedAt: string }
@@ -104,13 +148,15 @@ interface ActionRow { ID: string; Name: string; Description: string | null }
 @Injectable({ providedIn: "root" })
 export class InterventionService {
     private readonly actionIdCache = new Map<string, string>();
+    private readonly actionParamNameCache = new Map<string, string[]>();
 
     /** Run the launch payload through `Sonar: Run Intervention` (preview or commit). */
     public async run(config: LaunchConfig): Promise<{ ok: boolean; result?: LaunchResult; error?: string }> {
         const id = await this.resolveActionIdByName(RUN_INTERVENTION_ACTION);
         if (!id) return { ok: false, error: "The intervention action isn't available in this environment." };
+        const payload = await this.withTokenParams(config);
         const res = await this.actionClient().RunAction(id, [
-            { Name: "ConfigJSON", Value: JSON.stringify(config), Type: "Input" },
+            { Name: "ConfigJSON", Value: JSON.stringify(payload), Type: "Input" },
         ]);
         if (!res.Success) return { ok: false, error: res.Message || "The intervention run failed." };
         const result = extractActionResult<LaunchResult>(res);
@@ -206,6 +252,111 @@ export class InterventionService {
             map.set(r.InterventionID, t);
         }
         return map;
+    }
+
+    /** All proposals across this model's interventions — the Outreach queue, newest first. */
+    public async proposalsForModel(modelId: string): Promise<ProposalSummary[]> {
+        const segRes = await new RunView().RunView<SegmentRow>({
+            EntityName: "MJ_BizApps_Sonar: Score Segments",
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
+            Fields: ["ID", "Name", "ScoreModelID"],
+            ResultType: "simple",
+        });
+        const segments = segRes.Success ? segRes.Results ?? [] : [];
+        if (!segments.length) return [];
+
+        const ivRes = await new RunView().RunView<InterventionRow>({
+            EntityName: "MJ_BizApps_Sonar: Interventions",
+            ExtraFilter: `ScoreSegmentID IN (${segments.map((s) => `'${s.ID}'`).join(",")})`,
+            Fields: ["ID", "Name", "Kind", "ScoreSegmentID", "TriggerType", "ControlGroupPercent", "Status"],
+            ResultType: "simple",
+        });
+        const interventions = ivRes.Success ? ivRes.Results ?? [] : [];
+        if (!interventions.length) return [];
+        const ivNames = new Map(interventions.map((i) => [i.ID, i.Name]));
+
+        const rowRes = await new RunView().RunView<{
+            ID: string; InterventionID: string; AnchorRecordID: string; AnchorName: string | null;
+            ProposalType: string; Rationale: string | null; PayloadJSON: string | null;
+            GroundingJSON: string | null; Status: string; __mj_CreatedAt: string;
+        }>({
+            EntityName: "MJ_BizApps_Sonar: Intervention Proposals",
+            ExtraFilter: `InterventionID IN (${interventions.map((i) => `'${sqlString(i.ID)}'`).join(",")})`,
+            Fields: ["ID", "InterventionID", "AnchorRecordID", "AnchorName", "ProposalType", "Rationale", "PayloadJSON", "GroundingJSON", "Status", "__mj_CreatedAt"],
+            OrderBy: "__mj_CreatedAt DESC",
+            IgnoreMaxRows: true,
+            ResultType: "simple",
+        });
+        return (rowRes.Success ? rowRes.Results ?? [] : []).map((r) => ({
+            id: r.ID,
+            interventionId: r.InterventionID,
+            interventionName: ivNames.get(r.InterventionID) ?? "(intervention)",
+            anchorRecordId: r.AnchorRecordID,
+            anchorName: r.AnchorName ?? r.AnchorRecordID,
+            proposalType: r.ProposalType,
+            rationale: r.Rationale,
+            payload: this.parseJson<ProposalPayload>(r.PayloadJSON) ?? {},
+            grounding: this.parseJson<ProposalGrounding>(r.GroundingJSON) ?? {},
+            status: (r.Status as ProposalStatus) ?? "Proposed",
+            createdAt: r.__mj_CreatedAt,
+        }));
+    }
+
+    /** Persist a review decision (and any operator edits to the payload). Approve/Reject stamp
+     *  ReviewedAt; Executed stamps ExecutedAt (the PoC's simulated send). */
+    public async saveProposalReview(
+        proposalId: string,
+        status: ProposalStatus,
+        payload?: ProposalPayload,
+    ): Promise<{ ok: boolean; error?: string }> {
+        const row = await new Metadata().GetEntityObject<mjBizAppsSonarInterventionProposalEntity>(
+            "MJ_BizApps_Sonar: Intervention Proposals",
+        );
+        await row.Load(proposalId);
+        if (!row.IsSaved) return { ok: false, error: "Proposal not found." };
+        if (payload) row.PayloadJSON = JSON.stringify(payload);
+        row.Status = status;
+        if (status === "Approved" || status === "Rejected") row.ReviewedAt = new Date();
+        if (status === "Executed") row.ExecutedAt = new Date();
+        const saved = await row.Save();
+        return saved ? { ok: true } : { ok: false, error: row.LatestResult?.Message ?? "The proposal could not be saved." };
+    }
+
+    private parseJson<T>(raw: string | null): T | null {
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw) as T;
+        } catch {
+            return null;
+        }
+    }
+
+    /** Point any token-fillable params the chosen play declares (and the operator didn't set) at
+     *  their fire-time tokens. No-op for TrackOnly and for plays declaring none of them. */
+    private async withTokenParams(config: LaunchConfig): Promise<LaunchConfig> {
+        if (!config.action) return config;
+        const declared = await this.declaredInputParamNames(config.action.actionId);
+        const supplied = new Set(config.action.params.map((p) => p.name));
+        const tokenParams = declared
+            .filter((name) => name in TOKEN_PARAM_VALUES && !supplied.has(name))
+            .map((name) => ({ name, value: TOKEN_PARAM_VALUES[name] }));
+        if (tokenParams.length === 0) return config;
+        return { ...config, action: { ...config.action, params: [...config.action.params, ...tokenParams] } };
+    }
+
+    /** The play's declared Input param names (cached — the catalog is static per session). */
+    private async declaredInputParamNames(actionId: string): Promise<string[]> {
+        const cached = this.actionParamNameCache.get(actionId);
+        if (cached) return cached;
+        const res = await new RunView().RunView<{ Name: string }>({
+            EntityName: "MJ: Action Params",
+            ExtraFilter: `ActionID='${sqlString(actionId)}' AND Type='Input'`,
+            Fields: ["Name"],
+            ResultType: "simple",
+        });
+        const names = res.Success ? (res.Results ?? []).map((r) => r.Name) : [];
+        this.actionParamNameCache.set(actionId, names);
+        return names;
     }
 
     private actionClient(): GraphQLActionClient {

@@ -2830,7 +2830,7 @@
       "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
     },
     "primaryKey": {
-      "ID": "5044A100-001B-4000-8000-00000000001B"
+      "ID": "5044A100-001F-4000-8000-00000000001F"
     },
     "relatedEntities": {
       "MJ: Action Params": [
@@ -2845,7 +2845,7 @@
             "Description": "JSON: { modelId, segment:{name,filter:{bandId?,minScore?,maxScore?}}, intervention:{name,holdoutPercent}, action:{actionId,params[]}, cap, preview }."
           },
           "primaryKey": {
-            "ID": "5044A100-001B-4000-8000-0000000000A1"
+            "ID": "5044A100-001F-4000-8000-0000000000A1"
           }
         },
         {
@@ -2859,7 +2859,7 @@
             "Description": "JSON InterventionRunResult: { cohortSize, alreadyAssigned, eligible, capped, treated, held, sent, failed, preview }."
           },
           "primaryKey": {
-            "ID": "5044A100-001B-4000-8000-0000000000A2"
+            "ID": "5044A100-001F-4000-8000-0000000000A2"
           }
         }
       ],
@@ -2872,7 +2872,7 @@
             "Description": "Intervention run (or previewed) successfully."
           },
           "primaryKey": {
-            "ID": "5044A100-001B-4000-8000-0000000000C1"
+            "ID": "5044A100-001F-4000-8000-0000000000C1"
           }
         },
         {
@@ -2883,7 +2883,7 @@
             "Description": "ConfigJSON missing or malformed."
           },
           "primaryKey": {
-            "ID": "5044A100-001B-4000-8000-0000000000C2"
+            "ID": "5044A100-001F-4000-8000-0000000000C2"
           }
         },
         {
@@ -2894,7 +2894,7 @@
             "Description": "The run failed (segment/intervention create or engine error)."
           },
           "primaryKey": {
-            "ID": "5044A100-001B-4000-8000-0000000000C3"
+            "ID": "5044A100-001F-4000-8000-0000000000C3"
           }
         }
       ]
@@ -3099,6 +3099,126 @@
           },
           "primaryKey": {
             "ID": "5044A100-001E-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Draft Outreach",
+      "Description": "Per-member play (Kind=Action): for each treated member, an AI prompt drafts a short personalized outreach email grounded ONLY in that member's score facts (band, delta, factor contributions, dominant cause) and saves it as an Intervention Proposal awaiting human review in the Outreach queue. Sends nothing. Idempotent per (intervention, member) — a re-fire returns the existing proposal.",
+      "DriverClass": "SonarDraftOutreach",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-envelope-open-text",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Sonar Plays"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0021-4000-8000-000000000021"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The treated member — set the value to the {{member}} token so the runner fills it per fire."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The firing intervention (links the proposal back) — set the value to the {{interventionId}} token."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The score model whose facts ground the draft — set the value to the {{modelId}} token."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { proposalId, existing, subject }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A4"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Proposal drafted (or already existed for this intervention + member)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "AnchorRecordID/InterventionID/ModelID missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The member has no score on this model (or the model/anchor is missing)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Drafting failed (prompt missing/failed or the proposal row could not be saved). The runner records the member as Failed; a later re-run re-drafts only missing members."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C4"
           }
         }
       ]

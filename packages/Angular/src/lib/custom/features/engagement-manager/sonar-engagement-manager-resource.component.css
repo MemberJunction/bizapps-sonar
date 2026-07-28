@@ -287,6 +287,7 @@
     color: color-mix(in srgb, var(--sonar-accent) 70%, var(--sonar-faint));
 }
 .sonar-mgr-content {
+    position: relative; /* anchors the floating launch popover */
     flex: 1;
     min-width: 0;
     display: flex;
@@ -362,17 +363,39 @@
 .sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
 
 /* ── Action layer: launch panel + interventions tab ─────────────────────── */
-.sonar-launch { flex: 0 0 auto; margin-bottom: 1rem; }
-.sonar-launch__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.sonar-launch__scope { margin: 0 0 0.75rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.55; }
-/* Horizontal-first form row: labels+inputs flow left→right, wrapping to a stacked column when narrow. */
-.sonar-launch__form { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
-.sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 240px; min-width: 0; }
-.sonar-launch__field--num { flex: 0 1 120px; }
+/* Floating popover anchored top-right of the workspace, directly under the header's
+   "Launch intervention" button. It OVERLAYS the triage/movers content instead of reflowing it,
+   so the member list keeps its full height and the filter stays usable underneath (the cohort
+   sentence updates live). A compact vertical form, not a hero card. */
+.sonar-launch {
+    position: absolute;
+    top: 0.25rem;
+    right: 0;
+    z-index: 30;
+    width: min(26rem, calc(100% - 1rem));
+    margin: 0;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    border: 1px solid var(--sonar-border-strong);
+    box-shadow: 0 16px 40px color-mix(in srgb, var(--sonar-ink) 18%, transparent);
+}
+.sonar-launch__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.sonar-launch__title { font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-ink); white-space: nowrap; }
+.sonar-launch__title i { color: var(--sonar-accent); margin-right: 0.25rem; }
+.sonar-launch__scope { margin: 0; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.45; }
+.sonar-launch__close { padding: 0.125rem 0.5rem; }
+.sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.sonar-launch__field--num { flex: 0 0 4.5rem; }
 .sonar-launch__label { font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-ink); }
 .sonar-launch__field .sonar-input { width: 100%; font: inherit; }
 .sonar-launch__field--num .sonar-input { text-align: right; font-variant-numeric: tabular-nums; }
-.sonar-launch__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+/* Holdout + Cap share a line; the actions sit right-aligned, wrapping to their own line when tight. */
+.sonar-launch__pair { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-launch__actions { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.sonar-launch__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-launch__foot--empty { display: none; }
 .sonar-launch__counts { font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
 .sonar-launch__counts strong { color: var(--sonar-ink); }
 .sonar-launch__counts--done { color: var(--sonar-ink); }
@@ -380,8 +403,10 @@
 .sonar-launch__error { font-size: var(--sonar-font-sm); color: var(--sonar-critical); }
 .sonar-launch__link { background: none; border: none; padding: 0; font: inherit; color: var(--sonar-brand); cursor: pointer; text-decoration: underline; }
 @media (max-width: 1075px) {
-    .sonar-launch__form { flex-direction: column; }
-    .sonar-launch__field, .sonar-launch__field--num { flex: 1 1 auto; }
+    /* Narrow rails: the popover spans the workspace width; Holdout/Cap/actions stack. */
+    .sonar-launch { width: calc(100% - 0.5rem); }
+    .sonar-launch__pair { flex-wrap: wrap; }
+    .sonar-launch__actions { margin-left: 0; }
 }
 
 /* Interventions table: hairline dividers, right-aligned tabular numerics, no full grid borders. */
@@ -414,8 +439,49 @@
 .sonar-movers2__causechip { margin-left: 0.25rem; }
 .sonar-iv-table__outcome { display: block; font-size: var(--sonar-font-xs); margin-top: 0.125rem; }
 
-/* ── Launch: kind toggle (fire a play vs track only) ────────────────────── */
-.sonar-launch__kind { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-.sonar-launch__kindbtn { cursor: pointer; border: 1px solid var(--sonar-border-strong); background: var(--sonar-surface); border-radius: 6px; padding: 0.375rem 0.75rem; font: inherit; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+/* ── Launch: kind toggle (fire a play / sync / track only). Hints live in each button's title. ── */
+.sonar-launch__kind { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-launch__kindbtn { cursor: pointer; border: 1px solid var(--sonar-border-strong); background: var(--sonar-surface); border-radius: 6px; padding: 0 0.75rem; height: 2.25rem; font: inherit; font-size: var(--sonar-font-sm); color: var(--sonar-muted); white-space: nowrap; }
 .sonar-launch__kindbtn--on { border-color: var(--sonar-brand); color: var(--sonar-brand); background: color-mix(in srgb, var(--sonar-brand) 8%, transparent); font-weight: 600; }
-.sonar-launch__kindhint { font-size: var(--sonar-font-xs); flex: 1 1 220px; min-width: 0; line-height: 1.5; }
+
+/* ── Outreach queue: draft list (narrow rail) + the selected draft (wide editor) ─────────────── */
+.sonar-outreach { display: grid; grid-template-columns: 340px 1fr; gap: 1.5rem; align-items: start; }
+.sonar-outreach__head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-outreach__blurb { margin: 0.25rem 0 0; font-size: var(--sonar-font-sm); }
+.sonar-outreach__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-outreach__filter { margin-bottom: 0.75rem; }
+.sonar-outreach__list { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.sonar-outreach__item {
+    font: inherit; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 0.25rem;
+    padding: 0.75rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface); color: var(--sonar-ink);
+    transition: border-color 130ms ease, background 130ms ease;
+}
+.sonar-outreach__item:hover { background: color-mix(in srgb, var(--sonar-brand) 5%, transparent); }
+.sonar-outreach__item--active { border-color: var(--sonar-brand); background: color-mix(in srgb, var(--sonar-brand) 8%, transparent); }
+.sonar-outreach__item-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-outreach__name { font-weight: 600; }
+.sonar-outreach__subject { font-size: var(--sonar-font-sm); color: var(--sonar-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sonar-outreach__meta { font-size: var(--sonar-font-xs); }
+.sonar-outreach__detail { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.sonar-outreach__who { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-outreach__member { margin: 0; font-size: var(--sonar-font-lg); }
+/* The grounding panel: the audit trail the draft was written from ("why this member"). */
+.sonar-outreach__grounding {
+    border: 1px solid var(--sonar-border); border-left: 3px solid var(--sonar-brand);
+    border-radius: var(--sonar-radius-sm); background: color-mix(in srgb, var(--sonar-brand) 4%, var(--sonar-surface));
+    padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.375rem;
+}
+.sonar-outreach__grounding-title { font-size: var(--sonar-font-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sonar-muted); }
+.sonar-outreach__rationale { margin: 0; font-size: var(--sonar-font-sm); font-style: italic; }
+.sonar-outreach__facts { margin: 0; font-size: var(--sonar-font-sm); }
+.sonar-outreach__factor { margin: 0; font-size: var(--sonar-font-xs); }
+.sonar-outreach__why { font-style: italic; }
+.sonar-outreach__field { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-outreach__body { height: auto; min-height: 11rem; padding: 0.5rem 0.75rem; resize: vertical; line-height: 1.55; }
+.sonar-outreach__decide { display: flex; align-items: center; gap: 0.5rem; }
+.sonar-outreach__note { margin: 0; font-size: var(--sonar-font-sm); }
+@media (max-width: 1075px) {
+    .sonar-outreach { grid-template-columns: 1fr; }
+}

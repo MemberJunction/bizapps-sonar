@@ -10,11 +10,30 @@
     <!-- ========================================
          FIELD PANELS
          ======================================== -->
-    <!-- Segment Definition Section -->
+    <!-- Relationship Information Section -->
     <mj-collapsible-panel
-        SectionKey="segmentDefinition"
-        SectionName="Segment Definition"
-        Icon="fa fa-info-circle"
+        SectionKey="relationshipInformation"
+        SectionName="Relationship Information"
+        Icon="fa fa-link"
+        [Form]="this"
+        [FormContext]="formContext">
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="false"
+            FieldName="ScoreModelID"
+            Type="textbox"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+            LinkType="Record"
+        ></mj-form-field>
+
+    </mj-collapsible-panel>
+
+    <!-- Segment Configuration Section -->
+    <mj-collapsible-panel
+        SectionKey="segmentConfiguration"
+        SectionName="Segment Configuration"
+        Icon="fa fa-sliders-h"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -33,16 +52,6 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-
-    </mj-collapsible-panel>
-
-    <!-- Segment Logic Section -->
-    <mj-collapsible-panel
-        SectionKey="segmentLogic"
-        SectionName="Segment Logic"
-        Icon="fa fa-code"
-        [Form]="this"
-        [FormContext]="formContext">
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -98,15 +107,6 @@
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
-            FieldName="ScoreModelID"
-            Type="textbox"
-            [EditMode]="EditMode"
-            [FormContext]="formContext"
-            LinkType="Record"
-        ></mj-form-field>
-        <mj-form-field 
-            [Record]="record"
-            [ShowLabel]="true"
             FieldName="__mj_CreatedAt"
             Type="textbox"
             [EditMode]="EditMode"
@@ -133,7 +133,7 @@
     <mj-collapsible-panel
         SectionKey="mJBizAppsSonarInterventions"
         SectionName="Interventions"
-        Icon="fa fa-magic"
+        Icon="fa fa-bolt"
         Variant="related-entity"
         [Form]="this"
         [FormContext]="formContext"

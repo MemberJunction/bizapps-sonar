@@ -10,11 +10,11 @@
     <!-- ========================================
          FIELD PANELS
          ======================================== -->
-    <!-- Model Configuration Section -->
+    <!-- General Information Section -->
     <mj-collapsible-panel
-        SectionKey="modelConfiguration"
-        SectionName="Model Configuration"
-        Icon="fa fa-cog"
+        SectionKey="generalInformation"
+        SectionName="General Information"
+        Icon="fa fa-info-circle"
         [Form]="this"
         [FormContext]="formContext">
         <mj-form-field 
@@ -44,15 +44,6 @@
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
-            FieldName="AnchorEntityID"
-            Type="textbox"
-            [EditMode]="EditMode"
-            [FormContext]="formContext"
-            LinkType="Record"
-        ></mj-form-field>
-        <mj-form-field 
-            [Record]="record"
-            [ShowLabel]="true"
             FieldName="Status"
             Type="select"
             [EditMode]="EditMode"
@@ -61,22 +52,39 @@
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
-            FieldName="CurrentVersionID"
+            FieldName="OwnerUserID"
             Type="textbox"
             [EditMode]="EditMode"
             [FormContext]="formContext"
             LinkType="Record"
         ></mj-form-field>
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="true"
+            FieldName="Notes"
+            Type="textarea"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+        ></mj-form-field>
 
     </mj-collapsible-panel>
 
-    <!-- Scoring Logic Section -->
+    <!-- Model Configuration Section -->
     <mj-collapsible-panel
-        SectionKey="scoringLogic"
-        SectionName="Scoring Logic"
-        Icon="fa fa-calculator"
+        SectionKey="modelConfiguration"
+        SectionName="Model Configuration"
+        Icon="fa fa-cogs"
         [Form]="this"
         [FormContext]="formContext">
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="true"
+            FieldName="AnchorEntityID"
+            Type="textbox"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+            LinkType="Record"
+        ></mj-form-field>
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -137,10 +145,10 @@
 
     </mj-collapsible-panel>
 
-    <!-- Execution Policy Section -->
+    <!-- Execution Settings Section -->
     <mj-collapsible-panel
-        SectionKey="executionPolicy"
-        SectionName="Execution Policy"
+        SectionKey="executionSettings"
+        SectionName="Execution Settings"
         Icon="fa fa-clock"
         [Form]="this"
         [FormContext]="formContext">
@@ -184,25 +192,6 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-
-    </mj-collapsible-panel>
-
-    <!-- Ownership and Validity Section -->
-    <mj-collapsible-panel
-        SectionKey="ownershipAndValidity"
-        SectionName="Ownership and Validity"
-        Icon="fa fa-user-shield"
-        [Form]="this"
-        [FormContext]="formContext">
-        <mj-form-field 
-            [Record]="record"
-            [ShowLabel]="true"
-            FieldName="OwnerUserID"
-            Type="textbox"
-            [EditMode]="EditMode"
-            [FormContext]="formContext"
-            LinkType="Record"
-        ></mj-form-field>
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"
@@ -219,14 +208,6 @@
             [EditMode]="EditMode"
             [FormContext]="formContext"
         ></mj-form-field>
-        <mj-form-field 
-            [Record]="record"
-            [ShowLabel]="true"
-            FieldName="Notes"
-            Type="textarea"
-            [EditMode]="EditMode"
-            [FormContext]="formContext"
-        ></mj-form-field>
 
     </mj-collapsible-panel>
 
@@ -237,6 +218,15 @@
         Icon="fa fa-database"
         [Form]="this"
         [FormContext]="formContext">
+        <mj-form-field 
+            [Record]="record"
+            [ShowLabel]="true"
+            FieldName="CurrentVersionID"
+            Type="textbox"
+            [EditMode]="EditMode"
+            [FormContext]="formContext"
+            LinkType="Record"
+        ></mj-form-field>
         <mj-form-field 
             [Record]="record"
             [ShowLabel]="true"

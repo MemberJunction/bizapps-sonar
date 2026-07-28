@@ -15,9 +15,8 @@ export class mjBizAppsSonarInterventionOutcomeFormComponent extends BaseFormComp
     override async ngOnInit() {
         await super.ngOnInit();
         this.initSections([
-            { sectionKey: 'interventionDetails', sectionName: 'Intervention Details', isExpanded: true },
-            { sectionKey: 'interventionTimeline', sectionName: 'Intervention Timeline', isExpanded: true },
-            { sectionKey: 'performanceMetrics', sectionName: 'Performance Metrics', isExpanded: true },
+            { sectionKey: 'interventionTracking', sectionName: 'Intervention Tracking', isExpanded: true },
+            { sectionKey: 'outcomeDetails', sectionName: 'Outcome Details', isExpanded: true },
             { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false }
         ]);
     }
