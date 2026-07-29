@@ -11,8 +11,15 @@
                 <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
                     {{ selectedModel()?.Name || 'Model Builder' }}
                 </h1>
-                <p class="sonar-page__subtitle">
-                    Anchor: {{ anchorName() }} &middot; {{ population() === null ? '&mdash;' : (population() | number) }} in population &middot; {{ versionLabel() }}
+                <!-- population() is the REAL scored scope (population filter applied), counted by the
+                     engine. When a filter narrows it, show it against the entity total so the number
+                     can't be misread: "66 of 2,000 in population". The change window is editable inline
+                     (it drives what Delta/Trend compare against), so it lives here too. -->
+                <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} &middot;
+                    <span [title]="populationIsFiltered() ? 'Population filter applied — ' + (population() | number) + ' of ' + (populationTotal() | number) + ' records are scored' : 'Every record of the anchor entity is scored'">
+                        {{ population() === null ? '&mdash;' : (population() | number) }}@if (populationIsFiltered()) { of {{ populationTotal() | number }}} in population
+                    </span>
+                    &middot; {{ versionLabel() }}
                     @if (selectedModelId()) {
                         &middot; change window:
                         @if (editingTrendWindow()) {
@@ -130,16 +137,22 @@
                 </mj-tab-nav>
             }
 
+            <!-- Published & locked banner. Lives HERE, above the tab bodies, rather than inside the
+                 Factors tab: PopulationFilter / AnchorEntityID / BandSetID are all frozen by the same
+                 server guard (publishLock.EDITABLE_WHILE_PUBLISHED_SCORE_MODEL_FIELDS), so Population,
+                 Data Sources and Score Bands were each disabling their controls with no explanation
+                 and no way to unpublish — the Population tab in particular rendered as two dead
+                 buttons under a heading, which read as "the population filter is broken". -->
+            @if (selectedModelId() && isPublished() && activeTab() !== 'versions') {
+                <mj-alert Variant="warning" Size="sm">
+                    <i class="fa-solid fa-lock"></i>
+                    Published &amp; locked &mdash;
+                    <button class="sonar-lock-banner__link" [disabled]="unpublishing()" (click)="unpublishToEdit()">{{ unpublishing() ? "Unpublishing&hellip;" : "Unpublish to edit" }}</button>
+                </mj-alert>
+            }
+
             <!-- ── Factors tab ─────────────────────────────────────────────────── -->
             @if (activeTab() === 'factors') {
-
-                @if (isPublished()) {
-                    <mj-alert Variant="warning" Size="sm">
-                        <i class="fa-solid fa-lock"></i>
-                        Published &amp; locked &mdash;
-                        <button class="sonar-lock-banner__link" [disabled]="unpublishing()" (click)="unpublishToEdit()">{{ unpublishing() ? "Unpublishing&hellip;" : "Unpublish to edit" }}</button>
-                    </mj-alert>
-                }
 
                 <div class="sonar-deck__rubric" (scroll)="recomputeWires()">
                     <div class="sonar-deck__panel-head">
@@ -297,13 +310,28 @@
                     </div>
                     @if (!scoreEveryone()) {
                         <div class="sonar-scope-filter-builder-wrap" [class.sonar-locked__field]="isPublished()">
+                            <!-- [filter] is a one-way SEED, never re-bound from (filterChange) — see
+                                 populationFilter's docs for the NG0100 that caused. -->
                             <mj-filter-builder
                                 [fields]="populationFilterFields"
                                 [filter]="populationFilter"
+                                [disabled]="isPublished()"
                                 [showSummary]="true"
                                 (filterChange)="onPopulationFilterChange($event)">
                             </mj-filter-builder>
                         </div>
+                        <!-- An incomplete condition is NOT saved (it would compile to a misleading
+                             WHERE, and an empty number box persists a null that fails the recompute
+                             outright). Say so, or the screen and the scored population disagree in
+                             silence — which is exactly how switching a rule's field used to leave the
+                             PREVIOUS filter live while showing the new one. -->
+                        @if (populationIncomplete() && !isPublished()) {
+                            <mj-alert Variant="info" Size="sm">
+                                <i class="fa-solid fa-circle-info"></i>
+                                Not saved yet &mdash; finish this condition (pick a value) and it saves automatically.
+                                Until then this model still scores its previously saved population.
+                            </mj-alert>
+                        }
                     }
                 </div>
             }

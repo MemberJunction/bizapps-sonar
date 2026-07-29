@@ -10,6 +10,7 @@ import { FactorService, RubricRow, EditFactorVM } from "../../core/services/fact
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath } from "../../core/entity-graph";
 import { IsBusinessEntity } from "../../core/entity-scope";
 import { BandEditPlan, BandScale, planBandDelete, planBandInsert, planContiguousBandEdit } from "../../core/band-coverage";
@@ -102,6 +103,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     private readonly engine = inject(SonarEngineService);
     public readonly current = inject(CurrentModelService);
     private readonly toast = inject(ToastService);
+    private readonly bus = inject(SonarDataBusService);
     private readonly hostRef = inject(ElementRef);
     private readonly injector = inject(Injector);
 
@@ -288,26 +290,165 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     // filter is persisted to the model and applied by the engine when it resolves the population
     // (RecomputeOrchestrator.compilePopulationFilter).
 
+    /** Anchor records in the whole entity, when a filter narrows the scope — so the header can read
+     *  "66 of 2,000 in population". Null when unfiltered (then `population()` IS the total). */
+    public readonly populationTotal = signal<number | null>(null);
+
+    /** True when this model scores a filtered subset rather than the whole anchor entity. Comes from
+     *  the engine's own count, not from the toggle, so it reflects what is actually PERSISTED. */
+    public readonly populationIsFiltered = computed(() => this.populationTotal() !== null);
+
     /** Fields the user can filter the anchor population on — the anchor entity's real columns
      *  (rebuilt in loadModelContext from the selected model's anchor). */
     public populationFilterFields: FilterFieldInfo[] = [];
 
-    /** The current population filter (the builder reads + emits this CompositeFilterDescriptor). */
+    /**
+     * SEED for <mj-filter-builder>'s `[filter]` input — one-way only.
+     *
+     * Deliberately NOT reassigned from `onPopulationFilterChange`. The builder deep-clones this input
+     * on every `ngOnChanges`, so writing the child's just-emitted tree straight back re-entered the
+     * child mid-change-detection. That threw `NG0100: ExpressionChangedAfterItHasBeenCheckedError`
+     * (the header's condition-count conditional flipped inside one pass), Angular aborted the pass,
+     * and the row `mj-filter-group.ngOnInit` had auto-added never rendered — leaving the panel
+     * claiming "No filters applied" with an "Add your first condition" empty state while its
+     * expression badge read 1, and no condition row to edit. The child owns its own working copy;
+     * this only gets written when we genuinely need to RESET it (model load, or clearing to Everyone).
+     */
     public populationFilter: CompositeFilterDescriptor = createEmptyFilter();
 
-    /** Persist the authored filter onto ScoreModel.PopulationFilter. Persists only a clear (no
-     *  conditions → null, score the whole anchor entity) or a COMPLETE filter — never a half-typed
-     *  condition, whose empty value would compile to a misleading WHERE at recompute time. */
-    public async onPopulationFilterChange(filter: CompositeFilterDescriptor): Promise<void> {
-        this.populationFilter = filter;
+    /** The tree the user has actually authored (mirrors the builder's own state). Read this, never
+     *  `populationFilter`, when you want "what's on screen right now". */
+    private authoredPopulationFilter: CompositeFilterDescriptor = createEmptyFilter();
+
+    /** True when the on-screen filter has a condition that isn't usable yet (no value, or a cleared
+     *  number box). Drives the inline "not saved yet" hint — without it, switching a rule's field
+     *  silently leaves the PREVIOUS filter persisted while the screen shows the new one. */
+    public readonly populationIncomplete = signal(false);
+
+    /** What's actually persisted on the model right now. The in-memory entity can't be trusted for
+     *  this: setPopulationFilter saves through its own freshly-loaded entity instance, so
+     *  `selectedModel().PopulationFilter` goes stale the moment we write. */
+    private persistedPopulationFilter: string | null = null;
+
+    /**
+     * Debounce window for population-filter saves.
+     *
+     * The builder emits on EVERY keystroke and the old handler awaited a full load-modify-save per
+     * emit, so typing `gmail.com` fired nine independent read-modify-write round trips with no
+     * ordering guarantee. Observed result: the UI showed `gmail.com` while the row held `gmail.co` —
+     * the second-to-last keystroke landed last. 500ms is long enough for a burst to settle into one
+     * write, short enough that a normal pause feels saved.
+     */
+    private static readonly POPULATION_SAVE_DEBOUNCE_MS = 500;
+    private populationSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    /** The debounced write waiting to fire, kept so a model switch / tab change can flush it. */
+    private pendingPopulationSave: { modelId: string; json: string | null } | null = null;
+    /**
+     * Tail of the save chain. Debouncing alone doesn't make concurrency impossible — a settled write
+     * can still overlap a rapid Everyone/Filtered toggle — and each write is a load-modify-save, so
+     * two in flight interleave. Every write appends here instead of racing.
+     */
+    private populationSaveChain: Promise<void> = Promise.resolve();
+
+    /**
+     * The builder authored a change. Records it locally and schedules ONE debounced, serialized write.
+     *
+     * Three outcomes, and the third is the subtle one:
+     *  - no conditions      → persist null (score the whole anchor entity)
+     *  - complete           → persist the tree
+     *  - incomplete         → persist NOTHING, and flag it. A half-typed condition would compile to a
+     *                         misleading WHERE, and an empty number box reaches us as NaN, which
+     *                         `JSON.stringify` writes as `null` — the engine then throws
+     *                         "operator 'eq' on 'X' requires a value" and the model can't recompute
+     *                         at all until someone repairs the filter.
+     */
+    public onPopulationFilterChange(filter: CompositeFilterDescriptor): void {
+        this.authoredPopulationFilter = filter;
         const model = this.selectedModel();
         if (!model || this.isPublished()) return;
+
         if (filter.filters.length === 0) {
-            await this.modelService.setPopulationFilter(model.ID, null);
-        } else if (this.isFilterComplete(filter)) {
-            await this.modelService.setPopulationFilter(model.ID, JSON.stringify(filter));
+            this.populationIncomplete.set(false);
+            this.queuePopulationSave(model.ID, null);
+            return;
         }
-        // otherwise: mid-edit (a condition without a value yet) — keep it local, don't persist.
+        if (!this.isFilterComplete(filter)) {
+            // Mid-edit. Keep it on screen, leave the stored filter alone, but SAY so — otherwise the
+            // screen and the scored population silently disagree.
+            this.populationIncomplete.set(true);
+            return;
+        }
+        this.populationIncomplete.set(false);
+        this.queuePopulationSave(model.ID, JSON.stringify(filter));
+    }
+
+    /** Collapse a burst of edits into one write. Replaces any still-pending write for this model. */
+    private queuePopulationSave(modelId: string, json: string | null): void {
+        this.pendingPopulationSave = { modelId, json };
+        if (this.populationSaveTimer) clearTimeout(this.populationSaveTimer);
+        this.populationSaveTimer = setTimeout(
+            () => this.firePendingPopulationSave(),
+            SonarModelBuilderResourceComponent.POPULATION_SAVE_DEBOUNCE_MS,
+        );
+    }
+
+    /** Move the pending write onto the serialized chain. */
+    private firePendingPopulationSave(): void {
+        if (this.populationSaveTimer) {
+            clearTimeout(this.populationSaveTimer);
+            this.populationSaveTimer = null;
+        }
+        const pending = this.pendingPopulationSave;
+        if (!pending) return;
+        this.pendingPopulationSave = null;
+        this.populationSaveChain = this.populationSaveChain.then(() =>
+            this.writePopulationFilter(pending.modelId, pending.json),
+        );
+    }
+
+    /**
+     * Flush any debounced write and wait for the chain to drain. MUST be awaited before anything that
+     * leaves this filter behind — a model switch, publishing, or a recompute — or the last 500ms of
+     * the user's edit is silently dropped.
+     */
+    private async flushPopulationSave(): Promise<void> {
+        this.firePendingPopulationSave();
+        await this.populationSaveChain;
+    }
+
+    /** The single place a population filter is written. Reports failure instead of swallowing it —
+     *  the old code discarded setPopulationFilter's boolean, so a publish-lock rejection or a
+     *  permissions failure looked exactly like success. */
+    private async writePopulationFilter(modelId: string, json: string | null): Promise<void> {
+        if (!(await this.modelService.setPopulationFilter(modelId, json))) {
+            this.toast.error("Couldn't save the population filter — your change isn't stored. Check that the model is a draft, then try again.");
+            return;
+        }
+        this.persistedPopulationFilter = json;
+        this.bus.publish({ topic: "config", modelId });
+        // The scope just changed — re-ask the engine how many records are actually in it.
+        await this.refreshPopulationCount(modelId);
+    }
+
+    /**
+     * Ask the engine for the model's real scored scope and put it in the header.
+     *
+     * Goes through the "Sonar: Count Population" Action because the population filter is compiled to
+     * SQL server-side (RecomputeOrchestrator.compilePopulationFilter); counting it in the browser would
+     * duplicate that compiler. Two `count_only` reads, so this is cheap enough to run on every save.
+     *
+     * On failure the counts are cleared rather than left stale — a wrong number here is what caused
+     * the original complaint (a flat "2,000 in population" for a model scoping 66).
+     */
+    private async refreshPopulationCount(modelId: string): Promise<void> {
+        const count = await this.engine.countPopulation(modelId);
+        if (count.errors.length > 0) {
+            this.population.set(null);
+            this.populationTotal.set(null);
+            return;
+        }
+        this.population.set(count.scoped);
+        this.populationTotal.set(count.filtered ? count.total : null);
     }
 
     /** Event handler for selecting a data source from the combobox to instantly map it. */
@@ -317,41 +458,45 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.addSource();
     }
 
-    /** Segmented population toggle: Everyone (clear filter) vs Filtered subset (build a filter). */
+    /**
+     * Segmented population toggle: Everyone (clear the filter) vs Filtered subset (author one).
+     *
+     * Switching TO "Filtered subset" no longer wipes the tree. It used to unconditionally reset to an
+     * empty filter, so landing on a model that already had a saved filter and touching this toggle
+     * blanked the builder while the row kept the old filter — screen and scored population silently
+     * disagreeing again.
+     */
     public async setScoreEveryone(on: boolean): Promise<void> {
         if (this.isPublished()) return;
         this.scoreEveryone.set(on);
-        this.populationFilter = createEmptyFilter();
+        if (!on) return; // keep whatever is authored/persisted; the builder takes over
+        this.populationIncomplete.set(false);
+        this.populationFilter = createEmptyFilter(); // reset the child: this IS a genuine clear
+        this.authoredPopulationFilter = this.populationFilter;
         const model = this.selectedModel();
-        if (on && model) await this.modelService.setPopulationFilter(model.ID, null);
+        if (!model) return;
+        this.queuePopulationSave(model.ID, null);
+        await this.flushPopulationSave(); // an explicit click deserves an immediate write
     }
 
-    /** Event handler for checking/unchecking the "Score all records" checkbox. */
-    public async toggleScoreEveryone(event: Event): Promise<void> {
-        if (this.isPublished()) return;
-        const checked = (event.target as HTMLInputElement).checked;
-        this.scoreEveryone.set(checked);
-        const model = this.selectedModel();
-        if (checked) {
-            this.populationFilter = createEmptyFilter();
-            if (model) {
-                await this.modelService.setPopulationFilter(model.ID, null);
-            }
-        } else {
-            this.populationFilter = createEmptyFilter();
-            // Do not persist yet since it is empty/incomplete, but let the user build it
-        }
-    }
-
-    /** True when every leaf is usable: a null-operator (needs no value), or a value-taking
-     *  operator with a non-empty value. Guards against persisting a half-authored filter. */
+    /**
+     * True when every leaf is usable: a null-operator (needs no value), or a value-taking operator
+     * with a real value.
+     *
+     * The NaN guard is load-bearing. An empty `<input type="number">` reports `valueAsNumber` as NaN,
+     * which is neither undefined, null, nor "" — so it used to pass as "complete" and
+     * `JSON.stringify(NaN)` persisted `"value": null`. The engine's `requireValue` then throws
+     * `compileFilter: operator 'eq' on 'YearsInProfession' requires a value.`, failing the whole
+     * recompute. One backspace in a number box bricked the model until the filter was repaired.
+     */
     private isFilterComplete(node: CompositeFilterDescriptor): boolean {
-        return node.filters.every((child) =>
-            isCompositeFilter(child)
-                ? this.isFilterComplete(child)
-                : NULL_FILTER_OPERATORS.has(child.operator) ||
-                  (child.value !== undefined && child.value !== null && child.value !== ""),
-        );
+        return node.filters.every((child) => {
+            if (isCompositeFilter(child)) return this.isFilterComplete(child);
+            if (NULL_FILTER_OPERATORS.has(child.operator)) return true;
+            const value = child.value;
+            if (value === undefined || value === null || value === "") return false;
+            return typeof value === "number" ? Number.isFinite(value) : true;
+        });
     }
 
     /** SQL type → filter-builder field type (mirrors the factor builder's mapping). */
@@ -420,6 +565,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.selectModel(id);
         await this.sidebar?.refresh();
         this.activeView.set("rubric");
+        // A new model belongs in every surface's rail and in Portfolio's slot list.
+        this.bus.publish({ topic: "models" });
     }
 
     /** Bands were saved — point the model at the chosen set (covers both "had none" and "switched to
@@ -429,6 +576,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (model && model.BandSetID !== bandSetId) {
             await this.modelService.setBandSet(model.ID, bandSetId);
             await this.selectModel(model.ID);
+            // Band labels/thresholds are what the dashboards render distributions in terms of.
+            this.bus.publish({ topic: "config", modelId: model.ID });
         }
         // bands is a tab now — no modal to dismiss
     }
@@ -472,6 +621,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.sidebar?.refresh();
         this.editFactor.set(null);
         this.activeView.set("rubric");
+        // The rubric changed: signal counts and the "missing signals" explainer read from it.
+        if (id) this.bus.publish({ topic: "config", modelId: id });
     }
 
     /** Busy flag for rubric factor removal. */
@@ -989,6 +1140,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             if (await this.factorService.unbind(modelFactorId)) {
                 this.rubric.set(await this.factorService.rubricForModel(id));
                 await this.sidebar?.refresh();
+                this.bus.publish({ topic: "config", modelId: id });
             } else {
                 this.toast.error("Couldn't remove that signal. Please try again.");
             }
@@ -1069,8 +1221,13 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     }
 
     /** Select a model in the rail and hydrate the full entity + its context. Also publishes
-     *  the choice to the shared current-model context so other surfaces stay in sync. */
+     *  the choice to the shared current-model context so other surfaces stay in sync.
+     *
+     *  Flushes any debounced population-filter write FIRST: the save is 500ms behind the keystroke,
+     *  so switching models right after typing would otherwise drop the tail of the edit — and worse,
+     *  land it against the model the user just left. */
     public async selectModel(id: string): Promise<void> {
+        await this.flushPopulationSave();
         this.selectedModelId.set(id);
         this.current.select(id);
         const model = await this.modelService.get(id);
@@ -1086,8 +1243,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.rubric.set([]);
             this.anchorName.set("—");
             this.population.set(null);
+            this.populationTotal.set(null);
             this.populationFilterFields = [];
             this.populationFilter = createEmptyFilter();
+            this.authoredPopulationFilter = this.populationFilter;
+            this.persistedPopulationFilter = null;
+            this.populationIncomplete.set(false);
             this.scoreEveryone.set(true);
             this.trendWindowDays.set(null);
             this.editingTrendWindow.set(false);
@@ -1105,17 +1266,21 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                   .filter((f) => !f.IsPrimaryKey && !f.Name.startsWith("__mj_"))
                   .map((f) => ({ name: f.Name, displayName: f.DisplayName || f.Name, type: this.filterFieldType(f.Type) }))
             : [];
+        // Reset the builder to what's actually stored (the one legitimate write to the seed input).
         this.populationFilter = this.parsePopulationFilter(model.PopulationFilter);
-        this.scoreEveryone.set(!model.PopulationFilter || this.parsePopulationFilter(model.PopulationFilter).filters.length === 0);
+        this.authoredPopulationFilter = this.populationFilter;
+        this.persistedPopulationFilter = model.PopulationFilter ?? null;
+        this.populationIncomplete.set(false);
+        this.scoreEveryone.set(this.populationFilter.filters.length === 0);
         this.trendWindowDays.set(model.TrendWindowDays ?? null);
         this.editingTrendWindow.set(false);
 
-        // Real count of anchor records in scope.
+        // The REAL scored scope, with the population filter applied, from the engine (which owns the
+        // filter→SQL compiler). This used to be a bare whole-entity count_only printed as the scope,
+        // so a model narrowed to 66 members still read "2,000 in population".
         this.population.set(null);
-        if (anchor) {
-            const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
-            this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
-        }
+        this.populationTotal.set(null);
+        await this.refreshPopulationCount(model.ID);
 
         // Data sources wired into the model (shaped for both the info card and the factor picker).
         const sources = await this.modelService.dataSources(model.ID);
@@ -1186,11 +1351,15 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const id = this.selectedModelId();
         if (id) await this.selectModel(id);
         await this.sidebar?.refresh();
+        if (id) this.bus.publish({ topic: "config", modelId: id });
     }
 
     /** A version was published — refresh the model context (status flips) and return to the rubric. */
     public async onPublished(): Promise<void> {
         const id = this.selectedModelId();
+        // Publishing SNAPSHOTS the live config, so any debounced population-filter write has to land
+        // before the snapshot is taken — otherwise the version is frozen without the user's last edit.
+        await this.flushPopulationSave();
         // Optimistically flip Status so the lock banner renders the moment the modal closes,
         // without waiting for the DB round-trip. Signal equality is reference-based, so toggle
         // through null to force computed re-evaluation.
@@ -1205,6 +1374,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (id) {
             await this.selectModel(id);
             await this.sidebar?.refresh();
+            this.bus.publish({ topic: "config", modelId: id });
         }
     }
 
@@ -1387,6 +1557,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             if (await this.modelService.unpublishToDraft(id)) {
                 await this.selectModel(id);
                 await this.sidebar?.refresh();
+                // Status flipped: every other surface's rail chip is now wrong, and its config is
+                // about to change. `config` also bumps `models` for the rails.
+                this.bus.publish({ topic: "config", modelId: id });
                 this.toast.success("Unpublished to a draft — edit freely, then publish a new version.");
             } else {
                 this.toast.error("Couldn't unpublish this model. Please try again.");
@@ -1413,6 +1586,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 await this.sidebar?.refresh();
                 this.selectedModelId.set(null);
                 this.selectedModel.set(null);
+                this.bus.publish({ topic: "models" });
                 this.toast.success("Model archived.");
             } else {
                 this.toast.error("Couldn't archive this model. Please try again.");
@@ -1446,6 +1620,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
                 this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
+                // THE reason the bus exists: this run just wrote Score / ScoreHistory /
+                // ScoreBandTransition rows that Portfolio, Engagement Manager and the model dashboard
+                // are all still showing the previous version of. Published against `id`, not the
+                // current selection, so it's correct even if the user switched models mid-run.
+                this.bus.publish({ topic: "scores", modelId: id });
                 // Only refresh the right rail if we're still on the model we recomputed — otherwise
                 // simulate() would re-score whatever model the user switched TO.
                 if (this.selectedModelId() === id) await this.simulate();
