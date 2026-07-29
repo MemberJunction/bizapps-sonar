@@ -440,6 +440,9 @@
                                     </button>
                                 </div>
 
+                                @if (moverError(); as err) {
+                                    <p class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</p>
+                                }
                                 @if (loadingMovers()) {
                                     <div class="sonar-skeleton" style="height: 8rem;"></div>
                                 } @else if (moverList().length === 0) {

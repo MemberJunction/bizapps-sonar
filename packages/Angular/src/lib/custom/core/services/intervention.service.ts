@@ -227,6 +227,8 @@ export class InterventionService {
         filter: LaunchSegmentFilter,
         page = 0,
         pageSize = 50,
+        /** Display order only. Never changes which members a real run would treat. */
+        orderBy?: "BiggestDrop" | "BiggestGain",
     ): Promise<{ ok: boolean; result?: SegmentPreview; error?: string }> {
         const id = await this.resolveActionIdByName(PREVIEW_SEGMENT_ACTION);
         if (!id) return { ok: false, error: "The segment preview action isn't available in this environment." };
@@ -235,6 +237,7 @@ export class InterventionService {
             { Name: "FilterJSON", Value: JSON.stringify(filter), Type: "Input" },
             { Name: "Page", Value: String(page), Type: "Input" },
             { Name: "PageSize", Value: String(pageSize), Type: "Input" },
+            ...(orderBy ? [{ Name: "OrderBy", Value: orderBy, Type: "Input" as const }] : []),
         ]);
         if (!res.Success) return { ok: false, error: res.Message || "Resolving the segment failed." };
         const result = extractActionResult<SegmentPreview>(res);

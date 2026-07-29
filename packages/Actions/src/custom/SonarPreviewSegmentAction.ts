@@ -46,6 +46,10 @@ export class SonarPreviewSegmentAction extends SonarActionBase {
             // resolve() returns the whole cohort (that's what an intervention acts on); we page the
             // response so a 2,000-member rule doesn't ship 2,000 rows to a preview panel.
             const cohort = await new SegmentEvaluator().resolve(modelId, filter, params.ContextUser);
+            // Sorting happens HERE, not in the evaluator: the evaluator's worst-score-first order is
+            // also the cap policy for a real run (which members get treated when a run is capped),
+            // and a display preference must not quietly change who gets picked.
+            this.sortCohort(cohort, this.getInput(params, "OrderBy"));
             const slice = cohort.slice(page * pageSize, page * pageSize + pageSize);
             const payload = {
                 total: cohort.length,
@@ -67,6 +71,23 @@ export class SonarPreviewSegmentAction extends SonarActionBase {
         } catch (e: unknown) {
             return this.fail(params, "ERROR", e instanceof Error ? e.message : String(e));
         }
+    }
+
+    /**
+     * Order the resolved cohort for DISPLAY. 'BiggestDrop'/'BiggestGain' sort by the last-run delta
+     * (a "Score Movers" reading, where the point is who moved most); anything else keeps the
+     * evaluator's worst-score-first order. Members with no delta sort last either way — an unknown
+     * move is not a big one.
+     */
+    private sortCohort(cohort: { normalizedScore: number | null; delta: number | null }[], orderBy: string | null): void {
+        if (orderBy !== "BiggestDrop" && orderBy !== "BiggestGain") return;
+        const dir = orderBy === "BiggestGain" ? -1 : 1;
+        cohort.sort((a, b) => {
+            if (a.delta === null && b.delta === null) return 0;
+            if (a.delta === null) return 1;
+            if (b.delta === null) return -1;
+            return (a.delta - b.delta) * dir;
+        });
     }
 
     /** Read an optional integer param; null when absent or not a finite number. */

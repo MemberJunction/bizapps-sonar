@@ -3362,6 +3362,20 @@
         {
           "fields": {
             "ActionID": "@parent:ID",
+            "Name": "OrderBy",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Display order for the returned page: 'BiggestDrop' or 'BiggestGain' sort by last-run delta; omitted (or anything else) keeps the engine's worst-score-first order. Affects the response only, never which members a run would treat."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
             "Name": "Result",
             "Type": "Both",
             "ValueType": "Scalar",

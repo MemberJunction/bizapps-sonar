@@ -10,7 +10,7 @@ import { SonarDataBusService } from "../../core/services/sonar-data-bus.service"
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, ProposalStatus, ProposalSummary } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, PreviewMember, ProposalStatus, ProposalSummary } from "../../core/services/intervention.service";
 
 
 /**
@@ -88,6 +88,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly moverPage = signal(0);
     public readonly moverTotal = signal(0);
     public readonly loadingMovers = signal(false);
+    /** Set when the engine couldn't resolve the rule — distinct from "the rule matched nobody". */
+    public readonly moverError = signal<string | null>(null);
     /** Dominant "why they're low" per listed member (scoreId → cause label), from contributions. */
     public readonly moverCauseById = signal<Map<string, string>>(new Map());
 
@@ -569,18 +571,69 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         if (!id) { this.moverList.set([]); this.moverTotal.set(0); this.moverSummary.set({ dropped: 0, climbed: 0, crossed: 0 }); return; }
         this.loadingMovers.set(true);
         try {
-            const [summary, pageResult] = await Promise.all([
+            // The ENGINE resolves the rule (`Sonar: Preview Segment`), not a client-side score query.
+            // This surface used to re-express the rule in its own SQL, which meant two definitions of
+            // "who is in this cohort" that could disagree — and trajectory rules (slope, sustained
+            // decline) can't be expressed that way at all, since they read each member's history.
+            // Now the list shows exactly who a launch on the same rule would treat.
+            const [summary, preview] = await Promise.all([
                 this.scoreRead.moverSummary(id),
-                this.scoreRead.moverMembers(id, this.moverFilter(), this.moverDirection(), this.moverPage(), this.pageSize),
+                this.interventionService.previewSegment(
+                    id, this.moverFilter(), this.moverPage(), this.pageSize,
+                    // This view is "who moved most", so ask for mover ordering explicitly.
+                    this.moverDirection() === "drops" ? "BiggestDrop" : "BiggestGain",
+                ),
             ]);
             this.moverSummary.set(summary);
-            this.moverList.set(pageResult.members);
-            this.moverTotal.set(pageResult.total);
+            if (!preview.ok || !preview.result) {
+                this.moverError.set(preview.error ?? "Couldn't resolve this rule.");
+                this.moverList.set([]);
+                this.moverTotal.set(0);
+                return;
+            }
+            this.moverError.set(null);
+            const rows = await this.hydrateMembers(preview.result.members);
+            this.moverList.set(rows);
+            this.moverTotal.set(preview.result.total);
             // Cause-awareness (Rung 1): show WHY each listed member is low, from their contributions.
-            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(pageResult.members.map((m) => m.scoreId)));
+            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(rows.map((m) => m.scoreId)));
         } finally {
             this.loadingMovers.set(false);
         }
+    }
+
+    /**
+     * Turn engine-resolved members into the row shape this surface renders. The engine returns
+     * identity + score facts (it deliberately knows nothing about display): names come from the
+     * anchor entity, band label/key from the band slices already loaded for the distribution, and
+     * trend direction from the sign of the delta. No extra score query.
+     */
+    private async hydrateMembers(members: PreviewMember[]): Promise<ScoredMember[]> {
+        const anchorEntityId = this.anchorEntityId();
+        const names = anchorEntityId
+            ? await this.scoreRead.namesForAnchors(anchorEntityId, members.map((m) => m.anchorRecordId))
+            : new Map<string, string>();
+        const bandById = new Map(
+            this.tiles().filter((t) => t.bandId).map((t) => [t.bandId as string, t]),
+        );
+        return members.map((m) => {
+            const band = m.bandId ? bandById.get(m.bandId) : undefined;
+            const delta = m.delta === null ? null : Math.round(m.delta);
+            return {
+                scoreId: m.scoreId,
+                anchorRecordId: m.anchorRecordId,
+                name: names.get(m.anchorRecordId) ?? m.anchorRecordId,
+                normalizedScore: Math.round(m.normalizedScore ?? 0),
+                bandLabel: band?.label ?? "Unbanded",
+                bandKey: band?.key ?? "watch",
+                computedAt: null,
+                delta,
+                trendDirection: delta === null || delta === 0 ? "Flat" : delta > 0 ? "Up" : "Down",
+                // The preview carries no scoring version, so the drill-down's "scored by vN" badge
+                // hides itself rather than showing a number we'd have to invent.
+                versionNumber: null,
+            } satisfies ScoredMember;
+        });
     }
 
     /** Shared pager handlers — set the page, reload the corresponding list. */

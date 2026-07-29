@@ -381,35 +381,11 @@ export class ScoreReadService {
         return { dropped, climbed, crossed };
     }
 
-    /** Members matching a mover SEGMENT FILTER (delta bounds / band / crossed-a-band). Mirrors the
-     *  engine's SegmentEvaluator conditions EXACTLY, so the list a user sees == who a launch on the
-     *  same filter targets. `direction` only sets the sort; the delta bound does the selecting. */
-    public async moverMembers(
-        modelId: string,
-        filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; minDelta?: number | null; maxDelta?: number | null; crossedBandOnly?: boolean | null },
-        direction: "drops" | "gains",
-        page = 0,
-        pageSize = 50,
-    ): Promise<{ members: ScoredMember[]; total: number }> {
-        const conds = [`ScoreModelID='${sqlString(modelId)}'`];
-        if (filter.bandId) conds.push(`BandID='${sqlString(filter.bandId)}'`);
-        if (filter.minScore != null && Number.isFinite(filter.minScore)) conds.push(`NormalizedScore >= ${Number(filter.minScore)}`);
-        if (filter.maxScore != null && Number.isFinite(filter.maxScore)) conds.push(`NormalizedScore <= ${Number(filter.maxScore)}`);
-        if (filter.minDelta != null && Number.isFinite(filter.minDelta)) conds.push(`Delta >= ${Number(filter.minDelta)}`);
-        if (filter.maxDelta != null && Number.isFinite(filter.maxDelta)) conds.push(`Delta <= ${Number(filter.maxDelta)}`);
-        if (filter.crossedBandOnly) conds.push(`PreviousBandID IS NOT NULL AND PreviousBandID <> BandID`);
-        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
-            EntityName: SCORE,
-            ExtraFilter: conds.join(" AND "),
-            OrderBy: `Delta ${direction === "gains" ? "DESC" : "ASC"}`,
-            StartRow: Math.max(0, page) * pageSize,
-            MaxRows: pageSize,
-            ResultType: "entity_object",
-        });
-        const scores = result.Success ? result.Results ?? [] : [];
-        const total = result.TotalRowCount ?? scores.length;
-        return { members: await this.toScoredMembers(scores), total };
-    }
+    // A `moverMembers()` used to live here: a client-side re-implementation of the engine's segment
+    // rule, with a comment promising it mirrored SegmentEvaluator "EXACTLY". It has been removed in
+    // favour of the `Sonar: Preview Segment` action, so there is ONE definition of who is in a
+    // cohort. Trajectory rules (slope, sustained decline, volatility) read each member's history and
+    // could never have been expressed as a single Score query anyway.
 
     /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
