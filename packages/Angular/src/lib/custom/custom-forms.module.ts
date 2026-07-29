@@ -18,6 +18,8 @@ import { ConversationsModule } from '@memberjunction/ng-conversations';
 // (see custom/README.md). This module is the single coordination point; each UI PR adds only its
 // own declarations + the MJ module imports those declarations need.
 import { SonarMultiselectComponent } from './shared/multiselect/sonar-multiselect.component';
+import { SonarDrawerComponent } from './shared/drawer/sonar-drawer.component';
+import { SonarPagerComponent } from './shared/pagination/sonar-pager.component';
 import { SonarModelSidebarComponent } from './shared/model-sidebar/sonar-model-sidebar.component';
 import { SonarFilterBarComponent } from './shared/filter-bar/sonar-filter-bar.component';
 import { SonarSearchFieldComponent } from './shared/filter-bar/sonar-search-field.component';
@@ -56,6 +58,8 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
 @NgModule({
     declarations: [
         SonarMultiselectComponent,
+        SonarDrawerComponent,
+        SonarPagerComponent,
         SonarModelSidebarComponent,
         SonarFilterBarComponent,
         SonarSearchFieldComponent,

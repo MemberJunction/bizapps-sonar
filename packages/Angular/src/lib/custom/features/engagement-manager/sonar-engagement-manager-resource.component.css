@@ -137,9 +137,6 @@
 
 /* Pagination folded into the filter track (far right) — compact prev/next + a count readout, so
    the search, score pill, sort, and paging all share one baseline. */
-.sonar-mgr__track-pager { display: inline-flex; align-items: center; gap: 0.25rem; }
-.sonar-mgr__count { font-size: var(--sonar-font-xs); color: var(--sonar-muted); white-space: nowrap; padding: 0 0.25rem; }
-.sonar-mgr__pgbtn { padding: 0.25rem 0.55rem; min-width: 1.75rem; justify-content: center; }
 
 /* Triage filters now use the shared <sonar-filter-bar> (chrome lives there). These styles only
    cover the projected suggestion-ROW content (rendered into the bar's menu via ng-template). */
@@ -172,6 +169,8 @@
 .sonar-mgr .sonar-with-rail__main { display: flex; flex-direction: row; gap: 1.25rem; min-height: 0; overflow: hidden; height: 100%; }
 .sonar-mgr .sonar-mgr-main-stack { flex: 1 1 0%; min-height: 0; height: auto; display: flex; flex-direction: column; overflow: hidden; }
 .sonar-mgr .sonar-triage-split { flex: 1 1 0%; min-height: 0; height: auto; align-items: stretch; grid-template-rows: minmax(0, 1fr); }
+/* Every tab's content area scrolls itself (the tabs strip stays put above it). */
+.sonar-mgr .sonar-mgr-main-stack { overflow-y: auto; }
 /* Triage section becomes a flex column: filter + head pinned, rows scroll. */
 .sonar-mgr .sonar-triage-card { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 1rem 1.5rem 0; }
 .sonar-mgr .sonar-triage-card > .sonar-triage__foot { flex: 0 0 auto; }
@@ -220,9 +219,31 @@
 /* Drill-down rides along at full height (scrolls itself only if a long breakdown overflows). */
 .sonar-mgr .sonar-drill { height: 100%; min-height: 0; overflow-y: auto; }
 
-/* --- Engagement Manager Sidebar navigation rail --- */
+/* --- Header model scope + slim section tabs (replaced the two vertical rails) --- */
+.sonar-mgr__modelpick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 1.25rem;
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    color: var(--sonar-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sonar-mgr__modelpick select { height: 2rem; max-width: 260px; font-weight: 400; text-transform: none; letter-spacing: normal; }
+
+.sonar-mgr__body-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1.5rem;
+    min-height: 0;
+    height: 100%;
+}
 .sonar-mgr-sidebar {
-    width: 240px;
+    width: 220px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -333,34 +354,10 @@
     border-color: var(--sonar-accent);
     box-shadow: 0 0 0 1px var(--sonar-accent), 0 0 0 4px color-mix(in srgb, var(--sonar-accent) 15%, transparent);
 }
-/* Custom pager buttons styling inside triage filter bar */
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn {
-    border-radius: 999px;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    border: 1px solid var(--sonar-border);
-    background: var(--sonar-surface);
-}
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn:hover {
-    background: var(--sonar-surface-sunken);
-    border-color: var(--sonar-border-strong);
-}
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: transparent;
-    border-color: var(--sonar-border);
-}
-
-/* Responsive (scroll-over-stack): the Engagement Manager is a multi-pane workstation — model rail +
-   triage nav + member drill-down. Rather than crush those panes at tablet, hold a comfortable
-   min-width and let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
-.sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
+/* Responsive (scroll-over-stack): the Engagement Manager is a multi-pane workstation — section rail +
+   member list + drill-down. Rather than crush those panes at tablet, hold a comfortable min-width and
+   let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
+.sonar-mgr .sonar-page__body { min-width: 980px; }
 
 /* ── Action layer: launch panel + interventions tab ─────────────────────── */
 /* Floating popover anchored top-right of the workspace, directly under the header's
@@ -409,6 +406,24 @@
     .sonar-launch__actions { margin-left: 0; }
 }
 
+/* ── Play cards: each intervention wears its funnel (treated → … → lift). ─────────────────── */
+.sonar-play { background: var(--sonar-surface); border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius); padding: 0.9rem 1.1rem; }
+.sonar-play__top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-play__name { font-weight: 700; font-size: var(--sonar-font-lg); color: var(--sonar-ink); }
+.sonar-play__spacer { flex: 1 1 auto; }
+.sonar-play__funnel { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.35rem; margin: 0.8rem 0 0.6rem; }
+.sonar-play__stage { flex: 0 0 auto; min-width: 6rem; padding: 0.45rem 0.7rem; border-radius: var(--sonar-radius-sm); background: var(--sonar-surface-sunken); border: 1px solid var(--sonar-border); }
+.sonar-play__stage--hot { border-color: color-mix(in srgb, var(--sonar-watch) 45%, var(--sonar-border)); background: color-mix(in srgb, var(--sonar-watch) 9%, var(--sonar-surface)); }
+.sonar-play__stage--neg { border-color: color-mix(in srgb, var(--sonar-critical) 40%, var(--sonar-border)); background: color-mix(in srgb, var(--sonar-critical) 8%, var(--sonar-surface)); }
+.sonar-play__stage--lift { display: flex; flex-direction: column; justify-content: center; }
+.sonar-play__sv { font-weight: 700; font-size: var(--sonar-font-xl); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.sonar-play__sk { font-size: var(--sonar-font-xs); color: var(--sonar-faint); white-space: nowrap; }
+.sonar-play__arrow { align-self: center; color: var(--sonar-faint); font-size: var(--sonar-font-sm); }
+.sonar-play__measure { font-size: var(--sonar-font-xs); padding: 0.2rem 0.5rem; align-self: flex-start; }
+.sonar-play__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 1.1rem; font-size: var(--sonar-font-xs); color: var(--sonar-faint); }
+.sonar-play__meta .sonar-mono { color: var(--sonar-ink); }
+.sonar-play__cta { font-size: var(--sonar-font-xs); padding: 0.3rem 0.65rem; }
+
 /* Interventions table: hairline dividers, right-aligned tabular numerics, no full grid borders. */
 .sonar-iv-table { width: 100%; border-collapse: collapse; font-size: var(--sonar-font-sm); }
 .sonar-iv-table th { text-align: left; font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--sonar-border); }
@@ -437,6 +452,10 @@
 }
 .sonar-movers2__why { font-size: var(--sonar-font-sm); max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sonar-movers2__causechip { margin-left: 0.25rem; }
+/* Card fills its tab; rows scroll inside it so the pager foot stays pinned (mirrors the triage card). */
+.sonar-mgr .sonar-movers2 { flex: 1 1 0%; min-height: 0; display: flex; flex-direction: column; }
+.sonar-movers2__scroll { flex: 1 1 0%; min-height: 0; overflow-y: auto; }
+.sonar-movers2__foot { flex: 0 0 auto; display: flex; align-items: center; padding: 0.5rem 0 0; margin-top: 0.35rem; border-top: 1px solid var(--sonar-border); }
 .sonar-iv-table__outcome { display: block; font-size: var(--sonar-font-xs); margin-top: 0.125rem; }
 
 /* ── Launch: kind toggle (fire a play / sync / track only). Hints live in each button's title. ── */

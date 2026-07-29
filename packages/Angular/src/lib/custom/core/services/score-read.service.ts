@@ -388,8 +388,9 @@ export class ScoreReadService {
         modelId: string,
         filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; minDelta?: number | null; maxDelta?: number | null; crossedBandOnly?: boolean | null },
         direction: "drops" | "gains",
-        limit = 50,
-    ): Promise<ScoredMember[]> {
+        page = 0,
+        pageSize = 50,
+    ): Promise<{ members: ScoredMember[]; total: number }> {
         const conds = [`ScoreModelID='${sqlString(modelId)}'`];
         if (filter.bandId) conds.push(`BandID='${sqlString(filter.bandId)}'`);
         if (filter.minScore != null && Number.isFinite(filter.minScore)) conds.push(`NormalizedScore >= ${Number(filter.minScore)}`);
@@ -401,11 +402,13 @@ export class ScoreReadService {
             EntityName: SCORE,
             ExtraFilter: conds.join(" AND "),
             OrderBy: `Delta ${direction === "gains" ? "DESC" : "ASC"}`,
-            MaxRows: limit,
+            StartRow: Math.max(0, page) * pageSize,
+            MaxRows: pageSize,
             ResultType: "entity_object",
         });
         const scores = result.Success ? result.Results ?? [] : [];
-        return this.toScoredMembers(scores);
+        const total = result.TotalRowCount ?? scores.length;
+        return { members: await this.toScoredMembers(scores), total };
     }
 
     /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */

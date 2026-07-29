@@ -1,16 +1,18 @@
-<div class="sonar-page sonar-page--railed sonar-mgr">
+<div class="sonar-page sonar-mgr">
     <div class="sonar-page__header">
         <div class="sonar-page__heading">
-            <button class="sonar-btn sonar-btn--ghost" (click)="current.toggleSidebar()" title="Choose scoring model" style="padding: 0.5rem; margin-right: 0.25rem;">
-                <i class="fa-solid fa-bars" style="font-size: 1.25rem;"></i>
-            </button>
             <span class="sonar-page__icon"><i class="fa-solid fa-chart-line"></i></span>
             <div>
-                <h1 class="sonar-page__title" (click)="current.toggleSidebar()" style="cursor: pointer;" title="Click to switch model">
-                    {{ modelName() }}
-                </h1>
-                <p class="sonar-page__subtitle">Engagement Manager · who to prioritize, and why</p>
+                <h1 class="sonar-page__title">Engagement</h1>
+                <p class="sonar-page__subtitle">Who to prioritize, what Sonar prepared, and whether it worked</p>
             </div>
+            <!-- Model scope lives in the header (the old models rail spent ~280px on this). -->
+            <label class="sonar-mgr__modelpick" title="The scoring model that scopes this page">
+                <span>Model</span>
+                <select class="sonar-input" [value]="current.modelId() ?? ''" (change)="pickModel($any($event.target).value)" aria-label="Scoring model">
+                    @for (m of models(); track m.id) { <option [value]="m.id">{{ m.name }}</option> }
+                </select>
+            </label>
         </div>
         <div class="sonar-page__actions">
             <button class="sonar-btn" [disabled]="!hasModel() || total() === 0 || exporting()" (click)="exportCohort()" title="Export the filtered cohort to CSV">
@@ -27,10 +29,8 @@
         </div>
     </div>
 
-    <div class="sonar-page__body sonar-with-rail">
-        <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
-
-        <div class="sonar-with-rail__main sonar-mgr__body-layout">
+    <div class="sonar-page__body">
+        <div class="sonar-mgr__body-layout">
             @if (loaded() && tiles().length === 0) {
                 <div class="sonar-empty">
                     <i class="fa-solid fa-chart-line"></i>
@@ -38,24 +38,24 @@
                     <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then members will appear here worst-first.</p>
                 </div>
             } @else {
-                <!-- Sidebar Navigation Rail -->
+                <!-- Section side nav (single rail — the model picker lives in the header now). -->
                 <aside class="sonar-mgr-sidebar" role="navigation" aria-label="Engagement sections">
-                    <button type="button" class="sonar-mgr-sidebar__item" 
+                    <button type="button" class="sonar-mgr-sidebar__item"
                             [class.sonar-mgr-sidebar__item--active]="activeTab() === 'triage'"
                             (click)="activeTab.set('triage')">
                         <i class="fa-solid fa-list-check"></i>
                         <div class="sonar-mgr-sidebar__item-text">
-                            <span class="sonar-mgr-sidebar__item-title">Triage Workspace</span>
+                            <span class="sonar-mgr-sidebar__item-title">Triage</span>
                             <span class="sonar-mgr-sidebar__item-subtitle">Prioritized member list</span>
                         </div>
                     </button>
-                    <button type="button" class="sonar-mgr-sidebar__item" 
+                    <button type="button" class="sonar-mgr-sidebar__item"
                             [class.sonar-mgr-sidebar__item--active]="activeTab() === 'movers'"
                             [disabled]="!hasMovers()"
                             (click)="showMoversTab()">
                         <i class="fa-solid fa-arrow-trend-down"></i>
                         <div class="sonar-mgr-sidebar__item-text">
-                            <span class="sonar-mgr-sidebar__item-title">Score Movers</span>
+                            <span class="sonar-mgr-sidebar__item-title">Movers</span>
                             <span class="sonar-mgr-sidebar__item-subtitle">Tune &amp; act on who shifted</span>
                         </div>
                         @if (hasMovers()) {
@@ -106,7 +106,7 @@
                                     <p class="sonar-launch__scope">
                                         @if (launchMode() === 'movers') {
                                             Cohort: members who <strong>{{ launchMoverScopeLabel() }}</strong>
-                                            · <strong class="sonar-mono">{{ moverList().length }}</strong> match
+                                            · <strong class="sonar-mono">{{ moverTotal() }}</strong> match
                                             @for (c of moverCauseSummary(); track c.cause) {
                                                 <span class="sonar-chip sonar-chip--small sonar-movers2__causechip">{{ c.cause }} · {{ c.count }}</span>
                                             }
@@ -284,9 +284,13 @@
                                                         <span class="sonar-dropper__avatar">{{ initials(m.name) }}</span>
                                                         <span class="sonar-dropper__main">
                                                             <span class="sonar-dropper__name">{{ m.name }}</span>
-                                                            @if (m.delta !== null && m.delta !== 0) {
-                                                                <span class="sonar-dropper__reason"><span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> since last run</span>
-                                                            }
+                                                            <span class="sonar-dropper__reason">
+                                                                @if (memberCauseById().get(m.scoreId); as cause) { {{ cause }} }
+                                                                @if (m.delta !== null && m.delta !== 0) {
+                                                                    @if (memberCauseById().get(m.scoreId)) { · }
+                                                                    <span class="sonar-trend sonar-trend--{{ trendTone(m.trendDirection) }}" title="vs. previous recompute">{{ trendArrow(m.trendDirection) }} {{ deltaLabel(m.delta) }}</span> since last run
+                                                                }
+                                                            </span>
                                                         </span>
                                                         <span class="sonar-chip sonar-chip--{{ m.bandKey }} sonar-dropper__band">{{ m.bandLabel }}</span>
                                                         <span class="sonar-dropper__score">
@@ -301,16 +305,13 @@
                                          stay on one line and the count sits under the data it pages). -->
                                     @if (total() > 0 && members().length > 0 && !error()) {
                                         <div class="sonar-triage__foot">
-                                            <span class="sonar-mono sonar-mgr__count">{{ pageStart() }}–{{ pageEnd() }} of {{ total() }}</span>
-                                            <span class="sonar-mgr__track-pager">
-                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasPrev()" (click)="prevPage()" title="Previous page" aria-label="Previous page">‹</button>
-                                                <button type="button" class="sonar-btn sonar-btn--ghost sonar-mgr__pgbtn" [disabled]="!hasNext()" (click)="nextPage()" title="Next page" aria-label="Next page">›</button>
-                                            </span>
+                                            <sonar-pager [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goToMemberPage($event)"></sonar-pager>
                                         </div>
                                     }
                                 </section>
 
-                                <!-- Member explainability drawer -->
+                                <!-- Member explainability panel — rides alongside the list so the score
+                                     story is always visible while scanning rows. -->
                                 <section class="sonar-stack sonar-drill">
                                     @if (selected(); as sel) {
                                         <div class="sonar-card">
@@ -422,9 +423,11 @@
                                         <i class="fa-solid" [class.fa-square-check]="moverCrossedOnly()" [class.fa-square]="!moverCrossedOnly()"></i> Crossed a band
                                     </button>
                                     <span class="sonar-movers2__spacer"></span>
-                                    <button class="sonar-btn sonar-btn--primary" [disabled]="moverList().length === 0" (click)="openLaunchFromMovers()"
-                                            title="Launch an intervention on exactly these members — a holdout is kept automatically so lift is measured">
-                                        <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverList().length }})
+                                    <!-- Count is the whole FILTER, not the visible page — a launch targets every
+                                         member the rule matches (the engine re-resolves it server-side). -->
+                                    <button class="sonar-btn sonar-btn--primary" [disabled]="moverTotal() === 0" (click)="openLaunchFromMovers()"
+                                            title="Launch an intervention on every member matching this rule — a holdout is kept automatically so lift is measured">
+                                        <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverTotal() }})
                                     </button>
                                 </div>
 
@@ -437,6 +440,9 @@
                                         <p>No one {{ moverDirection() === 'drops' ? 'dropped' : 'climbed' }} {{ moverMagnitude() }}+ points{{ moverCrossedOnly() ? ' with a band change' : '' }} on the last run. Lower the threshold or flip the direction.</p>
                                     </div>
                                 } @else {
+                                    <!-- Rows scroll inside the card so the pager below stays pinned in view
+                                         (same anatomy as the triage list). -->
+                                    <div class="sonar-movers2__scroll">
                                     <table class="sonar-iv-table sonar-movers2__list">
                                         <thead>
                                             <tr>
@@ -463,6 +469,10 @@
                                             }
                                         </tbody>
                                     </table>
+                                    </div>
+                                    <div class="sonar-movers2__foot">
+                                        <sonar-pager [page]="moverPage()" [pageSize]="pageSize" [total]="moverTotal()" (pageChange)="goToMoverPage($event)"></sonar-pager>
+                                    </div>
                                 }
                             </section>
                         </div>
@@ -487,56 +497,59 @@
                                         <p>Filter the triage list to the cohort you care about, then <strong>Launch intervention</strong>. A control group is held back automatically.</p>
                                     </div>
                                 } @else {
-                                    <table class="sonar-iv-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Play</th>
-                                                <th>Segment</th>
-                                                <th>Trigger</th>
-                                                <th class="sonar-iv-table__num">Holdout</th>
-                                                <th class="sonar-iv-table__num">Treated</th>
-                                                <th class="sonar-iv-table__num">Fired</th>
-                                                <th class="sonar-iv-table__num">Held</th>
-                                                <th class="sonar-iv-table__num">Failed</th>
-                                                <th>Status</th>
-                                                <th>Lift</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (iv of interventions(); track iv.id) {
-                                                <tr>
-                                                    <td class="sonar-iv-table__name">
-                                                        {{ iv.name }}
-                                                        @if (iv.kind === 'TrackOnly') { <span class="sonar-chip sonar-chip--small" title="Track only — no play fires; Sonar measures a real-world treatment">track-only</span> }
-                                                        @if (iv.kind === 'BulkSync') { <span class="sonar-chip sonar-chip--small" title="Bulk sync — the treated cohort was handed to the play in one batch (e.g. onto an MJ List)">synced</span> }
-                                                    </td>
-                                                    <td class="sonar-faint">{{ iv.segmentName }}</td>
-                                                    <td><span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span></td>
-                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.holdoutPercent ?? 0 }}%</td>
-                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.treated }}</td>
-                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.sent }}</td>
-                                                    <td class="sonar-iv-table__num sonar-mono">{{ iv.held }}</td>
-                                                    <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="iv.failed > 0">{{ iv.failed }}</td>
-                                                    <td><span class="sonar-chip sonar-chip--small">{{ iv.status }}</span></td>
-                                                    <td class="sonar-iv-table__lift">
+                                    <!-- One card per play, wearing its own funnel: what happened, in order,
+                                         ending at lift vs. the holdout. The loop, made visible. -->
+                                    <div class="sonar-stack">
+                                        @for (iv of interventions(); track iv.id) {
+                                            <div class="sonar-play">
+                                                <div class="sonar-play__top">
+                                                    <span class="sonar-play__name">{{ iv.name }}</span>
+                                                    <span class="sonar-chip sonar-chip--small" [title]="iv.kind === 'BulkSync' ? 'The treated cohort was handed to the play in one batch' : iv.kind === 'TrackOnly' ? 'No play fires — Sonar measures a real-world treatment' : 'The play fired once per treated member'">
+                                                        {{ iv.kind === 'BulkSync' ? 'bulk sync' : iv.kind === 'TrackOnly' ? 'track only' : 'per member' }}
+                                                    </span>
+                                                    <span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span>
+                                                    <span class="sonar-play__spacer"></span>
+                                                    <span class="sonar-chip sonar-chip--small" [class.sonar-chip--healthy]="iv.status === 'Active'">{{ iv.status }}</span>
+                                                </div>
+                                                <div class="sonar-play__funnel">
+                                                    @for (s of funnelFor(iv); track s.label) {
+                                                        <div class="sonar-play__stage" [class.sonar-play__stage--hot]="s.tone === 'hot'" [class.sonar-play__stage--neg]="s.tone === 'neg'">
+                                                            <div class="sonar-play__sv sonar-mono">{{ s.value }}</div>
+                                                            <div class="sonar-play__sk">{{ s.label }}</div>
+                                                        </div>
+                                                        <span class="sonar-play__arrow" aria-hidden="true">→</span>
+                                                    }
+                                                    <div class="sonar-play__stage sonar-play__stage--lift">
                                                         @if (liftFor(iv.id); as m) {
-                                                            <span class="sonar-mono" [class.sonar-pos]="(m.lift.successLiftPct ?? 0) > 0" [class.sonar-neg]="(m.lift.successLiftPct ?? 0) < 0"
-                                                                  [title]="'Outcome: ' + m.lift.outcomeLabel + '. Treatment ' + liftLabel(m.lift.successRateTreatment !== null ? m.lift.successRateTreatment * 100 : null) + '% vs control ' + liftLabel(m.lift.successRateControl !== null ? m.lift.successRateControl * 100 : null) + '%. Leading: score lift ' + liftLabel(m.lift.scoreLift) + ', band-up ' + liftLabel(m.lift.bandUpLiftPct) + 'pp. Over ' + m.lift.treatedMeasured + ' treated / ' + m.lift.controlMeasured + ' control.'">
+                                                            <div class="sonar-play__sv sonar-mono" [class.sonar-pos]="(m.lift.successLiftPct ?? 0) > 0" [class.sonar-neg]="(m.lift.successLiftPct ?? 0) < 0"
+                                                                 [title]="'Treatment ' + liftLabel(m.lift.successRateTreatment !== null ? m.lift.successRateTreatment * 100 : null) + '% vs control ' + liftLabel(m.lift.successRateControl !== null ? m.lift.successRateControl * 100 : null) + '% over ' + m.lift.treatedMeasured + ' treated / ' + m.lift.controlMeasured + ' control' + (m.unmeasurable ? ' · ' + m.unmeasurable + ' unmeasurable' : '')">
                                                                 {{ liftLabel(m.lift.successLiftPct) }} pp
-                                                            </span>
-                                                            <span class="sonar-faint sonar-iv-table__outcome">{{ m.lift.outcomeLabel }}</span>
-                                                            @if (m.unmeasurable) { <span class="sonar-faint" title="Members with no score history before assignment">· {{ m.unmeasurable }} n/a</span> }
+                                                            </div>
+                                                            <div class="sonar-play__sk">lift · {{ m.lift.outcomeLabel }}</div>
                                                         } @else {
-                                                            <button class="sonar-btn sonar-btn--ghost sonar-iv-table__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"
+                                                            <button class="sonar-btn sonar-btn--ghost sonar-play__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"
                                                                     title="Measure outcomes: each member's score/band now vs at assignment, treatment vs control">
                                                                 @if (measuringId() === iv.id) { <i class="fa-solid fa-circle-notch fa-spin"></i> } @else { <i class="fa-solid fa-scale-balanced"></i> Measure }
                                                             </button>
+                                                            <div class="sonar-play__sk">lift vs holdout</div>
                                                         }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                                                    </div>
+                                                </div>
+                                                <div class="sonar-play__meta">
+                                                    <span>holdout <b class="sonar-mono">{{ iv.held }}</b> ({{ iv.holdoutPercent ?? 0 }}%) · never contacted</span>
+                                                    <span>{{ iv.segmentName }}</span>
+                                                    @if (iv.lastAssignedAt) { <span>last fired {{ iv.lastAssignedAt | date:'MMM d, h:mm a' }}</span> }
+                                                    <span class="sonar-play__spacer"></span>
+                                                    @if (proposalStatsFor(iv.id).toReview > 0) {
+                                                        <button class="sonar-btn sonar-btn--primary sonar-play__cta" (click)="showOutreach()">
+                                                            <i class="fa-solid fa-envelope-open-text"></i>
+                                                            Review {{ proposalStatsFor(iv.id).toReview }} draft{{ proposalStatsFor(iv.id).toReview === 1 ? '' : 's' }}
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             </section>
                         </div>

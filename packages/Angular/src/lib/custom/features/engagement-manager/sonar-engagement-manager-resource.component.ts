@@ -82,6 +82,9 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly moverCrossedOnly = signal(false);
     public readonly moverSummary = signal<{ dropped: number; climbed: number; crossed: number }>({ dropped: 0, climbed: 0, crossed: 0 });
     public readonly moverList = signal<ScoredMember[]>([]);
+    /** Movers pagination (0-based page + total rows matching the current mover filter). */
+    public readonly moverPage = signal(0);
+    public readonly moverTotal = signal(0);
     public readonly loadingMovers = signal(false);
     /** Dominant "why they're low" per listed member (scoreId → cause label), from contributions. */
     public readonly moverCauseById = signal<Map<string, string>>(new Map());
@@ -118,6 +121,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly launchKind = signal<"Action" | "TrackOnly" | "BulkSync">("Action");
 
     public readonly modelName = signal("—");
+    /** All scoring models, for the header's model picker (the old models rail, condensed). */
+    public readonly models = signal<{ id: string; name: string }[]>([]);
     public readonly loaded = signal(false);
     public readonly hasModel = computed(() => !!this.current.modelId());
 
@@ -125,6 +130,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly members = signal<ScoredMember[]>([]);
     public readonly selected = signal<ScoredMember | null>(null);
     public readonly contributions = signal<ScoreContribution[]>([]);
+    /** Dominant "why they're low" per listed member (scoreId → cause label) — the row's Why line. */
+    public readonly memberCauseById = signal<Map<string, string>>(new Map());
     public readonly loadingDrawer = signal(false);
     /** Triage list is fetching (drives the skeleton that mirrors the rows). */
     public readonly loadingMembers = signal(false);
@@ -156,15 +163,14 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     // --- triage pagination + band filter (server-side) ---
     private static readonly PAGE_SIZE = 50;
+    /** Exposed for the shared <sonar-pager> bindings. */
+    public readonly pageSize = SonarEngagementManagerResourceComponent.PAGE_SIZE;
     public readonly page = signal(0);
     public readonly total = signal(0);
     /** Active band filter (a clicked tile), or null for "all bands". */
     public readonly selectedBand = signal<BandSlice | null>(null);
 
-    public readonly pageStart = computed(() => this.total() === 0 ? 0 : this.page() * SonarEngagementManagerResourceComponent.PAGE_SIZE + 1);
-    public readonly pageEnd = computed(() => Math.min((this.page() + 1) * SonarEngagementManagerResourceComponent.PAGE_SIZE, this.total()));
-    public readonly hasPrev = computed(() => this.page() > 0);
-    public readonly hasNext = computed(() => this.pageEnd() < this.total());
+    // Page arithmetic (start/end/has-prev/has-next) lives in the shared <sonar-pager>.
 
     // --- triage filters (server-side, compose with the band tile) ---
     public readonly nameQuery = signal("");
@@ -200,19 +206,29 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     private async hydrate(): Promise<void> {
         try {
-            const id = this.current.modelId();
-            if (id) await this.loadModel(id);
+            // The header picker owns model scope now (no models rail) — load the catalog and
+            // fall back to the first model when nothing is remembered.
+            const list = await this.modelService.list();
+            this.models.set(list.map((m) => ({ id: m.ID, name: m.Name })));
+            const id = this.current.modelId() ?? list[0]?.ID ?? null;
+            if (id) {
+                if (id !== this.current.modelId()) this.current.select(id);
+                await this.loadModel(id);
+            }
         } finally {
             this.loaded.set(true);
             this.NotifyLoadComplete();
         }
     }
 
-    /** The rail picked a model — load its triage view. */
-    public async onSelect(id: string): Promise<void> {
-        await this.loadModel(id);
+    /** Header model picker: remember the choice and reload the page's data for it. */
+    public pickModel(id: string): void {
+        if (!id || id === this.current.modelId()) return;
+        this.current.select(id);
+        void this.loadModel(id);
     }
 
+    /** The rail picked a model — load its triage view. */
     /** Load the band summary + first page of the triage list (lowest scores first) for a model. */
     private async loadModel(id: string): Promise<void> {
         const model = await this.modelService.get(id);
@@ -268,6 +284,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             this.total.set(total);
             if (members.length > 0) await this.select(members[0]);
             else { this.selected.set(null); this.contributions.set([]); }
+            // Each row's "why": the factor dragging that member down most (batched, one query).
+            this.memberCauseById.set(await this.scoreRead.dominantCauseForScores(members.map((m) => m.scoreId)));
         } catch {
             this.error.set("Couldn't load members. Please retry.");
             this.members.set([]); this.total.set(0); this.selected.set(null); this.contributions.set([]);
@@ -441,36 +459,44 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     public async setMoverDirection(dir: string): Promise<void> {
         this.moverDirection.set(dir === "gains" ? "gains" : "drops");
+        this.moverPage.set(0); // filter changed → back to the first page
         await this.loadMovers();
     }
     public async setMoverMagnitude(v: string): Promise<void> {
         const n = Number(v);
         this.moverMagnitude.set(Number.isFinite(n) && n > 0 ? n : 1);
+        this.moverPage.set(0);
         await this.loadMovers();
     }
     public async toggleMoverCrossed(): Promise<void> {
         this.moverCrossedOnly.update((v) => !v);
+        this.moverPage.set(0);
         await this.loadMovers();
     }
 
     /** Refresh the summary counts + the filtered member list from the current mover filter. */
     private async loadMovers(): Promise<void> {
         const id = this.current.modelId();
-        if (!id) { this.moverList.set([]); this.moverSummary.set({ dropped: 0, climbed: 0, crossed: 0 }); return; }
+        if (!id) { this.moverList.set([]); this.moverTotal.set(0); this.moverSummary.set({ dropped: 0, climbed: 0, crossed: 0 }); return; }
         this.loadingMovers.set(true);
         try {
-            const [summary, list] = await Promise.all([
+            const [summary, pageResult] = await Promise.all([
                 this.scoreRead.moverSummary(id),
-                this.scoreRead.moverMembers(id, this.moverFilter(), this.moverDirection()),
+                this.scoreRead.moverMembers(id, this.moverFilter(), this.moverDirection(), this.moverPage(), this.pageSize),
             ]);
             this.moverSummary.set(summary);
-            this.moverList.set(list);
+            this.moverList.set(pageResult.members);
+            this.moverTotal.set(pageResult.total);
             // Cause-awareness (Rung 1): show WHY each listed member is low, from their contributions.
-            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(list.map((m) => m.scoreId)));
+            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(pageResult.members.map((m) => m.scoreId)));
         } finally {
             this.loadingMovers.set(false);
         }
     }
+
+    /** Shared pager handlers — set the page, reload the corresponding list. */
+    public async goToMemberPage(p: number): Promise<void> { this.page.set(p); await this.loadMembers(); }
+    public async goToMoverPage(p: number): Promise<void> { this.moverPage.set(p); await this.loadMovers(); }
 
     /** The cause label for a listed member (from the dominant-drag factor), or "" if none. */
     public causeFor(scoreId: string): string { return this.moverCauseById().get(scoreId) ?? ""; }
@@ -490,7 +516,44 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     /** Open the Interventions tab (loads the summaries lazily). */
     public async showInterventions(): Promise<void> {
         this.activeTab.set("interventions");
-        await this.loadInterventions();
+        // Proposals ride along: each play card's funnel shows its drafted/to-review/sent tallies.
+        await Promise.all([this.loadInterventions(), this.loadProposals()]);
+    }
+
+    /** Per-play proposal tallies for the funnel (drafted / awaiting review / sent-simulated). */
+    public proposalStatsFor(interventionId: string): { drafted: number; toReview: number; sent: number } {
+        let drafted = 0;
+        let toReview = 0;
+        let sent = 0;
+        for (const p of this.proposals()) {
+            if (p.interventionId !== interventionId) continue;
+            drafted++;
+            if (p.status === "Proposed") toReview++;
+            if (p.status === "Executed") sent++;
+        }
+        return { drafted, toReview, sent };
+    }
+
+    /** The funnel a play card renders — what actually happened, in order. The lift stage is
+     *  appended by the template (it carries the Measure button / readout). */
+    public funnelFor(iv: InterventionSummary): { label: string; value: string; tone?: "hot" | "neg" }[] {
+        const stages: { label: string; value: string; tone?: "hot" | "neg" }[] = [
+            { label: "treated", value: String(iv.treated) },
+        ];
+        const p = this.proposalStatsFor(iv.id);
+        if (p.drafted > 0) {
+            stages.push({ label: "drafted", value: String(p.drafted) });
+            if (p.toReview > 0) stages.push({ label: "to review", value: String(p.toReview), tone: "hot" });
+            stages.push({ label: "sent · simulated", value: String(p.sent) });
+        } else if (iv.kind === "BulkSync") {
+            stages.push({ label: "synced to list", value: String(iv.sent) });
+        } else if (iv.kind === "TrackOnly") {
+            stages.push({ label: "tracking", value: String(iv.treated) });
+        } else {
+            stages.push({ label: "fired", value: String(iv.sent) });
+            if (iv.failed > 0) stages.push({ label: "failed", value: String(iv.failed), tone: "neg" });
+        }
+        return stages;
     }
 
     private async loadInterventions(): Promise<void> {
@@ -721,8 +784,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         await this.loadMembers();
     }
 
-    public async nextPage(): Promise<void> { if (this.hasNext()) { this.page.update((p) => p + 1); await this.loadMembers(); } }
-    public async prevPage(): Promise<void> { if (this.hasPrev()) { this.page.update((p) => p - 1); await this.loadMembers(); } }
 
     /** Search text changed — update the query + un-pin any picked member (reload is deferred to the
      *  debounced `search` event from the field). */
