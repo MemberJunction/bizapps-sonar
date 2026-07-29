@@ -58,10 +58,16 @@ export interface SegmentFilter {
     /** The rule's own horizon in days: trajectory measures look only at snapshots this recent.
      *  null/undefined = use every snapshot on record. */
     windowDays?: number | null;
-    /** Inclusive bounds on the fitted slope in score-points per DAY (negative = eroding).
-     *  e.g. maxSlopePerDay: -0.1 = "losing at least a tenth of a point a day". */
-    minSlopePerDay?: number | null;
-    maxSlopePerDay?: number | null;
+    /** Inclusive bounds on the fitted rate of change, in score-points per **30 days** (negative =
+     *  eroding). e.g. `maxSlopePer30Days: -8` = "losing at least 8 points a month".
+     *
+     *  Why per-30-days and not per-day: the math is computed per day (unambiguous), but nobody
+     *  authoring a rule thinks "0.27 points per day" — they think "8 points a month". Getting this
+     *  unit wrong is a silent mistake: a plausible-looking per-day threshold like -1.5 matches
+     *  nobody on a weekly-recompute model, because a member shedding 2 points a week is only
+     *  -0.28/day. Monthly also lines up with `ScoreModel.TrendWindowDays`, which defaults to 30. */
+    minSlopePer30Days?: number | null;
+    maxSlopePer30Days?: number | null;
     /** Minimum consecutive step-over-step declines ending at the newest snapshot — "still sliding
      *  right now, for at least N cycles". Catches the steady eroder whose individual steps are
      *  all below any delta threshold. */
@@ -81,24 +87,31 @@ export interface SegmentFilter {
  *  and (when the rule asked for trajectory) the computed shape that qualified it. Carrying the shape
  *  out means the UI and a play's grounding can say WHY this member was picked, without recomputing. */
 export interface SegmentMember {
+    /** The Score row's id — what the caller needs to fetch this member's factor contributions. */
+    scoreId: string;
     anchorRecordId: string;
     anchorRecordKeyJSON: string | null;
     normalizedScore: number | null;
     bandId: string | null;
+    /** Last-run score change, carried out so a caller can render the cohort without re-querying. */
+    delta: number | null;
     shape?: TrendShape | null;
 }
 
 /** Does this rule need ScoreHistory, or can the Score row answer it alone? */
 export function needsTrajectory(filter: SegmentFilter): boolean {
     return (
-        filter.minSlopePerDay != null ||
-        filter.maxSlopePerDay != null ||
+        filter.minSlopePer30Days != null ||
+        filter.maxSlopePer30Days != null ||
         filter.minDeclineRun != null ||
         filter.minNetDrop != null ||
         filter.maxVolatility != null ||
         filter.minSnapshots != null
     );
 }
+
+/** Days the rule's slope bounds are expressed over (see {@link SegmentFilter.maxSlopePer30Days}). */
+const SLOPE_PERIOD_DAYS = 30;
 
 /**
  * Decide whether one member's computed shape satisfies the rule's trajectory bounds. Pure, so the
@@ -111,11 +124,14 @@ export function shapeMatches(shape: TrendShape, filter: SegmentFilter): boolean 
     const minSnapshots = filter.minSnapshots ?? 2;
     if (shape.points < minSnapshots) return false;
 
-    if (filter.maxSlopePerDay != null && Number.isFinite(filter.maxSlopePerDay)) {
-        if (shape.slopePerDay === null || shape.slopePerDay > filter.maxSlopePerDay) return false;
+    // The shape is measured per day; the rule states its bound per 30 days. Scale the measure up
+    // rather than the bound down, so the comparison happens in the operator's unit.
+    const slopePerPeriod = shape.slopePerDay === null ? null : shape.slopePerDay * SLOPE_PERIOD_DAYS;
+    if (filter.maxSlopePer30Days != null && Number.isFinite(filter.maxSlopePer30Days)) {
+        if (slopePerPeriod === null || slopePerPeriod > filter.maxSlopePer30Days) return false;
     }
-    if (filter.minSlopePerDay != null && Number.isFinite(filter.minSlopePerDay)) {
-        if (shape.slopePerDay === null || shape.slopePerDay < filter.minSlopePerDay) return false;
+    if (filter.minSlopePer30Days != null && Number.isFinite(filter.minSlopePer30Days)) {
+        if (slopePerPeriod === null || slopePerPeriod < filter.minSlopePer30Days) return false;
     }
     if (filter.minDeclineRun != null && Number.isFinite(filter.minDeclineRun)) {
         if (shape.declineRun < filter.minDeclineRun) return false;
@@ -162,10 +178,12 @@ export class SegmentEvaluator {
             return [];
         }
         const candidates: SegmentMember[] = (result.Results ?? []).map((s) => ({
+            scoreId: s.ID,
             anchorRecordId: s.AnchorRecordID,
             anchorRecordKeyJSON: s.AnchorRecordKeyJSON,
             normalizedScore: s.NormalizedScore,
             bandId: s.BandID,
+            delta: s.Delta,
         }));
         if (candidates.length === 0 || !needsTrajectory(filter)) {
             return candidates;

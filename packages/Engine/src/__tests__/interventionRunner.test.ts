@@ -3,10 +3,12 @@ import { cohortFor, fillTokens, hashToPercent, planAssignments } from "../orches
 import type { SegmentMember } from "../orchestration/SegmentEvaluator";
 
 const member = (id: string): SegmentMember => ({
+    scoreId: `score-${id}`,
     anchorRecordId: id,
     anchorRecordKeyJSON: null,
     normalizedScore: 50,
     bandId: "b1",
+    delta: null,
 });
 
 describe("hashToPercent / cohortFor", () => {

@@ -3287,5 +3287,128 @@
         }
       ]
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Preview Segment",
+      "Description": "Resolves a targeting rule (a SegmentFilter) through the scoring engine and returns the full cohort COUNT plus one page of members, with each member's trend shape when the rule uses trajectory bounds. Writes nothing: no segment, intervention, or assignment rows. Read-only; the UI calls this so the cohort it displays is resolved by the same code that decides who gets treated.",
+      "DriverClass": "SonarPreviewSegment",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-crosshairs",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0025-4000-8000-000000000025"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Score Model whose persisted scores the rule is resolved against."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "FilterJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON SegmentFilter. Point-in-time: { bandId?, minScore?, maxScore?, minDelta?, maxDelta?, crossedBandOnly? }. Trust gate: { minDataCompleteness? }. Trajectory (reads ScoreHistory): { windowDays?, minSlopePer30Days?, maxSlopePer30Days?, minDeclineRun?, minNetDrop?, maxVolatility?, minSnapshots? }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Page",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "0-based page of members to return. The returned total is always the FULL cohort, not the page."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "PageSize",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Members per page (default 50, capped at 500)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { total, page, pageSize, usedTrajectory, members: [{ anchorRecordId, anchorRecordKeyJSON, normalizedScore, bandId, shape }] }. shape is null unless the rule used trajectory bounds."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Rule resolved; the count and the requested page are in Result."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ModelID missing/not a GUID, or FilterJSON missing or not a JSON object."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Resolution failed (bad filter shape or a query error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
   }
 ]

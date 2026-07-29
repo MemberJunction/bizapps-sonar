@@ -21,7 +21,7 @@ describe("needsTrajectory", () => {
     });
 
     it("is true as soon as any shape bound is set", () => {
-        expect(needsTrajectory({ maxSlopePerDay: -0.1 })).toBe(true);
+        expect(needsTrajectory({ maxSlopePer30Days: -3 })).toBe(true);
         expect(needsTrajectory({ minDeclineRun: 3 })).toBe(true);
         expect(needsTrajectory({ minNetDrop: 10 })).toBe(true);
         expect(needsTrajectory({ maxVolatility: 5 })).toBe(true);
@@ -49,16 +49,30 @@ describe("shapeMatches — sustained decline", () => {
 
 describe("shapeMatches — slope", () => {
     it("selects eroding members and rejects flat/rising ones", () => {
-        const eroding: SegmentFilter = { maxSlopePerDay: -1 };
+        const eroding: SegmentFilter = { maxSlopePer30Days: -30 };
         expect(shapeMatches(slowEroder, eroding)).toBe(true);
         expect(shapeMatches(trendShape(series(45, 48, 51)), eroding)).toBe(false);
         expect(shapeMatches(trendShape(series(50, 50, 50)), eroding)).toBe(false);
     });
 
     it("supports a recovery rule via the lower bound", () => {
-        const recovering: SegmentFilter = { minSlopePerDay: 1 };
+        const recovering: SegmentFilter = { minSlopePer30Days: 30 };
         expect(shapeMatches(trendShape(series(45, 48, 51)), recovering)).toBe(true);
         expect(shapeMatches(slowEroder, recovering)).toBe(false);
+    });
+
+    it("states bounds in the operator's unit: points per 30 days, not per day", () => {
+        // A member shedding 2 points a WEEK — the shape most likely to matter, and the one that
+        // made a plausible-looking per-day threshold (-1.5/day) match nobody at all.
+        const weekly = Array.from({ length: 8 }, (_, i) => ({
+            asOf: Date.UTC(2026, 0, 1) + i * 7 * DAY,
+            score: 60 - i * 2,
+        }));
+        const shape = trendShape(weekly);
+        expect(shape.slopePerDay!).toBeCloseTo(-2 / 7, 4); // ≈ -0.29/day, which reads as nothing
+        // …but ≈ -8.6 points a month, which is what an operator would actually write down.
+        expect(shapeMatches(shape, { maxSlopePer30Days: -8 })).toBe(true);
+        expect(shapeMatches(shape, { maxSlopePer30Days: -9 })).toBe(false);
     });
 });
 
@@ -82,7 +96,7 @@ describe("shapeMatches — net drop and volatility", () => {
 describe("shapeMatches — unknown is never a match", () => {
     it("excludes a member with too little history to judge", () => {
         expect(shapeMatches(singleSnapshot, { minDeclineRun: 1 })).toBe(false);
-        expect(shapeMatches(singleSnapshot, { maxSlopePerDay: -0.1 })).toBe(false);
+        expect(shapeMatches(singleSnapshot, { maxSlopePer30Days: -3 })).toBe(false);
         expect(shapeMatches(singleSnapshot, { minNetDrop: 1 })).toBe(false);
         expect(shapeMatches(singleSnapshot, { maxVolatility: 100 })).toBe(false);
     });
@@ -103,7 +117,7 @@ describe("shapeMatches — unknown is never a match", () => {
 
 describe("shapeMatches — bounds compose (AND, like the SQL layer)", () => {
     it("requires every stated bound to hold", () => {
-        const rule: SegmentFilter = { minDeclineRun: 3, maxSlopePerDay: -1, minNetDrop: 10, maxVolatility: 1 };
+        const rule: SegmentFilter = { minDeclineRun: 3, maxSlopePer30Days: -30, minNetDrop: 10, maxVolatility: 1 };
         expect(shapeMatches(slowEroder, rule)).toBe(true);
         expect(shapeMatches(cliff, rule)).toBe(false);
         expect(shapeMatches(bouncer, rule)).toBe(false);

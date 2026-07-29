@@ -8,6 +8,7 @@ import { sqlString } from "./sql.util";
 
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
+const PREVIEW_SEGMENT_ACTION = "Sonar: Preview Segment";
 
 /** Play params the engine can fill from fire-time tokens (InterventionRunner.fillTokens). When a
  *  chosen play DECLARES one of these inputs and the operator supplied no value, the launch flow
@@ -29,6 +30,24 @@ export interface LaunchSegmentFilter {
     maxDelta?: number | null;
     /** Restrict to members who changed band on the last run (the Movers "crossed a band" toggle). */
     crossedBandOnly?: boolean | null;
+    // --- trust gate (evaluated in SQL by the engine) ---
+    /** Minimum fraction (0–1) of signals that had real data — keeps a play off members whose low
+     *  score is a data gap rather than disengagement. */
+    minDataCompleteness?: number | null;
+    // --- trajectory bounds (the engine reads ScoreHistory for these) ---
+    /** The rule's own horizon in days, independent of the model's TrendWindowDays. */
+    windowDays?: number | null;
+    /** Rate of change in points per 30 days (negative = eroding), e.g. -8 = "losing 8 a month". */
+    minSlopePer30Days?: number | null;
+    maxSlopePer30Days?: number | null;
+    /** Consecutive declines ending at the latest snapshot — "still sliding, for N+ cycles". */
+    minDeclineRun?: number | null;
+    /** Total points lost across the window, as a positive magnitude. */
+    minNetDrop?: number | null;
+    /** Ceiling on step-to-step variability — excludes erratic series from a trend cohort. */
+    maxVolatility?: number | null;
+    /** Snapshots required before a member is judged at all (defaults to 2 for trajectory rules). */
+    minSnapshots?: number | null;
 }
 
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */
@@ -62,6 +81,37 @@ export interface LaunchResult {
 
 /** An MJ Action the operator can pick as the play (what fires per treated member). */
 export interface FireableAction { id: string; name: string; description: string | null }
+
+/** The trend shape the engine computed for a member, when the rule used trajectory bounds.
+ *  Mirrors the engine's TrendShape (we can't import across packages, per the no-re-export rule). */
+export interface MemberTrendShape {
+    points: number;
+    netChange: number | null;
+    slopePerDay: number | null;
+    declineRun: number;
+    volatility: number | null;
+}
+
+/** One member as the engine resolved them, with the shape that qualified them (trajectory rules). */
+export interface PreviewMember {
+    scoreId: string;
+    anchorRecordId: string;
+    anchorRecordKeyJSON: string | null;
+    normalizedScore: number | null;
+    bandId: string | null;
+    delta: number | null;
+    shape: MemberTrendShape | null;
+}
+
+/** What `Sonar: Preview Segment` returns: the FULL cohort count plus the requested page. */
+export interface SegmentPreview {
+    total: number;
+    page: number;
+    pageSize: number;
+    /** True when the rule needed ScoreHistory (slope / decline run / volatility / net drop). */
+    usedTrajectory: boolean;
+    members: PreviewMember[];
+}
 
 /** Treatment-vs-control lift for one intervention (engine's MeasureResult.lift). */
 export interface LiftSummary {
@@ -161,6 +211,34 @@ export class InterventionService {
         if (!res.Success) return { ok: false, error: res.Message || "The intervention run failed." };
         const result = extractActionResult<LaunchResult>(res);
         return result ? { ok: true, result } : { ok: false, error: "The run returned no result payload." };
+    }
+
+    /**
+     * Resolve a targeting rule through the ENGINE and get the cohort count + one page of members.
+     *
+     * Use this instead of re-expressing a rule as a client-side score query. Trajectory bounds
+     * (slope, sustained decline, volatility) are computed from ScoreHistory inside the engine and
+     * cannot be written as a single Score filter, so a client mirror can't evaluate them — and even
+     * for the simple rules, two implementations of "who is in this cohort" drift apart. Writes
+     * nothing.
+     */
+    public async previewSegment(
+        modelId: string,
+        filter: LaunchSegmentFilter,
+        page = 0,
+        pageSize = 50,
+    ): Promise<{ ok: boolean; result?: SegmentPreview; error?: string }> {
+        const id = await this.resolveActionIdByName(PREVIEW_SEGMENT_ACTION);
+        if (!id) return { ok: false, error: "The segment preview action isn't available in this environment." };
+        const res = await this.actionClient().RunAction(id, [
+            { Name: "ModelID", Value: modelId, Type: "Input" },
+            { Name: "FilterJSON", Value: JSON.stringify(filter), Type: "Input" },
+            { Name: "Page", Value: String(page), Type: "Input" },
+            { Name: "PageSize", Value: String(pageSize), Type: "Input" },
+        ]);
+        if (!res.Success) return { ok: false, error: res.Message || "Resolving the segment failed." };
+        const result = extractActionResult<SegmentPreview>(res);
+        return result ? { ok: true, result } : { ok: false, error: "The preview returned no result payload." };
     }
 
     /** Measure one intervention's outcomes (baseline vs now) and get the lift summary. */
