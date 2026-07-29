@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607271200__v0.5.x_Agent_MissingDataPolicy.sql
+-- V202607291200__v0.5.x_Agent_MissingDataPolicy.sql
 -- =============================================================================
 -- Teach the authoring agent about a factor's missing-data policy.
 --
@@ -16,7 +16,7 @@
 --
 -- Forward migration because the v0.2.0 seed is FROZEN; metadata/actions/.sonar-actions.json carries
 -- the same change as the editable dev source. See migrations/README.md.
--- PG twin: migrations-pg/V202607271200__v0.5.x_Agent_MissingDataPolicy.pg.sql
+-- PG twin: migrations-pg/V202607291200__v0.5.x_Agent_MissingDataPolicy.pg.sql
 -- =============================================================================
 
 -- 1. Create Factor: add missingDataPolicy to the Spec contract the agent reads.
