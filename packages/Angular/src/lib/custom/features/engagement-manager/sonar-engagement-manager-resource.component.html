@@ -15,6 +15,15 @@
             </label>
         </div>
         <div class="sonar-page__actions">
+            <!-- Scores are written by Recompute in Model Builder, which this surface can't see.
+                 Refresh re-reads them without losing the operator's filters or page. -->
+            <button class="sonar-btn" [disabled]="!hasModel() || refreshing()" (click)="refresh()" title="Re-read scores for this model (after a recompute)">
+                @if (refreshing()) {
+                    <i class="fa-solid fa-arrows-rotate fa-spin"></i> Refreshing…
+                } @else {
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                }
+            </button>
             <button class="sonar-btn" [disabled]="!hasModel() || total() === 0 || exporting()" (click)="exportCohort()" title="Export the filtered cohort to CSV">
                 @if (exporting()) {
                     <i class="fa-solid fa-circle-notch fa-spin"></i> Exporting…

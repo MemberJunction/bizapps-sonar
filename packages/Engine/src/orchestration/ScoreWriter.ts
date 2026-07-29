@@ -82,7 +82,15 @@ export class ScoreWriter {
         anchorKeys?: AnchorKey[],
         onProgress?: ScoreWriteProgress,
     ): Promise<number> {
+        // Empty population. Not a no-op: the model may have had scores a moment ago and a narrowed
+        // PopulationFilter has just emptied it, so those rows have to go or the triage list keeps
+        // serving them. `scores` is empty only when the population genuinely resolved to zero anchors
+        // (a failed population query THROWS in resolvePopulation rather than returning nothing), so
+        // clearing is the correct reading of this state, not a data-loss risk. ScoreHistory keeps the
+        // trail either way.
         if (scores.size === 0) {
+            await this.clearModelScores(model, contextUser);
+            onProgress?.(0, 0);
             return 0;
         }
         // id → structured key JSON, so each persisted Score records its full (possibly composite)
@@ -269,6 +277,25 @@ export class ScoreWriter {
         );
     }
 
+    /**
+     * Delete every Score (and its contributions) for a model — the empty-population case, where the
+     * MERGE never runs because there is nothing to stage. Contributions go first: they are the only
+     * FK onto Score and it is NO_ACTION, so the reverse order violates it. One transaction, for the
+     * same reason the main write uses one: a half-applied clear would leave orphaned contributions.
+     */
+    private async clearModelScores(
+        model: mjBizAppsSonarScoreModelEntity,
+        contextUser: UserInfo,
+    ): Promise<void> {
+        const sql =
+            "SET XACT_ABORT ON;\nBEGIN TRY\nBEGIN TRAN;\n\n" +
+            this.buildClearContributionsSql() + "\n" +
+            `DELETE FROM ${this.tableRef("MJ_BizApps_Sonar: Scores")} WHERE ScoreModelID = @modelId;` +
+            "\n\nCOMMIT TRAN;\nEND TRY\nBEGIN CATCH\nIF @@TRANCOUNT > 0 ROLLBACK TRAN;\nTHROW;\nEND CATCH;";
+        const provider = Metadata.Provider as SQLServerDataProvider;
+        await provider.ExecuteSQL(sql, { modelId: model.ID }, undefined, contextUser);
+    }
+
     /** Encode one row as a `(v1, v2, …)` SQL VALUES tuple. With `appendTimestamps`, adds the two
      *  __mj_ audit columns as SYSDATETIMEOFFSET() — the append tables carry them per row; the Score
      *  MERGE stamps its own, so its tuples pass appendTimestamps=false. */
@@ -278,9 +305,28 @@ export class ScoreWriter {
         return `(${cells.join(", ")})`;
     }
 
-    /** SQL fragment that upserts every Score in one MERGE: stage into a session #tmp (chunked
-     *  INSERTs, same batch so the temp survives), then MERGE on the model+anchor unique key so
-     *  matched rows update in place (ID preserved) and new ones insert. Empty string when no rows. */
+    /**
+     * SQL fragment that reconciles the model's Scores in one MERGE: stage into a session #tmp
+     * (chunked INSERTs, same batch so the temp survives), then MERGE on the model+anchor unique key
+     * so matched rows update in place (ID preserved), new ones insert, and rows for anchors that are
+     * NO LONGER IN THE POPULATION are deleted. Empty string when no rows.
+     *
+     * The delete arm is why `Score` means "the current scored population" and not "everything ever
+     * scored". Without it, narrowing a model's PopulationFilter left the dropped-out members' rows
+     * untouched — stale score, stale ScoreModelVersionID — and every read filters on ScoreModelID
+     * alone, so they kept showing up in the triage list with an old version's number.
+     *
+     * Deleting loses nothing: ScoreHistory is a separate append-only table holding every snapshot
+     * (with the explainability breakdown in ContributionsJSON), so an exited member's full trail
+     * survives. ScoreFactorContribution is the only FK onto Score (NO_ACTION), and the whole model's
+     * contributions are already cleared earlier in this same transaction, so the delete can't
+     * violate it.
+     *
+     * ⚠ The `AND t.ScoreModelID = @modelId` predicate on the delete arm is LOAD-BEARING.
+     * `WHEN NOT MATCHED BY SOURCE` matches every row of the target table, not just this model's —
+     * without that predicate this statement would delete every OTHER model's scores on every
+     * recompute.
+     */
     private buildScoresSql(tuples: string[]): string {
         if (tuples.length === 0) return "";
         const target = this.tableRef("MJ_BizApps_Sonar: Scores");
@@ -307,7 +353,8 @@ WHEN MATCHED THEN UPDATE SET
 WHEN NOT MATCHED THEN INSERT (${SCORE_COLS}, __mj_CreatedAt, __mj_UpdatedAt)
     VALUES (s.ID, s.ScoreModelID, s.ScoreModelVersionID, s.AnchorEntityID, s.AnchorRecordID, s.AnchorRecordKeyJSON,
         s.RawScore, s.NormalizedScore, s.BandID, s.PreviousNormalizedScore, s.PreviousBandID, s.Delta,
-        s.TrendDirection, s.DataCompleteness, s.ComputedAt, s.AsOfDate, s.IsStale, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET());
+        s.TrendDirection, s.DataCompleteness, s.ComputedAt, s.AsOfDate, s.IsStale, SYSDATETIMEOFFSET(), SYSDATETIMEOFFSET())
+WHEN NOT MATCHED BY SOURCE AND t.ScoreModelID = @modelId THEN DELETE;
 DROP TABLE #stage;`;
     }
 

@@ -76,20 +76,49 @@ export class ScoreBandService {
         return (await band.Save()) ? band : null;
     }
 
-    /** Update one band's label + score range — for in-context (popover) editing. Touches only
-     *  those fields, leaving color/severity/terminal intact. */
-    public async updateBand(bandId: string, label: string, minScore: number, maxScore: number): Promise<boolean> {
+    /**
+     * Update one band's label + score range — for in-context (popover) editing. Touches only those
+     * fields, leaving color/severity/terminal intact.
+     *
+     * Returns the server's own reason on failure rather than a bare false. Band sets are SHARED
+     * across models, so the most common rejection isn't a transient error at all: the backend blocks
+     * the write when ANY model using this set is published (ScoreBandEntityServer /
+     * isBandSetConfigWriteBlocked). Telling the user to "try again" for that would be a lie.
+     */
+    public async updateBand(
+        bandId: string,
+        label: string,
+        minScore: number,
+        maxScore: number,
+    ): Promise<{ ok: boolean; error?: string }> {
         const band = await this.md.GetEntityObject<mjBizAppsSonarScoreBandEntity>(SCORE_BAND, CompositeKey.FromID(bandId));
-        if (!band?.IsSaved) return false;
+        if (!band?.IsSaved) return { ok: false, error: "That band no longer exists." };
         band.Label = label;
         band.MinScore = minScore;
         band.MaxScore = maxScore;
-        return band.Save();
+        if (await band.Save()) return { ok: true };
+        return { ok: false, error: band.LatestResult?.Message || undefined };
     }
 
-    /** Delete one band. */
-    public async deleteBand(id: string): Promise<boolean> {
+    /**
+     * Delete one band, returning the reason on failure.
+     *
+     * The common rejection isn't transient: Score.BandID has an FK to ScoreBand, so a band that any
+     * computed score still points at cannot be removed until those scores move off it (a recompute
+     * after reshaping the set). Callers need to distinguish that from a real error because it changes
+     * the advice given to the user.
+     */
+    public async deleteBand(id: string): Promise<{ ok: boolean; error?: string }> {
         const band = await this.md.GetEntityObject<mjBizAppsSonarScoreBandEntity>(SCORE_BAND, CompositeKey.FromID(id));
-        return band?.IsSaved ? band.Delete() : false;
+        if (!band?.IsSaved) return { ok: false, error: "That band no longer exists." };
+        if (await band.Delete()) return { ok: true };
+        const raw = band.LatestResult?.Message ?? "";
+        if (/FK_Score_Band|REFERENCE constraint/i.test(raw)) {
+            return {
+                ok: false,
+                error: "Existing scores are still assigned to that band. Recompute the model after reshaping its bands, then delete it.",
+            };
+        }
+        return { ok: false, error: raw || undefined };
     }
 }

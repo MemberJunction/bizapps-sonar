@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import { Component, computed, effect, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -6,6 +6,7 @@ import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
 import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, ScoreReadService, ScoredMember, TrendDirection } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
@@ -36,6 +37,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
     private readonly interventionService = inject(InterventionService);
+    private readonly bus = inject(SonarDataBusService);
 
     // --- active view tab ---
     public readonly activeTab = signal<'triage' | 'movers' | 'interventions' | 'outreach'>('triage');
@@ -139,6 +141,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly error = signal<string | null>(null);
     /** The cohort CSV export is in flight (drives the Export button's spinner/disabled state). */
     public readonly exporting = signal(false);
+    /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
+    public readonly refreshing = signal(false);
     /** Fixed placeholder rows for the loading skeleton (mirrors the triage list). */
     public readonly skeletonRows = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -196,6 +200,41 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return this.rubricNames().filter((n) => !present.has(n));
     });
 
+    // ── Cross-surface invalidation ─────────────────────────────────────────────
+    /**
+     * Bus revision this surface's contents already reflect, per model. A model absent from the map
+     * has never been shown, so its first sighting is NOT a change — its own load path is handling it.
+     */
+    private readonly seenRevision = new Map<string, number>();
+
+    /** Combined revision of everything that would change what this surface shows for a model. */
+    private busRevision(modelId: string): number {
+        return (
+            this.bus.revision({ topic: "scores", modelId }) +
+            this.bus.revision({ topic: "config", modelId })
+        );
+    }
+
+    /**
+     * Re-read when a recompute or config change lands for the model on screen. This is what makes
+     * Recompute in Model Builder show up here with no manual step.
+     *
+     * Reading `busRevision` is what subscribes; the number's value is meaningless, only its changing.
+     * The `undefined` guard suppresses the first sighting of a model so this never duplicates
+     * `hydrate()` / `loadModel()`. Switching back to a model that changed while you were away DOES
+     * refresh, which is the point — at worst that overlaps the rail's own `loadModel` and costs one
+     * redundant set of read-only queries.
+     */
+    private readonly watchInvalidations = effect(() => {
+        const id = this.current.modelId();
+        if (!id) return;
+        const revision = this.busRevision(id);
+        const seen = this.seenRevision.get(id);
+        this.seenRevision.set(id, revision);
+        if (seen === undefined || seen === revision) return;
+        void this.refresh();
+    });
+
     public async GetResourceDisplayName(_data: ResourceData): Promise<string> { return "Engagement Manager"; }
     public async GetResourceIconClass(_data: ResourceData): Promise<string> { return "fa-solid fa-chart-line"; }
 
@@ -231,6 +270,9 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     /** The rail picked a model — load its triage view. */
     /** Load the band summary + first page of the triage list (lowest scores first) for a model. */
     private async loadModel(id: string): Promise<void> {
+        // Baseline the bus BEFORE any await, so the invalidation effect doesn't treat this load's own
+        // model as a pending change and re-read on top of it.
+        this.seenRevision.set(id, this.busRevision(id));
         const model = await this.modelService.get(id);
         this.modelName.set(model?.Name ?? "—");
         this.page.set(0);
@@ -259,6 +301,53 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.moverSummary.set(summary);
         await this.loadMembers();
     }
+
+    /**
+     * Re-read everything this surface shows for the current model, KEEPING the operator's place
+     * (band tile, score range, name search, sort, page).
+     *
+     * Why this exists: a Recompute runs in Model Builder and writes new Scores behind this
+     * surface's back. Resource tabs stay mounted, so ngOnInit never fires again and the triage
+     * list happily shows pre-recompute numbers until the browser is reloaded. This is the
+     * operator's pull. (`loadModel` is the wrong tool — it resets every filter, which throws
+     * away the cohort they were working.)
+     *
+     * The selected band is RE-POINTED at the fresh slice with the same bandId rather than kept:
+     * its member count just changed, and the tile renders from the held object.
+     */
+    public async refresh(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id || this.refreshing()) return;
+        this.refreshing.set(true);
+        this.error.set(null);
+        try {
+            const model = await this.modelService.get(id);
+            this.modelName.set(model?.Name ?? "—");
+            this.anchorEntityId.set(model?.AnchorEntityID ?? null);
+            this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
+
+            const [dist, rubric, summary] = await Promise.all([
+                this.scoreRead.distributionForModel(id),
+                this.factorService.rubricForModel(id),
+                this.scoreRead.moverSummary(id),
+            ]);
+            this.tiles.set(dist.slices);
+            this.rubricNames.set(rubric.map((r) => r.name));
+            this.moverSummary.set(summary);
+
+            const band = this.selectedBand();
+            if (band) this.selectedBand.set(dist.slices.find((s) => s.bandId === band.bandId) ?? null);
+
+            await this.loadMembers();
+            // Movers is its own tab now (was a collapsible panel) — re-read it only when it's showing.
+            if (this.activeTab() === "movers") await this.loadMovers();
+        } catch {
+            this.error.set("Couldn't refresh. Please try again.");
+        } finally {
+            this.refreshing.set(false);
+        }
+    }
+
 
     /** (Re)load the current page of the triage list under the active band filter, then open the
      *  top row's drawer so the surface always lands on something useful. */

@@ -24,6 +24,7 @@ import {
     isScoringEditBlocked,
     isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
 } from "./publishLock";
+import { describeCoverageProblem } from "./bandCoverage";
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -143,13 +144,14 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                     Fields: ["ID"],
                 },
                 {
+                    // All bands (not just one): publishing also checks the set TILES the model's
+                    // scale, which needs every row's range, not merely proof that a band exists.
                     EntityName: "MJ_BizApps_Sonar: Score Bands",
                     ExtraFilter: this.BandSetID
                         ? `BandSetID='${this.BandSetID}'`
                         : "1=0",
-                    MaxRows: 1,
                     ResultType: "simple",
-                    Fields: ["ID"],
+                    Fields: ["ID", "Label", "MinScore", "MaxScore"],
                 },
             ],
             this.ContextCurrentUser,
@@ -174,6 +176,22 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 "BandSetID",
                 "The selected score band set has no bands.",
             );
+        } else {
+            // The set exists and has bands — now make sure it actually COVERS the scale. A gap means
+            // scores there get no band at all (they drop out of the distribution, triage and movers);
+            // an overlap means two bands claim them and order decides. Either way the published
+            // snapshot would encode a set the engine can't band consistently, so block the publish.
+            const problem = describeCoverageProblem(
+                (bandCheck.Results ?? []).map((b) => ({
+                    label: String((b as { Label?: unknown }).Label ?? "(band)"),
+                    minScore: Number((b as { MinScore?: unknown }).MinScore ?? 0),
+                    maxScore: Number((b as { MaxScore?: unknown }).MaxScore ?? 0),
+                })),
+                { min: this.ScoreScaleMin ?? 0, max: this.ScoreScaleMax ?? 100 },
+            );
+            if (problem) {
+                this.addFailure(result, "BandSetID", `Score bands don't cover the score range. ${problem}`);
+            }
         }
         if (
             this.CombineStrategy === "ExpressionDriven" &&

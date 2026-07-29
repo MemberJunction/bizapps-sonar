@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, ViewChild, computed, inject, signal } from "@angular/core";
+import { Component, ElementRef, HostListener, Injector, ViewChild, afterNextRender, computed, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -10,8 +10,10 @@ import { FactorService, RubricRow, EditFactorVM } from "../../core/services/fact
 import { ScoreBandService } from "../../core/services/score-band.service";
 import { SonarEngineService } from "../../core/services/sonar-engine.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { pathCountsFromAnchor, candidatePaths, toRelationshipPath, describePath } from "../../core/entity-graph";
 import { IsBusinessEntity } from "../../core/entity-scope";
+import { BandEditPlan, BandScale, planBandDelete, planBandInsert, planContiguousBandEdit } from "../../core/band-coverage";
 import { ToastService } from "../../core/services/toast.service";
 import { bandKey, bandKeyFromSeverity, BandKey } from "../../core/services/score-read.service";
 import { TabConfig } from "@memberjunction/ng-ui-components";
@@ -45,7 +47,9 @@ interface RelatedEntity { id: string; relatedEntityID: string; alias: string; la
  *  related entities so it never reads like just another hop. */
 interface EntityOption { id: string; name: string; ambiguous: boolean; isAnchor: boolean; }
 /** One bar in the live band distribution preview. */
-interface BandSlice { label: string; pct: number; band: BandKey; }
+/** One row of the band-distribution rail. `band` is the colour bucket (four ranks, so NOT unique);
+ *  `bandId` is the actual ScoreBand identity used for lookups and editing. */
+interface BandSlice { label: string; pct: number; band: BandKey; bandId: string | null; }
 /** One line in the sample member's "why this score" breakdown. */
 interface Contribution { label: string; value: number; explanation: string | null; }
 /** The previewed sample member (from the engine, not sample data). */
@@ -99,7 +103,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     private readonly engine = inject(SonarEngineService);
     public readonly current = inject(CurrentModelService);
     private readonly toast = inject(ToastService);
+    private readonly bus = inject(SonarDataBusService);
     private readonly hostRef = inject(ElementRef);
+    private readonly injector = inject(Injector);
 
     /** The shared model rail — refreshed after a model is created/published. */
     @ViewChild("sidebar") private sidebar?: SonarModelSidebarComponent;
@@ -110,6 +116,14 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Real count of anchor records in scope, or null while loading / unknown. */
     public readonly population = signal<number | null>(null);
     public readonly versionLabel = signal("Draft — unpublished changes");
+    /** The model's trend window in days (null = "since the previous recompute"). Mirrors
+     *  ScoreModel.TrendWindowDays for the header's inline editor. */
+    public readonly trendWindowDays = signal<number | null>(null);
+    /** True while the header's trend-window value is swapped into its input. */
+    public readonly editingTrendWindow = signal(false);
+    /** Draft text of the trend window while editing (a string so a cleared box means "since last run"). */
+    public readonly trendWindowDraft = signal("");
+    public readonly savingTrendWindow = signal(false);
 
     // --- selection (the rail/sidebar drives this; mirrors the shared current model) ---
     public readonly selectedModelId = signal<string | null>(null);
@@ -169,10 +183,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (this.isPublished()) return;
         this.sourceQuery.set("");
         this.addingSource.set(true);
-        queueMicrotask(() => {
-            const el = this.hostRef.nativeElement.querySelector?.(".sonar-srcsearch__input") as HTMLInputElement | null;
-            el?.focus();
-        });
+        this.focusAndSelectAfterRender(".sonar-srcsearch__input");
     }
     public closeAddSource(): void { this.addingSource.set(false); }
 
@@ -195,8 +206,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     // --- in-context band editing (click a band row → anchored popover with inline range) ---
     /** The model's band rows (loaded from its band set) for in-context range tweaking. */
     public readonly bands = signal<BandEditVM[]>([]);
-    /** Which band's popover is open (by band key), or null. */
-    public readonly editingBandKey = signal<BandKey | null>(null);
+    /** Which band's popover is open, by band ID (NOT by colour key — keys bucket into four ranks and
+     *  collide once a set has four or more bands, which would open two popovers at once). */
+    public readonly editingBandId = signal<string | null>(null);
     /** Draft range bound to the popover inputs. */
     public readonly bandDraftLabel = signal("");
     public readonly bandDraftMin = signal(0);
@@ -278,26 +290,165 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     // filter is persisted to the model and applied by the engine when it resolves the population
     // (RecomputeOrchestrator.compilePopulationFilter).
 
+    /** Anchor records in the whole entity, when a filter narrows the scope — so the header can read
+     *  "66 of 2,000 in population". Null when unfiltered (then `population()` IS the total). */
+    public readonly populationTotal = signal<number | null>(null);
+
+    /** True when this model scores a filtered subset rather than the whole anchor entity. Comes from
+     *  the engine's own count, not from the toggle, so it reflects what is actually PERSISTED. */
+    public readonly populationIsFiltered = computed(() => this.populationTotal() !== null);
+
     /** Fields the user can filter the anchor population on — the anchor entity's real columns
      *  (rebuilt in loadModelContext from the selected model's anchor). */
     public populationFilterFields: FilterFieldInfo[] = [];
 
-    /** The current population filter (the builder reads + emits this CompositeFilterDescriptor). */
+    /**
+     * SEED for <mj-filter-builder>'s `[filter]` input — one-way only.
+     *
+     * Deliberately NOT reassigned from `onPopulationFilterChange`. The builder deep-clones this input
+     * on every `ngOnChanges`, so writing the child's just-emitted tree straight back re-entered the
+     * child mid-change-detection. That threw `NG0100: ExpressionChangedAfterItHasBeenCheckedError`
+     * (the header's condition-count conditional flipped inside one pass), Angular aborted the pass,
+     * and the row `mj-filter-group.ngOnInit` had auto-added never rendered — leaving the panel
+     * claiming "No filters applied" with an "Add your first condition" empty state while its
+     * expression badge read 1, and no condition row to edit. The child owns its own working copy;
+     * this only gets written when we genuinely need to RESET it (model load, or clearing to Everyone).
+     */
     public populationFilter: CompositeFilterDescriptor = createEmptyFilter();
 
-    /** Persist the authored filter onto ScoreModel.PopulationFilter. Persists only a clear (no
-     *  conditions → null, score the whole anchor entity) or a COMPLETE filter — never a half-typed
-     *  condition, whose empty value would compile to a misleading WHERE at recompute time. */
-    public async onPopulationFilterChange(filter: CompositeFilterDescriptor): Promise<void> {
-        this.populationFilter = filter;
+    /** The tree the user has actually authored (mirrors the builder's own state). Read this, never
+     *  `populationFilter`, when you want "what's on screen right now". */
+    private authoredPopulationFilter: CompositeFilterDescriptor = createEmptyFilter();
+
+    /** True when the on-screen filter has a condition that isn't usable yet (no value, or a cleared
+     *  number box). Drives the inline "not saved yet" hint — without it, switching a rule's field
+     *  silently leaves the PREVIOUS filter persisted while the screen shows the new one. */
+    public readonly populationIncomplete = signal(false);
+
+    /** What's actually persisted on the model right now. The in-memory entity can't be trusted for
+     *  this: setPopulationFilter saves through its own freshly-loaded entity instance, so
+     *  `selectedModel().PopulationFilter` goes stale the moment we write. */
+    private persistedPopulationFilter: string | null = null;
+
+    /**
+     * Debounce window for population-filter saves.
+     *
+     * The builder emits on EVERY keystroke and the old handler awaited a full load-modify-save per
+     * emit, so typing `gmail.com` fired nine independent read-modify-write round trips with no
+     * ordering guarantee. Observed result: the UI showed `gmail.com` while the row held `gmail.co` —
+     * the second-to-last keystroke landed last. 500ms is long enough for a burst to settle into one
+     * write, short enough that a normal pause feels saved.
+     */
+    private static readonly POPULATION_SAVE_DEBOUNCE_MS = 500;
+    private populationSaveTimer: ReturnType<typeof setTimeout> | null = null;
+    /** The debounced write waiting to fire, kept so a model switch / tab change can flush it. */
+    private pendingPopulationSave: { modelId: string; json: string | null } | null = null;
+    /**
+     * Tail of the save chain. Debouncing alone doesn't make concurrency impossible — a settled write
+     * can still overlap a rapid Everyone/Filtered toggle — and each write is a load-modify-save, so
+     * two in flight interleave. Every write appends here instead of racing.
+     */
+    private populationSaveChain: Promise<void> = Promise.resolve();
+
+    /**
+     * The builder authored a change. Records it locally and schedules ONE debounced, serialized write.
+     *
+     * Three outcomes, and the third is the subtle one:
+     *  - no conditions      → persist null (score the whole anchor entity)
+     *  - complete           → persist the tree
+     *  - incomplete         → persist NOTHING, and flag it. A half-typed condition would compile to a
+     *                         misleading WHERE, and an empty number box reaches us as NaN, which
+     *                         `JSON.stringify` writes as `null` — the engine then throws
+     *                         "operator 'eq' on 'X' requires a value" and the model can't recompute
+     *                         at all until someone repairs the filter.
+     */
+    public onPopulationFilterChange(filter: CompositeFilterDescriptor): void {
+        this.authoredPopulationFilter = filter;
         const model = this.selectedModel();
         if (!model || this.isPublished()) return;
+
         if (filter.filters.length === 0) {
-            await this.modelService.setPopulationFilter(model.ID, null);
-        } else if (this.isFilterComplete(filter)) {
-            await this.modelService.setPopulationFilter(model.ID, JSON.stringify(filter));
+            this.populationIncomplete.set(false);
+            this.queuePopulationSave(model.ID, null);
+            return;
         }
-        // otherwise: mid-edit (a condition without a value yet) — keep it local, don't persist.
+        if (!this.isFilterComplete(filter)) {
+            // Mid-edit. Keep it on screen, leave the stored filter alone, but SAY so — otherwise the
+            // screen and the scored population silently disagree.
+            this.populationIncomplete.set(true);
+            return;
+        }
+        this.populationIncomplete.set(false);
+        this.queuePopulationSave(model.ID, JSON.stringify(filter));
+    }
+
+    /** Collapse a burst of edits into one write. Replaces any still-pending write for this model. */
+    private queuePopulationSave(modelId: string, json: string | null): void {
+        this.pendingPopulationSave = { modelId, json };
+        if (this.populationSaveTimer) clearTimeout(this.populationSaveTimer);
+        this.populationSaveTimer = setTimeout(
+            () => this.firePendingPopulationSave(),
+            SonarModelBuilderResourceComponent.POPULATION_SAVE_DEBOUNCE_MS,
+        );
+    }
+
+    /** Move the pending write onto the serialized chain. */
+    private firePendingPopulationSave(): void {
+        if (this.populationSaveTimer) {
+            clearTimeout(this.populationSaveTimer);
+            this.populationSaveTimer = null;
+        }
+        const pending = this.pendingPopulationSave;
+        if (!pending) return;
+        this.pendingPopulationSave = null;
+        this.populationSaveChain = this.populationSaveChain.then(() =>
+            this.writePopulationFilter(pending.modelId, pending.json),
+        );
+    }
+
+    /**
+     * Flush any debounced write and wait for the chain to drain. MUST be awaited before anything that
+     * leaves this filter behind — a model switch, publishing, or a recompute — or the last 500ms of
+     * the user's edit is silently dropped.
+     */
+    private async flushPopulationSave(): Promise<void> {
+        this.firePendingPopulationSave();
+        await this.populationSaveChain;
+    }
+
+    /** The single place a population filter is written. Reports failure instead of swallowing it —
+     *  the old code discarded setPopulationFilter's boolean, so a publish-lock rejection or a
+     *  permissions failure looked exactly like success. */
+    private async writePopulationFilter(modelId: string, json: string | null): Promise<void> {
+        if (!(await this.modelService.setPopulationFilter(modelId, json))) {
+            this.toast.error("Couldn't save the population filter — your change isn't stored. Check that the model is a draft, then try again.");
+            return;
+        }
+        this.persistedPopulationFilter = json;
+        this.bus.publish({ topic: "config", modelId });
+        // The scope just changed — re-ask the engine how many records are actually in it.
+        await this.refreshPopulationCount(modelId);
+    }
+
+    /**
+     * Ask the engine for the model's real scored scope and put it in the header.
+     *
+     * Goes through the "Sonar: Count Population" Action because the population filter is compiled to
+     * SQL server-side (RecomputeOrchestrator.compilePopulationFilter); counting it in the browser would
+     * duplicate that compiler. Two `count_only` reads, so this is cheap enough to run on every save.
+     *
+     * On failure the counts are cleared rather than left stale — a wrong number here is what caused
+     * the original complaint (a flat "2,000 in population" for a model scoping 66).
+     */
+    private async refreshPopulationCount(modelId: string): Promise<void> {
+        const count = await this.engine.countPopulation(modelId);
+        if (count.errors.length > 0) {
+            this.population.set(null);
+            this.populationTotal.set(null);
+            return;
+        }
+        this.population.set(count.scoped);
+        this.populationTotal.set(count.filtered ? count.total : null);
     }
 
     /** Event handler for selecting a data source from the combobox to instantly map it. */
@@ -307,41 +458,45 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.addSource();
     }
 
-    /** Segmented population toggle: Everyone (clear filter) vs Filtered subset (build a filter). */
+    /**
+     * Segmented population toggle: Everyone (clear the filter) vs Filtered subset (author one).
+     *
+     * Switching TO "Filtered subset" no longer wipes the tree. It used to unconditionally reset to an
+     * empty filter, so landing on a model that already had a saved filter and touching this toggle
+     * blanked the builder while the row kept the old filter — screen and scored population silently
+     * disagreeing again.
+     */
     public async setScoreEveryone(on: boolean): Promise<void> {
         if (this.isPublished()) return;
         this.scoreEveryone.set(on);
-        this.populationFilter = createEmptyFilter();
+        if (!on) return; // keep whatever is authored/persisted; the builder takes over
+        this.populationIncomplete.set(false);
+        this.populationFilter = createEmptyFilter(); // reset the child: this IS a genuine clear
+        this.authoredPopulationFilter = this.populationFilter;
         const model = this.selectedModel();
-        if (on && model) await this.modelService.setPopulationFilter(model.ID, null);
+        if (!model) return;
+        this.queuePopulationSave(model.ID, null);
+        await this.flushPopulationSave(); // an explicit click deserves an immediate write
     }
 
-    /** Event handler for checking/unchecking the "Score all records" checkbox. */
-    public async toggleScoreEveryone(event: Event): Promise<void> {
-        if (this.isPublished()) return;
-        const checked = (event.target as HTMLInputElement).checked;
-        this.scoreEveryone.set(checked);
-        const model = this.selectedModel();
-        if (checked) {
-            this.populationFilter = createEmptyFilter();
-            if (model) {
-                await this.modelService.setPopulationFilter(model.ID, null);
-            }
-        } else {
-            this.populationFilter = createEmptyFilter();
-            // Do not persist yet since it is empty/incomplete, but let the user build it
-        }
-    }
-
-    /** True when every leaf is usable: a null-operator (needs no value), or a value-taking
-     *  operator with a non-empty value. Guards against persisting a half-authored filter. */
+    /**
+     * True when every leaf is usable: a null-operator (needs no value), or a value-taking operator
+     * with a real value.
+     *
+     * The NaN guard is load-bearing. An empty `<input type="number">` reports `valueAsNumber` as NaN,
+     * which is neither undefined, null, nor "" — so it used to pass as "complete" and
+     * `JSON.stringify(NaN)` persisted `"value": null`. The engine's `requireValue` then throws
+     * `compileFilter: operator 'eq' on 'YearsInProfession' requires a value.`, failing the whole
+     * recompute. One backspace in a number box bricked the model until the filter was repaired.
+     */
     private isFilterComplete(node: CompositeFilterDescriptor): boolean {
-        return node.filters.every((child) =>
-            isCompositeFilter(child)
-                ? this.isFilterComplete(child)
-                : NULL_FILTER_OPERATORS.has(child.operator) ||
-                  (child.value !== undefined && child.value !== null && child.value !== ""),
-        );
+        return node.filters.every((child) => {
+            if (isCompositeFilter(child)) return this.isFilterComplete(child);
+            if (NULL_FILTER_OPERATORS.has(child.operator)) return true;
+            const value = child.value;
+            if (value === undefined || value === null || value === "") return false;
+            return typeof value === "number" ? Number.isFinite(value) : true;
+        });
     }
 
     /** SQL type → filter-builder field type (mirrors the factor builder's mapping). */
@@ -410,6 +565,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.selectModel(id);
         await this.sidebar?.refresh();
         this.activeView.set("rubric");
+        // A new model belongs in every surface's rail and in Portfolio's slot list.
+        this.bus.publish({ topic: "models" });
     }
 
     /** Bands were saved — point the model at the chosen set (covers both "had none" and "switched to
@@ -419,6 +576,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (model && model.BandSetID !== bandSetId) {
             await this.modelService.setBandSet(model.ID, bandSetId);
             await this.selectModel(model.ID);
+            // Band labels/thresholds are what the dashboards render distributions in terms of.
+            this.bus.publish({ topic: "config", modelId: model.ID });
         }
         // bands is a tab now — no modal to dismiss
     }
@@ -462,6 +621,8 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         await this.sidebar?.refresh();
         this.editFactor.set(null);
         this.activeView.set("rubric");
+        // The rubric changed: signal counts and the "missing signals" explainer read from it.
+        if (id) this.bus.publish({ topic: "config", modelId: id });
     }
 
     /** Busy flag for rubric factor removal. */
@@ -670,70 +831,143 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     private lastFocused: HTMLElement | null = null;
 
     /** The loaded band row for a band key (its min/max), for display in the legend row + popover. */
-    public bandFor(key: BandKey): BandEditVM | null {
-        return this.bands().find((b) => b.key === key) ?? null;
+    /** The band definition behind a rail row, by ID. Must not match on the colour key: that buckets
+     *  bands into four ranks, so a set with four or more bands would resolve to the wrong one. */
+    public bandFor(bandId: string | null): BandEditVM | null {
+        return bandId ? this.bands().find((b) => b.id === bandId) ?? null : null;
     }
 
     /** Open the inline range editor for a band — seed the draft, then autofocus + select the min
      *  input so the user can type immediately. Remembers the prior focus to restore on close. */
-    public openBandEditor(key: BandKey): void {
-        if (this.isPublished()) return;
-        const b = this.bands().find((x) => x.key === key);
+    public openBandEditor(bandId: string | null): void {
+        if (this.isPublished() || !bandId) return;
+        const b = this.bands().find((x) => x.id === bandId);
         if (!b) return;
         this.lastFocused = document.activeElement as HTMLElement | null;
         this.addingBand.set(false);
         this.bandDraftLabel.set(b.label);
         this.bandDraftMin.set(b.min);
         this.bandDraftMax.set(b.max);
-        this.editingBandKey.set(key);
-        queueMicrotask(() => {
-            const el = this.hostRef.nativeElement.querySelector?.(".sonar-bandpop__input") as HTMLInputElement | null;
-            el?.focus();
-            el?.select();
-        });
+        this.editingBandId.set(bandId);
+        this.focusAndSelectAfterRender(".sonar-bandpop__input");
     }
 
     /** Close the band popover and return focus to where it was. */
     public closeBandEditor(): void {
-        if (!this.editingBandKey()) return;
-        this.editingBandKey.set(null);
+        if (!this.editingBandId()) return;
+        this.editingBandId.set(null);
         this.lastFocused?.focus?.();
         this.lastFocused = null;
     }
 
-    /** Persist the edited band label + range, update locally + optimistically, then silently
-     *  re-preview so the distribution reflects the new bands. */
+    /**
+     * Persist the edited band label + range, dragging the touching neighbour along so the bands keep
+     * tiling the scale, then update locally + optimistically and silently re-preview.
+     *
+     * Editing one band's edge really moves a SEAM shared with its neighbour (bands are half-open, so
+     * 40–70 and 70–100 meet at 70). Writing only the edited band would leave a dead zone that scores
+     * fall into and match no band at all — see band-coverage.ts. The plan clamps the request when a
+     * neighbour has no room and says why, rather than silently doing something else.
+     */
     public async saveBandRange(): Promise<void> {
-        const key = this.editingBandKey();
-        const b = key ? this.bands().find((x) => x.key === key) : null;
+        const id = this.editingBandId();
+        const b = id ? this.bands().find((x) => x.id === id) : null;
         if (!b || this.bandSaving()) return;
         const label = this.bandDraftLabel().trim() || b.label;
-        const min = Math.round(this.bandDraftMin());
-        const max = Math.round(this.bandDraftMax());
+        const plan = planContiguousBandEdit(
+            this.bands(),
+            b.id,
+            { min: Math.round(this.bandDraftMin()), max: Math.round(this.bandDraftMax()) },
+            this.bandScale(),
+        );
+
         this.bandSaving.set(true);
         try {
-            if (!(await this.bandService.updateBand(b.id, label, min, max))) {
-                this.toast.error("Couldn't update that band. Please try again.");
+            const write = await this.writeBandPlan(plan, label);
+            if (!write.ok) {
+                // Surface the server's reason — a shared band set locked by another model's publish
+                // is the usual cause, and "try again" would never fix it.
+                this.toast.error(write.error ?? "Couldn't update that band. Please try again.");
                 return;
             }
-            this.bands.set(this.bands().map((x) => (x.id === b.id ? { ...x, label, min, max } : x)));
+            this.bands.set(this.applyPlanLocally(plan, label));
             this.recomputeSampleOptimistic();          // sample's band may change instantly
             this.closeBandEditor();
+            if (plan.clampReason) this.toast.info(plan.clampReason);
             if (this.previewed()) { this.tuning.set(true); void this.applyTuning(); } // silent distribution sync
         } finally {
             this.bandSaving.set(false);
         }
     }
 
+    /** The scale the band set must tile — the model's own configured range (schema default 0–100). */
+    public readonly bandScale = computed<BandScale>(() => {
+        const model = this.selectedModel();
+        return { min: model?.ScoreScaleMin ?? 0, max: model?.ScoreScaleMax ?? 100 };
+    });
+
+    /** Persist the edited band plus every neighbour edge the plan moved. Bails on the first failure
+     *  so a half-applied seam doesn't get compounded by later writes, and passes the reason back. */
+    private async writeBandPlan(plan: BandEditPlan, label: string): Promise<{ ok: boolean; error?: string }> {
+        const edited = await this.bandService.updateBand(plan.applied.id, label, plan.applied.min, plan.applied.max);
+        if (!edited.ok) return edited;
+        for (const n of plan.neighbours) {
+            const band = this.bands().find((x) => x.id === n.id);
+            if (!band) continue;
+            const neighbour = await this.bandService.updateBand(n.id, band.label, n.min ?? band.min, n.max ?? band.max);
+            if (!neighbour.ok) return neighbour;
+        }
+        return { ok: true };
+    }
+
+    /** Mirror a written plan onto the local band list (same values the server just took). */
+    private applyPlanLocally(plan: BandEditPlan, label: string): BandEditVM[] {
+        const moved = new Map(plan.neighbours.map((n) => [n.id, n]));
+        return this.bands().map((x) => {
+            if (x.id === plan.applied.id) return { ...x, label, min: plan.applied.min, max: plan.applied.max };
+            const n = moved.get(x.id);
+            return n ? { ...x, min: n.min ?? x.min, max: n.max ?? x.max } : x;
+        });
+    }
+
     /** Delete the band currently open in the editor, then reload + re-preview. */
     public async deleteBand(): Promise<void> {
-        const key = this.editingBandKey();
-        const b = key ? this.bands().find((x) => x.key === key) : null;
+        const id = this.editingBandId();
+        const b = id ? this.bands().find((x) => x.id === id) : null;
         if (!b || this.bandSaving()) return;
+        // Removing a band vacates its slice of the scale — a neighbour has to absorb it, or every score
+        // in that range stops banding entirely. Stretch the neighbour first, then delete; if the delete
+        // fails, PUT THE NEIGHBOUR BACK. Deletion is genuinely refusable (Score.BandID has an FK to the
+        // band, so any band with computed scores on it is undeletable), and leaving the stretch applied
+        // would silently overlap two bands over a range the operator never edited.
+        const plan = planBandDelete(this.bands(), b.id, this.bandScale());
+        const host = plan.absorbedBy ? this.bands().find((x) => x.id === plan.absorbedBy!.id) : undefined;
+        const hostBefore = host ? { min: host.min, max: host.max } : null;
+
         this.bandSaving.set(true);
         try {
-            if (!(await this.bandService.deleteBand(b.id))) { this.toast.error("Couldn't delete that band."); return; }
+            if (host && plan.absorbedBy) {
+                const stretched = await this.bandService.updateBand(
+                    host.id,
+                    host.label,
+                    plan.absorbedBy.min ?? host.min,
+                    plan.absorbedBy.max ?? host.max,
+                );
+                if (!stretched.ok) {
+                    this.toast.error(stretched.error ?? "Couldn't reshape the neighbouring band, so nothing was deleted.");
+                    return;
+                }
+            }
+            const deleted = await this.bandService.deleteBand(b.id);
+            if (!deleted.ok) {
+                if (host && hostBefore) {
+                    await this.bandService.updateBand(host.id, host.label, hostBefore.min, hostBefore.max);
+                }
+                this.toast.error(deleted.error ?? "Couldn't delete that band.");
+                return;
+            }
             this.closeBandEditor();
+            if (plan.note) this.toast.info(plan.note);
             const m = this.selectedModel();
             if (m) await this.selectModel(m.ID);
         } finally {
@@ -741,27 +975,44 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
     }
 
-    /** Open the inline "+ Add band" form, seeded to start where the last band ends. */
+    /**
+     * Open the inline "+ Add band" form, seeded to SPLIT the widest existing band down the middle.
+     *
+     * The old seed was "start where the last band ends, run to 100", which on an already-complete
+     * set produced 100–100: a zero-width band claiming nothing. A band set has to tile the scale, so
+     * there is no free space to append into — a new band can only come out of an existing one.
+     */
     public openAddBand(): void {
         if (this.isPublished()) return;
-        this.editingBandKey.set(null);
-        const last = this.bands()[this.bands().length - 1];
+        this.editingBandId.set(null);
         this.bandDraftLabel.set("");
-        this.bandDraftMin.set(last ? Math.min(100, last.max) : 0);
-        this.bandDraftMax.set(100);
+        const seed = planBandInsert(this.bands(), this.bandScale());
+        this.bandDraftMin.set(seed.newBand.min);
+        this.bandDraftMax.set(seed.newBand.max);
         this.addingBand.set(true);
-        queueMicrotask(() => {
-            const el = this.hostRef.nativeElement.querySelector?.(".sonar-bandadd__input") as HTMLInputElement | null;
-            el?.focus();
-            el?.select();
-        });
+        this.focusAndSelectAfterRender(".sonar-bandadd__input");
     }
+
+    /** Where a new band would split an existing one, recomputed live from the draft split point so
+     *  the form can show the resulting range instead of asking for a min AND a max that have to
+     *  happen to line up with the neighbours. */
+    public readonly insertPreview = computed(() =>
+        planBandInsert(this.bands(), this.bandScale(), this.bandDraftMin()),
+    );
     public closeAddBand(): void { this.addingBand.set(false); }
 
-    /** Create a new band (creating the model's band set first if it has none), then reload. */
+    /**
+     * Create a new band by splitting an existing one, creating the model's band set first if it has
+     * none. The new band takes the top of its host and the host shrinks to meet it, so the set still
+     * tiles the scale. Host shrinks FIRST: if the create then fails, the leftover is an overlap (the
+     * lower band just wins) rather than a hole where scores band nowhere.
+     */
     public async createBand(): Promise<void> {
         const model = this.selectedModel();
         if (!model || this.bandSaving()) return;
+        const plan = planBandInsert(this.bands(), this.bandScale(), Math.round(this.bandDraftMin()));
+        if (!plan.possible) { this.toast.error(plan.note ?? "There's no room to add another band."); return; }
+
         this.bandSaving.set(true);
         try {
             let bandSetId = model.BandSetID;
@@ -771,17 +1022,28 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 bandSetId = set.ID;
                 await this.modelService.setBandSet(model.ID, bandSetId);
             }
+            if (plan.shrink) {
+                const host = this.bands().find((x) => x.id === plan.shrink!.id);
+                if (host) {
+                    const shrunk = await this.bandService.updateBand(host.id, host.label, host.min, plan.shrink.max ?? host.max);
+                    if (!shrunk.ok) {
+                        this.toast.error(shrunk.error ?? "Couldn't make room for the new band, so nothing was added.");
+                        return;
+                    }
+                }
+            }
             const saved = await this.bandService.saveBand({
                 bandSetID: bandSetId,
                 label: this.bandDraftLabel().trim() || "New band",
-                minScore: Math.round(this.bandDraftMin()),
-                maxScore: Math.round(this.bandDraftMax()),
+                minScore: plan.newBand.min,
+                maxScore: plan.newBand.max,
                 severity: this.bands().length,
                 colorHex: "#8b5cf6",
                 isTerminal: false,
             });
             if (!saved) { this.toast.error("Couldn't add that band."); return; }
             this.addingBand.set(false);
+            if (plan.note) this.toast.info(plan.note);
             await this.selectModel(model.ID);
         } finally {
             this.bandSaving.set(false);
@@ -849,7 +1111,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const typing = tag === "input" || tag === "textarea" || tag === "select" || !!el?.isContentEditable;
         if (ev.key === "Escape") {
             if (this.wiringSourceId()) { this.cancelWiring(); ev.preventDefault(); return; }
-            if (this.editingBandKey()) { this.closeBandEditor(); ev.preventDefault(); }
+            if (this.editingBandId()) { this.closeBandEditor(); ev.preventDefault(); }
             else if (this.addingSource()) { this.addingSource.set(false); }
             else if (this.activeView() !== "rubric") { this.activeView.set("rubric"); }
             return;
@@ -878,6 +1140,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             if (await this.factorService.unbind(modelFactorId)) {
                 this.rubric.set(await this.factorService.rubricForModel(id));
                 await this.sidebar?.refresh();
+                this.bus.publish({ topic: "config", modelId: id });
             } else {
                 this.toast.error("Couldn't remove that signal. Please try again.");
             }
@@ -958,8 +1221,13 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     }
 
     /** Select a model in the rail and hydrate the full entity + its context. Also publishes
-     *  the choice to the shared current-model context so other surfaces stay in sync. */
+     *  the choice to the shared current-model context so other surfaces stay in sync.
+     *
+     *  Flushes any debounced population-filter write FIRST: the save is 500ms behind the keystroke,
+     *  so switching models right after typing would otherwise drop the tail of the edit — and worse,
+     *  land it against the model the user just left. */
     public async selectModel(id: string): Promise<void> {
+        await this.flushPopulationSave();
         this.selectedModelId.set(id);
         this.current.select(id);
         const model = await this.modelService.get(id);
@@ -975,9 +1243,15 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.rubric.set([]);
             this.anchorName.set("—");
             this.population.set(null);
+            this.populationTotal.set(null);
             this.populationFilterFields = [];
             this.populationFilter = createEmptyFilter();
+            this.authoredPopulationFilter = this.populationFilter;
+            this.persistedPopulationFilter = null;
+            this.populationIncomplete.set(false);
             this.scoreEveryone.set(true);
+            this.trendWindowDays.set(null);
+            this.editingTrendWindow.set(false);
             return;
         }
         await this.setVersionLabel(model);
@@ -992,15 +1266,21 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                   .filter((f) => !f.IsPrimaryKey && !f.Name.startsWith("__mj_"))
                   .map((f) => ({ name: f.Name, displayName: f.DisplayName || f.Name, type: this.filterFieldType(f.Type) }))
             : [];
+        // Reset the builder to what's actually stored (the one legitimate write to the seed input).
         this.populationFilter = this.parsePopulationFilter(model.PopulationFilter);
-        this.scoreEveryone.set(!model.PopulationFilter || this.parsePopulationFilter(model.PopulationFilter).filters.length === 0);
+        this.authoredPopulationFilter = this.populationFilter;
+        this.persistedPopulationFilter = model.PopulationFilter ?? null;
+        this.populationIncomplete.set(false);
+        this.scoreEveryone.set(this.populationFilter.filters.length === 0);
+        this.trendWindowDays.set(model.TrendWindowDays ?? null);
+        this.editingTrendWindow.set(false);
 
-        // Real count of anchor records in scope.
+        // The REAL scored scope, with the population filter applied, from the engine (which owns the
+        // filter→SQL compiler). This used to be a bare whole-entity count_only printed as the scope,
+        // so a model narrowed to 66 members still read "2,000 in population".
         this.population.set(null);
-        if (anchor) {
-            const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
-            this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
-        }
+        this.populationTotal.set(null);
+        await this.refreshPopulationCount(model.ID);
 
         // Data sources wired into the model (shaped for both the info card and the factor picker).
         const sources = await this.modelService.dataSources(model.ID);
@@ -1022,7 +1302,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.bandCount.set(bandRows.length);
         const allSeverities = bandRows.map((b) => b.Severity);
         this.bands.set(bandRows.map((b) => ({ id: b.ID, label: b.Label, min: b.MinScore ?? 0, max: b.MaxScore ?? 0, key: bandKeyFromSeverity(b.Severity, allSeverities) })));
-        this.editingBandKey.set(null);
+        this.editingBandId.set(null);
 
         // Recompute busy/progress state is keyed by model ID (see recomputeRuns), so switching
         // models needs no reset here — the button's computed label simply reflects whichever
@@ -1038,14 +1318,22 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (this.rubric().length > 0 && this.bandCount() > 0) void this.simulate();
     }
 
-    /** Header version label: "Published · v3" when active (resolving the current version's number),
-     *  else the draft notice. */
+    /**
+     * Header version label: "Published · v3" / "Paused · v3" when the model has a published
+     * snapshot (resolving the current version's number), else the draft notice.
+     *
+     * Paused counts as published here: it stopped scoring but its snapshot still stands and its
+     * config is locked, so calling it "unpublished changes" would contradict the lock banner
+     * sitting right next to it.
+     */
     private async setVersionLabel(model: mjBizAppsSonarScoreModelEntity): Promise<void> {
-        if (model.Status !== "Active") {
+        const published = model.Status === "Active" || model.Status === "Paused";
+        if (!published) {
             this.versionLabel.set("Draft — unpublished changes");
             return;
         }
-        let label = "Published";
+        const state = model.Status === "Paused" ? "Paused" : "Published";
+        let label = state;
         if (model.CurrentVersionID) {
             const res = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",
@@ -1053,7 +1341,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 ResultType: "entity_object",
             });
             const v = res.Success ? res.Results?.[0] : null;
-            if (v) label = `Published · v${v.VersionNumber}`;
+            if (v) label = `${state} · v${v.VersionNumber}`;
         }
         this.versionLabel.set(label);
     }
@@ -1063,11 +1351,15 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         const id = this.selectedModelId();
         if (id) await this.selectModel(id);
         await this.sidebar?.refresh();
+        if (id) this.bus.publish({ topic: "config", modelId: id });
     }
 
     /** A version was published — refresh the model context (status flips) and return to the rubric. */
     public async onPublished(): Promise<void> {
         const id = this.selectedModelId();
+        // Publishing SNAPSHOTS the live config, so any debounced population-filter write has to land
+        // before the snapshot is taken — otherwise the version is frozen without the user's last edit.
+        await this.flushPopulationSave();
         // Optimistically flip Status so the lock banner renders the moment the modal closes,
         // without waiting for the DB round-trip. Signal equality is reference-based, so toggle
         // through null to force computed re-evaluation.
@@ -1082,6 +1374,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (id) {
             await this.selectModel(id);
             await this.sidebar?.refresh();
+            this.bus.publish({ topic: "config", modelId: id });
         }
     }
 
@@ -1098,12 +1391,21 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             const res = await this.engine.previewModel(id);
             if (res.errors.length > 0) this.previewError.set(res.errors[0]);
             this.previewTotal.set(res.totalScored ?? 0);
-            const bandsByLabel = new Map(this.bands().map((b) => [b.label, b.key]));
-            this.bandDist.set((res.bandDistribution ?? []).map((b) => ({ label: b.label, pct: b.pct, band: bandsByLabel.get(b.label) ?? bandKey(b.label) })));
+            // Carry the real band ID, not just its colour key. `key` buckets bands into four display
+            // ranks (healthy/watch/atrisk/critical), so with four or more bands two of them share a
+            // key — identifying a row by key then resolves to whichever sorts first, showing the wrong
+            // range and opening the wrong editor. The ID is the identity; the key is only paint.
+            const vmByLabel = new Map(this.bands().map((b) => [b.label, b]));
+            this.bandDist.set(
+                (res.bandDistribution ?? []).map((b) => {
+                    const vm = vmByLabel.get(b.label);
+                    return { label: b.label, pct: b.pct, band: vm?.key ?? bandKey(b.label), bandId: vm?.id ?? null };
+                }),
+            );
             const sample = res.sampleMember;
             if (sample) {
                 const name = await resolveAnchorName(this.selectedModel()?.AnchorEntityID ?? null, sample.anchorId);
-                this.sampleMember.set({ name, score: sample.score, band: bandsByLabel.get(sample.band ?? "") ?? bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
+                this.sampleMember.set({ name, score: sample.score, band: vmByLabel.get(sample.band ?? "")?.key ?? bandKey(sample.band ?? ""), bandLabel: sample.band ?? "Unscored" });
                 const nameByFactor = new Map(this.rubric().map((r) => [r.modelFactorId, r.name]));
                 this.contributions.set((sample.contributions ?? []).map((c) => ({ label: nameByFactor.get(c.modelFactorId) ?? "Signal", value: c.value, explanation: c.explanation })));
                 // Cache each factor's normalized value (server value = weightᵢ·normᵢ) for optimistic re-scoring.
@@ -1124,13 +1426,121 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
     }
 
+    // ── Trend window: inline edit in the header's model-info line ────────────────────────────────
+    /** Humane label for the trend window ("30 days" / "since last run"). */
+    public readonly trendWindowLabel = computed(() => {
+        const days = this.trendWindowDays();
+        return days === null ? "since last run" : `${days} ${days === 1 ? "day" : "days"}`;
+    });
+
+    /** Why the trend window can't be edited right now, or null when it's editable. Doubles as the
+     *  tooltip, so the lock explains itself instead of just refusing to open. */
+    public readonly trendWindowLockReason = computed(() => {
+        if (!this.selectedModelId()) return "Select a model first.";
+        if (!this.isPublished()) return null;
+        return "The change window is part of this model's published configuration. Unpublish to a draft to edit it.";
+    });
+
+    /** Swap the header value into its input, pre-filled and fully selected so a number can be typed
+     *  straight over it (no second click to highlight). Refuses when the config is locked. */
+    public beginEditTrendWindow(): void {
+        if (this.trendWindowLockReason()) return;
+        const days = this.trendWindowDays();
+        this.trendWindowDraft.set(days === null ? "" : String(days));
+        this.editingTrendWindow.set(true);
+        this.focusAndSelectAfterRender(".sonar-trendwin__input");
+    }
+
+    /**
+     * Focus + fully select an input that a signal flip just revealed, so the user can type straight
+     * over the value (§3: no second click to highlight). Shared by every in-place editor on this
+     * surface: the trend window, the add-source search, and the two band editors.
+     *
+     * Two hops, both load-bearing:
+     *  - afterNextRender, not a microtask: flipping the signal only marks the view dirty, so a
+     *    microtask (or queueMicrotask) still runs before the @if branch exists in the DOM — the
+     *    querySelector returns null and the optional-chained focus() silently does nothing.
+     *  - then one frame, because at afterNextRender time ngModel hasn't written the value yet.
+     *    select() on a still-empty box selects nothing, and the value write that follows drops the
+     *    caret at the end — focus looks right while the text is silently not selected.
+     */
+    private focusAndSelectAfterRender(selector: string): void {
+        afterNextRender(
+            () => {
+                requestAnimationFrame(() => {
+                    const el = this.hostRef.nativeElement.querySelector?.(selector) as HTMLInputElement | null;
+                    el?.focus();
+                    el?.select();
+                });
+            },
+            { injector: this.injector },
+        );
+    }
+
+    public cancelEditTrendWindow(): void {
+        this.editingTrendWindow.set(false);
+    }
+
+    /**
+     * Persist the edited trend window. A blank box means "compare against the previous recompute"
+     * (null). Anything that isn't a positive whole number is rejected rather than silently coerced.
+     * On failure the value reverts and stays editable, so a rejected write can be retried.
+     */
+    public async commitTrendWindow(): Promise<void> {
+        const model = this.selectedModel();
+        if (!model || this.savingTrendWindow()) return;
+        const parsed = this.parseTrendWindow(this.trendWindowDraft());
+        if (parsed === "invalid") {
+            this.toast.error("Enter a whole number of days, or clear the box to compare against the previous run.");
+            return;
+        }
+        if (parsed === this.trendWindowDays()) { this.editingTrendWindow.set(false); return; }
+
+        this.savingTrendWindow.set(true);
+        try {
+            if (await this.modelService.setTrendWindowDays(model.ID, parsed)) {
+                this.trendWindowDays.set(parsed);
+                this.editingTrendWindow.set(false);
+                this.toast.success(
+                    parsed === null
+                        ? "Change now compares against the previous run. Takes effect on the next recompute."
+                        : `Change now looks back ${parsed} ${parsed === 1 ? "day" : "days"}. Takes effect on the next recompute.`,
+                );
+            } else {
+                this.toast.error("Couldn't save the change window. Please try again.");
+            }
+        } finally {
+            this.savingTrendWindow.set(false);
+        }
+    }
+
+    /** Parse the draft box: blank → null ("since last run"), a positive integer → that number,
+     *  anything else → "invalid" so the caller can refuse instead of coercing to a wrong value. */
+    private parseTrendWindow(raw: string): number | null | "invalid" {
+        const text = raw.trim();
+        if (!text) return null;
+        if (!/^\d+$/.test(text)) return "invalid";
+        const days = Number(text);
+        return days >= 1 ? days : "invalid";
+    }
+
     /** True once the model is published (a recompute can persist scores against its version). */
     public readonly canRecompute = computed(() => this.selectedModel()?.Status === "Active");
 
-    /** Published models are LOCKED for editing — scores stay reproducible against the current
-     *  version. Rubric/factor/source/band/population edits are disabled until the model is
-     *  unpublished to a draft (then re-published as a new version). */
-    public readonly isPublished = computed(() => this.selectedModel()?.Status === "Active");
+    /**
+     * Published models are LOCKED for editing — scores stay reproducible against the current
+     * version. Rubric/factor/source/band/population edits are disabled until the model is
+     * unpublished to a draft (then re-published as a new version).
+     *
+     * Covers Active AND Paused, mirroring the backend's LOCKED_STATUSES (publishLock.ts): a Paused
+     * model stopped scoring but its published snapshot still stands, so the server rejects config
+     * writes to it exactly as it does for Active. Testing only Active here would leave a Paused
+     * model showing live controls whose saves the server then refuses.
+     */
+    public readonly isPublished = computed(() => {
+        const status = this.selectedModel()?.Status;
+        return status === "Active" || status === "Paused";
+    });
     /** Archive is only available for Draft models. Published models must be unpublished first;
      *  already-archived models have no valid transition to archive again. */
     public readonly canArchive  = computed(() => this.selectedModel()?.Status === "Draft");
@@ -1147,6 +1557,9 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             if (await this.modelService.unpublishToDraft(id)) {
                 await this.selectModel(id);
                 await this.sidebar?.refresh();
+                // Status flipped: every other surface's rail chip is now wrong, and its config is
+                // about to change. `config` also bumps `models` for the rails.
+                this.bus.publish({ topic: "config", modelId: id });
                 this.toast.success("Unpublished to a draft — edit freely, then publish a new version.");
             } else {
                 this.toast.error("Couldn't unpublish this model. Please try again.");
@@ -1173,6 +1586,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 await this.sidebar?.refresh();
                 this.selectedModelId.set(null);
                 this.selectedModel.set(null);
+                this.bus.publish({ topic: "models" });
                 this.toast.success("Model archived.");
             } else {
                 this.toast.error("Couldn't archive this model. Please try again.");
@@ -1206,6 +1620,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
                 this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
                 this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
+                // THE reason the bus exists: this run just wrote Score / ScoreHistory /
+                // ScoreBandTransition rows that Portfolio, Engagement Manager and the model dashboard
+                // are all still showing the previous version of. Published against `id`, not the
+                // current selection, so it's correct even if the user switched models mid-run.
+                this.bus.publish({ topic: "scores", modelId: id });
                 // Only refresh the right rail if we're still on the model we recomputed — otherwise
                 // simulate() would re-score whatever model the user switched TO.
                 if (this.selectedModelId() === id) await this.simulate();
