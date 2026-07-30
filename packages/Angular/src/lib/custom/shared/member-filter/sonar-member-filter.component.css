@@ -110,7 +110,14 @@
 .sonar-memfilter--dense /* The shared `.sonar-card__label` supplies the look; this only drops its stacked-section margin. */
 .sonar-memfilter__labelslot { margin-bottom: 0; }
 .sonar-memfilter--dense .sonar-memfilter__anchor { width: 100%; }
-.sonar-memfilter--dense .sonar-memfilter__add { width: 100%; justify-content: center; }
+/* Dense mode is a rule pane where one control height governs everything, so the add affordance is a
+   field-shaped button rather than a pill. */
+.sonar-memfilter--dense .sonar-memfilter__add {
+    width: 100%; justify-content: center;
+    height: var(--sonar-ctl-h, 2.25rem); box-sizing: border-box;
+    border-radius: var(--sonar-radius-sm);
+}
+.sonar-memfilter--dense .sonar-memfilter__chip { border-radius: var(--sonar-radius-sm); }
 .sonar-memfilter--dense .sonar-memfilter__chip { justify-content: space-between; }
 /* Anchored in a 15rem column, a left-aligned popover would spill past the card edge. */
 .sonar-memfilter--dense .sonar-memfilter__pop { width: 19rem; max-width: none; }

@@ -446,16 +446,24 @@
                                 <div class="sonar-movers2__filters">
                                     <!-- Named rules first: the common cases are one click, and the numbers
                                          they set stay visible below so nothing is hidden. -->
-                                    <div class="sonar-movers2__presets" role="group" aria-label="Named rules">
+                                    <!-- One choice list: these are four readings of the same question, so exactly one
+                                         is selected. As outlined pills each read as its own primary action. -->
+                                    <div class="sonar-optlist" role="radiogroup" aria-label="Named rules">
                                         @for (p of moverPresets; track p.id) {
-                                            <button type="button" class="sonar-chip sonar-movers2__preset"
-                                                    [class.sonar-movers2__preset--on]="moverPreset() === p.id"
-                                                    [attr.aria-pressed]="moverPreset() === p.id"
-                                                    (click)="applyPreset(p.id)" [title]="p.hint">{{ p.label }}</button>
+                                            <button type="button" class="sonar-optlist__opt"
+                                                    [class.sonar-optlist__opt--on]="moverPreset() === p.id"
+                                                    role="radio" [attr.aria-checked]="moverPreset() === p.id"
+                                                    (click)="applyPreset(p.id)" [title]="p.hint">
+                                                <span class="sonar-optlist__tick">@if (moverPreset() === p.id) { <i class="fa-solid fa-check"></i> }</span>
+                                                {{ p.label }}
+                                            </button>
                                         }
                                         @if (moverPreset() === 'custom') {
-                                            <span class="sonar-chip sonar-movers2__preset sonar-movers2__preset--on" aria-current="true"
-                                                  title="You've edited the numbers, so this is your own rule">Custom</span>
+                                            <span class="sonar-optlist__opt sonar-optlist__opt--on" aria-current="true"
+                                                  title="You've edited the numbers, so this is your own rule">
+                                                <span class="sonar-optlist__tick"><i class="fa-solid fa-check"></i></span>
+                                                Custom
+                                            </span>
                                         }
                                     </div>
                                 </div>
@@ -474,52 +482,55 @@
                                     <sonar-toggle-filter [on]="directionDrops" [off]="directionGains"
                                         [value]="moverDirection()" (valueChange)="setMoverDirection($event)"></sonar-toggle-filter>
                                     @if (moverMode() === 'lastRun') {
-                                        <label class="sonar-movers2__mag">
-                                            moved ≥
-                                            <input class="sonar-input" type="number" min="1" [value]="moverMagnitude()"
-                                                   (change)="setMoverMagnitude($any($event.target).value)" aria-label="Minimum points moved" />
-                                            pts
+                                        <label class="sonar-fieldrow">
+                                            <span class="sonar-fieldrow__label">Moved</span>
+                                            <span class="sonar-fieldwrap">
+                                                <input class="sonar-input" type="number" min="1" [value]="moverMagnitude()"
+                                                       (change)="setMoverMagnitude($any($event.target).value)" aria-label="Minimum points moved" />
+                                                <span class="sonar-field__unit">pts</span>
+                                            </span>
                                         </label>
                                     } @else {
-                                        <label class="sonar-movers2__mag">
-                                            {{ moverDirection() === 'drops' ? 'losing ≥' : 'gaining ≥' }}
-                                            <input class="sonar-input" type="number" min="1" [value]="moverRatePerMonth()"
-                                                   (change)="setMoverRatePerMonth($any($event.target).value)" aria-label="Minimum points per month" />
-                                            pts/month
+                                        <label class="sonar-fieldrow">
+                                            <span class="sonar-fieldrow__label">{{ moverDirection() === 'drops' ? 'Losing' : 'Gaining' }}</span>
+                                            <span class="sonar-fieldwrap">
+                                                <input class="sonar-input" type="number" min="1" [value]="moverRatePerMonth()"
+                                                       (change)="setMoverRatePerMonth($any($event.target).value)" aria-label="Minimum points per month" />
+                                                <span class="sonar-field__unit">pts / mo</span>
+                                            </span>
                                         </label>
-                                        <label class="sonar-movers2__mag">
-                                            over
+                                        <label class="sonar-fieldrow">
+                                            <span class="sonar-fieldrow__label">Over</span>
                                             <select class="sonar-input" [value]="moverWindowDays()"
                                                     (change)="setMoverWindowDays($any($event.target).value)" aria-label="Rule horizon in days">
-                                                <option value="30">30</option>
-                                                <option value="60">60</option>
-                                                <option value="90">90</option>
-                                                <option value="180">180</option>
+                                                <option value="30">30 days</option>
+                                                <option value="60">60 days</option>
+                                                <option value="90">90 days</option>
+                                                <option value="180">180 days</option>
                                             </select>
-                                            days
                                         </label>
                                         @if (moverDirection() === 'drops') {
-                                            <label class="sonar-movers2__mag" title="Consecutive cycles the member is STILL sliding. Someone who fell for months then recovered last cycle scores 0.">
-                                                still sliding ≥
-                                                <input class="sonar-input" type="number" min="0" [value]="moverSlideCycles()"
-                                                       (change)="setMoverSlideCycles($any($event.target).value)" aria-label="Minimum consecutive declining cycles" />
-                                                cycles
+                                            <label class="sonar-fieldrow" title="Consecutive cycles the member is STILL sliding. Someone who fell for months then recovered last cycle scores 0.">
+                                                <span class="sonar-fieldrow__label">Sliding</span>
+                                                <span class="sonar-fieldwrap">
+                                                    <input class="sonar-input" type="number" min="0" [value]="moverSlideCycles()"
+                                                           (change)="setMoverSlideCycles($any($event.target).value)" aria-label="Minimum consecutive declining cycles" />
+                                                    <span class="sonar-field__unit">cycles</span>
+                                                </span>
                                             </label>
                                         }
-                                        <button type="button" class="sonar-chip sonar-movers2__cross"
-                                                [class.sonar-movers2__cross--on]="moverSteadyOnly()" (click)="toggleMoverSteadyOnly()"
-                                                [attr.aria-pressed]="moverSteadyOnly()"
+                                        <button type="button" class="sonar-switch"
+                                                [class.sonar-switch--on]="moverSteadyOnly()" (click)="toggleMoverSteadyOnly()"
+                                                role="switch" [attr.aria-checked]="moverSteadyOnly()"
                                                 title="Exclude erratic scores, so a genuine slide isn't confused with a member who bounces around and happens to be low today">
-                                            <i class="fa-solid" [class.fa-square-check]="moverSteadyOnly()" [class.fa-square]="!moverSteadyOnly()"></i> Steady only
-                                        </button>
+                                            Steady only <span class="sonar-switch__track"></span></button>
                                     }
                                     @if (moverMode() === 'lastRun') {
-                                    <button type="button" class="sonar-chip sonar-movers2__cross"
-                                            [class.sonar-movers2__cross--on]="moverCrossedOnly()" (click)="toggleMoverCrossed()"
-                                            [attr.aria-pressed]="moverCrossedOnly()"
+                                    <button type="button" class="sonar-switch"
+                                            [class.sonar-switch--on]="moverCrossedOnly()" (click)="toggleMoverCrossed()"
+                                            role="switch" [attr.aria-checked]="moverCrossedOnly()"
                                             title="Only members who changed band this run (a real boundary crossing, not an in-band wiggle)">
-                                        <i class="fa-solid" [class.fa-square-check]="moverCrossedOnly()" [class.fa-square]="!moverCrossedOnly()"></i> Crossed a band
-                                    </button>
+                                        Crossed a band <span class="sonar-switch__track"></span></button>
                                     }
                                 </div>
 

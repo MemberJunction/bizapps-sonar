@@ -617,6 +617,45 @@
 .sonar-reasons > .sonar-card__label { margin-bottom: 0; }
 .sonar-movers2__rank > .sonar-card__label { margin-bottom: 0; white-space: nowrap; }
 
+/* One control language in the pane: everything a person operates is the shared 2.25rem height, so the
+   column stops reading as a pile of unrelated widgets. The primitives themselves live in
+   sonar-shell.css (.sonar-optlist / .sonar-switch / .sonar-fieldrow / .sonar-field__unit / .sonar-token)
+   so Triage and the factor builder inherit the same language. */
+.sonar-movers2__rulepane .sonar-fieldrow__label { flex: 0 0 3.6rem; }
+.sonar-movers2__rulepane .sonar-movers2__rank { display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem; }
+.sonar-movers2__rulepane .sonar-movers2__rankselect { width: 100%; max-width: none; }
+.sonar-movers2__rulepane .sonar-optlist__opt { font-size: var(--sonar-font-sm); }
+
+/* The promise of "one control system" is literal: every operable control in this pane resolves to the
+   same height and the same radius. Each of these set its own before (31/32/33/35/36px, and radii of
+   0/4/999px in the same column), which is the raggedness that read as unfinished. */
+.sonar-movers2__rulepane .sonar-input,
+.sonar-movers2__rulepane .sonar-optlist__opt,
+.sonar-movers2__rulepane .sonar-switch {
+    height: var(--sonar-ctl-h);
+    min-height: var(--sonar-ctl-h);
+    box-sizing: border-box;
+}
+/* Both two-option controls in this pane are side-by-side segmented controls. They were briefly
+   inconsistent with each other — the mode control stacked while the direction control didn't, because
+   the parent's flex-direction rule reached the mode control (its own template) but not the direction
+   control (inside sonar-toggle-filter, where emulated encapsulation blocks it). Side by side is the
+   conventional form and costs one control height rather than two. */
+.sonar-movers2__rulepane .sonar-segmented { height: var(--sonar-ctl-h); box-sizing: border-box; }
+.sonar-movers2__rulepane .sonar-segmented__opt { height: var(--sonar-ctl-h); box-sizing: border-box; }
+.sonar-movers2__rulepane .sonar-input,
+.sonar-movers2__rulepane .sonar-optlist,
+.sonar-movers2__rulepane .sonar-segmented { border-radius: var(--sonar-radius-sm); }
+/* A segmented control is one control: the container owns the height and its options fill it. */
+.sonar-movers2__rulepane .sonar-segmented { padding: 2px; gap: 2px; }
+/* Equal halves, one line each. The pane is 15rem, so the labels are kept short enough to fit. */
+.sonar-movers2__rulepane .sonar-segmented__opt {
+    flex: 1 1 0%; min-width: 0;
+    padding: 0 0.35rem; justify-content: center; white-space: nowrap;
+    font-size: var(--sonar-font-sm); font-weight: 500;
+}
+.sonar-movers2__rulepane .sonar-segmented__opt--active { font-weight: 600; }
+
 /* --- Polish: the rule reads as titled groups, not a stack of widgets ------------------------- */
 /* Each group announces itself, so the pane can be scanned rather than parsed. */
 .sonar-movers2__group { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -637,37 +676,14 @@
     gap: 0.4rem;
     margin: 0;
 }
-.sonar-movers2__rulepane .sonar-movers2__presets { flex-direction: column; align-items: stretch; gap: 0.25rem; }
-/* Presets read as a list of choices: left-aligned, one selected. Centred full-width buttons looked
-   like five competing primary actions. */
-.sonar-movers2__rulepane .sonar-movers2__preset {
-    text-align: left;
-    border-radius: var(--sonar-radius-sm);
-    padding: 0.35rem 0.6rem;
-}
-/* Two options across 15rem broke onto two lines each ("Last / update"). Stacked, each is one line
-   and the pair reads as the either/or it is. */
-.sonar-movers2__rulepane .sonar-movers2__mode { width: 100%; display: flex; flex-direction: column; }
-.sonar-movers2__rulepane .sonar-movers2__mode .sonar-segmented__opt { width: 100%; text-align: center; white-space: nowrap; }
+.sonar-movers2__rulepane .sonar-movers2__mode { width: 100%; }
 /* Label on the left, control on the right, one baseline — the pane's whole rhythm. */
-.sonar-movers2__rulepane .sonar-movers2__mag,
-.sonar-movers2__rulepane .sonar-movers2__rank {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
-    font-size: var(--sonar-font-xs); color: var(--sonar-muted);
-}
-.sonar-movers2__rulepane .sonar-movers2__mag input,
-.sonar-movers2__rulepane .sonar-movers2__mag select,
-.sonar-movers2__rulepane .sonar-movers2__rankselect {
-    flex: 0 0 auto; width: 5.5rem; max-width: 5.5rem;
-    font-variant-numeric: tabular-nums;
-}
 .sonar-movers2__rulepane .sonar-movers2__ranks { flex-direction: column; align-items: stretch; gap: 0.4rem; }
 .sonar-movers2__rulepane .sonar-movers2__rankselect { width: 100%; max-width: none; }
-.sonar-movers2__rulepane > sonar-toggle-filter,
-.sonar-movers2__rulepane .sonar-movers2__params > sonar-toggle-filter { height: auto; align-self: stretch; }
-/* The steady-only and crossed-band checkboxes are statements, not buttons: full-width pills looked
-   like actions waiting to be pressed. */
-.sonar-movers2__rulepane .sonar-movers2__cross { align-self: flex-start; }
+/* The direction toggle is a segmented control now, so it stacks and sizes exactly like the mode
+   switch above it rather than needing its own height override. */
+.sonar-movers2__rulepane sonar-toggle-filter { align-self: stretch; }
+.sonar-movers2__rulepane sonar-toggle-filter { width: 100%; }
 /* The rows scroll inside the list pane; the pager foot below them stays pinned. The min-height floor
    is kept as a backstop — the split makes a zero-height list far less likely, but a guarantee costs
    nothing and this collapsed to literally zero once. */
