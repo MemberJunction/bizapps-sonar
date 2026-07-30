@@ -9,21 +9,29 @@ import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarInterventionProposalEntity,
 } from "@mj-biz-apps/sonar-entities";
+// The ONE definition of "what's dragging this member down", shared with the segment evaluator and the
+// read surfaces — so the reason a member was SELECTED is the same reason the message talks about.
+import { dominantDragLabel } from "@mj-biz-apps/sonar-engine";
 
 const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 const SCORE = "MJ_BizApps_Sonar: Scores";
 const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
 const CONTRIBUTION = "MJ_BizApps_Sonar: Score Factor Contributions";
 const FACTOR = "MJ_BizApps_Sonar: Factors";
+const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
 const PROPOSAL = "MJ_BizApps_Sonar: Intervention Proposals";
 
 const PROMPT_NAME = "Sonar: Outreach Drafter";
 
 /** One factor's part of the member's score story, as handed to the prompt and stored as grounding. */
 interface GroundingFactor {
+    factorId: string;
     label: string;
     normalizedValue: number;
     percentOfTotal: number;
+    /** The factor's CONFIGURED share of the rubric. Carried because drag is measured against it, not
+     *  against `percentOfTotal` — which the scorer writes as 0 exactly when a signal is missing. */
+    weight: number | null;
     hadData: boolean;
     explanation: string | null;
 }
@@ -234,6 +242,7 @@ export class SonarDraftOutreachAction extends SonarActionBase {
     private async loadGroundingFactors(scoreId: string, contextUser?: UserInfo): Promise<GroundingFactor[]> {
         const rowsRes = await new RunView().RunView<{
             FactorID: string;
+            ModelFactorID: string | null;
             NormalizedValue: number | null;
             PercentOfTotal: number | null;
             WeightedContribution: number | null;
@@ -243,7 +252,7 @@ export class SonarDraftOutreachAction extends SonarActionBase {
             {
                 EntityName: CONTRIBUTION,
                 ExtraFilter: `ScoreID='${this.sqlString(scoreId)}'`,
-                Fields: ["FactorID", "NormalizedValue", "PercentOfTotal", "WeightedContribution", "HadData", "DetailJSON"],
+                Fields: ["FactorID", "ModelFactorID", "NormalizedValue", "PercentOfTotal", "WeightedContribution", "HadData", "DetailJSON"],
                 IgnoreMaxRows: true,
                 ResultType: "simple",
             },
@@ -258,9 +267,12 @@ export class SonarDraftOutreachAction extends SonarActionBase {
             contextUser,
         );
         const nameById = new Map((factorsRes.Success ? (factorsRes.Results ?? []) : []).map((f) => [f.ID, f.Name]));
+        const weightById = await this.weightsForModelFactors(rows, contextUser);
 
         return rows
             .map((r) => ({
+                factorId: r.FactorID,
+                weight: r.ModelFactorID ? weightById.get(r.ModelFactorID) ?? null : null,
                 label: nameById.get(r.FactorID) ?? "Signal",
                 normalizedValue: Math.max(0, Math.min(1, r.NormalizedValue ?? 0)),
                 percentOfTotal: r.PercentOfTotal ?? 0,
@@ -272,21 +284,36 @@ export class SonarDraftOutreachAction extends SonarActionBase {
             .map(({ weighted: _weighted, ...factor }) => factor);
     }
 
-    /** The factor dragging the member down most: percentOfTotal × (1 − normalizedValue); no data =
-     *  full shortfall. Server-side port of the client's dominantCauseForScores. */
+    /**
+     * The factor dragging the member down most, from the engine's single definition.
+     *
+     * This was a private third copy of the drag maths (the client and the segment evaluator had the
+     * other two). It mattered more here than anywhere else: this label is handed to an LLM as fact and
+     * ends up in a message to a real person, so getting it wrong means confidently telling a member
+     * their event attendance is low when the actual problem is that Sonar holds no data for a
+     * different signal entirely.
+     */
     private dominantCause(factors: GroundingFactor[]): string | null {
-        let worst: GroundingFactor | null = null;
-        let worstDrag = -1;
-        for (const f of factors) {
-            const share = f.percentOfTotal > 0 ? f.percentOfTotal : 0;
-            const shortfall = f.hadData ? 1 - f.normalizedValue : 1;
-            const drag = share * shortfall;
-            if (drag > worstDrag) {
-                worstDrag = drag;
-                worst = f;
-            }
+        return dominantDragLabel(factors);
+    }
+
+    /** Configured rubric weights for the ModelFactors these contributions point at. */
+    private async weightsForModelFactors(
+        rows: readonly { ModelFactorID: string | null }[],
+        contextUser?: UserInfo,
+    ): Promise<Map<string, number>> {
+        const ids = [...new Set(rows.map((r) => r.ModelFactorID).filter((id): id is string => !!id))];
+        if (ids.length === 0) return new Map();
+        const list = ids.map((id) => `'${this.sqlString(id)}'`).join(",");
+        const res = await new RunView().RunView<{ ID: string; Weight: number | null }>(
+            { EntityName: MODEL_FACTOR, ExtraFilter: `ID IN (${list})`, Fields: ["ID", "Weight"], ResultType: "simple" },
+            contextUser,
+        );
+        const out = new Map<string, number>();
+        for (const r of res.Success ? (res.Results ?? []) : []) {
+            if (r.Weight != null && Number.isFinite(r.Weight)) out.set(r.ID, Number(r.Weight));
         }
-        return worst && worstDrag > 0 ? (worst.hadData ? `Low ${worst.label}` : `No ${worst.label}`) : null;
+        return out;
     }
 
     /** The human "why" from a contribution's DetailJSON ({"explanation":"…"}). */

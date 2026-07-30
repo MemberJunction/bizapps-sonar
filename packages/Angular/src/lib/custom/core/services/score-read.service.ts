@@ -535,31 +535,20 @@ export class ScoreReadService {
         return byScore;
     }
 
-    /**
-     * The dominant "why is this member low" per score — the rubric factor dragging them down most.
-     * Ranks each contribution by its weight-adjusted SHORTFALL: percentOfTotal × (1 − normalizedValue),
-     * i.e. "how much of the score this factor should carry × how far short the member falls on it." A
-     * factor with no data (hadData=false) is a full shortfall (the member has zero of that signal),
-     * so those surface as "No <factor>". Returns a short cause label per scoreId (empty if none).
+    /*
+     * There is deliberately NO dominantCauseForScores here any more.
+     *
+     * "Which signal is dragging this member down" is not a display detail: the ranking depends on the
+     * rubric weight, and the SAME ranking is what a targeting rule selects on. A copy of that maths in
+     * the browser is a second definition of the reason that can drift from the engine's — and it did,
+     * which is how the Triage list, the Movers list and the outreach drafter ended up disagreeing about
+     * the same member. The reason is now computed once on the server and shipped as data:
+     * `InterventionService.reasonsForScores` (via the `Sonar: Explain Scores` action) for lists with no
+     * rule, and `previewSegment` for a rule-resolved cohort.
+     *
+     * That is also less traffic than this used to be: it pulled every factor contribution for all 50
+     * listed members purely to derive 50 short strings.
      */
-    public async dominantCauseForScores(scoreIds: string[]): Promise<Map<string, string>> {
-        const byScore = await this.contributionsForScores(scoreIds);
-        const causes = new Map<string, string>();
-        for (const [scoreId, list] of byScore) {
-            let worst: ScoreContribution | null = null;
-            let worstDrag = -1;
-            for (const c of list) {
-                const share = c.percentOfTotal > 0 ? c.percentOfTotal : 0;
-                const shortfall = c.hadData ? 1 - Math.max(0, Math.min(1, c.normalizedValue)) : 1;
-                const drag = share * shortfall;
-                if (drag > worstDrag) { worstDrag = drag; worst = c; }
-            }
-            if (worst && worstDrag > 0) {
-                causes.set(scoreId, worst.hadData ? `Low ${worst.label}` : `No ${worst.label}`);
-            }
-        }
-        return causes;
-    }
 
     /** Pull the human "why" out of a contribution's DetailJSON ({"explanation":"…"}); null if absent/malformed. */
     private parseExplanation(detailJSON: string | null): string | null {

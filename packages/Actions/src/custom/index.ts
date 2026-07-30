@@ -40,3 +40,5 @@ export * from "./SonarMeasureOutcomesAction";
 export * from "./SonarSyncCohortToListAction";
 export * from "./SonarDraftOutreachAction";
 export * from "./SonarPreviewSegmentAction";
+export * from "./SonarExplainScoresAction";
+export * from "./SonarEmailCohortAction";

@@ -3325,7 +3325,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": true,
-            "Description": "JSON SegmentFilter. Point-in-time: { bandId?, minScore?, maxScore?, minDelta?, maxDelta?, crossedBandOnly? }. Trust gate: { minDataCompleteness? }. Trajectory (reads ScoreHistory): { windowDays?, minSlopePer30Days?, maxSlopePer30Days?, minDeclineRun?, minNetDrop?, maxVolatility?, minSnapshots? }."
+            "Description": "JSON SegmentFilter. Point-in-time: { bandId?, minScore?, maxScore?, minDelta?, maxDelta?, crossedBandOnly? }. Trust gate: { minDataCompleteness? }. Trajectory (reads ScoreHistory): { windowDays?, minSlopePer30Days?, maxSlopePer30Days?, minDeclineRun?, minNetDrop?, maxVolatility?, minSnapshots? }. Reason, i.e. WHICH SIGNAL is dragging the member down (reads ScoreFactorContribution): { reason: { dominantFactorIds?: [FactorID], weakOnFactorId?: FactorID, maxNormalizedValue?: 0-1 (default 0.5), requireNoData?: bool, requireData?: bool } }. Member context, i.e. conditions on the ANCHOR RECORD rather than the score: { anchor: [{ field, op, value }] } where op is one of eq/neq/in/notIn/gte/lte/isNull/isNotNull/withinLastDays/olderThanDays/withinNextDays. The date operators take a number of DAYS relative to now, which is how urgency is actually spoken: JoinDate olderThanDays 365 = a member for over a year; LastActivityDate olderThanDays 90 = dormant for a quarter; a future-dated field withinNextDays 60 = about to come due. olderThanDays is exclusive at the boundary so it and withinLastDays partition cleanly. Ordering: { rank: { mode, urgencyField?, valueField?, weights? } } where mode is worstScore (default) / fastestDecline / biggestDrop / soonest / highestValue / priority. urgencyField is an anchor DATE field (sooner = higher priority, within a 90-day horizon); valueField is an anchor NUMBER field; priority blends severity, urgency and value (defaults 0.5/0.3/0.2, renormalised over whichever terms the rule can supply). All layers AND together. Rank is part of the RULE: the run cap truncates the resolved cohort, so this order decides who gets treated. A condition naming a field the anchor entity does not have FAILS with VALIDATION_ERROR rather than being ignored, because a skipped condition would silently widen the cohort. Use dominantFactorIds for a homogeneous group (everyone shares the same main problem); use weakOnFactorId when the action targets one behaviour regardless of whether it is the member's worst. A member with no contributions on record never matches a reason condition. requireNoData/requireData are mirror gates on whether the signal has any records for the member at all: a data gap needs the integration fixed, not a person contacted, so the two are separate groups even when they share a dominant factor."
           },
           "primaryKey": {
             "ID": "5044A100-0025-4000-8000-0000000000A2"
@@ -3367,7 +3367,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
-            "Description": "Display order for the returned page: 'BiggestDrop' or 'BiggestGain' sort by last-run delta; omitted (or anything else) keeps the engine's worst-score-first order. Affects the response only, never which members a run would treat."
+            "Description": "DISPLAY ONLY, and IGNORED when the filter states its own rank (see FilterJSON) so the previewed order can never differ from the order a capped run would treat. 'BiggestDrop'/'BiggestGain' re-sort this RESPONSE by the last-run delta; anything else keeps the resolved order."
           },
           "primaryKey": {
             "ID": "5044A100-0025-4000-8000-0000000000A6"
@@ -3381,7 +3381,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": false,
-            "Description": "JSON: { total, page, pageSize, usedTrajectory, members: [{ anchorRecordId, anchorRecordKeyJSON, normalizedScore, bandId, shape }] }. shape is null unless the rule used trajectory bounds."
+            "Description": "JSON: { total, page, pageSize, usedTrajectory, breakdown: [{ factorId, label, count, share, hadData }], members: [{ scoreId, anchorRecordId, anchorRecordKeyJSON, normalizedScore, bandId, delta, shape, reasonLabel, dominantFactorId, reasonHadData }] }. Members come back in the rule's rank order, which is the order a capped run would treat them in. breakdown covers the WHOLE cohort (not just the page) and is how the group splits by main problem, biggest slice first; factorId null = Sonar cannot tell why those members are low. Each member carries reasonLabel (\"Low Event Registrations\" / \"No Event Registrations\") plus the dominantFactorId behind it, so a breakdown row can be turned straight back into a rule. hadData/reasonHadData false = the signal has NO records for that member, so the low score is a data gap rather than measured disengagement. shape is null unless the rule used trajectory bounds."
           },
           "primaryKey": {
             "ID": "5044A100-0025-4000-8000-0000000000A5"
@@ -3420,6 +3420,87 @@
           },
           "primaryKey": {
             "ID": "5044A100-0025-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Explain Scores",
+      "Description": "For a set of Score rows, returns WHY each member is low: the signal dragging them down most, as a short label (\"Low Event Registrations\" / \"No Event Registrations\"), plus the factor behind it and whether that signal had any data at all. Ranked on the rubric weight, not the realized percentage, so a MISSING signal can be named as the reason. Read-only. Backs the Why column on member lists that are not resolved from a targeting rule; use Sonar: Preview Segment when there IS a rule, which returns the same labels with the cohort.",
+      "DriverClass": "SonarExplainScores",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-circle-question",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0027-4000-8000-000000000027"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ScoreIDsJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON array of Score.ID values to explain (maximum 500 per call). Non-GUID entries and duplicates are ignored; an empty array succeeds with an empty result rather than failing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { reasons: [{ scoreId, reasonLabel, dominantFactorId, hadData }] }. reasonLabel is null when nothing is dragging the member down (they are doing fine on every signal) or when no contributions are on record. hadData false = that signal has NO records for the member, so the low score is a data gap to fix rather than a person to contact."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Reasons resolved (including the empty-input case)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ScoreIDsJSON missing, not a JSON array, or over the 500-id limit."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "A query error while reading contributions, factors, or rubric weights."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C3"
           }
         }
       ]

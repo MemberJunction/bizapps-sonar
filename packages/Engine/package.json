@@ -2,7 +2,7 @@
   "name": "@mj-biz-apps/sonar-engine",
   "type": "module",
   "version": "0.4.1",
-  "description": "Sonar scoring engine — IFactorEvaluator contract, FactorCompiler, NormalizationEngine, ScoringEngine, and RecomputeOrchestrator over the __sonar data",
+  "description": "Sonar scoring engine \u2014 IFactorEvaluator contract, FactorCompiler, NormalizationEngine, ScoringEngine, and RecomputeOrchestrator over the __sonar data",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {

@@ -33,6 +33,11 @@ jobs:
       - name: Validate repository.url in packages
         run: ./.github/scripts/validate-package-repository.sh
 
+      # Runs BEFORE the build on purpose: this failure mode does not show up in a monorepo build,
+      # only on a fresh `mj app install`, so the build passing proves nothing about it.
+      - name: Validate client/server package boundary
+        run: ./.github/scripts/validate-client-package-boundary.sh
+
       - name: Install dependencies
         run: npm ci
 

@@ -24,7 +24,8 @@ const MAX_PAGE_SIZE = 500;
  * Read-only: no Segment, Intervention, or Assignment rows are created (unlike
  * `Sonar: Run Intervention` with preview:true, which find-or-creates its segment as a side effect).
  *
- * Input params:  ModelID (req), FilterJSON (req — a SegmentFilter), Page?, PageSize?
+ * Input params:  ModelID (req), FilterJSON (req — a SegmentFilter), Page?, PageSize?, OrderBy?
+ *                OrderBy is DISPLAY ONLY and is ignored when the filter states its own `rank`.
  * Output param:  Result (JSON: { total, page, pageSize, usedTrajectory, members: [...] })
  */
 @RegisterClass(BaseAction, "SonarPreviewSegment")
@@ -45,17 +46,32 @@ export class SonarPreviewSegmentAction extends SonarActionBase {
         try {
             // resolve() returns the whole cohort (that's what an intervention acts on); we page the
             // response so a 2,000-member rule doesn't ship 2,000 rows to a preview panel.
-            const cohort = await new SegmentEvaluator().resolve(modelId, filter, params.ContextUser);
-            // Sorting happens HERE, not in the evaluator: the evaluator's worst-score-first order is
-            // also the cap policy for a real run (which members get treated when a run is capped),
-            // and a display preference must not quietly change who gets picked.
-            this.sortCohort(cohort, this.getInput(params, "OrderBy"));
+            // resolveWithReasons, not resolve: a preview's job is to explain the group, not just count
+            // it. Every member comes back labelled with its main problem and the cohort comes back
+            // split by that problem, so an operator can see a "319 declining members" cohort is really
+            // three different problems before deciding which one to act on.
+            const { members: cohort, breakdown } = await new SegmentEvaluator().resolveWithReasons(
+                modelId,
+                filter,
+                params.ContextUser,
+            );
+            // Order matters twice over, so be careful which one wins. The resolved order IS the cap
+            // policy for a real run (who gets treated when a run is capped), so a display preference
+            // must never quietly change who gets picked. When the rule states its own `rank` that
+            // decision is already made and OrderBy is ignored; otherwise OrderBy re-sorts this
+            // RESPONSE only, leaving the run order untouched.
+            if (!filter.rank) {
+                this.sortCohort(cohort, this.getInput(params, "OrderBy"));
+            }
             const slice = cohort.slice(page * pageSize, page * pageSize + pageSize);
             const payload = {
                 total: cohort.length,
                 page,
                 pageSize,
                 usedTrajectory: needsTrajectory(filter),
+                // How the WHOLE cohort splits by main problem (not just this page) — the count that
+                // tells an operator whether this group is one problem or several.
+                breakdown,
                 members: slice.map((m) => ({
                     scoreId: m.scoreId,
                     anchorRecordId: m.anchorRecordId,
@@ -65,11 +81,22 @@ export class SonarPreviewSegmentAction extends SonarActionBase {
                     delta: m.delta,
                     // Present only for trajectory rules — the auditable "why this member".
                     shape: m.shape ?? null,
+                    // The member's main problem, and the factor id behind it so the UI can turn a
+                    // breakdown row back into a rule without string-matching the label.
+                    reasonLabel: m.reasonLabel ?? null,
+                    dominantFactorId: m.dominantFactorId ?? null,
+                    // False = the signal has NO records for this member, so their low score is a data
+                    // gap rather than measured disengagement. Different problem, different fix.
+                    reasonHadData: m.reasonHadData ?? null,
                 })),
             };
             return this.ok(params, `${cohort.length} member(s) match this rule.`, payload);
         } catch (e: unknown) {
-            return this.fail(params, "ERROR", e instanceof Error ? e.message : String(e));
+            const message = e instanceof Error ? e.message : String(e);
+            // A condition naming a field that doesn't exist is the caller's mistake, not a fault —
+            // report it as such so the UI (or an agent) can correct the rule rather than retry it.
+            const code = message.startsWith("Invalid member condition") ? "VALIDATION_ERROR" : "ERROR";
+            return this.fail(params, code, message);
         }
     }
 

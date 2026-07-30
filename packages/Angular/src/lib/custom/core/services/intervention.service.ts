@@ -9,6 +9,7 @@ import { sqlString } from "./sql.util";
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
 const PREVIEW_SEGMENT_ACTION = "Sonar: Preview Segment";
+const EXPLAIN_SCORES_ACTION = "Sonar: Explain Scores";
 
 /** Play params the engine can fill from fire-time tokens (InterventionRunner.fillTokens). When a
  *  chosen play DECLARES one of these inputs and the operator supplied no value, the launch flow
@@ -48,6 +49,78 @@ export interface LaunchSegmentFilter {
     maxVolatility?: number | null;
     /** Snapshots required before a member is judged at all (defaults to 2 for trajectory rules). */
     minSnapshots?: number | null;
+    // --- reason (the engine reads ScoreFactorContribution for these) ---
+    /** WHICH SIGNAL is dragging the member down. A cohort picked by score or trajectory is a mixed
+     *  bag (stopped attending events sitting next to stopped opening email) and one action can't fit
+     *  both, so this is what makes a group homogeneous enough to act on. */
+    reason?: ReasonCondition | null;
+    // --- member context (the engine reads the model's anchor entity for these) ---
+    /** Conditions on the MEMBER RECORD rather than the score: tenure, dormancy, region, segment. What
+     *  turns "these 319 are sliding" into "the first-year members in Texas who are sliding". A
+     *  condition naming a field the anchor entity lacks fails the resolve rather than being ignored. */
+    anchor?: AnchorCondition[] | null;
+    // --- ordering ---
+    /** Which members to work FIRST. Part of the RULE, not the display: the run cap truncates the
+     *  resolved cohort, so this order decides who actually gets treated. */
+    rank?: RankSpec | null;
+}
+
+/** One condition on the anchor record. Mirrors the engine's AnchorCondition. */
+export interface AnchorCondition {
+    /** A real field name on the model's anchor entity. */
+    field: string;
+    /** eq/neq/in/notIn/gte/lte/isNull/isNotNull/withinLastDays/olderThanDays/withinNextDays. The date
+     *  operators take a number of DAYS relative to now. */
+    op: string;
+    value?: string | number | string[] | null;
+}
+
+/** How to order a resolved cohort. Mirrors the engine's RankSpec. */
+export interface RankSpec {
+    mode: "worstScore" | "fastestDecline" | "biggestDrop" | "soonest" | "highestValue" | "priority";
+    /** Anchor DATE field: sooner = higher priority, within the engine's 90-day horizon. */
+    urgencyField?: string | null;
+    /** Anchor NUMBER field to weigh. */
+    valueField?: string | null;
+    /** Overrides the priority blend (engine defaults: severity 0.5, urgency 0.3, value 0.2). */
+    weights?: { severity?: number | null; urgency?: number | null; value?: number | null } | null;
+}
+
+/** A condition on WHY a member is low. Mirrors the engine's ReasonCondition. */
+export interface ReasonCondition {
+    /** Keep members whose MAIN problem is one of these factors — the homogeneous-group question. */
+    dominantFactorIds?: string[] | null;
+    /** Keep members weak on this factor whether or not it's their worst — the broader question. */
+    weakOnFactorId?: string | null;
+    /** Ceiling (0–1) that counts as "weak" for weakOnFactorId. Defaults to 0.5 in the engine. */
+    maxNormalizedValue?: number | null;
+    /** Keep only members with NO data at all for the factor — a gap to fix, not a person to contact. */
+    requireNoData?: boolean | null;
+    /** The mirror: keep only members who DO have data for the factor. Needed so a "Low X" breakdown
+     *  slice doesn't also return the "No X" members, which share the same dominant factor. */
+    requireData?: boolean | null;
+}
+
+/** Why one member is low, as resolved by `Sonar: Explain Scores`. */
+export interface ScoreReason {
+    scoreId: string;
+    /** e.g. "Low Event Registrations" / "No Event Registrations"; null when nothing is dragging. */
+    reasonLabel: string | null;
+    dominantFactorId: string | null;
+    /** False = that signal has no records for this member, so the low score is a data gap. */
+    hadData: boolean | null;
+}
+
+/** One slice of a cohort that shares a main problem — the unit an operator acts on. */
+export interface ReasonSlice {
+    /** null = Sonar can't tell why these members are low (no contributions on record). */
+    factorId: string | null;
+    label: string;
+    count: number;
+    /** Share of the cohort, 0–100. */
+    share: number;
+    /** False = the problem is MISSING DATA on that signal, not weakness in it. Different fix. */
+    hadData: boolean;
 }
 
 /** The full launch payload — mirrors SonarRunInterventionAction's ConfigJSON shape. */
@@ -101,6 +174,12 @@ export interface PreviewMember {
     bandId: string | null;
     delta: number | null;
     shape: MemberTrendShape | null;
+    /** The member's main problem ("Low Event Registrations"), resolved by the engine. */
+    reasonLabel: string | null;
+    /** The factor behind that label, so a slice can become a rule without matching on display text. */
+    dominantFactorId: string | null;
+    /** False = that signal has no records for this member, so the low score is a data gap. */
+    reasonHadData: boolean | null;
 }
 
 /** What `Sonar: Preview Segment` returns: the FULL cohort count plus the requested page. */
@@ -110,6 +189,10 @@ export interface SegmentPreview {
     pageSize: number;
     /** True when the rule needed ScoreHistory (slope / decline run / volatility / net drop). */
     usedTrajectory: boolean;
+    /** How the WHOLE cohort splits by main problem, biggest slice first. Covers every member, not
+     *  just the returned page — which is the difference between "what's driving this group" and
+     *  "what's driving these 50 rows". */
+    breakdown: ReasonSlice[];
     members: PreviewMember[];
 }
 
@@ -242,6 +325,36 @@ export class InterventionService {
         if (!res.Success) return { ok: false, error: res.Message || "Resolving the segment failed." };
         const result = extractActionResult<SegmentPreview>(res);
         return result ? { ok: true, result } : { ok: false, error: "The preview returned no result payload." };
+    }
+
+    /**
+     * WHY each of these scores is low, resolved SERVER-SIDE.
+     *
+     * The browser deliberately does not compute this. Ranking a member's signals by how much each
+     * drags the score down depends on the rubric weight, and the same ranking is what a targeting rule
+     * SELECTS on — so a client-side copy is a second definition of "the reason" that can drift from
+     * the engine's. It did drift once, which is how the Triage list, the Movers list and the outreach
+     * drafter came to disagree about the same member.
+     *
+     * `previewSegment` already returns the reason for a rule-resolved cohort; this covers the lists
+     * that show members WITHOUT a rule (Triage), which have no cohort to preview. Returns an empty map
+     * rather than an error when the action is unavailable, so a Why column degrades to blank instead
+     * of failing the whole list.
+     */
+    public async reasonsForScores(scoreIds: string[]): Promise<Map<string, ScoreReason>> {
+        const out = new Map<string, ScoreReason>();
+        if (scoreIds.length === 0) return out;
+        const id = await this.resolveActionIdByName(EXPLAIN_SCORES_ACTION);
+        if (!id) return out;
+        const res = await this.actionClient().RunAction(id, [
+            { Name: "ScoreIDsJSON", Value: JSON.stringify(scoreIds), Type: "Input" },
+        ]);
+        if (!res.Success) return out;
+        const result = extractActionResult<{ reasons: ScoreReason[] }>(res);
+        for (const r of result?.reasons ?? []) {
+            if (r.reasonLabel) out.set(r.scoreId, r);
+        }
+        return out;
     }
 
     /** Measure one intervention's outcomes (baseline vs now) and get the lift summary. */

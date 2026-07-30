@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
+import { Metadata } from "@memberjunction/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -7,10 +8,11 @@ import { FactorService } from "../../core/services/factor.service";
 import { BandSlice, MemberSuggestion, ScoreContribution, ScoreHistoryPoint, ScoreReadService, ScoredMember, TrendDirection } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
+import { MemberCondition, MemberField, MemberFieldKind, humanizeDays } from "../../shared/member-filter/sonar-member-filter.component";
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, PreviewMember, ProposalStatus, ProposalSummary } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, MemberTrendShape, PreviewMember, ProposalStatus, ProposalSummary, ReasonSlice } from "../../core/services/intervention.service";
 
 
 /**
@@ -92,19 +94,129 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly moverError = signal<string | null>(null);
     /** Dominant "why they're low" per listed member (scoreId → cause label), from contributions. */
     public readonly moverCauseById = signal<Map<string, string>>(new Map());
+    /** The trend shape the engine used to qualify each listed member (scoreId → shape), for
+     *  'Over time' rules. The list has to show the measure it selected on, not the last-run delta. */
+    public readonly moverShapeById = signal<Map<string, MemberTrendShape>>(new Map());
 
     public readonly directionDrops: SonarToggleOption = { value: "drops", label: "↓ Dropping", title: "Members whose score fell" };
     public readonly directionGains: SonarToggleOption = { value: "gains", label: "↑ Climbing", title: "Members whose score rose" };
 
-    /** The mover filter as an engine SegmentFilter — the ONE definition that drives the list AND a
-     *  launch, so what you see is exactly who you'd act on. Direction picks which delta bound. */
-    public readonly moverFilter = computed<LaunchSegmentFilter>(() => {
-        const mag = Math.abs(this.moverMagnitude());
-        const crossedBandOnly = this.moverCrossedOnly() ? true : null;
-        return this.moverDirection() === "drops"
-            ? { maxDelta: -mag, crossedBandOnly }
-            : { minDelta: mag, crossedBandOnly };
+    /** Named rules, so finding a cohort is one click instead of four numeric decisions. The numbers
+     *  stay visible and editable underneath — editing any of them flips to 'custom', so a preset
+     *  never silently misdescribes what's actually being asked. */
+    public readonly moverPresets: readonly { id: string; label: string; hint: string }[] = [
+        { id: "slipping", label: "Slipping away", hint: "Quietly eroding for months — every single step too small to trip an alert" },
+        { id: "cliff", label: "Sudden drop", hint: "Fell sharply on the last run: something happened" },
+        { id: "crossed", label: "Fell into a worse band", hint: "Crossed a real boundary on the last run, not an in-band wiggle" },
+        { id: "recovering", label: "Recovering", hint: "Climbing steadily — worth knowing what's working" },
+    ];
+    /** Starts on "Slipping away". Every signal below is initialised to THAT rule's values, so the
+     *  highlighted chip always describes the rule actually being asked on first paint. */
+    public readonly moverPreset = signal<string>("slipping");
+
+    /** Which question the rule asks. 'lastRun' compares the score to the model's baseline (one step);
+     *  'overTime' reads the member's history and describes the SHAPE of the path — the only way to
+     *  catch someone whose every single step was too small to trip a threshold. */
+    public readonly moverMode = signal<"lastRun" | "overTime">("overTime");
+    /** The rule's own horizon in days for 'overTime' (independent of the model's trend window). */
+    public readonly moverWindowDays = signal(90);
+    /** Points per month the score must be moving, for 'overTime'. */
+    public readonly moverRatePerMonth = signal(3);
+    /** Consecutive cycles the member must still be sliding (drops only, 0 = don't require it). */
+    public readonly moverSlideCycles = signal(3);
+    /** Exclude erratic series, so a steady slide isn't confused with a member who bounces. */
+    public readonly moverSteadyOnly = signal(true);
+
+    /** Whether the rule pane is shown. Only consulted below the split's breakpoint: at full width the
+     *  rule column is always visible, but on a narrow rail a permanent column plus the section rail
+     *  leaves the member list too little width, so there it collapses behind a toggle. */
+    public readonly rulePaneOpen = signal(false);
+
+    /** Conditions on the MEMBER RECORD (tenure, region, activity), which the engine ANDs with the
+     *  score rule. This is what makes a cohort specific rather than merely low-scoring. */
+    public readonly memberConditions = signal<MemberCondition[]>([]);
+    /** Which members to work FIRST. Part of the rule: the run cap truncates the resolved cohort, so
+     *  this decides who actually gets treated when a team can only work some of them. */
+    public readonly rankMode = signal<"worstScore" | "fastestDecline" | "biggestDrop" | "priority" | "highestValue">("worstScore");
+    /** Anchor NUMBER field backing the value-led modes; "" = don't weigh value at all. */
+    public readonly rankValueField = signal<string>("");
+
+    /** How the current cohort splits by main problem, straight from the engine. Covers the WHOLE
+     *  cohort, not the visible page. */
+    public readonly moverBreakdown = signal<ReasonSlice[]>([]);
+    /** The slice the operator has drilled into, or null for the whole cohort. Narrowing to one slice
+     *  is the point of the breakdown: it turns a mixed group into one where a single action fits. */
+    public readonly moverReason = signal<ReasonSlice | null>(null);
+    /** Size of the cohort BEFORE any reason drill-down. Summed from the held full breakdown, so the
+     *  "37 of 319" framing survives being inside a slice without keeping a second copy of the count. */
+    public readonly moverCohortTotal = computed(() => {
+        const whole = this.moverBreakdown().reduce((sum, s) => sum + s.count, 0);
+        return whole > 0 ? whole : this.moverTotal();
     });
+
+    /** The mover filter as an engine SegmentFilter — the ONE definition that drives the list AND a
+     *  launch, so what you see is exactly who you'd act on. */
+    public readonly moverFilter = computed<LaunchSegmentFilter>(() => {
+        const dropping = this.moverDirection() === "drops";
+        const reason = this.reasonCondition();
+        const context = this.contextAndRank();
+        if (this.moverMode() === "lastRun") {
+            const mag = Math.abs(this.moverMagnitude());
+            const crossedBandOnly = this.moverCrossedOnly() ? true : null;
+            return dropping
+                ? { maxDelta: -mag, crossedBandOnly, ...reason, ...context }
+                : { minDelta: mag, crossedBandOnly, ...reason, ...context };
+        }
+        const rate = Math.abs(this.moverRatePerMonth());
+        const cycles = Math.max(0, this.moverSlideCycles());
+        return {
+            windowDays: this.moverWindowDays(),
+            // Rate is stated per month because that's how a person says it; the engine scales it.
+            ...(dropping ? { maxSlopePer30Days: -rate } : { minSlopePer30Days: rate }),
+            // "Still sliding" only means something downward; a rising member has no decline run.
+            ...(dropping && cycles > 0 ? { minDeclineRun: cycles } : {}),
+            ...(this.moverSteadyOnly() ? { maxVolatility: 2 } : {}),
+            ...reason,
+            ...context,
+        };
+    });
+
+    /**
+     * The selected slice as a reason condition, or `{}` when the whole cohort is in scope.
+     *
+     * `dominantFactorIds` (not `weakOnFactorId`) because a slice means "this is their MAIN problem",
+     * which is exactly what makes the group homogeneous. `requireNoData` rides along for a data-gap
+     * slice so it stays separate from genuine weakness on the same signal: those members need the
+     * integration fixed, not an email.
+     */
+    /** The member conditions + ordering as engine filter fields. Both are omitted entirely when unset,
+     *  so a rule that asks nothing extra is byte-identical to what it was before this existed. */
+    private contextAndRank(): Partial<LaunchSegmentFilter> {
+        const anchor = this.memberConditions();
+        const mode = this.rankMode();
+        const valueField = this.rankValueField();
+        const needsValue = mode === "highestValue" || mode === "priority";
+        return {
+            ...(anchor.length > 0 ? { anchor } : {}),
+            ...(mode !== "worstScore"
+                ? { rank: { mode, ...(needsValue && valueField ? { valueField } : {}) } }
+                : {}),
+        };
+    }
+
+    private reasonCondition(): { reason?: LaunchSegmentFilter["reason"] } {
+        const slice = this.moverReason();
+        if (!slice || !slice.factorId) return {};
+        return {
+            reason: {
+                dominantFactorIds: [slice.factorId],
+                // Both gates are stated explicitly, never left to default: "Low X" and "No X" are two
+                // slices sharing one dominant factor, so an unstated gate would make each slice return
+                // the other's members too, and the list would disagree with the count on the chip.
+                ...(slice.hadData ? { requireData: true } : { requireNoData: true }),
+            },
+        };
+    }
     public readonly fireable = signal<FireableAction[]>([]);
     public readonly launchName = signal("");
     public readonly launchActionId = signal<string | null>(null);
@@ -159,8 +271,12 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     // --- score history (sparkline) ---
     public readonly history = signal<ScoreHistoryPoint[]>([]);
-    /** Any movement at all this run — gates the Movers nav item + drives its count chip. */
+    /** Movement on the LAST RUN — drives the nav item's count chip. Deliberately not the gate: a
+     *  model can have no last-run movement and still have members eroding over months, which is
+     *  exactly what the 'Over time' rule exists to find. Gating on this hid that tab entirely. */
     public readonly hasMovers = computed(() => this.moverSummary().dropped + this.moverSummary().climbed > 0);
+    /** The tab is reachable whenever the model has scores to read a trajectory from. */
+    public readonly canOpenMovers = computed(() => this.tiles().length > 0);
 
     /** SVG sparkline geometry from the selected member's history (null if < 2 points to draw). */
     public readonly spark = computed(() => this.buildSpark(this.history()));
@@ -266,6 +382,13 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public pickModel(id: string): void {
         if (!id || id === this.current.modelId()) return;
         this.current.select(id);
+        // A reason drill-down names a FACTOR and a member condition names an anchor FIELD; both belong
+        // to the model being left. Carried across a switch they would filter on things the new model has
+        // never heard of — and the engine rightly fails a rule naming a field its anchor lacks.
+        this.moverReason.set(null);
+        this.moverBreakdown.set([]);
+        this.memberConditions.set([]);
+        this.rankValueField.set("");
         void this.loadModel(id);
     }
 
@@ -375,8 +498,11 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             this.total.set(total);
             if (members.length > 0) await this.select(members[0]);
             else { this.selected.set(null); this.contributions.set([]); }
-            // Each row's "why": the factor dragging that member down most (batched, one query).
-            this.memberCauseById.set(await this.scoreRead.dominantCauseForScores(members.map((m) => m.scoreId)));
+            // Each row's "why": resolved SERVER-SIDE (`Sonar: Explain Scores`), not recomputed here.
+            // The ranking depends on the rubric weight and is the same one a targeting rule selects
+            // on, so a browser-side copy could disagree with who a launch would actually pick.
+            const reasons = await this.interventionService.reasonsForScores(members.map((m) => m.scoreId));
+            this.memberCauseById.set(new Map([...reasons].map(([scoreId, r]) => [scoreId, r.reasonLabel ?? ""])));
         } catch {
             this.error.set("Couldn't load members. Please retry.");
             this.members.set([]); this.total.set(0); this.selected.set(null); this.contributions.set([]);
@@ -436,9 +562,9 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public async openLaunchFromMovers(): Promise<void> {
         this.launchMode.set("movers");
         this.launchMoverFilter.set(this.moverFilter());
-        const mag = Math.abs(this.moverMagnitude());
-        const verb = this.moverDirection() === "drops" ? "dropped" : "climbed";
-        this.launchMoverLabel = `${verb} ${mag}+${this.moverCrossedOnly() ? " (band cross)" : ""}`;
+        // One description of the rule, so the launch panel can't describe a different cohort than
+        // the list it was opened from.
+        this.launchMoverLabel = this.moverRuleLabel();
         await this.prepareLaunch();
     }
 
@@ -550,19 +676,217 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     public async setMoverDirection(dir: string): Promise<void> {
         this.moverDirection.set(dir === "gains" ? "gains" : "drops");
+        this.markCustomRule();
         this.moverPage.set(0); // filter changed → back to the first page
         await this.loadMovers();
     }
     public async setMoverMagnitude(v: string): Promise<void> {
         const n = Number(v);
         this.moverMagnitude.set(Number.isFinite(n) && n > 0 ? n : 1);
+        this.markCustomRule();
         this.moverPage.set(0);
         await this.loadMovers();
     }
     public async toggleMoverCrossed(): Promise<void> {
         this.moverCrossedOnly.update((v) => !v);
+        this.markCustomRule();
         this.moverPage.set(0);
         await this.loadMovers();
+    }
+
+    /** Apply a named rule: sets every knob at once, so the common cases need no tuning. */
+    public async applyPreset(id: string): Promise<void> {
+        this.moverPreset.set(id);
+        // A preset names a whole rule, so it can't quietly inherit a drill-down from the last one —
+        // the chip would say "Slipping away" while the list showed one slice of it.
+        this.moverReason.set(null);
+        switch (id) {
+            case "slipping": // the member no single-step threshold can see
+                this.moverMode.set("overTime");
+                this.moverDirection.set("drops");
+                this.moverRatePerMonth.set(3);
+                this.moverWindowDays.set(90);
+                this.moverSlideCycles.set(3);
+                this.moverSteadyOnly.set(true);
+                break;
+            case "cliff":
+                this.moverMode.set("lastRun");
+                this.moverDirection.set("drops");
+                this.moverMagnitude.set(10);
+                this.moverCrossedOnly.set(false);
+                break;
+            case "crossed":
+                this.moverMode.set("lastRun");
+                this.moverDirection.set("drops");
+                this.moverMagnitude.set(1);
+                this.moverCrossedOnly.set(true);
+                break;
+            case "recovering":
+                this.moverMode.set("overTime");
+                this.moverDirection.set("gains");
+                this.moverRatePerMonth.set(3);
+                this.moverWindowDays.set(90);
+                this.moverSteadyOnly.set(false);
+                break;
+            default:
+                break;
+        }
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    /** Any hand edit means the rule is no longer the preset it started from. Called by every setter
+     *  so the chips can never claim to describe a rule the operator has since changed. */
+    private markCustomRule(): void {
+        if (this.moverPreset() !== "custom") this.moverPreset.set("custom");
+    }
+
+    /** Switch between the one-step reading and the over-time (shape) reading. */
+    public async setMoverMode(mode: "lastRun" | "overTime"): Promise<void> {
+        if (this.moverMode() === mode) return;
+        this.moverMode.set(mode);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+    public async setMoverWindowDays(v: string): Promise<void> {
+        const n = Number(v);
+        this.moverWindowDays.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 90);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+    public async setMoverRatePerMonth(v: string): Promise<void> {
+        const n = Number(v);
+        this.moverRatePerMonth.set(Number.isFinite(n) && n > 0 ? n : 1);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+    public async setMoverSlideCycles(v: string): Promise<void> {
+        const n = Number(v);
+        this.moverSlideCycles.set(Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+    public async toggleMoverSteadyOnly(): Promise<void> {
+        this.moverSteadyOnly.update((v) => !v);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    /** The trajectory the engine measured for a listed member, or null for a last-run rule. */
+    public shapeFor(scoreId: string): MemberTrendShape | null { return this.moverShapeById().get(scoreId) ?? null; }
+
+    /** How a trajectory reads in the list: total move over the window, the monthly rate, and how long
+     *  they've been sliding. Written the way the rule is written, so the row explains its own selection.
+     *
+     *  Kept terse deliberately. The list column is ~300px narrower since the rule moved into its own
+     *  pane, and the words carried no information the header and units didn't already: "pts" is implied
+     *  by a score column, and "cycles down" by an arrow. Numbers never truncate — dropping the prose is
+     *  what keeps all three of them visible. */
+    public shapeLabel(shape: MemberTrendShape): string {
+        const net = shape.netChange === null ? "—" : `${shape.netChange > 0 ? "+" : ""}${shape.netChange.toFixed(0)}`;
+        const perMonth = shape.slopePerDay === null ? null : shape.slopePerDay * 30;
+        const parts = [net];
+        if (perMonth !== null) parts.push(`${perMonth > 0 ? "+" : ""}${perMonth.toFixed(1)}/mo`);
+        if (shape.declineRun > 0) parts.push(`${shape.declineRun}↓`);
+        return parts.join(" · ");
+    }
+
+    /** The words the cell drops, restored on hover — so the terse numbers stay explainable. */
+    public shapeTooltip(shape: MemberTrendShape): string {
+        const parts: string[] = [];
+        if (shape.netChange !== null) parts.push(`${shape.netChange.toFixed(0)} points over the window`);
+        if (shape.slopePerDay !== null) parts.push(`${(shape.slopePerDay * 30).toFixed(1)} points a month`);
+        if (shape.declineRun > 0) parts.push(`still sliding ${shape.declineRun} score updates in a row`);
+        parts.push(`${shape.points} snapshots in the window`);
+        if (shape.volatility !== null) parts.push(`variability ${shape.volatility.toFixed(1)}`);
+        return parts.join(" · ");
+    }
+
+    /** One sentence explaining what the rule asked and what came back, in the words a membership
+     *  lead would use. This is the line that makes the numbers below it checkable. */
+    public moverExplainer(): string {
+        const n = this.moverTotal();
+        const who = n === 1 ? "1 member" : `${n.toLocaleString()} members`;
+        // The drill-down is part of the rule, so the sentence has to say so — otherwise it reads as a
+        // count of the whole cohort while the list shows one slice of it.
+        const slice = this.moverReason();
+        if (slice) {
+            const problem = slice.hadData
+                ? `whose main problem is ${slice.label.replace(/^Low /, "").toLowerCase()}`
+                : `who have no ${slice.label.replace(/^No /, "").toLowerCase()} on record at all`;
+            return `${who} ${problem}, out of ${this.moverCohortTotal().toLocaleString()} matching this rule.`;
+        }
+        if (this.moverMode() === "lastRun") {
+            const verb = this.moverDirection() === "drops" ? "fell" : "rose";
+            const cross = this.moverCrossedOnly() ? " and crossed into a different band" : "";
+            return `${who} ${verb} ${Math.abs(this.moverMagnitude())} points or more since the last score update${cross}.`;
+        }
+        const dir = this.moverDirection() === "drops" ? "losing" : "gaining";
+        const bits = [`${who} have been ${dir} at least ${Math.abs(this.moverRatePerMonth())} points a month over the last ${this.moverWindowDays()} days`];
+        if (this.moverDirection() === "drops" && this.moverSlideCycles() > 0) {
+            bits.push(`and are still sliding ${this.moverSlideCycles()} score updates in a row`);
+        }
+        if (this.moverSteadyOnly()) bits.push("steadily rather than bouncing around");
+        return `${bits.join(", ")}.${this.contextSentence()}`;
+    }
+
+    /** The member-condition and ordering half of the rule, as a trailing clause. Without this the
+     *  count changes when a condition is added but the sentence still describes only the score rule,
+     *  so the number looks arbitrary. */
+    private contextSentence(): string {
+        const parts: string[] = [];
+        const conditions = this.memberConditions();
+        if (conditions.length > 0) {
+            parts.push(`Narrowed to members where ${conditions.map((c) => this.describeCondition(c)).join(", and ")}.`);
+        }
+        const mode = this.rankMode();
+        if (mode !== "worstScore") {
+            const label = RANK_LABELS[mode] ?? mode;
+            const field = this.rankUsesValue() && this.rankValueField()
+                ? ` (weighing ${this.memberFields().find((f) => f.name === this.rankValueField())?.label ?? this.rankValueField()})`
+                : "";
+            parts.push(`Worked ${label} first${field}.`);
+        }
+        return parts.length > 0 ? ` ${parts.join(" ")}` : "";
+    }
+
+    /** One member condition in the same words its chip uses. */
+    private describeCondition(c: MemberCondition): string {
+        const field = this.memberFields().find((f) => f.name === c.field);
+        const label = (field?.label ?? c.field).toLowerCase();
+        const value = Array.isArray(c.value) ? c.value.join(" or ") : String(c.value ?? "");
+        switch (c.op) {
+            case "olderThanDays": return `${label} is more than ${humanizeDays(Number(c.value))} ago`;
+            case "withinLastDays": return `${label} is within the last ${humanizeDays(Number(c.value))}`;
+            case "withinNextDays": return `${label} is within the next ${humanizeDays(Number(c.value))}`;
+            case "isNull": return `${label} is empty`;
+            case "isNotNull": return `${label} is set`;
+            case "in": return `${label} is any of ${value}`;
+            case "notIn": return `${label} is none of ${value}`;
+            case "gte": return `${label} is at least ${value}`;
+            case "lte": return `${label} is at most ${value}`;
+            case "neq": return `${label} is not ${value}`;
+            default: return `${label} is ${value}`;
+        }
+    }
+
+    /** Plain-language summary of the active rule, for the scope line and the launch panel. */
+    public moverRuleLabel(): string {
+        const dropping = this.moverDirection() === "drops";
+        if (this.moverMode() === "lastRun") {
+            const verb = dropping ? "dropped" : "climbed";
+            return `${verb} ${Math.abs(this.moverMagnitude())}+ pts since the last run${this.moverCrossedOnly() ? ", crossing a band" : ""}`;
+        }
+        const verb = dropping ? "losing" : "gaining";
+        const parts = [`${verb} ${Math.abs(this.moverRatePerMonth())}+ pts a month over ${this.moverWindowDays()} days`];
+        if (dropping && this.moverSlideCycles() > 0) parts.push(`still sliding ${this.moverSlideCycles()}+ cycles`);
+        if (this.moverSteadyOnly()) parts.push("steadily");
+        return parts.join(", ");
     }
 
     /** Refresh the summary counts + the filtered member list from the current mover filter. */
@@ -595,8 +919,19 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             const rows = await this.hydrateMembers(preview.result.members);
             this.moverList.set(rows);
             this.moverTotal.set(preview.result.total);
-            // Cause-awareness (Rung 1): show WHY each listed member is low, from their contributions.
-            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(rows.map((m) => m.scoreId)));
+            this.moverShapeById.set(new Map(
+                preview.result.members.filter((m) => m.shape).map((m) => [m.scoreId, m.shape as MemberTrendShape]),
+            ));
+            // WHY each member is low now comes back with the member, resolved by the engine — the
+            // client used to recompute the same drag ranking in a second round trip, which was both
+            // slower and a second definition of "the reason" that could drift from the engine's.
+            this.moverCauseById.set(new Map(
+                preview.result.members.filter((m) => m.reasonLabel).map((m) => [m.scoreId, m.reasonLabel as string]),
+            ));
+            // Hold the FULL cohort's breakdown while a slice is selected: overwriting it with the
+            // narrowed result would collapse it to the one slice and strand the operator inside it
+            // with no way to see or switch to the others.
+            if (!this.moverReason()) this.moverBreakdown.set(preview.result.breakdown ?? []);
         } finally {
             this.loadingMovers.set(false);
         }
@@ -643,17 +978,103 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     /** The cause label for a listed member (from the dominant-drag factor), or "" if none. */
     public causeFor(scoreId: string): string { return this.moverCauseById().get(scoreId) ?? ""; }
 
-    /** Top causes across the current cohort, most common first — the launch panel's "what's driving
-     *  this group" line, so the operator picks a play that fits the actual problem. */
-    public readonly moverCauseSummary = computed<{ cause: string; count: number }[]>(() => {
-        const causes = this.moverCauseById();
-        const tally = new Map<string, number>();
-        for (const m of this.moverList()) {
-            const c = causes.get(m.scoreId);
-            if (c) tally.set(c, (tally.get(c) ?? 0) + 1);
+    /** The cohort's problems, biggest first, capped at what fits on one line. Comes from the engine's
+     *  breakdown over the WHOLE cohort — the old version tallied only the visible page, so it read
+     *  "what's driving this group" while actually describing 50 of 319 rows. */
+    public readonly moverCauseSummary = computed<ReasonSlice[]>(() => this.moverBreakdown().slice(0, 3));
+
+    /** True when this slice is the one currently narrowed to. */
+    public isReasonSelected(slice: ReasonSlice): boolean {
+        const sel = this.moverReason();
+        return !!sel && sel.factorId === slice.factorId && sel.hadData === slice.hadData;
+    }
+
+    /**
+     * Drill into one problem, or back out of it (clicking the selected slice again clears it).
+     *
+     * This is the move the whole reason layer exists for: "319 members are sliding" is not something
+     * you can act on, but "the 180 of them who stopped attending events" is — one message fits all of
+     * them, and it can say something true.
+     */
+    public async selectReasonSlice(slice: ReasonSlice): Promise<void> {
+        // A slice Sonar can't explain has no factor to filter on, so it isn't a target.
+        if (!slice.factorId) return;
+        this.moverReason.set(this.isReasonSelected(slice) ? null : slice);
+        // Deliberately NOT markCustomRule(): a preset names the TREND question ("slipping away"), and
+        // drilling into a problem narrows within that question rather than replacing it. Flipping to
+        // "Custom" would claim the preset no longer applies when it still does, and it would put a
+        // second accent on screen next to the selected slice.
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    public toggleRulePane(): void { this.rulePaneOpen.update((v) => !v); }
+
+    /** Member conditions changed — reload from the first page (the cohort is different now). */
+    public async setMemberConditions(conditions: MemberCondition[]): Promise<void> {
+        this.memberConditions.set(conditions);
+        this.markCustomRule();
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    /** Ordering changed. This is a RULE change, not a display preference: the run cap truncates the
+     *  resolved cohort, so re-ordering changes who a capped launch would treat. */
+    public async setRankMode(mode: string): Promise<void> {
+        const allowed = ["worstScore", "fastestDecline", "biggestDrop", "priority", "highestValue"] as const;
+        const next = (allowed as readonly string[]).includes(mode) ? mode as typeof allowed[number] : "worstScore";
+        if (next === this.rankMode()) return;
+        this.rankMode.set(next);
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    public async setRankValueField(field: string): Promise<void> {
+        if (field === this.rankValueField()) return;
+        this.rankValueField.set(field);
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
+
+    /**
+     * Targetable fields on the model's anchor entity, read from MJ metadata (no query).
+     *
+     * Filtered to what a person would actually target on: keys, big text blobs and URLs are noise in a
+     * field picker, and the engine would reject most of them anyway. The names are the REAL field names
+     * because that is what the engine validates against; only the labels are prettified.
+     */
+    public readonly memberFields = computed<MemberField[]>(() => {
+        const id = this.anchorEntityId();
+        if (!id) return [];
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        const out: MemberField[] = [];
+        for (const f of entity?.Fields ?? []) {
+            if (f.Name.startsWith("__mj")) continue;
+            if (/(^ID$|ID$|URL$|Photo|Bio)/.test(f.Name)) continue;
+            const kind = fieldKind(f.Type);
+            if (!kind) continue;
+            out.push({ name: f.Name, label: f.DisplayName || humanizeFieldName(f.Name), kind });
         }
-        return [...tally.entries()].map(([cause, count]) => ({ cause, count })).sort((a, b) => b.count - a.count).slice(0, 3);
+        // Dates first, then numbers, then the rest — alphabetical inside each group. Purely
+        // alphabetical put "Bio" and "City" at the top and buried JoinDate, when tenure and dormancy
+        // are the questions people actually come here to ask.
+        const rank: Record<MemberFieldKind, number> = { date: 0, number: 1, text: 2, boolean: 3 };
+        return out.sort((a, b) => (rank[a.kind] - rank[b.kind]) || a.label.localeCompare(b.label));
     });
+
+    /** The subset that can back a value-led ordering. */
+    public readonly memberNumberFields = computed(() => this.memberFields().filter((f) => f.kind === "number"));
+
+    /** True when the chosen ordering reads a number off the member record. */
+    public readonly rankUsesValue = computed(() => this.rankMode() === "highestValue" || this.rankMode() === "priority");
+
+    /** Back out to the whole cohort. */
+    public async clearReasonSlice(): Promise<void> {
+        if (!this.moverReason()) return;
+        this.moverReason.set(null);
+        this.moverPage.set(0);
+        await this.loadMovers();
+    }
 
     /** Open the Interventions tab (loads the summaries lazily). */
     public async showInterventions(): Promise<void> {
@@ -1039,3 +1460,26 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return { line, area, lastX: last.x, lastY: last.y };
     }
 }
+
+/** MJ SQL type -> the kind the member-filter picker offers, or null when it isn't worth targeting on. */
+function fieldKind(sqlType: string): MemberFieldKind | null {
+    const t = (sqlType || "").toLowerCase();
+    if (/^(date|datetime|datetime2|smalldatetime|datetimeoffset)/.test(t)) return "date";
+    if (/^(int|bigint|smallint|tinyint|decimal|numeric|float|real|money|smallmoney)/.test(t)) return "number";
+    if (/^(bit)/.test(t)) return "boolean";
+    if (/(char|text)/.test(t)) return "text";
+    return null; // uniqueidentifier, binary, xml and friends
+}
+
+/** "YearsInProfession" -> "Years In Profession", for a field with no DisplayName set. */
+function humanizeFieldName(name: string): string {
+    return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ").trim();
+}
+
+/** Plain-language names for the ordering modes, used in the rule sentence. */
+const RANK_LABELS: Record<string, string> = {
+    fastestDecline: "fastest-falling",
+    biggestDrop: "biggest-drop",
+    priority: "highest-priority",
+    highestValue: "highest-value",
+};

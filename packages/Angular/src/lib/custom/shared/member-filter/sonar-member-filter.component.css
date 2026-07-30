@@ -1,0 +1,116 @@
+/* Member-condition builder. Reads as data (a row of readable conditions) with one quiet affordance to
+   add another, so it doesn't compete with the preset chips and the reason strip around it. */
+
+/* sonar-shell.css puts `height: 100%` on every component host (it is written for full-page resource
+   surfaces). Inside a wrapping filter column that stretches this row to the column's height, so pin
+   the host to its content. */
+:host { height: auto; display: block; }
+
+.sonar-memfilter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* The shared `.sonar-card__label` supplies the look; this only drops its stacked-section margin. */
+.sonar-memfilter__labelslot { margin-bottom: 0; }
+
+/* An active condition. Quiet by default: it is a statement of fact, not a control. */
+.sonar-memfilter__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: var(--sonar-font-sm);
+    padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+    border: 1px solid var(--sonar-border-strong);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+}
+
+.sonar-memfilter__x {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: none;
+    padding: 0.125rem;
+    cursor: pointer;
+    color: var(--sonar-faint);
+    font: inherit;
+    transition: color 150ms ease;
+}
+.sonar-memfilter__x:hover { color: var(--sonar-ink); }
+.sonar-memfilter__x:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 2px; }
+
+/* The trigger owns the positioning context for its popover. */
+.sonar-memfilter__anchor { position: relative; display: inline-flex; }
+
+.sonar-memfilter__add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--sonar-font-sm);
+    padding: 0.3rem 0.7rem;
+    border: 1px dashed var(--sonar-border-strong);
+    background: var(--sonar-surface);
+    color: var(--sonar-muted);
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.sonar-memfilter__add:hover:not(:disabled) { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
+.sonar-memfilter__add:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 2px; }
+.sonar-memfilter__add:disabled { opacity: 0.5; cursor: default; }
+.sonar-memfilter__add--on {
+    border-style: solid;
+    border-color: var(--sonar-accent);
+    color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 8%, transparent);
+}
+
+/* Floating, so building a condition never reflows the list underneath. */
+.sonar-memfilter__pop {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    z-index: 30;
+    width: 20rem;
+    max-width: calc(100vw - 2rem);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.sonar-memfilter__row { display: flex; align-items: center; gap: 0.5rem; }
+.sonar-memfilter__rowlabel {
+    flex: 0 0 3.5rem;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+}
+.sonar-memfilter__select,
+.sonar-memfilter__value { flex: 1 1 auto; min-width: 0; }
+/* Digits line up when the value is a day count. */
+.sonar-memfilter__value[type="number"] { font-variant-numeric: tabular-nums; }
+
+.sonar-memfilter__actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+.sonar-memfilter__clear { font-size: var(--sonar-font-sm); padding: 0.3rem 0.6rem; }
+
+@media (max-width: 1075px) {
+    /* The trigger keeps its natural width (a full-width button cost a whole row of list height), but
+       the popover widens to the rail so its three stacked rows are still comfortable. */
+    .sonar-memfilter__pop { width: min(20rem, calc(100vw - 3rem)); }
+}
+
+/* Dense mode: one control in a narrow column rather than a row in a wide band. Driven by the `dense`
+   input, because a parent stylesheet cannot reach these internals under emulated encapsulation. */
+.sonar-memfilter--dense { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+/* The rule pane's group heading already says "Which members". */
+.sonar-memfilter--dense /* The shared `.sonar-card__label` supplies the look; this only drops its stacked-section margin. */
+.sonar-memfilter__labelslot { margin-bottom: 0; }
+.sonar-memfilter--dense .sonar-memfilter__anchor { width: 100%; }
+.sonar-memfilter--dense .sonar-memfilter__add { width: 100%; justify-content: center; }
+.sonar-memfilter--dense .sonar-memfilter__chip { justify-content: space-between; }
+/* Anchored in a 15rem column, a left-aligned popover would spill past the card edge. */
+.sonar-memfilter--dense .sonar-memfilter__pop { width: 19rem; max-width: none; }

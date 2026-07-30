@@ -1,4 +1,7 @@
-<div class="sonar-page sonar-mgr">
+<!-- --railed: this surface has a section rail, so it drops the centered 1200px content max-width
+     like every other railed surface (Overview, Model Builder, Signal Studio, Admin Ops). Without it the
+     page was giving up ~176px to empty gutters while the member list was being squeezed. -->
+<div class="sonar-page sonar-page--railed sonar-mgr">
     <div class="sonar-page__header">
         <div class="sonar-page__heading">
             <span class="sonar-page__icon"><i class="fa-solid fa-chart-line"></i></span>
@@ -60,7 +63,7 @@
                     </button>
                     <button type="button" class="sonar-mgr-sidebar__item"
                             [class.sonar-mgr-sidebar__item--active]="activeTab() === 'movers'"
-                            [disabled]="!hasMovers()"
+                            [disabled]="!canOpenMovers()"
                             (click)="showMoversTab()">
                         <i class="fa-solid fa-arrow-trend-down"></i>
                         <div class="sonar-mgr-sidebar__item-text">
@@ -95,6 +98,7 @@
                             <span class="sonar-chip sonar-chip--small sonar-chip--watch">{{ proposedCount() }}</span>
                         }
                     </button>
+
                 </aside>
 
                 <!-- Workspace content area -->
@@ -116,8 +120,8 @@
                                         @if (launchMode() === 'movers') {
                                             Cohort: members who <strong>{{ launchMoverScopeLabel() }}</strong>
                                             · <strong class="sonar-mono">{{ moverTotal() }}</strong> match
-                                            @for (c of moverCauseSummary(); track c.cause) {
-                                                <span class="sonar-chip sonar-chip--small sonar-movers2__causechip">{{ c.cause }} · {{ c.count }}</span>
+                                            @for (c of moverCauseSummary(); track c.label) {
+                                                <span class="sonar-chip sonar-chip--small sonar-movers2__causechip">{{ c.label }} · {{ c.count }}</span>
                                             }
                                         } @else {
                                             Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
@@ -401,44 +405,217 @@
                     @if (activeTab() === 'movers') {
                         <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
                             <section class="sonar-card sonar-movers2">
-                                <div class="sonar-card__head">
-                                    <div>
-                                        <h2 class="sonar-card__title"><i class="fa-solid fa-arrow-trend-down"></i> Score Movers</h2>
+                                <div class="sonar-card__head sonar-movers2__head">
+                                    <div class="sonar-movers2__headtext">
+                                        <h2 class="sonar-card__title"><i class="fa-solid fa-arrow-trend-down"></i> Who's moving</h2>
                                         <p class="sonar-faint sonar-movers2__sub">
-                                            Since the last recompute:
-                                            <strong class="sonar-neg">{{ moverSummary().dropped }}</strong> dropped ·
-                                            <strong class="sonar-pos">{{ moverSummary().climbed }}</strong> climbed ·
-                                            <strong>{{ moverSummary().crossed }}</strong> crossed a band.
-                                            Tune the filter, then act on exactly who you see.
+                                            Everyone the rule matches is who a launch would treat, so what you see
+                                            here is exactly who gets contacted.
                                         </p>
+                                    </div>
+                                    <!-- Only shown below the split's breakpoint, where a permanent rule column
+                                         leaves the list too little width. -->
+                                    <button type="button" class="sonar-btn sonar-movers2__ruletoggle"
+                                            [class.sonar-movers2__ruletoggle--on]="rulePaneOpen()"
+                                            [attr.aria-expanded]="rulePaneOpen()" (click)="toggleRulePane()"
+                                            title="Show or hide the targeting rule">
+                                        <i class="fa-solid fa-sliders"></i> Rule
+                                    </button>
+                                    <!-- Count is the whole FILTER, not the visible page: a launch targets every member
+                                         the rule matches, which the engine re-resolves server-side. -->
+                                    <button class="sonar-btn sonar-btn--primary sonar-movers2__launch" [disabled]="moverTotal() === 0" (click)="openLaunchFromMovers()"
+                                            title="Launch an intervention on every member matching this rule — a holdout is kept automatically so lift is measured">
+                                        <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverTotal() }})
+                                    </button>
+                                </div>
+
+
+                                <!-- Filter bar: this IS the segment definition — the list below and the
+                                     launch use the same rule, resolved by the engine either way.
+                                     Two readings: one step ('Last run') or the shape of the path
+                                     ('Over time'), which is the only way to see a member whose every
+                                     individual step was too small to trip a threshold. -->
+
+                                <!-- Two independent scroll regions: the rule on the left, the members on
+                                     the right. The rule is tuned occasionally; the list is read continuously,
+                                     so the list gets the height. -->
+                                <div class="sonar-movers2__split">
+                                <div class="sonar-movers2__rulepane" [class.sonar-movers2__rulepane--open]="rulePaneOpen()">
+                                                                <div class="sonar-movers2__group">
+                                <span class="sonar-card__label">Start from</span>
+                                <div class="sonar-movers2__filters">
+                                    <!-- Named rules first: the common cases are one click, and the numbers
+                                         they set stay visible below so nothing is hidden. -->
+                                    <div class="sonar-movers2__presets" role="group" aria-label="Named rules">
+                                        @for (p of moverPresets; track p.id) {
+                                            <button type="button" class="sonar-chip sonar-movers2__preset"
+                                                    [class.sonar-movers2__preset--on]="moverPreset() === p.id"
+                                                    [attr.aria-pressed]="moverPreset() === p.id"
+                                                    (click)="applyPreset(p.id)" [title]="p.hint">{{ p.label }}</button>
+                                        }
+                                        @if (moverPreset() === 'custom') {
+                                            <span class="sonar-chip sonar-movers2__preset sonar-movers2__preset--on" aria-current="true"
+                                                  title="You've edited the numbers, so this is your own rule">Custom</span>
+                                        }
                                     </div>
                                 </div>
 
-                                <!-- Filter bar: direction · magnitude · band-cross. This IS the segment
-                                     definition — the list below and the launch use the same rule. -->
-                                <div class="sonar-movers2__filters">
+                                </div>
+
+                                <div class="sonar-movers2__group">
+                                <span class="sonar-card__label">What counts as moving</span>
+                                <div class="sonar-movers2__params">
+                                    <div class="sonar-segmented sonar-movers2__mode" role="group" aria-label="What the rule measures">
+                                        <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="moverMode() === 'lastRun'"
+                                                (click)="setMoverMode('lastRun')" title="Compare the score to the last update — a single step">Last update</button>
+                                        <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="moverMode() === 'overTime'"
+                                                (click)="setMoverMode('overTime')" title="Read the member's history: how fast, how long, and how steadily the score has been moving">Over time</button>
+                                    </div>
                                     <sonar-toggle-filter [on]="directionDrops" [off]="directionGains"
                                         [value]="moverDirection()" (valueChange)="setMoverDirection($event)"></sonar-toggle-filter>
-                                    <label class="sonar-movers2__mag">
-                                        moved ≥
-                                        <input class="sonar-input" type="number" min="1" [value]="moverMagnitude()"
-                                               (change)="setMoverMagnitude($any($event.target).value)" aria-label="Minimum points moved" />
-                                        pts
-                                    </label>
+                                    @if (moverMode() === 'lastRun') {
+                                        <label class="sonar-movers2__mag">
+                                            moved ≥
+                                            <input class="sonar-input" type="number" min="1" [value]="moverMagnitude()"
+                                                   (change)="setMoverMagnitude($any($event.target).value)" aria-label="Minimum points moved" />
+                                            pts
+                                        </label>
+                                    } @else {
+                                        <label class="sonar-movers2__mag">
+                                            {{ moverDirection() === 'drops' ? 'losing ≥' : 'gaining ≥' }}
+                                            <input class="sonar-input" type="number" min="1" [value]="moverRatePerMonth()"
+                                                   (change)="setMoverRatePerMonth($any($event.target).value)" aria-label="Minimum points per month" />
+                                            pts/month
+                                        </label>
+                                        <label class="sonar-movers2__mag">
+                                            over
+                                            <select class="sonar-input" [value]="moverWindowDays()"
+                                                    (change)="setMoverWindowDays($any($event.target).value)" aria-label="Rule horizon in days">
+                                                <option value="30">30</option>
+                                                <option value="60">60</option>
+                                                <option value="90">90</option>
+                                                <option value="180">180</option>
+                                            </select>
+                                            days
+                                        </label>
+                                        @if (moverDirection() === 'drops') {
+                                            <label class="sonar-movers2__mag" title="Consecutive cycles the member is STILL sliding. Someone who fell for months then recovered last cycle scores 0.">
+                                                still sliding ≥
+                                                <input class="sonar-input" type="number" min="0" [value]="moverSlideCycles()"
+                                                       (change)="setMoverSlideCycles($any($event.target).value)" aria-label="Minimum consecutive declining cycles" />
+                                                cycles
+                                            </label>
+                                        }
+                                        <button type="button" class="sonar-chip sonar-movers2__cross"
+                                                [class.sonar-movers2__cross--on]="moverSteadyOnly()" (click)="toggleMoverSteadyOnly()"
+                                                [attr.aria-pressed]="moverSteadyOnly()"
+                                                title="Exclude erratic scores, so a genuine slide isn't confused with a member who bounces around and happens to be low today">
+                                            <i class="fa-solid" [class.fa-square-check]="moverSteadyOnly()" [class.fa-square]="!moverSteadyOnly()"></i> Steady only
+                                        </button>
+                                    }
+                                    @if (moverMode() === 'lastRun') {
                                     <button type="button" class="sonar-chip sonar-movers2__cross"
                                             [class.sonar-movers2__cross--on]="moverCrossedOnly()" (click)="toggleMoverCrossed()"
                                             [attr.aria-pressed]="moverCrossedOnly()"
                                             title="Only members who changed band this run (a real boundary crossing, not an in-band wiggle)">
                                         <i class="fa-solid" [class.fa-square-check]="moverCrossedOnly()" [class.fa-square]="!moverCrossedOnly()"></i> Crossed a band
                                     </button>
-                                    <span class="sonar-movers2__spacer"></span>
-                                    <!-- Count is the whole FILTER, not the visible page — a launch targets every
-                                         member the rule matches (the engine re-resolves it server-side). -->
-                                    <button class="sonar-btn sonar-btn--primary" [disabled]="moverTotal() === 0" (click)="openLaunchFromMovers()"
-                                            title="Launch an intervention on every member matching this rule — a holdout is kept automatically so lift is measured">
-                                        <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverTotal() }})
-                                    </button>
+                                    }
                                 </div>
+
+                                </div>
+
+                                <!-- Who, beyond the score, and in what order. Both are part of the RULE: the run
+                                     cap truncates the resolved cohort, so the order decides who a capped launch
+                                     actually treats. -->
+                                <div class="sonar-movers2__group">
+                                <span class="sonar-card__label">Which members</span>
+                                <div class="sonar-movers2__context">
+                                    <sonar-member-filter
+                                        [dense]="true"
+                                        [fields]="memberFields()"
+                                        [conditions]="memberConditions()"
+                                        (conditionsChange)="setMemberConditions($event)"></sonar-member-filter>
+
+                                    <!-- The two ordering controls travel together: wrapped apart, the
+                                         value picker reads as unrelated to the mode it belongs to, and
+                                         it costs the member list another row of height. -->
+                                </div><!-- /context -->
+                                </div><!-- /group: which members -->
+
+                                <div class="sonar-movers2__group">
+                                <span class="sonar-card__label">Work first</span>
+                                    <div class="sonar-movers2__ranks">
+                                        <label class="sonar-movers2__rank">
+                                            <span class="sonar-card__label">Work first</span>
+                                            <select class="sonar-input sonar-movers2__rankselect" [value]="rankMode()"
+                                                    (change)="setRankMode($any($event.target).value)"
+                                                    title="The order the cohort is worked in. A capped launch treats the top of this list, so this changes WHO gets contacted, not just what you see.">
+                                                <option value="worstScore">Worst score</option>
+                                                <option value="fastestDecline">Falling fastest</option>
+                                                <option value="biggestDrop">Biggest drop</option>
+                                                <option value="priority">Balanced priority</option>
+                                                <option value="highestValue">Highest value</option>
+                                            </select>
+                                        </label>
+
+                                        @if (rankUsesValue() && memberNumberFields().length > 0) {
+                                            <label class="sonar-movers2__rank">
+                                                <span class="sonar-card__label">Value</span>
+                                                <select class="sonar-input sonar-movers2__rankselect" [value]="rankValueField()"
+                                                        (change)="setRankValueField($any($event.target).value)"
+                                                        title="A number on the member record to weigh, e.g. how much they're worth or how long they've been in the profession.">
+                                                    <option value="">None</option>
+                                                    @for (f of memberNumberFields(); track f.name) {
+                                                        <option [value]="f.name">{{ f.label }}</option>
+                                                    }
+                                                </select>
+                                            </label>
+                                        }
+                                    </div>
+
+                                </div><!-- /group -->
+                                </div><!-- /rulepane -->
+
+                                <div class="sonar-movers2__listpane">
+                                <!-- The rule and its result in one plain sentence, so the count beside the
+                                     launch button and the rows below have something to be checked against. -->
+                                <!-- Skipped when nothing matched: the empty state already says it, in more
+                                     useful words (what to change). -->
+                                @if (!loadingMovers() && !moverError() && moverTotal() > 0) {
+                                    <p class="sonar-movers2__explain">{{ moverExplainer() }}</p>
+                                }
+
+                                <!-- Same score, different problems. A rule like "sliding for months"
+                                     returns a mixed bag, and one message can't fit all of it — so the
+                                     engine splits the cohort by what's actually dragging each member
+                                     down, and each slice is clickable to narrow the list to it. -->
+                                @if (!loadingMovers() && !moverError() && moverBreakdown().length > 0) {
+                                    <div class="sonar-reasons" role="group" aria-label="Narrow by main problem">
+                                        <span class="sonar-card__label">Main problem</span>
+                                        @for (r of moverBreakdown(); track r.label) {
+                                            <button type="button" class="sonar-chip sonar-reasons__slice"
+                                                    [class.sonar-reasons__slice--on]="isReasonSelected(r)"
+                                                    [class.sonar-reasons__slice--gap]="!r.hadData"
+                                                    [class.sonar-reasons__slice--mute]="!r.factorId"
+                                                    [disabled]="!r.factorId"
+                                                    [attr.aria-pressed]="isReasonSelected(r)"
+                                                    [title]="r.factorId
+                                                        ? (isReasonSelected(r) ? 'Back out to the whole cohort' : 'Show only these members') + ' — ' + r.count + ' of ' + moverCohortTotal()
+                                                        : 'Sonar has no signal data for these members, so there is nothing to target'"
+                                                    (click)="selectReasonSlice(r)">
+                                                @if (!r.hadData && r.factorId) { <i class="fa-solid fa-database"></i> }
+                                                {{ r.label }}
+                                                <span class="sonar-mono sonar-reasons__count">{{ r.count }}</span>
+                                            </button>
+                                        }
+                                        @if (moverReason()) {
+                                            <button type="button" class="sonar-btn sonar-btn--ghost sonar-reasons__clear" (click)="clearReasonSlice()">
+                                                <i class="fa-solid fa-xmark"></i> All problems
+                                            </button>
+                                        }
+                                    </div>
+                                }
 
                                 @if (moverError(); as err) {
                                     <p class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</p>
@@ -448,8 +625,12 @@
                                 } @else if (moverList().length === 0) {
                                     <div class="sonar-empty">
                                         <i class="fa-solid fa-arrow-trend-down"></i>
-                                        <h2>No members match</h2>
-                                        <p>No one {{ moverDirection() === 'drops' ? 'dropped' : 'climbed' }} {{ moverMagnitude() }}+ points{{ moverCrossedOnly() ? ' with a band change' : '' }} on the last run. Lower the threshold or flip the direction.</p>
+                                        <h2>Nobody matches this rule</h2>
+                                        @if (moverMode() === 'lastRun') {
+                                            <p>No one {{ moverDirection() === 'drops' ? 'fell' : 'rose' }} {{ moverMagnitude() }} points or more since the last score update{{ moverCrossedOnly() ? ', crossing into a different band' : '' }}. Try a smaller number, or look <strong>Over time</strong> instead: a member can slide for months without any single update looking dramatic.</p>
+                                        } @else {
+                                            <p>No one has been {{ moverDirection() === 'drops' ? 'losing' : 'gaining' }} {{ moverRatePerMonth() }}+ points a month over the last {{ moverWindowDays() }} days@if (moverDirection() === 'drops' && moverSlideCycles() > 0) {, while still sliding {{ moverSlideCycles() }} updates in a row}. Try a smaller rate or a longer window@if (moverDirection() === 'drops' && moverSlideCycles() > 0) {, or ask for fewer consecutive updates}@if (moverSteadyOnly()) {, or turn off <strong>Steady only</strong>}.</p>
+                                        }
                                     </div>
                                 } @else {
                                     <!-- Rows scroll inside the card so the pager below stays pinned in view
@@ -462,7 +643,7 @@
                                                 <th>Band</th>
                                                 <th>Why</th>
                                                 <th class="sonar-iv-table__num">Score</th>
-                                                <th class="sonar-iv-table__num">Move</th>
+                                                <th class="sonar-iv-table__num">{{ moverMode() === 'overTime' ? 'Trajectory' : 'Move' }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -474,9 +655,19 @@
                                                         @if (causeFor(m.scoreId); as why) { <span class="sonar-faint">{{ why }}</span> } @else { <span class="sonar-faint">—</span> }
                                                     </td>
                                                     <td class="sonar-iv-table__num sonar-mono">{{ m.normalizedScore }}</td>
-                                                    <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="(m.delta ?? 0) < 0" [class.sonar-pos]="(m.delta ?? 0) > 0">
-                                                        {{ (m.delta ?? 0) < 0 ? '↓' : '↑' }} {{ deltaLabel(m.delta) }}
-                                                    </td>
+                                                    <!-- Show the measure the RULE selected on: a trajectory for an
+                                                         over-time rule, the last-run delta otherwise. -->
+                                                    @if (shapeFor(m.scoreId); as shape) {
+                                                        <td class="sonar-iv-table__num sonar-mono sonar-movers2__traj"
+                                                            [class.sonar-neg]="(shape.netChange ?? 0) < 0" [class.sonar-pos]="(shape.netChange ?? 0) > 0"
+                                                            [title]="shapeTooltip(shape)">
+                                                            {{ shapeLabel(shape) }}
+                                                        </td>
+                                                    } @else {
+                                                        <td class="sonar-iv-table__num sonar-mono" [class.sonar-neg]="(m.delta ?? 0) < 0" [class.sonar-pos]="(m.delta ?? 0) > 0">
+                                                            @if (m.delta !== null && m.delta !== 0) { {{ m.delta < 0 ? '↓' : '↑' }} {{ deltaLabel(m.delta) }} } @else { — }
+                                                        </td>
+                                                    }
                                                 </tr>
                                             }
                                         </tbody>
@@ -486,6 +677,8 @@
                                         <sonar-pager [page]="moverPage()" [pageSize]="pageSize" [total]="moverTotal()" (pageChange)="goToMoverPage($event)"></sonar-pager>
                                     </div>
                                 }
+                                </div><!-- /listpane -->
+                                </div><!-- /split -->
                             </section>
                         </div>
                     }
@@ -572,7 +765,7 @@
                          approve), then a SIMULATED send stamps approved drafts Executed. ── -->
                     @if (activeTab() === 'outreach') {
                         <div class="sonar-stack sonar-mgr-main-stack" style="flex: 1; min-height: 0;">
-                            <section class="sonar-card">
+                            <section class="sonar-card sonar-outreach-card">
                                 <div class="sonar-card__head sonar-outreach__head">
                                     <div>
                                         <h2 class="sonar-card__title"><i class="fa-solid fa-envelope-open-text"></i> Outreach</h2>
@@ -609,6 +802,9 @@
                                                 <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="proposalFilter() === 'Approved'" (click)="setProposalFilter('Approved')">Approved</button>
                                                 <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="proposalFilter() === 'all'" (click)="setProposalFilter('all')">All</button>
                                             </div>
+                                            <!-- Items scroll; the status filter above them stays put, so you
+                                                 never lose the control that decides what you're looking at. -->
+                                            <div class="sonar-outreach__items">
                                             @if (visibleProposals().length === 0) {
                                                 <div class="sonar-empty sonar-empty--inline">
                                                     <p>Nothing in this view.</p>
@@ -626,6 +822,7 @@
                                                     <span class="sonar-outreach__meta sonar-faint">{{ p.interventionName }} · {{ p.createdAt | date:'MMM d, h:mm a' }}</span>
                                                 </button>
                                             }
+                                            </div>
                                         </div>
                                         @if (selectedProposal(); as sel) {
                                             <div class="sonar-outreach__detail">
