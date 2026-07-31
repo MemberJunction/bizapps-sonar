@@ -4,7 +4,7 @@
 
 Sonar ships as a **MemberJunction Open App**: a versioned, installable extension that owns the `__mj_BizAppsSonar` database schema, ships as npm packages (`@mj-biz-apps/sonar-*`), and installs onto any MJ deployment with `mj app install`.
 
-**Status:** v0.x, actively developed. The scoring engine, configuration data model, authoring agent, and the Portfolio / Engagement / Model Builder surfaces are built and in use. Write-back, holdout-measured lift, and the cross-tenant calibration network are on the roadmap (see below), not yet shipped.
+**Status:** v0.x, actively developed. The scoring engine, configuration data model, authoring agent, the selection layers (trajectory, reason, member context, ranking), the intervention loop with holdout-measured lift, and the Portfolio / Engagement / Model Builder surfaces are built. Write-back and the cross-tenant calibration network remain on the roadmap. **Picking this up for the first time? Start with [`HANDOFF.md`](./HANDOFF.md)** — the honest state of the system, what's verified, and the known traps.
 
 ## What Sonar does today
 
@@ -13,11 +13,13 @@ Sonar ships as a **MemberJunction Open App**: a versioned, installable extension
 - **Explainable by construction.** Every score is a weighted sum of named, normalized factor contributions, and each contribution is persisted with its "why". Scores are tracked over time with trend, delta, and band-transition detection.
 - **Fast recompute.** A model rescored over its whole population runs set-based (one MERGE plus bulk inserts) and is exposed as a long-running operation with live progress.
 - **An authoring agent.** Describe a model in plain English and the agent builds a draft (anchor, data sources, declarative factors, rubric, bands). For signals SQL cannot express, it commissions a code-backed factor, tests it on a sample, and leaves it gated for review.
+- **Selection that answers "who needs intervention".** A targeting rule can describe the *shape* of a member's path (losing N points a month, still sliding, steadily), the *reason* (which signal is dragging them down — with data gaps separated from genuine disengagement), the *member* (tenure, region, segment, via conditions on the anchor record), and the *order to work them in* (worst score, fastest decline, priority blend). The preview, the count, and a launch all resolve the same rule through the same engine.
+- **An intervention loop with honest measurement.** Launch a play on a cohort (add to an MJ List, AI-drafted outreach with human approval, bulk email via MJ Communications — dry-run by default); a random holdout is kept automatically so lift is measured against a real control group, not assumed.
 - **Business-facing surfaces.** A Portfolio command center (what needs attention now, with a one-click path to triage), an Engagement triage workspace (members ranked worst-first with per-member "why this score"), and a Model Builder for authoring and tuning.
 
 ## Roadmap (not yet shipped)
 
-Write-back to source systems, an intervention / action layer with holdout-measured lift, a cross-tenant calibration/benchmark network, and model templates. See [`plans/plan.md`](./plans/plan.md) for the full design.
+Write-back to source systems, a cross-tenant calibration/benchmark network, model templates, and the ranked idea list in [`plans/future-features.md`](./plans/future-features.md) (related-entity conditions, lift-calibrated thresholds, OR/NOT rules, and more). See [`plans/plan.md`](./plans/plan.md) for the original full design.
 
 ## Requirements
 
@@ -31,8 +33,8 @@ Install directly from this repository with the MJ CLI:
 
 ```bash
 # Sonar's schema (__mj_BizAppsSonar) uses MJ's reserved '__' prefix, so install needs the
-# override flag. Pin a released version with --version (latest is v0.3.0):
-mj app install https://github.com/MemberJunction/bizapps-sonar --version v0.3.0 --dangerously-ignore-dbl-underscore-schema-rule
+# override flag. Pin a released version with --version (latest is v0.4.1):
+mj app install https://github.com/MemberJunction/bizapps-sonar --version v0.4.1 --dangerously-ignore-dbl-underscore-schema-rule
 ```
 
 This reads [`mj-app.json`](./mj-app.json) and, against your MJ instance: creates the `__mj_BizAppsSonar` schema, runs the Skyway migrations, loads the seed metadata (score bands, time windows, actions, queries, remote operations, the authoring agent), and registers the server + client bootstrap packages. Use `mj app list`, `mj app info`, `mj app upgrade`, and `mj app remove` to manage the installed app.
@@ -87,7 +89,11 @@ The full product plan and analyses live in [`/plans`](./plans):
 |---|---|
 | [`plans/README.md`](./plans/README.md) | Product overview: opportunity, wedges, architecture summary |
 | [`plans/plan.md`](./plans/plan.md) | Detailed design: data model, scoring engine, authoring, roadmap, risks |
+| [`plans/future-features.md`](./plans/future-features.md) | Ranked next-step ideas with rationale and code pointers |
+| [`plans/intervention-layer.md`](./plans/intervention-layer.md) | The intervention loop design (plays, holdouts, proposals) |
+| [`plans/remote-operations.md`](./plans/remote-operations.md) | MJ Remote Operations: what Sonar uses, what should convert next |
 | [`plans/sonar-contributions-to-predictive-studio.md`](./plans/sonar-contributions-to-predictive-studio.md) | What Sonar could contribute to MJ Predictive Studio |
+| [`HANDOFF.md`](./HANDOFF.md) | State of the system at handoff: verified claims, known bugs, traps |
 
 ## Related repositories
 
