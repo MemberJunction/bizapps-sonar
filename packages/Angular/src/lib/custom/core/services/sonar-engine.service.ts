@@ -7,6 +7,7 @@ import { extractActionResult, extractActionParam } from "./action-result.util";
 /** Actions are invoked by their registered Name — the engine resolves the ID at runtime
  *  (RunAction needs the ID, but we key on the stable name, not a hardcoded UUID). */
 const ACTION_PREVIEW_MODEL = "Sonar: Preview Model";
+const ACTION_COUNT_POPULATION = "Sonar: Count Population";
 const ACTION_VALIDATE_FACTOR = "Sonar: Validate Factor";
 const ACTION_GET_PROMPT = "Sonar: Get Prompt";
 const ACTION_UPDATE_PROMPT = "Sonar: Update Prompt";
@@ -24,6 +25,14 @@ export interface PreviewModelResult {
     sampleMember: PreviewSample | null;
     errors: string[];
 }
+/**
+ * How many anchor records a model actually scores ("Sonar: Count Population").
+ *
+ * `scoped` has the population filter applied; `total` is the whole anchor entity, so a caller can
+ * render "66 of 2,000" from one round trip. `scoped === total` when there is no filter.
+ */
+export interface PopulationCount { scoped: number; total: number; filtered: boolean; errors: string[]; }
+
 /** Result of a full recompute (the `Sonar.RecomputeModel` Remote Operation). */
 export interface RecomputeResult { runId: string; status: string; recordsScored: number; errors: string[]; }
 /** Progress sink for a running recompute: (members scored so far, total to score). */
@@ -122,6 +131,28 @@ export class SonarEngineService {
             return { ...empty, errors: [result.Message || "Preview failed."] };
         }
         const payload = this.extractResult<Omit<PreviewModelResult, "errors">>(result);
+        return payload ? { ...payload, errors: [] } : empty;
+    }
+
+    /**
+     * Count the anchor records a model actually scores, with its population filter applied.
+     *
+     * Cheap (two `count_only` reads server-side; no keys materialized, nothing scored) so it's safe to
+     * call on every population-filter change. Answered by an Action rather than client-side because
+     * the filter is compiled to SQL by the engine — duplicating that compiler in the browser would
+     * break DRY and hand the client a SQL-building surface.
+     */
+    public async countPopulation(modelId: string): Promise<PopulationCount> {
+        const empty: PopulationCount = { scoped: 0, total: 0, filtered: false, errors: [] };
+        const actionId = await this.resolveActionId(ACTION_COUNT_POPULATION);
+        if (!actionId) return { ...empty, errors: [`Action '${ACTION_COUNT_POPULATION}' not found.`] };
+        const result = await this.actionClient().RunAction(actionId, [
+            { Name: "ModelID", Value: modelId, Type: "Input" },
+        ]);
+        if (!result.Success) {
+            return { ...empty, errors: [result.Message || "Population count failed."] };
+        }
+        const payload = this.extractResult<Omit<PopulationCount, "errors">>(result);
         return payload ? { ...payload, errors: [] } : empty;
     }
 

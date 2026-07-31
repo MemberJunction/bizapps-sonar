@@ -4,7 +4,7 @@
 -- Block 001B in the Sonar action ID convention (5044A100-00NN…, params …A1/A2, codes …C1..C3).
 
 DECLARE @CategoryID UNIQUEIDENTIFIER = (SELECT TOP 1 ID FROM [__mj].[ActionCategory] WHERE Name = 'Business Apps');
-DECLARE @ActionID UNIQUEIDENTIFIER = '5044A100-001B-4000-8000-00000000001B';
+DECLARE @ActionID UNIQUEIDENTIFIER = '5044A100-001F-4000-8000-00000000001F';
 
 IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = @ActionID)
 BEGIN
@@ -18,41 +18,41 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = '5044A100-001B-4000-8000-0000000000A1')
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = '5044A100-001F-4000-8000-0000000000A1')
 BEGIN
     INSERT INTO [__mj].[ActionParam] (ID, ActionID, Name, Type, ValueType, IsArray, IsRequired, Description)
-    VALUES ('5044A100-001B-4000-8000-0000000000A1', '5044A100-001B-4000-8000-00000000001B',
+    VALUES ('5044A100-001F-4000-8000-0000000000A1', '5044A100-001F-4000-8000-00000000001F',
         N'ConfigJSON', N'Input', N'Scalar', 0, 1,
         N'JSON: { modelId, segment:{name,filter:{bandId?,minScore?,maxScore?}}, intervention:{name,holdoutPercent}, action:{actionId,params[]}, cap, preview }.');
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = '5044A100-001B-4000-8000-0000000000A2')
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = '5044A100-001F-4000-8000-0000000000A2')
 BEGIN
     INSERT INTO [__mj].[ActionParam] (ID, ActionID, Name, Type, ValueType, IsArray, IsRequired, Description)
-    VALUES ('5044A100-001B-4000-8000-0000000000A2', '5044A100-001B-4000-8000-00000000001B',
+    VALUES ('5044A100-001F-4000-8000-0000000000A2', '5044A100-001F-4000-8000-00000000001F',
         N'Result', N'Both', N'Scalar', 0, 0,
         N'JSON InterventionRunResult: { cohortSize, alreadyAssigned, eligible, capped, treated, held, sent, failed, preview }.');
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001B-4000-8000-0000000000C1')
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001F-4000-8000-0000000000C1')
 BEGIN
     INSERT INTO [__mj].[ActionResultCode] (ID, ActionID, ResultCode, IsSuccess, Description)
-    VALUES ('5044A100-001B-4000-8000-0000000000C1', '5044A100-001B-4000-8000-00000000001B', N'SUCCESS', 1, N'Intervention run (or previewed) successfully.');
+    VALUES ('5044A100-001F-4000-8000-0000000000C1', '5044A100-001F-4000-8000-00000000001F', N'SUCCESS', 1, N'Intervention run (or previewed) successfully.');
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001B-4000-8000-0000000000C2')
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001F-4000-8000-0000000000C2')
 BEGIN
     INSERT INTO [__mj].[ActionResultCode] (ID, ActionID, ResultCode, IsSuccess, Description)
-    VALUES ('5044A100-001B-4000-8000-0000000000C2', '5044A100-001B-4000-8000-00000000001B', N'VALIDATION_ERROR', 0, N'ConfigJSON missing or malformed.');
+    VALUES ('5044A100-001F-4000-8000-0000000000C2', '5044A100-001F-4000-8000-00000000001F', N'VALIDATION_ERROR', 0, N'ConfigJSON missing or malformed.');
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001B-4000-8000-0000000000C3')
+IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionResultCode] WHERE ID = '5044A100-001F-4000-8000-0000000000C3')
 BEGIN
     INSERT INTO [__mj].[ActionResultCode] (ID, ActionID, ResultCode, IsSuccess, Description)
-    VALUES ('5044A100-001B-4000-8000-0000000000C3', '5044A100-001B-4000-8000-00000000001B', N'ERROR', 0, N'The run failed (segment/intervention create or engine error).');
+    VALUES ('5044A100-001F-4000-8000-0000000000C3', '5044A100-001F-4000-8000-00000000001F', N'ERROR', 0, N'The run failed (segment/intervention create or engine error).');
 END
 GO
