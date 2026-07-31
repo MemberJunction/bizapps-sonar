@@ -1,5 +1,5 @@
 -- Action layer (plan §5.6): the closed loop that turns scores into outcomes. PostgreSQL twin of
--- migrations/V202607221000__v0.5.x_Intervention_Layer.sql — same four tables, PG dialect.
+-- migrations/V202608011000__v0.5.x_Intervention_Layer.sql — same four tables, PG dialect.
 --   ScoreSegment           — a saved cohort over scored records (filter on band/score/delta/trend).
 --   Intervention           — what to do for a segment: fire an MJ Action, with a holdout %.
 --   InterventionAssignment — per-member treatment/control assignment (the holdout split).

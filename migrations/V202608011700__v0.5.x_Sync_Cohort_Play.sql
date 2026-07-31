@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607271500__v0.5.x_Sync_Cohort_Play.sql
+-- V202608011700__v0.5.x_Sync_Cohort_Play.sql
 -- =============================================================================
 -- Seed "Sonar: Sync Cohort To List" — the first BULK play (Intervention.Kind='BulkSync').
 --
@@ -10,10 +10,10 @@
 -- can bind to it. Sonar builds no connector and no worklist of its own.
 --
 -- Goes in the 'Sonar Plays' category so the launch picker offers it (the category row was seeded by
--- V202607231300 and is re-guarded here for installs that skipped it). Type='Custom' (code in the
+-- V202608011500 and is re-guarded here for installs that skipped it). Type='Custom' (code in the
 -- repo), so the fire-time governance gate treats it as inherently trusted — its PR review is its
 -- review. Idempotent (guarded per row); safe to re-run.
--- PG twin: migrations-pg/V202607271500__v0.5.x_Sync_Cohort_Play.pg.sql
+-- PG twin: migrations-pg/V202608011700__v0.5.x_Sync_Cohort_Play.pg.sql
 -- =============================================================================
 
 IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionCategory] WHERE ID = '5044A100-0C00-4000-8000-00000000C0DE')

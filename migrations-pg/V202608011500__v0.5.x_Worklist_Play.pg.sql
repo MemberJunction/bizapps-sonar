@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607231300__v0.5.x_Worklist_Play.sql: the "Sonar Plays" category
+-- PostgreSQL twin of migrations/V202608011500__v0.5.x_Worklist_Play.sql: the "Sonar Plays" category
 -- + the self-contained "Sonar: Add to Worklist" play. Idempotent.
 
 INSERT INTO __mj."ActionCategory" ("ID", "Name", "Description", "Status")

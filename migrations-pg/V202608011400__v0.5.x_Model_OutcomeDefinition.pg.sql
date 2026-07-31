@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607231200__v0.5.x_Model_OutcomeDefinition.sql: a model defines
+-- PostgreSQL twin of migrations/V202608011400__v0.5.x_Model_OutcomeDefinition.sql: a model defines
 -- what "success" means for its interventions (org-agnostic outcome), NULL = default band recovery.
 
 ALTER TABLE __mj_bizappssonar."ScoreModel" ADD COLUMN "OutcomeDefinitionJSON" text;

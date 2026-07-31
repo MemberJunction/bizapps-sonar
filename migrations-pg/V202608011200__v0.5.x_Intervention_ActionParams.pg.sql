@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607231000__v0.5.x_Intervention_ActionParams.sql:
+-- PostgreSQL twin of migrations/V202608011200__v0.5.x_Intervention_ActionParams.sql:
 -- interventions carry their play's static params so autonomous fires can run parameterized plays.
 
 ALTER TABLE __mj_bizappssonar."Intervention" ADD COLUMN "ActionParamsJSON" text;

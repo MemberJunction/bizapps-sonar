@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607231100__v0.5.x_Measure_Outcomes_Action.sql. Idempotent;
+-- PostgreSQL twin of migrations/V202608011300__v0.5.x_Measure_Outcomes_Action.sql. Idempotent;
 -- category resolved by name (IDs can diverge across dialects).
 
 INSERT INTO __mj."Action" ("ID", "CategoryID", "Name", "Description", "Type", "CodeApprovalStatus", "CodeLocked", "ForceCodeGeneration", "Status", "DriverClass", "IconClass")

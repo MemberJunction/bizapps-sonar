@@ -1,8 +1,8 @@
--- PostgreSQL twin of migrations/V202607271500__v0.5.x_Sync_Cohort_Play.sql: seed the first BULK
+-- PostgreSQL twin of migrations/V202608011700__v0.5.x_Sync_Cohort_Play.sql: seed the first BULK
 -- play, "Sonar: Sync Cohort To List" (Intervention.Kind='BulkSync'). Fires ONCE per run with the
 -- whole TREATED cohort (control members deliberately excluded) and lands it on an MJ List — staff
 -- work it in the Lists app, share it, or bind a connector to it. Category row re-guarded for
--- installs that skipped V202607231300. Idempotent.
+-- installs that skipped V202608011500. Idempotent.
 
 INSERT INTO __mj."ActionCategory" ("ID", "Name", "Description", "Status")
 SELECT '5044a100-0c00-4000-8000-00000000c0de', 'Sonar Plays',
