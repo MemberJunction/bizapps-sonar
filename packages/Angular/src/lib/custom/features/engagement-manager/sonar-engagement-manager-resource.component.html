@@ -591,8 +591,9 @@
                                 <div class="sonar-movers2__group">
                                 <span class="sonar-card__label">Work first</span>
                                     <div class="sonar-movers2__ranks">
+                                        <!-- No label of its own: the group heading above already says it, and
+                                             two "Work first" in a row read as a rendering bug. -->
                                         <label class="sonar-movers2__rank">
-                                            <span class="sonar-card__label">Work first</span>
                                             <select class="sonar-input sonar-movers2__rankselect" [value]="rankMode()"
                                                     (change)="setRankMode($any($event.target).value)"
                                                     title="The order the cohort is worked in. A capped launch treats the top of this list, so this changes WHO gets contacted, not just what you see.">

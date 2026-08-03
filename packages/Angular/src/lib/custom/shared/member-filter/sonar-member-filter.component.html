@@ -1,5 +1,5 @@
-<!-- Compact when unused: just the add affordance. Grows only as conditions are added, because this
-     sits inside an already-dense targeting panel. -->
+<!-- Chips for what is set, one box to add another. Compact when unused, growing only as conditions are
+     added, because this sits inside an already-dense targeting panel. -->
 <div class="sonar-memfilter" [class.sonar-memfilter--dense]="dense()">
     <!-- Omitted in dense mode: the rule pane's own group heading already says it. Not rendering beats
          hiding with CSS, which needed a class that existed only as a styling hook. -->
@@ -7,9 +7,17 @@
         <span class="sonar-card__label sonar-memfilter__labelslot">Members</span>
     }
 
+    <!-- Each chip is a button: clicking loads its sentence back into the box for editing, so there is no
+         separate edit mode. The × is nested for the common case of just dropping one. -->
     @for (chip of chips(); track chip.index) {
         <span class="sonar-chip sonar-memfilter__chip">
-            {{ chip.text }}
+            <button type="button" class="sonar-memfilter__chiptext" (click)="edit(chip.index)"
+                    [attr.aria-label]="'Edit condition: ' + chip.text" [title]="'Edit: ' + chip.text">
+                @for (part of chip.parts; track $index) {
+                    <span [class.sonar-memfilter__val]="part.kind === 'value'"
+                          [class.sonar-memfilter__blank]="part.kind === 'blank'">{{ part.text }}</span>
+                }
+            </button>
             <button type="button" class="sonar-memfilter__x" (click)="remove(chip.index)"
                     [attr.aria-label]="'Remove condition: ' + chip.text">
                 <i class="fa-solid fa-xmark"></i>
@@ -18,65 +26,60 @@
     }
 
     <div class="sonar-memfilter__anchor">
-        <button type="button" class="sonar-chip sonar-memfilter__add" (click)="adding() ? cancelAdd() : openAdd()"
-                [class.sonar-memfilter__add--on]="adding()" [attr.aria-expanded]="adding()"
-                [disabled]="fields().length === 0"
-                [title]="fields().length === 0
-                    ? 'This model\'s anchor entity has no fields that can be targeted on'
-                    : 'Narrow the cohort by something on the member record: tenure, region, activity'">
-            <i class="fa-solid fa-plus"></i> Member filter
-        </button>
+        <!-- The box IS the affordance. Clicking anywhere in it focuses the input, so the whole thing is one
+             hit target rather than a thin line of text.
+             The placeholder teaches by example rather than by naming the grammar: an empty box has to convey
+             both that a field name comes first AND that a value follows it. -->
+        <div class="sonar-memfilter__bar" [class.sonar-memfilter__bar--open]="open()" (click)="focusBox()">
+            <i class="fa-solid fa-plus sonar-memfilter__baricon" aria-hidden="true"></i>
+            <input #box class="sonar-memfilter__box" type="text" role="combobox" autocomplete="off"
+                   [disabled]="fields().length === 0"
+                   [attr.aria-expanded]="open() && suggestions().length > 0"
+                   aria-controls="sonar-memfilter-list" aria-autocomplete="list"
+                   [attr.aria-activedescendant]="open() ? 'sonar-memfilter-opt-' + highlighted() : null"
+                   [placeholder]="fields().length === 0 ? 'No targetable fields' : 'Try “joined 90”'"
+                   [title]="fields().length === 0
+                       ? 'This model\'s anchor entity has no fields that can be targeted on'
+                       : 'Narrow the cohort by something on the member record: tenure, region, activity'"
+                   [value]="query()" (input)="onInput($event)" (focus)="onFocus()" (blur)="onBlur()"
+                   (keydown)="onKeydown($event)" />
+        </div>
 
-        <!-- Floating popover anchored to the trigger, so adding a condition doesn't reflow the panel
-             underneath (the member list keeps its height while you build the rule). -->
-        @if (adding()) {
-            <div class="sonar-card sonar-memfilter__pop" role="dialog" aria-label="Add a member condition">
-                <label class="sonar-memfilter__row">
-                    <span class="sonar-memfilter__rowlabel">Field</span>
-                    <select class="sonar-input sonar-memfilter__select" [value]="draftField()"
-                            (change)="pickField($any($event.target).value)">
-                        @for (f of fields(); track f.name) {
-                            <option [value]="f.name">{{ f.label }}</option>
+        <!-- Floating, so building a condition never reflows the member list underneath. Placed in viewport
+             coordinates by the component: see popPlacement for why it cannot be absolute. -->
+        @if (open() && fields().length > 0) {
+            @if (suggestions().length > 0) {
+                <div class="sonar-memfilter__pop" [style]="popPlacement()">
+                    <!-- Fixed while the rows scroll: it names the NEXT thing to type, so it has to stay put.
+                         aria-live so a screen reader hears "Now type a number of days" too. -->
+                    <p class="sonar-memfilter__caption" aria-live="polite">{{ caption() }}</p>
+
+                    <div class="sonar-optlist sonar-memfilter__list" id="sonar-memfilter-list" role="listbox"
+                         aria-label="Matching conditions">
+                        @for (row of suggestions(); track $index) {
+                            <!-- mousedown, not click: blur fires first on click and would close the list.
+                                 Deliberately NO mouseenter->highlighted: the list is placed right under the
+                                 pointer, so a stationary mouse fires enter on whatever row lands beneath it
+                                 and silently moves the keyboard cursor off what you typed toward. Hover
+                                 feedback is CSS-only; the mouse commits by clicking, the keyboard by Enter. -->
+                            <button type="button" class="sonar-optlist__opt sonar-memfilter__opt"
+                                    [class.sonar-optlist__opt--on]="$index === highlighted()"
+                                    [id]="'sonar-memfilter-opt-' + $index" role="option"
+                                    [attr.aria-selected]="$index === highlighted()"
+                                    (mousedown)="commit($index)">
+                                @for (part of row.parts; track $index) {
+                                    <span [class.sonar-memfilter__val]="part.kind === 'value'"
+                                          [class.sonar-memfilter__blank]="part.kind === 'blank'">{{ part.text }}</span>
+                                }
+                            </button>
                         }
-                    </select>
-                </label>
-
-                <label class="sonar-memfilter__row">
-                    <span class="sonar-memfilter__rowlabel">Test</span>
-                    <select class="sonar-input sonar-memfilter__select" [value]="draftOp()"
-                            (change)="pickOp($any($event.target).value)">
-                        @for (o of draftOperators(); track o.op) {
-                            <option [value]="o.op">{{ o.label }}</option>
-                        }
-                    </select>
-                </label>
-
-                @if (draftInput() !== 'none') {
-                    <label class="sonar-memfilter__row">
-                        <span class="sonar-memfilter__rowlabel">
-                            {{ draftInput() === 'days' ? 'Days' : draftInput() === 'list' ? 'Values' : 'Value' }}
-                        </span>
-                        @if (draftInput() === 'days' || draftInput() === 'number') {
-                            <input class="sonar-input sonar-memfilter__value" type="number" min="0" autofocus
-                                   [value]="draftValue()" (input)="draftValue.set($any($event.target).value)"
-                                   (keydown.enter)="commit()" />
-                        } @else {
-                            <input class="sonar-input sonar-memfilter__value" type="text" autofocus
-                                   [placeholder]="draftInput() === 'list' ? 'comma separated' : ''"
-                                   [value]="draftValue()" (input)="draftValue.set($any($event.target).value)"
-                                   (keydown.enter)="commit()" />
-                        }
-                    </label>
-                }
-
-                <!-- Confirm on the LEFT, cancel on the right, per the project's dialog rule. -->
-                <div class="sonar-memfilter__actions">
-                    <button type="button" class="sonar-btn sonar-btn--primary" [disabled]="!canAdd()" (click)="commit()">
-                        Add
-                    </button>
-                    <button type="button" class="sonar-btn sonar-btn--ghost" (click)="cancelAdd()">Cancel</button>
+                    </div>
                 </div>
-            </div>
+            } @else {
+                <div class="sonar-card sonar-memfilter__pop sonar-memfilter__none" [style]="popPlacement()">
+                    Nothing matches. Start with a field name, then a value &mdash; like &ldquo;joined 90&rdquo;.
+                </div>
+            }
         }
     </div>
 
