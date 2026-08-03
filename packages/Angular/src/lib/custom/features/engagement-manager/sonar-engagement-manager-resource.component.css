@@ -803,3 +803,19 @@
     .sonar-movers2__rulepane--open { display: flex; }
     .sonar-movers2__ruletoggle--on { border-color: var(--sonar-accent); color: var(--sonar-accent); }
 }
+
+/* --- Play params in the launch panel ---------------------------------------------------------- */
+/* Only rendered when the chosen play declares params a person must fill. Stacked (not the panel's
+   usual side-by-side pair) because these are prose fields — a subject line and a message body — and
+   cramming them into the numeric row's widths makes both unusable. */
+.sonar-launch__params {
+    display: flex; flex-direction: column; gap: 0.75rem;
+    margin: 0 0 1rem; padding: 0.75rem;
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+}
+.sonar-launch__params .sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-launch__textarea { height: auto; padding: 0.5rem 0.75rem; line-height: 1.5; resize: vertical; font: inherit; }
+/* The required marker earns the accent because skipping it is what blocks the launch. */
+.sonar-launch__req { color: var(--sonar-accent); font-weight: 700; margin-left: 0.125rem; }
+.sonar-launch__hint { font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.4; }

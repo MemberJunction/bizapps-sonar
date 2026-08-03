@@ -21,6 +21,22 @@ const TOKEN_PARAM_VALUES: Record<string, string> = {
     ModelID: "{{modelId}}",
 };
 
+/** Params the ENGINE supplies, so the launch panel must never ask a person for them. Token-filled
+ *  params (above) plus the BulkSync cohort payload, which the runner injects with the treated members
+ *  only — offering it as a text box would invite someone to hand-edit who gets contacted. */
+const RUNNER_SUPPLIED_PARAMS: ReadonlySet<string> = new Set([...Object.keys(TOKEN_PARAM_VALUES), "CohortJSON"]);
+
+/** One param a play declares that the OPERATOR has to fill (Subject, Body, From, …). */
+export interface PlayParam {
+    name: string;
+    isRequired: boolean;
+    /** The seed description — the only guidance an operator gets, so it is shown as help text. */
+    description: string | null;
+    defaultValue: string | null;
+    /** Long-form values (a message body) want a textarea rather than a single-line input. */
+    multiline: boolean;
+}
+
 /** The score-evaluable segment filter the launch panel builds from the current triage state
  *  (band/score range) or from the Movers view (a delta threshold — the "biggest droppers" rule). */
 export interface LaunchSegmentFilter {
@@ -281,6 +297,7 @@ interface ActionRow { ID: string; Name: string; Description: string | null }
 @Injectable({ providedIn: "root" })
 export class InterventionService {
     private readonly actionIdCache = new Map<string, string>();
+    private readonly editableParamCache = new Map<string, PlayParam[]>();
     private readonly actionParamNameCache = new Map<string, string[]>();
 
     /** Run the launch payload through `Sonar: Run Intervention` (preview or commit). */
@@ -536,6 +553,38 @@ export class InterventionService {
             .map((name) => ({ name, value: TOKEN_PARAM_VALUES[name] }));
         if (tokenParams.length === 0) return config;
         return { ...config, action: { ...config.action, params: [...config.action.params, ...tokenParams] } };
+    }
+
+    /**
+     * The params a play declares that a PERSON must fill — everything it takes as Input minus what the
+     * engine supplies per fire. This is what makes a parameterised play launchable without the panel
+     * knowing anything about the specific play: `Sonar: Email Cohort` needs Subject/Body/From, and any
+     * future play gets the same treatment for free.
+     */
+    public async editableParamsForAction(actionId: string): Promise<PlayParam[]> {
+        const cached = this.editableParamCache.get(actionId);
+        if (cached) return cached;
+        const res = await new RunView().RunView<{ Name: string; IsRequired: boolean | null; Description: string | null; DefaultValue: string | null }>({
+            EntityName: "MJ: Action Params",
+            ExtraFilter: `ActionID='${sqlString(actionId)}' AND Type='Input'`,
+            Fields: ["Name", "IsRequired", "Description", "DefaultValue"],
+            OrderBy: "IsRequired DESC, Name ASC",
+            ResultType: "simple",
+        });
+        const rows = res.Success ? res.Results ?? [] : [];
+        const params = rows
+            .filter((r) => !RUNNER_SUPPLIED_PARAMS.has(r.Name))
+            .map((r) => ({
+                name: r.Name,
+                isRequired: !!r.IsRequired,
+                description: r.Description ?? null,
+                defaultValue: r.DefaultValue ?? null,
+                // Heuristic on the name, not the type: MJ has no "long text" param flag, and Body is
+                // the one that reliably holds prose.
+                multiline: /body|message|content/i.test(r.Name),
+            }));
+        this.editableParamCache.set(actionId, params);
+        return params;
     }
 
     /** The play's declared Input param names (cached — the catalog is static per session). */

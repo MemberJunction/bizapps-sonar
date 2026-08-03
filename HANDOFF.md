@@ -66,6 +66,16 @@ These are the expensive ones. Each has bitten at least once; several are also en
 - **Never edit an applied migration** — checksum change aborts every upgrade (broke v0.2.0→v0.3.0 once). New forward migration, idempotent inserts, PG twin, and remember `metadata/` is dual-sourced (install runs migrations only).
 - **Date-column comparisons truncate the literal's time** on SQL Server, so an inclusive boundary can double-count (it did: 2,001 members in two "complementary" cohorts of a 2,000 population). `olderThanDays` is strictly-before for this reason.
 - **`sonar-shell.css` puts `height: 100%` on every component host.** Any component inside a flex row will stretch into dead space until you pin `:host { height: auto }`.
+- **The holdout hash is load-bearing: never reuse it unsalted.** The split is
+  `hashToPercent(anchorRecordId) < holdoutPercent -> Control` (FNV-1a, deliberately no `Math.random`
+  so a member's cohort is reproducible). Anything else that hashes the bare anchor id therefore
+  correlates with treatment/control. This bit hard: `_seed_traj.mjs` classified demo archetypes with
+  the same hash, defining "eroder" as `hash < 15` — entirely inside a 20% holdout. Every eroder was
+  guaranteed to be Control, so **every trajectory rule held back 100% of its cohort and fired on
+  nobody**, presenting in the UI as `Would sync 0 · hold 100`. Nothing in the product was wrong; four
+  layers were verified innocent before the seed script turned out to be the cause. Fixed by salting
+  (`hash100('archetype:' + anchorId)`) and re-seeding. If you add deterministic sampling, A/B variants
+  or bucketing of any kind, **salt it**.
 - **Slope from dev recompute bursts**: N recomputes minutes apart make slopePerDay explode; `dedupeByDay` + `minSpanDays` in `trendShape.ts` exist for this. Don't remove them.
 - **The `5044A100-00XX-…` ID space is hand-allocated and SHARED**, not Action-only: Actions, ActionParams, ActionResultCodes, ActionCategories, AIAgentActions, AIPrompts, Templates and Remote Operations all draw from it. **High-water mark at handoff: `0x30`. Free: `04`, `06`, `07`, `28`–`2F`.** Take the next free slot and grep before you commit — there has already been one collision (Count Population vs Run Intervention, resolved by renumbering to `001F`). Note that `metadata/sql_logging/` holds `mj sync push` audit logs containing old IDs; it is **not** an allocation source, so exclude it when checking (`--exclude-dir=sql_logging`) or you will read freed slots as taken.
 - **Metadata mirrors drift.** Action descriptions live in migrations AND `metadata/actions/.sonar-actions.json`. When updating, generate the JSON from the migration text (see the pattern in recent migrations) so they can't disagree.

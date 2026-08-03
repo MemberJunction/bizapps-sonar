@@ -157,6 +157,35 @@
                                             </select>
                                         </label>
                                     }
+                                    <!-- Whatever the chosen play asks of a person. Driven entirely by the play's
+                                         declared ActionParams (minus the ones the engine injects), so a new
+                                         parameterised play needs no change here. -->
+                                    @if (playParams().length > 0) {
+                                        <div class="sonar-launch__params">
+                                            @for (p of playParams(); track p.name) {
+                                                <label class="sonar-launch__field">
+                                                    <span class="sonar-launch__label">
+                                                        {{ p.name }}@if (p.isRequired) { <span class="sonar-launch__req" aria-hidden="true">*</span> }
+                                                    </span>
+                                                    @if (p.multiline) {
+                                                        <textarea class="sonar-input sonar-launch__textarea" rows="4"
+                                                                  [value]="playParamValues()[p.name] || ''"
+                                                                  (input)="setPlayParam(p.name, $any($event.target).value)"
+                                                                  [attr.aria-label]="p.name" [title]="p.description || ''"></textarea>
+                                                    } @else {
+                                                        <input class="sonar-input" type="text"
+                                                               [value]="playParamValues()[p.name] || ''"
+                                                               (input)="setPlayParam(p.name, $any($event.target).value)"
+                                                               [attr.aria-label]="p.name" [title]="p.description || ''" />
+                                                    }
+                                                    @if (p.description) {
+                                                        <span class="sonar-launch__hint">{{ p.description }}</span>
+                                                    }
+                                                </label>
+                                            }
+                                        </div>
+                                    }
+
                                     <div class="sonar-launch__pair">
                                         <label class="sonar-launch__field sonar-launch__field--num">
                                             <span class="sonar-launch__label">Holdout %</span>
@@ -167,10 +196,10 @@
                                             <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" aria-label="Max members this run" />
                                         </label>
                                         <div class="sonar-launch__actions">
-                                            <button class="sonar-btn" [disabled]="(launchKind() !== 'TrackOnly' && !launchActionId()) || launchBusy() !== null" (click)="previewLaunch()">
+                                            <button class="sonar-btn" [disabled]="(launchKind() !== 'TrackOnly' && !launchActionId()) || missingPlayParams().length > 0 || launchBusy() !== null" (click)="previewLaunch()">
                                                 @if (launchBusy() === 'preview') { <i class="fa-solid fa-circle-notch fa-spin"></i> Previewing… } @else { <i class="fa-solid fa-eye"></i> Preview }
                                             </button>
-                                            <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchPreview()?.playApproved === false || launchBusy() !== null" (click)="commitLaunch()"
+                                            <button class="sonar-btn sonar-btn--primary" [disabled]="!launchPreview() || launchPreview()?.playApproved === false || missingPlayParams().length > 0 || launchBusy() !== null" (click)="commitLaunch()"
                                                     [title]="launchPreview() ? 'Write assignments' + (launchKind() === 'Action' ? ' and fire the play for the treatment group' : launchKind() === 'BulkSync' ? ' and sync the treated cohort in one batch' : ' (track only — nothing fires)') : 'Preview first — nothing launches unseen'">
                                                 @if (launchBusy() === 'commit') { <i class="fa-solid fa-circle-notch fa-spin"></i> Launching… } @else { <i class="fa-solid fa-bullhorn"></i> {{ launchKind() === 'TrackOnly' ? 'Start tracking' : 'Launch' }} }
                                             </button>
@@ -195,6 +224,11 @@
                                                 @if (launchedDraftPlay() && d.sent > 0) {
                                                     Drafts are waiting in <button type="button" class="sonar-launch__link" (click)="showOutreach()">Outreach</button>.
                                                 }
+                                            </span>
+                                        }
+                                        @if (missingPlayParams().length > 0) {
+                                            <span class="sonar-launch__error"><i class="fa-solid fa-circle-exclamation"></i>
+                                                This play needs {{ missingPlayParams().join(', ') }} before it can run.
                                             </span>
                                         }
                                         @if (launchPreview()?.playApproved === false) { <span class="sonar-launch__error"><i class="fa-solid fa-shield-halved"></i> This play needs approval before it can fire (generated actions are gated).</span> }

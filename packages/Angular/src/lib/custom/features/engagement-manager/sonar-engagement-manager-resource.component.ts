@@ -12,7 +12,7 @@ import { MemberCondition, MemberField, MemberFieldKind, humanizeDays } from "../
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
-import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, MemberTrendShape, PreviewMember, ProposalStatus, ProposalSummary, ReasonSlice } from "../../core/services/intervention.service";
+import { FireableAction, InterventionService, PlayParam, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, MemberTrendShape, PreviewMember, ProposalStatus, ProposalSummary, ReasonSlice } from "../../core/services/intervention.service";
 
 
 /**
@@ -222,6 +222,17 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly launchActionId = signal<string | null>(null);
     public readonly launchHoldout = signal(20);
     public readonly launchCap = signal(100);
+    /** The params the chosen play needs a PERSON to fill (Subject/Body/From for the email play).
+     *  Empty for plays that declare none, so nothing renders for the common case. */
+    public readonly playParams = signal<PlayParam[]>([]);
+    /** Operator-entered values, keyed by param name. */
+    public readonly playParamValues = signal<Record<string, string>>({});
+    /** Required params still blank — commit stays blocked while this is non-empty, mirroring how an
+     *  unapproved play blocks it. Cheaper to catch here than as a VALIDATION_ERROR after a round trip. */
+    public readonly missingPlayParams = computed(() => {
+        const values = this.playParamValues();
+        return this.playParams().filter((p) => p.isRequired && !(values[p.name] ?? "").trim()).map((p) => p.name);
+    });
     public readonly launchPreview = signal<LaunchResult | null>(null);
     public readonly launchBusy = signal<"preview" | "commit" | null>(null);
     public readonly launchError = signal<string | null>(null);
@@ -611,7 +622,13 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             kind,
             segment: { name: this.launchName().trim() || this.defaultLaunchName(), filter },
             intervention: { name: this.launchName().trim() || this.defaultLaunchName(), holdoutPercent: this.launchHoldout() },
-            action: kind !== "TrackOnly" && actionId ? { actionId, params: [] } : null,
+            // Only non-empty values travel: an empty string would override a play's own default with
+            // nothing, which is worse than not sending the param at all.
+            action: kind !== "TrackOnly" && actionId
+                ? { actionId, params: Object.entries(this.playParamValues())
+                        .filter(([, v]) => v.trim().length > 0)
+                        .map(([name, value]) => ({ name, value })) }
+                : null,
             cap: this.launchCap(),
             preview,
         };
@@ -663,7 +680,28 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     /** Numeric field setters ([value]+(input) style — this surface doesn't use ngModel). */
     public setLaunchHoldout(v: string): void { const n = Number(v); this.launchHoldout.set(Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 20); this.launchPreview.set(null); }
     public setLaunchCap(v: string): void { const n = Number(v); this.launchCap.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 100); this.launchPreview.set(null); }
-    public setLaunchAction(id: string): void { this.launchActionId.set(id || null); this.launchPreview.set(null); }
+    public setLaunchAction(id: string): void {
+        this.launchActionId.set(id || null);
+        this.launchPreview.set(null);
+        void this.loadPlayParams(id || null);
+    }
+
+    /** Read what the chosen play asks of the operator, seeding any declared defaults. Generic: the
+     *  panel never names a specific play, so a new parameterised play works with no client change. */
+    private async loadPlayParams(actionId: string | null): Promise<void> {
+        if (!actionId) { this.playParams.set([]); this.playParamValues.set({}); return; }
+        const params = await this.interventionService.editableParamsForAction(actionId);
+        this.playParams.set(params);
+        const seeded: Record<string, string> = {};
+        for (const p of params) if (p.defaultValue) seeded[p.name] = p.defaultValue;
+        this.playParamValues.set(seeded);
+    }
+
+    /** Update one param value (and drop the stale preview — the payload just changed). */
+    public setPlayParam(name: string, value: string): void {
+        this.playParamValues.update((v) => ({ ...v, [name]: value }));
+        this.launchPreview.set(null);
+    }
     public setLaunchName(v: string): void { this.launchName.set(v); }
 
     // ---- Movers explorer: tune the segment, see the members, launch on exactly them ----
