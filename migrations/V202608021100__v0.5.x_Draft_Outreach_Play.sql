@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607281100__v0.5.x_Draft_Outreach_Play.sql
+-- V202608021100__v0.5.x_Draft_Outreach_Play.sql
 -- =============================================================================
 -- Seed "Sonar: Draft Outreach" — the first PER-MEMBER play (Intervention.Kind='Action') that
 -- produces a reviewable artifact: for each treated member, an AI Prompt drafts a short outreach
@@ -16,7 +16,7 @@
 --      (SelectionStrategy='Default', MinPowerRank 15, PowerPreference 'Highest').
 --
 -- Idempotent (guarded per row); safe to re-run. Also re-guards the 'Sonar Plays' category.
--- PG twin: migrations-pg/V202607281100__v0.5.x_Draft_Outreach_Play.pg.sql
+-- PG twin: migrations-pg/V202608021100__v0.5.x_Draft_Outreach_Play.pg.sql
 -- =============================================================================
 
 -- ============================================================ 1. The play

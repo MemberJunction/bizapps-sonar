@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607301000__v0.5.x_Explain_Scores_Action.sql: seed
+-- PostgreSQL twin of migrations/V202608021700__v0.5.x_Explain_Scores_Action.sql: seed
 -- "Sonar: Explain Scores", which returns WHY each of a set of Score rows is low (the signal dragging
 -- the member down most, ranked on the rubric weight so a MISSING signal can be named). Computed
 -- server-side on purpose: the same ranking is what a targeting rule selects on, so a browser-side

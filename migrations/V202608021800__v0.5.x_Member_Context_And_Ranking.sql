@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607301100__v0.5.x_Member_Context_And_Ranking.sql
+-- V202608021800__v0.5.x_Member_Context_And_Ranking.sql
 -- =============================================================================
 -- Document two new layers on "Sonar: Preview Segment": conditions on the MEMBER RECORD, and RANKING.
 --
@@ -17,10 +17,10 @@
 -- rather than being skipped. A skipped condition would silently widen the cohort, and a wider cohort
 -- means contacting people the rule was written to exclude.
 --
--- UPDATE-only: the param rows were seeded by V202607291600, which is already applied, and editing an
+-- UPDATE-only: the param rows were seeded by V202608021300, which is already applied, and editing an
 -- applied migration changes its Flyway checksum and aborts every upgrade.
 -- Idempotent; safe to re-run.
--- PG twin: migrations-pg/V202607301100__v0.5.x_Member_Context_And_Ranking.pg.sql
+-- PG twin: migrations-pg/V202608021800__v0.5.x_Member_Context_And_Ranking.pg.sql
 -- =============================================================================
 
 UPDATE [__mj].[ActionParam]

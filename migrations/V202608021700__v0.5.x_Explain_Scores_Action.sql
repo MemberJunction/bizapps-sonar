@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607301000__v0.5.x_Explain_Scores_Action.sql
+-- V202608021700__v0.5.x_Explain_Scores_Action.sql
 -- =============================================================================
 -- Seed "Sonar: Explain Scores" — for a set of Score rows, WHY each one is low.
 --
@@ -17,7 +17,7 @@
 -- Read-only: writes nothing. Category 'Business Apps' (a tool, not a play), so the launch picker does
 -- not offer it. Type='Custom' → inherently trusted at the fire-time governance gate.
 -- Idempotent; safe to re-run.
--- PG twin: migrations-pg/V202607301000__v0.5.x_Explain_Scores_Action.pg.sql
+-- PG twin: migrations-pg/V202608021700__v0.5.x_Explain_Scores_Action.pg.sql
 -- =============================================================================
 
 IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = '5044A100-0027-4000-8000-000000000027')

@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607300900__v0.5.x_Segment_Reason_Condition.sql
+-- V202608021600__v0.5.x_Segment_Reason_Condition.sql
 -- =============================================================================
 -- Document the REASON layer on "Sonar: Preview Segment".
 --
@@ -15,10 +15,10 @@
 -- The preview also now RETURNS the breakdown: how the whole cohort splits by main problem, so an
 -- operator can see a group is really three problems before committing to one of them.
 --
--- This is an UPDATE-only migration: the param rows were seeded by V202607291600, which is already
+-- This is an UPDATE-only migration: the param rows were seeded by V202608021300, which is already
 -- applied, and editing an applied migration changes its Flyway checksum and aborts every upgrade.
 -- Descriptions are the contract an agent reads to know a param exists, so they have to be current.
--- Idempotent; safe to re-run. PG twin: migrations-pg/V202607300900__v0.5.x_Segment_Reason_Condition.pg.sql
+-- Idempotent; safe to re-run. PG twin: migrations-pg/V202608021600__v0.5.x_Segment_Reason_Condition.pg.sql
 -- =============================================================================
 
 UPDATE [__mj].[ActionParam]

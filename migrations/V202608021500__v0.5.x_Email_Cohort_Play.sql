@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607291800__v0.5.x_Email_Cohort_Play.sql
+-- V202608021500__v0.5.x_Email_Cohort_Play.sql
 -- =============================================================================
 -- Seed "Sonar: Email Cohort" — the second exit ramp for a Sonar group: hand the whole treated
 -- cohort to MJ Communications as ONE message with per-recipient merge data.
@@ -16,7 +16,7 @@
 -- Kind=BulkSync, so control members are never in the payload and the holdout cannot be contacted.
 -- Category 'Sonar Plays' (the launch picker offers it). Type='Custom' → inherently trusted at the
 -- fire-time governance gate. Idempotent; safe to re-run.
--- PG twin: migrations-pg/V202607291800__v0.5.x_Email_Cohort_Play.pg.sql
+-- PG twin: migrations-pg/V202608021500__v0.5.x_Email_Cohort_Play.pg.sql
 -- =============================================================================
 
 IF NOT EXISTS (SELECT 1 FROM [__mj].[Action] WHERE ID = '5044A100-0026-4000-8000-000000000026')

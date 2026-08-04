@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607300900__v0.5.x_Segment_Reason_Condition.sql: document the
+-- PostgreSQL twin of migrations/V202608021600__v0.5.x_Segment_Reason_Condition.sql: document the
 -- REASON layer on "Sonar: Preview Segment" — a rule can now select on WHICH SIGNAL is dragging a
 -- member down, and the preview returns the cohort's breakdown by that signal. UPDATE-only, because
 -- the param rows were seeded by an already-applied migration. Idempotent.

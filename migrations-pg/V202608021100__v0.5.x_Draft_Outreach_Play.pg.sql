@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607281100__v0.5.x_Draft_Outreach_Play.sql: seed the first
+-- PostgreSQL twin of migrations/V202608021100__v0.5.x_Draft_Outreach_Play.sql: seed the first
 -- PER-MEMBER play, "Sonar: Draft Outreach" (Intervention.Kind='Action') — an AI prompt drafts one
 -- grounded outreach email per treated member, saved as an InterventionProposal awaiting human
 -- review. Sends nothing. Plus its Template/TemplateContent and the 'Sonar: Outreach Drafter'

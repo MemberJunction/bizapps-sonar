@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607291700__v0.5.x_Preview_Segment_OrderBy.sql: add the OrderBy
+-- PostgreSQL twin of migrations/V202608021400__v0.5.x_Preview_Segment_OrderBy.sql: add the OrderBy
 -- input to "Sonar: Preview Segment" so the Score Movers view can read biggest-mover-first without
 -- changing the evaluator's worst-score-first order (which is a real run's cap policy).
 

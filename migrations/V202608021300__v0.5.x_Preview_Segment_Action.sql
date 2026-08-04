@@ -1,5 +1,5 @@
 -- =============================================================================
--- V202607291600__v0.5.x_Preview_Segment_Action.sql
+-- V202608021300__v0.5.x_Preview_Segment_Action.sql
 -- =============================================================================
 -- Seed "Sonar: Preview Segment" — resolve a targeting rule through the real engine and return the
 -- cohort count plus one page of members, writing nothing.
@@ -15,7 +15,7 @@
 -- operator fires at members, and the launch picker must not offer it.
 -- Type='Custom' (code in the repo), so the fire-time governance gate trusts it inherently.
 -- Idempotent (guarded per row); safe to re-run.
--- PG twin: migrations-pg/V202607291600__v0.5.x_Preview_Segment_Action.pg.sql
+-- PG twin: migrations-pg/V202608021300__v0.5.x_Preview_Segment_Action.pg.sql
 -- =============================================================================
 
 DECLARE @CategoryID UNIQUEIDENTIFIER = (SELECT TOP 1 ID FROM [__mj].[ActionCategory] WHERE Name = 'Business Apps');

@@ -4,7 +4,7 @@
 -- run (when a run is capped at N, those are the N that get treated). The Score Movers view wants
 -- biggest-mover-first instead, and a display preference must not change who a run would pick — so
 -- the sort is applied to the preview response only, and has to be asked for explicitly.
--- PG twin: migrations-pg/V202607291700__v0.5.x_Preview_Segment_OrderBy.pg.sql
+-- PG twin: migrations-pg/V202608021400__v0.5.x_Preview_Segment_OrderBy.pg.sql
 
 IF NOT EXISTS (SELECT 1 FROM [__mj].[ActionParam] WHERE ID = '5044A100-0025-4000-8000-0000000000A6')
     INSERT INTO [__mj].[ActionParam] (ID, ActionID, Name, Type, ValueType, IsArray, IsRequired, Description)

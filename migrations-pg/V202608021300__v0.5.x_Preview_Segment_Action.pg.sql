@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607291600__v0.5.x_Preview_Segment_Action.sql: seed
+-- PostgreSQL twin of migrations/V202608021300__v0.5.x_Preview_Segment_Action.sql: seed
 -- "Sonar: Preview Segment", which resolves a targeting rule through the engine and returns the
 -- cohort count plus one page of members (writing nothing), so the UI stops re-implementing the
 -- segment rule in client-side SQL. Category 'Business Apps' (a tool, not a play). Idempotent.

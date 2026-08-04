@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607291800__v0.5.x_Email_Cohort_Play.sql: seed
+-- PostgreSQL twin of migrations/V202608021500__v0.5.x_Email_Cohort_Play.sql: seed
 -- "Sonar: Email Cohort", the second exit ramp for a Sonar group — hand the treated cohort to MJ
 -- Communications as one message with per-recipient merge data. DryRun defaults to true and
 -- TestRecipient redirects to one address, because demo anchors carry invented emails. Idempotent.

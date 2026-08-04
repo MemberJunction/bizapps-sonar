@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607301100__v0.5.x_Member_Context_And_Ranking.sql: document the
+-- PostgreSQL twin of migrations/V202608021800__v0.5.x_Member_Context_And_Ranking.sql: document the
 -- MEMBER-CONTEXT and RANKING layers on "Sonar: Preview Segment". Member conditions make a cohort
 -- specific (tenure, dormancy, region, segment, all of which live on the anchor record and were
 -- invisible to targeting); ranking makes it finite, and because the run cap truncates the resolved

@@ -1,5 +1,5 @@
 -- Intervention proposals — PostgreSQL twin of
--- migrations/V202607281000__v0.5.x_Intervention_Proposals.sql. Same table, PG dialect.
+-- migrations/V202608021000__v0.5.x_Intervention_Proposals.sql. Same table, PG dialect.
 --
 -- NOTE: the PG baseline (B202607171700) is a post-CodeGen dump, so its tables carry the __mj_ audit
 -- columns inline. This twin matches that shape (audit columns included) so the runtime's UpdatedAt
