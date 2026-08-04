@@ -19,7 +19,7 @@
                 </button>
                 <span class="sonar-pe__test">
                     <select class="sonar-input" [ngModel]="sampleAnchorId()" (ngModelChange)="sampleAnchorId.set($event)" [disabled]="sampleAnchors().length === 0">
-                        @if (sampleAnchors().length === 0) { <option [ngValue]="null">No members to test</option> }
+                        @if (sampleAnchors().length === 0) { <option [ngValue]="null">No {{ noun.many }} to test</option> }
                         @for (m of sampleAnchors(); track m.id) { <option [ngValue]="m.id">{{ m.label }}</option> }
                     </select>
                     <button type="button" class="sonar-btn" [disabled]="!sampleAnchorId() || testing() || promptDirty()" (click)="runPromptTest()">

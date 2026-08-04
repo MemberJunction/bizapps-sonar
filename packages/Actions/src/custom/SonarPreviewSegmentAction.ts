@@ -90,12 +90,12 @@ export class SonarPreviewSegmentAction extends SonarActionBase {
                     reasonHadData: m.reasonHadData ?? null,
                 })),
             };
-            return this.ok(params, `${cohort.length} member(s) match this rule.`, payload);
+            return this.ok(params, `${cohort.length} record(s) match this rule.`, payload);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : String(e);
             // A condition naming a field that doesn't exist is the caller's mistake, not a fault —
             // report it as such so the UI (or an agent) can correct the rule rather than retry it.
-            const code = message.startsWith("Invalid member condition") ? "VALIDATION_ERROR" : "ERROR";
+            const code = message.startsWith("Invalid record condition") ? "VALIDATION_ERROR" : "ERROR";
             return this.fail(params, code, message);
         }
     }

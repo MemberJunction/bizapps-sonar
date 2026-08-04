@@ -8,6 +8,7 @@ import { ScoreModelService } from "../../../../core/services/score-model.service
 import { candidatePaths, toRelationshipPath, CandidatePath } from "../../../../core/entity-graph";
 import { IsBusinessEntity } from "../../../../core/entity-scope";
 import { resolveAnchorName } from "../../../../core/services/anchor-name.util";
+import { AnchorNoun, anchorNounFor } from "../../../../core/anchor-noun";
 
 /** The two authoring modes the builder forks into (UI-local; maps to Factor.FactorType on save).
  *  Authoring NEW custom signals now lives in the Signal Studio; here you only pick an existing one. */
@@ -76,6 +77,14 @@ export interface FactorWindow { id: string; name: string; }
     styleUrls: ["../../../../shared/styles/sonar-shell.css", "./sonar-factor-builder.component.css"],
 })
 export class SonarFactorBuilderComponent {
+    /** What this model's scored records are called, from the anchor entity — never assumed to be "member". */
+    public readonly noun = computed<AnchorNoun>(() => {
+        const id = this.anchorEntityID();
+        if (!id) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    });
+
     private readonly factorService = inject(FactorService);
     private readonly catalog = inject(ActionCatalogService);
     private readonly engine = inject(SonarEngineService);
@@ -701,11 +710,11 @@ export class SonarFactorBuilderComponent {
     public readonly missingDataHint = computed(() => {
         switch (this.missingDataPolicy()) {
             case "NeutralMidpoint":
-                return "A member with no data here lands mid-range on this signal, so it neither helps nor hurts them. Use this when a gap just means you have not measured them yet.";
+                return `A ${this.noun().one} with no data here lands mid-range on this signal, so it neither helps nor hurts them. Use this when a gap just means you have not measured them yet.`;
             case "Exclude":
-                return "This signal is dropped from that member's total, so their other signals carry more weight. Use this when a gap tells you nothing either way.";
+                return `This signal is dropped from that ${this.noun().one}'s total, so their other signals carry more weight. Use this when a gap tells you nothing either way.`;
             default:
-                return "A member with no data here scores zero on this signal, and it still counts against their total. Use this when a gap is genuinely bad news, like no logins at all.";
+                return `A ${this.noun().one} with no data here scores zero on this signal, and it still counts against their total. Use this when a gap is genuinely bad news, like no logins at all.`;
         }
     });
 
@@ -813,7 +822,7 @@ export class SonarFactorBuilderComponent {
                 this.preview.set(null);
                 return;
             }
-            const sampleName = res.anchorId ? await resolveAnchorName(this.anchorEntityID(), res.anchorId) : "A member";
+            const sampleName = res.anchorId ? await resolveAnchorName(this.anchorEntityID(), res.anchorId) : `A ${this.noun().one}`;
             this.preview.set({ sampleName, matching: res.matching, strength: res.strength, explanation: res.explanation, membersWithData: res.membersWithData });
         } finally {
             this.previewing.set(false);

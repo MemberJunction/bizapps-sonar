@@ -319,12 +319,12 @@ export class SegmentEvaluator {
 
         const entity = await this.anchorEntityName(modelId, contextUser);
         if (!entity) {
-            throw new Error("This model's anchor entity could not be resolved, so member conditions cannot be applied.");
+            throw new Error("This model's anchor entity could not be resolved, so record conditions cannot be applied.");
         }
         const fields = await this.anchorFieldTypes(entity);
         const { sql, errors } = buildAnchorFilter(filter.anchor, fields, now);
         if (errors.length > 0) {
-            throw new Error(`Invalid member condition(s): ${errors.join(" ")}`);
+            throw new Error(`Invalid record condition(s): ${errors.join(" ")}`);
         }
         const rankFields = validRankFields([filter.rank?.urgencyField, filter.rank?.valueField], fields);
         const values = await this.loadAnchorRows(entity, candidates, sql, rankFields, contextUser);
@@ -381,7 +381,7 @@ export class SegmentEvaluator {
                 contextUser,
             );
             if (!res.Success) {
-                throw new Error(`Reading the member records failed: ${res.ErrorMessage ?? "unknown error"}`);
+                throw new Error(`Reading the anchor records failed: ${res.ErrorMessage ?? "unknown error"}`);
             }
             for (const row of res.Results ?? []) {
                 const id = row["ID"];

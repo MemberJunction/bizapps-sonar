@@ -47,7 +47,7 @@
                 <div class="sonar-empty">
                     <i class="fa-solid fa-chart-line"></i>
                     <h2>No scores to triage yet</h2>
-                    <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then members will appear here worst-first.</p>
+                    <p>This model has no persisted scores. Publish it and run <strong>Recompute</strong> in Model Builder, then {{ noun().many }} will appear here worst-first.</p>
                 </div>
             } @else {
                 <!-- Section side nav (single rail — the model picker lives in the header now). -->
@@ -58,7 +58,7 @@
                         <i class="fa-solid fa-list-check"></i>
                         <div class="sonar-mgr-sidebar__item-text">
                             <span class="sonar-mgr-sidebar__item-title">Triage</span>
-                            <span class="sonar-mgr-sidebar__item-subtitle">Prioritized member list</span>
+                            <span class="sonar-mgr-sidebar__item-subtitle">Prioritized {{ noun().one }} list</span>
                         </div>
                     </button>
                     <button type="button" class="sonar-mgr-sidebar__item"
@@ -126,7 +126,7 @@
                                         </div>
                                     <p class="sonar-launch__scope">
                                         @if (launchMode() === 'movers') {
-                                            Cohort: members who <strong>{{ launchMoverScopeLabel() }}</strong>
+                                            Cohort: {{ noun().many }} who <strong>{{ launchMoverScopeLabel() }}</strong>
                                             · <strong class="sonar-mono">{{ moverTotal() }}</strong> match
                                             @for (c of moverCauseSummary(); track c.label) {
                                                 <span class="sonar-chip sonar-chip--small sonar-movers2__causechip">{{ c.label }} · {{ c.count }}</span>
@@ -134,7 +134,7 @@
                                         } @else {
                                             Cohort: <strong>{{ selectedBand()?.label ?? "all bands" }}</strong>
                                             @if (minScore() !== null || maxScore() !== null) { · scores <strong>{{ minScore() ?? 0 }}–{{ maxScore() ?? 100 }}</strong> }
-                                            · <strong class="sonar-mono">{{ total() }}</strong> member{{ total() === 1 ? "" : "s" }} match
+                                            · <strong class="sonar-mono">{{ total() }}</strong> {{ total() === 1 ? noun().one : noun().many }} match
                                         }
                                         · a random <strong>{{ launchHoldout() }}%</strong> is held back so lift is measured, not assumed.
                                     </p>
@@ -145,7 +145,7 @@
                                     <div class="sonar-launch__body">
                                     <div class="sonar-launch__kind" role="group" aria-label="Intervention kind">
                                         <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'Action'" (click)="setLaunchKind('Action')"
-                                                title="Fires the chosen play for each treated member; control is held out.">
+                                                [title]="'Fires the chosen play for each treated ' + noun().one + '; control is held out.'">
                                             <i class="fa-solid fa-bolt"></i> Fire a play
                                         </button>
                                         <button type="button" class="sonar-launch__kindbtn" [class.sonar-launch__kindbtn--on]="launchKind() === 'BulkSync'" (click)="setLaunchKind('BulkSync')"
@@ -166,7 +166,7 @@
                                             <span class="sonar-launch__label">Play (MJ Action)</span>
                                             <select class="sonar-input" [value]="launchActionId() ?? ''" (change)="setLaunchAction($any($event.target).value)" aria-label="Action to fire">
                                                 <option value="" disabled>Pick the action to fire…</option>
-                                                @for (a of fireable(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
+                                                @for (a of playsForKind(); track a.id) { <option [value]="a.id">{{ a.name }}</option> }
                                             </select>
                                         </label>
                                     }
@@ -210,7 +210,7 @@
                                         </label>
                                         <label class="sonar-launch__field sonar-launch__field--num">
                                             <span class="sonar-launch__label">Cap</span>
-                                            <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" aria-label="Max members this run" />
+                                            <input class="sonar-input" type="number" min="1" [value]="launchCap()" (change)="setLaunchCap($any($event.target).value)" [attr.aria-label]="'Max ' + noun().many + ' this run'" />
                                         </label>
                                         <div class="sonar-launch__actions">
                                             <button class="sonar-btn" [disabled]="(launchKind() !== 'TrackOnly' && !launchActionId()) || missingPlayParams().length > 0 || launchBusy() !== null" (click)="previewLaunch()">
@@ -284,7 +284,7 @@
                                     </div>
                                     <!-- Unified filter track: search · score pill · sort · pagination all on one baseline. -->
                                     <sonar-filter-bar>
-                                        <sonar-search-field [value]="nameQuery()" [suggestions]="suggestions()" placeholder="Search members…"
+                                        <sonar-search-field [value]="nameQuery()" [suggestions]="suggestions()" [placeholder]="'Search ' + noun().many + '…'"
                                             (valueChange)="onSearchValue($event)" (search)="onFilterSearch($event)" (pick)="onFilterPick($event)">
                                             <!-- Rich member suggestion row (the field owns the menu chrome + keyboard). -->
                                             <ng-template #suggestion let-s>
@@ -302,7 +302,7 @@
                                     @if (!error() && members().length > 0) {
                                         <!-- Table header anchor: column labels over the data they head. -->
                                         <div class="sonar-triage__head">
-                                            <span class="sonar-triage__head-member">Member</span>
+                                            <span class="sonar-triage__head-member">{{ noun().One }}</span>
                                             <button type="button" class="sonar-triage__head-score sonar-triage__sortbtn" (click)="toggleScoreSort()"
                                                     [title]="sortDir() === 'asc' ? 'Worst first — click for best first' : 'Best first — click for worst first'">
                                                 Score
@@ -314,14 +314,14 @@
                                         <!-- Error state -->
                                         <div class="sonar-empty sonar-empty--error">
                                             <i class="fa-solid fa-triangle-exclamation"></i>
-                                            <h2>Couldn't load members</h2>
+                                            <h2>Couldn't load {{ noun().many }}</h2>
                                             <p>{{ error() }}</p>
                                             <button class="sonar-btn sonar-btn--primary" (click)="retry()">Retry</button>
                                         </div>
                                     } @else if (loadingMembers() && members().length === 0) {
                                         <!-- Skeleton ONLY on the first load (no rows yet). Paging/filtering keeps the
                                              current rows in place (dimmed) so the list doesn't flash/refresh. -->
-                                        <div class="sonar-stack" aria-busy="true" aria-label="Loading members">
+                                        <div class="sonar-stack" aria-busy="true" [attr.aria-label]="'Loading ' + noun().many">
                                             @for (i of skeletonRows; track i) {
                                                 <div class="sonar-dropper sonar-dropper--skeleton">
                                                     <span class="sonar-skeleton sonar-skeleton--circle" style="width:2.1rem; height:2.1rem; flex:0 0 auto"></span>
@@ -337,8 +337,8 @@
                                         <!-- Empty: filters/band matched nothing (distinct from the no-scores-at-all state above). -->
                                         <div class="sonar-empty sonar-empty--inline">
                                             <i class="fa-solid fa-filter-circle-xmark"></i>
-                                            <h2>No members match</h2>
-                                            <p>No scored members fit the current search, score range, or band. Adjust or clear the filters.</p>
+                                            <h2>No {{ noun().many }} match</h2>
+                                            <p>No scored {{ noun().many }} fit the current search, score range, or band. Adjust or clear the filters.</p>
                                         </div>
                                     } @else {
                                         <div class="sonar-stack sonar-triage__rows" [class.sonar-triage__rows--busy]="loadingMembers()">
@@ -382,7 +382,7 @@
                                         <div class="sonar-card">
                                             <div class="sonar-card__head">
                                                 <div>
-                                                    <div class="sonar-card__label">Member drill-down</div>
+                                                    <div class="sonar-card__label">{{ noun().One }} drill-down</div>
                                                     <div class="sonar-factor__name">{{ sel.name }}</div>
                                                     @if (sel.versionNumber !== null) {
                                                         <div class="sonar-drill__version">
@@ -439,7 +439,7 @@
                                                     <p class="sonar-fb__hint">
                                                         Each signal's <strong class="sonar-ink">points</strong> are its share of the score, so they
                                                         add up to <strong class="sonar-ink">{{ sel.normalizedScore }} / 100</strong>. A signal earns
-                                                        a bigger share when the member ranks high on it (toward 1.0) and it carries more weight.
+                                                        a bigger share when the {{ noun().one }} ranks high on it (toward 1.0) and it carries more weight.
                                                         @if (missingSignals().length > 0) {
                                                             <br><span class="sonar-neg">⚠ No data for {{ missingSignals().join(', ') }}</span> — the engine
                                                             counts {{ missingSignals().length === 1 ? 'it' : 'them' }} as 0, which drags the score down.
@@ -476,7 +476,7 @@
                                     <!-- Count is the whole FILTER, not the visible page: a launch targets every member
                                          the rule matches, which the engine re-resolves server-side. -->
                                     <button class="sonar-btn sonar-btn--primary sonar-movers2__launch" [disabled]="moverTotal() === 0" (click)="openLaunchFromMovers()"
-                                            title="Launch an intervention on every member matching this rule — a holdout is kept automatically so lift is measured">
+                                            [title]="'Launch an intervention on every ' + noun().one + ' matching this rule — a holdout is kept automatically so lift is measured'">
                                         <i class="fa-solid fa-bullhorn"></i> Launch on these ({{ moverTotal() }})
                                     </button>
                                 </div>
@@ -529,7 +529,7 @@
                                         <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="moverMode() === 'lastRun'"
                                                 (click)="setMoverMode('lastRun')" title="Compare the score to the last update — a single step">Last update</button>
                                         <button type="button" class="sonar-segmented__opt" [class.sonar-segmented__opt--active]="moverMode() === 'overTime'"
-                                                (click)="setMoverMode('overTime')" title="Read the member's history: how fast, how long, and how steadily the score has been moving">Over time</button>
+                                                (click)="setMoverMode('overTime')" [title]="'Read the ' + noun().one + '\'s history: how fast, how long, and how steadily the score has been moving'">Over time</button>
                                     </div>
                                     <sonar-toggle-filter [on]="directionDrops" [off]="directionGains"
                                         [value]="moverDirection()" (valueChange)="setMoverDirection($event)"></sonar-toggle-filter>
@@ -562,7 +562,7 @@
                                             </select>
                                         </label>
                                         @if (moverDirection() === 'drops') {
-                                            <label class="sonar-fieldrow" title="Consecutive cycles the member is STILL sliding. Someone who fell for months then recovered last cycle scores 0.">
+                                            <label class="sonar-fieldrow" [title]="'Consecutive cycles the ' + noun().one + ' is STILL sliding. Someone who fell for months then recovered last cycle scores 0.'">
                                                 <span class="sonar-fieldrow__label">Sliding</span>
                                                 <span class="sonar-fieldwrap">
                                                     <input class="sonar-input" type="number" min="0" [value]="moverSlideCycles()"
@@ -574,14 +574,14 @@
                                         <button type="button" class="sonar-switch"
                                                 [class.sonar-switch--on]="moverSteadyOnly()" (click)="toggleMoverSteadyOnly()"
                                                 role="switch" [attr.aria-checked]="moverSteadyOnly()"
-                                                title="Exclude erratic scores, so a genuine slide isn't confused with a member who bounces around and happens to be low today">
+                                                [title]="'Exclude erratic scores, so a genuine slide is not confused with a ' + noun().one + ' who bounces around and happens to be low today'">
                                             Steady only <span class="sonar-switch__track"></span></button>
                                     }
                                     @if (moverMode() === 'lastRun') {
                                     <button type="button" class="sonar-switch"
                                             [class.sonar-switch--on]="moverCrossedOnly()" (click)="toggleMoverCrossed()"
                                             role="switch" [attr.aria-checked]="moverCrossedOnly()"
-                                            title="Only members who changed band this run (a real boundary crossing, not an in-band wiggle)">
+                                            [title]="'Only ' + noun().many + ' who changed band this run (a real boundary crossing, not an in-band wiggle)'">
                                         Crossed a band <span class="sonar-switch__track"></span></button>
                                     }
                                 </div>
@@ -592,10 +592,11 @@
                                      cap truncates the resolved cohort, so the order decides who a capped launch
                                      actually treats. -->
                                 <div class="sonar-movers2__group">
-                                <span class="sonar-card__label">Which members</span>
+                                <span class="sonar-card__label">Which {{ noun().many }}</span>
                                 <div class="sonar-movers2__context">
                                     <sonar-member-filter
                                         [dense]="true"
+                                        [noun]="noun()"
                                         [fields]="memberFields()"
                                         [conditions]="memberConditions()"
                                         (conditionsChange)="setMemberConditions($event)"></sonar-member-filter>
@@ -628,7 +629,7 @@
                                                 <span class="sonar-card__label">Value</span>
                                                 <select class="sonar-input sonar-movers2__rankselect" [value]="rankValueField()"
                                                         (change)="setRankValueField($any($event.target).value)"
-                                                        title="A number on the member record to weigh, e.g. how much they're worth or how long they've been in the profession.">
+                                                        [title]="'A number on the ' + noun().one + ' record to weigh, e.g. how much they are worth or how long they have been in the profession.'">
                                                     <option value="">None</option>
                                                     @for (f of memberNumberFields(); track f.name) {
                                                         <option [value]="f.name">{{ f.label }}</option>
@@ -665,8 +666,8 @@
                                                     [disabled]="!r.factorId"
                                                     [attr.aria-pressed]="isReasonSelected(r)"
                                                     [title]="r.factorId
-                                                        ? (isReasonSelected(r) ? 'Back out to the whole cohort' : 'Show only these members') + ' — ' + r.count + ' of ' + moverCohortTotal()
-                                                        : 'Sonar has no signal data for these members, so there is nothing to target'"
+                                                        ? (isReasonSelected(r) ? 'Back out to the whole cohort' : 'Show only these ' + noun().many) + ' — ' + r.count + ' of ' + moverCohortTotal()
+                                                        : 'Sonar has no signal data for these ' + noun().many + ', so there is nothing to target'"
                                                     (click)="selectReasonSlice(r)">
                                                 @if (!r.hadData && r.factorId) { <i class="fa-solid fa-database"></i> }
                                                 {{ r.label }}
@@ -691,7 +692,7 @@
                                         <i class="fa-solid fa-arrow-trend-down"></i>
                                         <h2>Nobody matches this rule</h2>
                                         @if (moverMode() === 'lastRun') {
-                                            <p>No one {{ moverDirection() === 'drops' ? 'fell' : 'rose' }} {{ moverMagnitude() }} points or more since the last score update{{ moverCrossedOnly() ? ', crossing into a different band' : '' }}. Try a smaller number, or look <strong>Over time</strong> instead: a member can slide for months without any single update looking dramatic.</p>
+                                            <p>No one {{ moverDirection() === 'drops' ? 'fell' : 'rose' }} {{ moverMagnitude() }} points or more since the last score update{{ moverCrossedOnly() ? ', crossing into a different band' : '' }}. Try a smaller number, or look <strong>Over time</strong> instead: a {{ noun().one }} can slide for months without any single update looking dramatic.</p>
                                         } @else {
                                             <p>No one has been {{ moverDirection() === 'drops' ? 'losing' : 'gaining' }} {{ moverRatePerMonth() }}+ points a month over the last {{ moverWindowDays() }} days@if (moverDirection() === 'drops' && moverSlideCycles() > 0) {, while still sliding {{ moverSlideCycles() }} updates in a row}. Try a smaller rate or a longer window@if (moverDirection() === 'drops' && moverSlideCycles() > 0) {, or ask for fewer consecutive updates}@if (moverSteadyOnly()) {, or turn off <strong>Steady only</strong>}.</p>
                                         }
@@ -703,7 +704,7 @@
                                     <table class="sonar-iv-table sonar-movers2__list">
                                         <thead>
                                             <tr>
-                                                <th>Member</th>
+                                                <th>{{ noun().One }}</th>
                                                 <th>Band</th>
                                                 <th>Why</th>
                                                 <th class="sonar-iv-table__num">Score</th>
@@ -773,8 +774,8 @@
                                             <div class="sonar-play">
                                                 <div class="sonar-play__top">
                                                     <span class="sonar-play__name">{{ iv.name }}</span>
-                                                    <span class="sonar-chip sonar-chip--small" [title]="iv.kind === 'BulkSync' ? 'The treated cohort was handed to the play in one batch' : iv.kind === 'TrackOnly' ? 'No play fires — Sonar measures a real-world treatment' : 'The play fired once per treated member'">
-                                                        {{ iv.kind === 'BulkSync' ? 'bulk sync' : iv.kind === 'TrackOnly' ? 'track only' : 'per member' }}
+                                                    <span class="sonar-chip sonar-chip--small" [title]="iv.kind === 'BulkSync' ? 'The treated cohort was handed to the play in one batch' : iv.kind === 'TrackOnly' ? 'No play fires — Sonar measures a real-world treatment' : 'The play fired once per treated ' + noun().one">
+                                                        {{ iv.kind === 'BulkSync' ? 'bulk sync' : iv.kind === 'TrackOnly' ? 'track only' : 'per ' + noun().one }}
                                                     </span>
                                                     <span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span>
                                                     <span class="sonar-play__spacer"></span>
@@ -797,7 +798,7 @@
                                                             <div class="sonar-play__sk">lift · {{ m.lift.outcomeLabel }}</div>
                                                         } @else {
                                                             <button class="sonar-btn sonar-btn--ghost sonar-play__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"
-                                                                    title="Measure outcomes: each member's score/band now vs at assignment, treatment vs control">
+                                                                    [title]="'Measure outcomes: each ' + noun().one + '\'s score/band now vs at assignment, treatment vs control'">
                                                                 @if (measuringId() === iv.id) { <i class="fa-solid fa-circle-notch fa-spin"></i> } @else { <i class="fa-solid fa-scale-balanced"></i> Measure }
                                                             </button>
                                                             <div class="sonar-play__sk">lift vs holdout</div>
@@ -833,7 +834,7 @@
                                 <div class="sonar-card__head sonar-outreach__head">
                                     <div>
                                         <h2 class="sonar-card__title"><i class="fa-solid fa-envelope-open-text"></i> Outreach</h2>
-                                        <p class="sonar-faint sonar-outreach__blurb">Sonar drafted these from each member's score story. Nothing is sent without your approval.</p>
+                                        <p class="sonar-faint sonar-outreach__blurb">Sonar drafted these from each {{ noun().one }}'s score story. Nothing is sent without your approval.</p>
                                     </div>
                                     <div class="sonar-outreach__actions">
                                         <button class="sonar-btn" [disabled]="proposalBusy() !== null || proposedCount() === 0" (click)="approveAll()"
@@ -856,7 +857,7 @@
                                     <div class="sonar-empty">
                                         <i class="fa-solid fa-envelope-open-text"></i>
                                         <h2>No drafts yet</h2>
-                                        <p>Launch an intervention with the <strong>Sonar: Draft Outreach</strong> play. Each treated member gets a personalized draft here, grounded in why their score dropped — you review, tweak, and approve.</p>
+                                        <p>Launch an intervention with the <strong>Sonar: Draft Outreach</strong> play. Each treated {{ noun().one }} gets a personalized draft here, grounded in why their score dropped — you review, tweak, and approve.</p>
                                     </div>
                                 } @else {
                                     <div class="sonar-outreach">
@@ -937,7 +938,7 @@
                                                 } @else if (sel.status === 'Executed') {
                                                     <p class="sonar-faint sonar-outreach__note"><i class="fa-solid fa-paper-plane"></i> Marked sent (simulated) — no email left Sonar in this build.</p>
                                                 } @else if (sel.status === 'Rejected') {
-                                                    <p class="sonar-faint sonar-outreach__note"><i class="fa-solid fa-ban"></i> Rejected — this member will not be contacted by this intervention.</p>
+                                                    <p class="sonar-faint sonar-outreach__note"><i class="fa-solid fa-ban"></i> Rejected — this {{ noun().one }} will not be contacted by this intervention.</p>
                                                 }
                                             </div>
                                         }

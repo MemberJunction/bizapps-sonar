@@ -92,7 +92,7 @@ export class SonarDraftOutreachAction extends SonarActionBase {
         try {
             const existing = await this.existingProposalId(interventionId, anchorId, params.ContextUser);
             if (existing) {
-                return this.ok(params, "A proposal already exists for this member — nothing re-drafted.", {
+                return this.ok(params, "A proposal already exists for this record — nothing re-drafted.", {
                     proposalId: existing,
                     existing: true,
                 });
@@ -100,7 +100,7 @@ export class SonarDraftOutreachAction extends SonarActionBase {
 
             const context = await this.loadMemberContext(modelId, anchorId, params.ContextUser);
             if (!context) {
-                return this.fail(params, "NOT_FOUND", `No score found for member '${anchorId}' on model '${modelId}'.`);
+                return this.fail(params, "NOT_FOUND", `No score found for record '${anchorId}' on model '${modelId}'.`);
             }
 
             const draft = await this.draftWithPrompt(context, params.ContextUser);

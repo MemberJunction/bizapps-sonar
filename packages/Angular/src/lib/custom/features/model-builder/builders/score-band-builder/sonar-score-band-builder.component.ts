@@ -64,7 +64,7 @@ export class SonarScoreBandBuilderComponent implements OnInit {
     ];
 
     public readonly setName = signal("Default Health Bands");
-    public readonly description = signal("Generic 0–100 health scale for member engagement models.");
+    public readonly description = signal("Generic 0–100 health scale for engagement models.");
 
     public readonly bands = signal<ScoreBand[]>(SonarScoreBandBuilderComponent.NEW_SET_BANDS.map((b) => ({ ...b })));
 

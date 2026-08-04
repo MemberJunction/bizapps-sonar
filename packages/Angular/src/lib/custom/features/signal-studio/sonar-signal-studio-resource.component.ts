@@ -162,7 +162,7 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
 
     /** Plain-English commission starters — click to fill the box (prompting is the hardest part). */
     public readonly examples: ReadonlyArray<{ label: string; text: string }> = [
-        { label: "Activity streak", text: "The longest streak of consecutive months a member registered for an event. Reads Event Registrations on the Members anchor; returns the streak length in months." },
+        { label: "Activity streak", text: "The longest streak of consecutive months a record registered for an event. Reads Event Registrations on the Members anchor; returns the streak length in months." },
         { label: "Recency decay", text: "A recency-weighted engagement score where more recent event registrations count for more, using an exponential decay with a 90-day half-life relative to AsOf. Reads Event Registrations." },
         { label: "Open→send ratio", text: "The ratio of email opens to email sends over the last 90 days (0 when there were no sends). Reads Email Engagements on the Members anchor." },
     ];
@@ -397,7 +397,7 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         const seed = s?.firstError
             ? `The test failed with: "${s.firstError}". Fix the code so it runs and returns a numeric Value (and a short Explanation) for each member.`
             : s?.state === "empty"
-              ? "The test produced no value for any member. Fix the code so it returns a numeric Value where data exists."
+              ? "The test produced no value for any record. Fix the code so it returns a numeric Value where data exists."
               : "";
         this.refineFeedback = seed;
         this.editing.set(false);

@@ -3,6 +3,7 @@ import { Metadata } from "@memberjunction/core";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { reachableFromAnchor } from "../../../../core/entity-graph";
 import { IsBusinessEntity } from "../../../../core/entity-scope";
+import { AnchorNoun, anchorNounFor } from "../../../../core/anchor-noun";
 
 /** An MJ entity the user can pick as the anchor or a data source. */
 interface EntityOption { id: string; name: string; }
@@ -30,6 +31,14 @@ export class SonarModelSetupComponent {
 
     public readonly name = signal("");
     public readonly anchorEntityID = signal("");
+
+    /** What the picked anchor's records are called. Updates live as the anchor is chosen. */
+    public readonly noun = computed<AnchorNoun>(() => {
+        const id = this.anchorEntityID();
+        if (!id) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    });
     /** Chosen data-source entity IDs (chips). Aliases are derived from the entity name on save. */
     public readonly dataSourceIds = signal<string[]>([]);
     /** Trend window (days): Delta/Trend compare against the score ~N days ago. Defaults to 30 —

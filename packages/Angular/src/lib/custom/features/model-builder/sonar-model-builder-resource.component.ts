@@ -21,6 +21,7 @@ import { resolveAnchorName } from "../../core/services/anchor-name.util";
 import { sqlString } from "../../core/services/sql.util";
 import { SonarModelSidebarComponent } from "../../shared/model-sidebar/sonar-model-sidebar.component";
 import { FactorSource, FactorWindow } from "./builders/factor-builder/sonar-factor-builder.component";
+import { AnchorNoun, anchorNounFor } from "../../core/anchor-noun";
 
 /** SQL types treated as numeric when mapping anchor columns to filter fields. */
 const NUMERIC_TYPES = new Set(["int", "bigint", "smallint", "tinyint", "decimal", "numeric", "money", "smallmoney", "float", "real"]);
@@ -76,6 +77,14 @@ interface BandEditVM { id: string; label: string; min: number; max: number; key:
     styleUrls: ["../../shared/styles/sonar-shell.css", "./sonar-model-builder-resource.component.css"],
 })
 export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
+    /** What this model's scored records are called, from the anchor entity — never assumed to be "member". */
+    public readonly noun = computed<AnchorNoun>(() => {
+        const id = this.selectedModel()?.AnchorEntityID;
+        if (!id) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    });
+
     /** Which view is showing: the rubric (default) or one of the hosted builders. The
      *  builders are opened by the model's own actions (+ Add factor / Edit bands / Publish)
      *  and emit `close` to return here — keeps the builders inside the model workflow. */
@@ -1619,7 +1628,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             if (res.errors.length > 0 || res.status === "Failed") {
                 this.toast.error(`${modelName}: ${res.errors[0] || "Recompute failed."}`);
             } else {
-                this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} member${res.recordsScored === 1 ? "" : "s"} scored.`);
+                this.toast.success(`${modelName} recompute ${res.status.toLowerCase()} — ${res.recordsScored} ${res.recordsScored === 1 ? this.noun().one : this.noun().many} scored.`);
                 // THE reason the bus exists: this run just wrote Score / ScoreHistory /
                 // ScoreBandTransition rows that Portfolio, Engagement Manager and the model dashboard
                 // are all still showing the previous version of. Published against `id`, not the

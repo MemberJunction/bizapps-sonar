@@ -12,6 +12,7 @@ import { MemberCondition, MemberField, MemberFieldKind, humanizeDays } from "../
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
+import { AnchorNoun, anchorNounFor } from "../../core/anchor-noun";
 import { FireableAction, InterventionService, PlayParam, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, MemberTrendShape, PreviewMember, ProposalStatus, ProposalSummary, ReasonSlice } from "../../core/services/intervention.service";
 
 
@@ -311,6 +312,20 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly maxScore = signal<number | null>(null);
     public readonly sortDir = signal<"asc" | "desc">("asc");
     private readonly anchorEntityId = signal<string | null>(null);
+
+    /**
+     * What to call the thing this model scores, derived from the anchor entity rather than assumed.
+     *
+     * Every label on this surface used to say "member", which was only ever right because the demo models
+     * anchor on Members. A model scored on Accounts read "Cohort: members who slid 3 cycles" over a list of
+     * companies. Falls back to a generic noun before a model is chosen — see anchorNounFor.
+     */
+    public readonly noun = computed<AnchorNoun>(() => {
+        const id = this.anchorEntityId();
+        if (!id) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    });
     /** When a suggestion is picked, pin to that exact anchor record (overrides the name substring). */
     private readonly pinnedAnchorId = signal<string | null>(null);
 
@@ -515,7 +530,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             const reasons = await this.interventionService.reasonsForScores(members.map((m) => m.scoreId));
             this.memberCauseById.set(new Map([...reasons].map(([scoreId, r]) => [scoreId, r.reasonLabel ?? ""])));
         } catch {
-            this.error.set("Couldn't load members. Please retry.");
+            this.error.set(`Couldn't load ${this.noun().many}. Please retry.`);
             this.members.set([]); this.total.set(0); this.selected.set(null); this.contributions.set([]);
         } finally {
             this.loadingMembers.set(false);
@@ -634,12 +649,40 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         };
     }
 
-    /** Kind toggle: TrackOnly clears any picked play (it fires nothing); resets the preview. */
+    /** Kind toggle: TrackOnly fires nothing, and any other kind may not be able to service the play that
+     *  was already picked. Either way the selection goes, along with the fields it was driving. */
     public setLaunchKind(kind: "Action" | "TrackOnly" | "BulkSync"): void {
         this.launchKind.set(kind);
-        if (kind === "TrackOnly") this.launchActionId.set(null);
+        // A selection the new kind cannot service must not survive the switch — a batch play left over
+        // from "Sync cohort" under "Fire a play" is a launch that fails once per member. TrackOnly clears
+        // unconditionally: playsForKind is empty there, so the check below covers it too.
+        if (!this.playsForKind().some((p) => p.id === this.launchActionId())) {
+            this.clearPlaySelection();
+        }
         this.launchPreview.set(null);
     }
+
+    /** Drop the picked play AND the param fields it was driving. Clearing only the id left the previous
+     *  play's inputs on screen under a "Pick the action to fire…" picker, which reads as a rendering bug
+     *  and, worse, would submit values the next play never asked for. */
+    private clearPlaySelection(): void {
+        this.launchActionId.set(null);
+        this.playParams.set([]);
+        this.playParamValues.set({});
+    }
+
+    /**
+     * The plays the CURRENT launch kind can actually fire.
+     *
+     * Per-member kinds want a play that takes AnchorRecordID; BulkSync wants one that takes CohortJSON.
+     * Offering all of them regardless is what let a batch-only play be picked under "Fire a play" and fail
+     * on every single member.
+     */
+    public readonly playsForKind = computed<FireableAction[]>(() => {
+        const kind = this.launchKind();
+        if (kind === "TrackOnly") return [];
+        return this.fireable().filter((p) => (kind === "BulkSync" ? p.bulk : p.perMember));
+    });
 
     /** Dry-run: resolve the cohort + treated/held split, write and fire NOTHING. */
     public async previewLaunch(): Promise<void> {
@@ -849,7 +892,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
      *  lead would use. This is the line that makes the numbers below it checkable. */
     public moverExplainer(): string {
         const n = this.moverTotal();
-        const who = n === 1 ? "1 member" : `${n.toLocaleString()} members`;
+        const who = n === 1 ? `1 ${this.noun().one}` : `${n.toLocaleString()} ${this.noun().many}`;
         // The drill-down is part of the rule, so the sentence has to say so — otherwise it reads as a
         // count of the whole cohort while the list shows one slice of it.
         const slice = this.moverReason();
@@ -880,7 +923,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         const parts: string[] = [];
         const conditions = this.memberConditions();
         if (conditions.length > 0) {
-            parts.push(`Narrowed to members where ${conditions.map((c) => this.describeCondition(c)).join(", and ")}.`);
+            parts.push(`Narrowed to ${this.noun().many} where ${conditions.map((c) => this.describeCondition(c)).join(", and ")}.`);
         }
         const mode = this.rankMode();
         if (mode !== "worstScore") {

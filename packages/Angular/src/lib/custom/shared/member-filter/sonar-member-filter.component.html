@@ -4,7 +4,7 @@
     <!-- Omitted in dense mode: the rule pane's own group heading already says it. Not rendering beats
          hiding with CSS, which needed a class that existed only as a styling hook. -->
     @if (!dense()) {
-        <span class="sonar-card__label sonar-memfilter__labelslot">Members</span>
+        <span class="sonar-card__label sonar-memfilter__labelslot">{{ noun().Many }}</span>
     }
 
     <!-- Each chip is a button: clicking loads its sentence back into the box for editing, so there is no
@@ -40,7 +40,7 @@
                    [placeholder]="fields().length === 0 ? 'No targetable fields' : 'Try “joined 90”'"
                    [title]="fields().length === 0
                        ? 'This model\'s anchor entity has no fields that can be targeted on'
-                       : 'Narrow the cohort by something on the member record: tenure, region, activity'"
+                       : 'Narrow the cohort by something on the ' + noun().one + ' record: tenure, region, activity'"
                    [value]="query()" (input)="onInput($event)" (focus)="onFocus()" (blur)="onBlur()"
                    (keydown)="onKeydown($event)" />
         </div>

@@ -380,7 +380,7 @@
                 <div class="sonar-deck__panel-head">
                     <span class="sonar-deck__panel-label">
                         BAND DISTRIBUTION
-                        @if (population() !== null) { <span class="sonar-deck__panel-count">{{ population() | number }} members</span> }
+                        @if (population() !== null) { <span class="sonar-deck__panel-count">{{ population() | number }} {{ noun().many }}</span> }
                     </span>
                     @if (recomputingPreview()) {
                         <span class="sonar-sandbox__syncing"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
@@ -504,7 +504,7 @@
             @if (sampleMember(); as sample) {
                 <div class="sonar-sandbox__section">
                     <div class="sonar-deck__panel-head">
-                        <span class="sonar-deck__panel-label">SAMPLE MEMBER</span>
+                        <span class="sonar-deck__panel-label">SAMPLE {{ noun().One.toUpperCase() }}</span>
                     </div>
                     <div class="sonar-member-preview">
                         <div class="sonar-member-preview__head">
@@ -533,7 +533,7 @@
                 </div>
             } @else {
                 <div class="sonar-sandbox__section">
-                    <p class="sonar-deck__empty-sm">No sample member &mdash; run Simulate to populate.</p>
+                    <p class="sonar-deck__empty-sm">No sample {{ noun().one }} &mdash; run Simulate to populate.</p>
                 </div>
             }
 

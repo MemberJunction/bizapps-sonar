@@ -1,6 +1,7 @@
 import {
     Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild,
 } from "@angular/core";
+import { AnchorNoun, DEFAULT_ANCHOR_NOUN, anchorNounFor } from "../../core/anchor-noun";
 
 /** The kinds of field the operator list branches on. Mirrors the engine's AnchorFieldKind. */
 export type MemberFieldKind = "text" | "number" | "date" | "boolean";
@@ -157,6 +158,11 @@ export class SonarMemberFilterComponent {
      *  parent reaching in with CSS — emulated encapsulation blocks a parent styling a child's internals,
      *  so those rules silently did nothing. */
     public readonly dense = input(false);
+    /**
+     * What the scored thing is called, so this control's copy follows the model's anchor entity instead of
+     * assuming "member". Supplied by the host surface, which is the thing that knows the model.
+     */
+    public readonly noun = input<AnchorNoun>(DEFAULT_ANCHOR_NOUN);
     public readonly conditionsChange = output<MemberCondition[]>();
 
     private readonly box = viewChild<ElementRef<HTMLInputElement>>("box");

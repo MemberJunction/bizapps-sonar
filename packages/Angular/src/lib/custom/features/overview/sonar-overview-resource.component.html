@@ -98,23 +98,23 @@
                                 @switch (h.kind) {
                                     @case ('moved') {
                                         <div class="sonar-home__headline">
-                                            Since {{ h.prevDate }}: <span class="sonar-home__headline-bad">{{ h.declined | number }} members</span> slipped toward {{ h.worstLabel }},
+                                            Since {{ h.prevDate }}: <span class="sonar-home__headline-bad">{{ h.declined | number }} {{ noun().many }}</span> slipped toward {{ h.worstLabel }},
                                             <span class="sonar-home__headline-good">{{ h.improved | number }} improved</span>.
                                         </div>
                                         <div class="sonar-home__headline-sub">
                                             {{ h.movedPct }}% of the scored population moved
-                                            @if (h.topFlow) { · biggest shift: {{ h.topFlow.fromLabel }} → {{ h.topFlow.toLabel }} ({{ h.topFlow.count | number }} members) }
+                                            @if (h.topFlow) { · biggest shift: {{ h.topFlow.fromLabel }} → {{ h.topFlow.toLabel }} ({{ h.topFlow.count | number }} {{ noun().many }}) }
                                         </div>
                                     }
                                     @case ('steady') {
                                         <div class="sonar-home__headline">
-                                            Scores held steady since {{ h.prevDate }} — no band changes across {{ scoredCount() | number }} members.
+                                            Scores held steady since {{ h.prevDate }} — no band changes across {{ scoredCount() | number }} {{ noun().many }}s.
                                         </div>
                                         <div class="sonar-home__headline-sub">Recomputed {{ h.currDate }} · distribution unchanged below</div>
                                     }
                                     @case ('first') {
                                         <div class="sonar-home__headline">
-                                            First recompute complete — {{ scoredCount() | number }} members scored across {{ bandCount() }} bands.
+                                            First recompute complete — {{ scoredCount() | number }} {{ noun().many }} scored across {{ bandCount() }} bands.
                                         </div>
                                         <div class="sonar-home__headline-sub">Movement and trends appear after the next recompute</div>
                                     }
@@ -190,7 +190,7 @@
                                             @if (flowLinks().length === 0) {
                                                 <div class="sonar-home__flow-steady">
                                                     @if (headline()?.kind === 'first') { Movement appears after the next recompute. }
-                                                    @else { No band movement — every member held their band. }
+                                                    @else { No band movement — every {{ noun().one }} held their band. }
                                                 </div>
                                             }
                                         </div>
@@ -204,7 +204,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="sonar-home__hero-caption">Ribbons = members who changed band, labeled with counts · amber = decline, green = recovery</div>
+                                <div class="sonar-home__hero-caption">Ribbons = {{ noun().many }} who changed band, labeled with counts · amber = decline, green = recovery</div>
                             }
 
                             <!-- Lens 3: band mix — DISCRETE stacked columns, one per recompute. Scores step

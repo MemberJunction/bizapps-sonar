@@ -52,7 +52,7 @@ export class SonarSyncCohortToListAction extends SonarActionBase {
         }
         const bad = cohort.find((m) => !m || typeof m.anchorRecordId !== "string" || m.anchorRecordId.length === 0);
         if (bad !== undefined) {
-            return this.fail(params, "VALIDATION_ERROR", "Every cohort member needs a non-empty anchorRecordId.");
+            return this.fail(params, "VALIDATION_ERROR", "Every cohort entry needs a non-empty anchorRecordId.");
         }
 
         try {
@@ -80,10 +80,10 @@ export class SonarSyncCohortToListAction extends SonarActionBase {
                 return this.fail(
                     params,
                     "ERROR",
-                    `Only ${added} of ${fresh.length} member(s) could be written to '${listName}' — the run will retry; already-synced members are skipped.`,
+                    `Only ${added} of ${fresh.length} record(s) could be written to '${listName}' — the run will retry; already-synced members are skipped.`,
                 );
             }
-            return this.ok(params, `Synced ${added} member(s) to '${listName}' (${existing.size} already on it).`, {
+            return this.ok(params, `Synced ${added} record(s) to '${listName}' (${existing.size} already on it).`, {
                 listId: list.ID,
                 listName,
                 added,
@@ -135,7 +135,7 @@ export class SonarSyncCohortToListAction extends SonarActionBase {
         list.NewRecord();
         list.Name = name;
         list.EntityID = anchorEntityID;
-        list.Description = "Cohort synced by a Sonar intervention (treated members only — the holdout control group is deliberately excluded).";
+        list.Description = "Cohort synced by a Sonar intervention (treated records only — the holdout control group is deliberately excluded).";
         if (contextUser?.ID) list.UserID = contextUser.ID;
         return (await list.Save()) ? list : null;
     }

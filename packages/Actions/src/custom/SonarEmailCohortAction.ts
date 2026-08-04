@@ -78,7 +78,7 @@ export class SonarEmailCohortAction extends SonarActionBase {
                 return this.fail(
                     params,
                     "NO_RECIPIENTS",
-                    `None of the ${cohort.length} member(s) have an email address on the anchor record, so there is nobody to send to.`,
+                    `None of the ${cohort.length} record(s) have an email address on the anchor record, so there is nobody to send to.`,
                 );
             }
 
@@ -108,7 +108,7 @@ export class SonarEmailCohortAction extends SonarActionBase {
             return this.ok(
                 params,
                 `${verb} ${delivered} of ${recipients.length} message(s) via ${providerName}${where}` +
-                    `${failed ? `, ${failed} failed` : ""}${skippedNoEmail ? `, ${skippedNoEmail} member(s) had no email` : ""}.` +
+                    `${failed ? `, ${failed} failed` : ""}${skippedNoEmail ? `, ${skippedNoEmail} record(s) had no email` : ""}.` +
                     (dryRun ? " Dry run: nothing was actually sent." : ""),
                 {
                     dryRun,

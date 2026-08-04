@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, computed, inject, signal } from "@angular/core";
 import { BaseEntity, Metadata, RunView } from "@memberjunction/core";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
+import { AnchorNoun, anchorNounFor } from "../../../../core/anchor-noun";
 
 /**
  * Prompt view/edit/test panel for an LLM-backed factor-action — extracted out of the factor builder
@@ -24,6 +25,14 @@ export class SonarPromptEditorComponent implements OnChanges {
     @Input() public promptName: string | null = null;
     /** The model's anchor entity — used to load sample members for the test picker. */
     @Input() public anchorEntityID: string | null = null;
+
+    /** What the anchor's records are called. A getter rather than a computed: anchorEntityID is a plain
+     *  @Input here, so there is no signal to derive from. */
+    public get noun(): AnchorNoun {
+        if (!this.anchorEntityID) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === this.anchorEntityID);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    }
     /** The factor-action's id — used to run the real action for the test. */
     @Input() public actionId: string | null = null;
 
