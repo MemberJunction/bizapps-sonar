@@ -168,8 +168,25 @@ export interface LaunchResult {
     playApproved: boolean;
 }
 
-/** An MJ Action the operator can pick as the play (what fires per treated member). */
-export interface FireableAction { id: string; name: string; description: string | null }
+/**
+ * An MJ Action the operator can pick as the play, plus which launch kinds it can actually service.
+ *
+ * The picker used to offer every play in the category for every kind, so "Fire a play" listed batch-only
+ * plays like `Sonar: Sync Cohort to List`. Picking one fired it once per treated member with no cohort to
+ * work on, and every fire came back VALIDATION_ERROR — 81 of them, in the run that found this.
+ *
+ * A play says which shape it wants through its declared params: `AnchorRecordID` means "call me once per
+ * member", `CohortJSON` means "hand me the whole treated set at once".
+ */
+export interface FireableAction {
+    id: string;
+    name: string;
+    description: string | null;
+    /** Declares AnchorRecordID — fireable once per treated member (Kind='Action'). */
+    perMember: boolean;
+    /** Declares CohortJSON — takes the whole treated cohort in one call (Kind='BulkSync'). */
+    bulk: boolean;
+}
 
 /** The trend shape the engine computed for a member, when the rule used trajectory bounds.
  *  Mirrors the engine's TrendShape (we can't import across packages, per the no-re-export rule). */
@@ -387,7 +404,8 @@ export class InterventionService {
     }
 
     /** The plays an operator can fire — ONLY the "Sonar Plays" category (purpose-built interventions),
-     *  so the picker isn't polluted with the authoring/utility actions. */
+     *  so the picker isn't polluted with the authoring/utility actions. Each is tagged with the launch
+     *  kinds it can service, read from its declared params (see {@link FireableAction}). */
     public async fireableActions(): Promise<FireableAction[]> {
         const res = await new RunView().RunView<ActionRow>({
             EntityName: "MJ: Actions",
@@ -397,7 +415,49 @@ export class InterventionService {
             ResultType: "simple",
         });
         const rows = res.Success ? res.Results ?? [] : [];
-        return rows.map((r) => ({ id: r.ID, name: r.Name, description: r.Description }));
+        if (rows.length === 0) return [];
+
+        const declared = await this.declaredParamsByAction(rows.map((r) => r.ID));
+        return rows.map((r) => {
+            const names = declared.get(r.ID) ?? [];
+            const perMember = names.includes("AnchorRecordID");
+            const bulk = names.includes("CohortJSON");
+            // A play declaring NEITHER is left usable for both kinds on purpose. It takes no cohort input
+            // at all, so it cannot be mis-shaped by the choice — and hiding a working play would be a
+            // worse bug than the one being fixed here.
+            const unshaped = !perMember && !bulk;
+            return {
+                id: r.ID,
+                name: r.Name,
+                description: r.Description,
+                perMember: perMember || unshaped,
+                bulk: bulk || unshaped,
+            };
+        });
+    }
+
+    /**
+     * Input param names for several plays in ONE read, keyed by action id.
+     *
+     * Batched because the picker needs this for every play just to render, and a query per play would put
+     * N round trips in front of opening the launch panel. Also warms the single-action cache.
+     */
+    private async declaredParamsByAction(actionIds: string[]): Promise<Map<string, string[]>> {
+        const byAction = new Map<string, string[]>(actionIds.map((id) => [id, []]));
+        const ids = actionIds.map((id) => `'${sqlString(id)}'`).join(",");
+        const res = await new RunView().RunView<{ ActionID: string; Name: string }>({
+            EntityName: "MJ: Action Params",
+            ExtraFilter: `ActionID IN (${ids}) AND Type='Input'`,
+            Fields: ["ActionID", "Name"],
+            ResultType: "simple",
+        });
+        for (const row of res.Success ? res.Results ?? [] : []) {
+            byAction.get(row.ActionID)?.push(row.Name);
+        }
+        for (const [id, names] of byAction) {
+            if (!this.actionParamNameCache.has(id)) this.actionParamNameCache.set(id, names);
+        }
+        return byAction;
     }
 
     /** All interventions on this model's segments, each with its assignment tallies. */
