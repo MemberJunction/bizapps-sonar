@@ -364,21 +364,68 @@
    "Launch intervention" button. It OVERLAYS the triage/movers content instead of reflowing it,
    so the member list keeps its full height and the filter stays usable underneath (the cohort
    sentence updates live). A compact vertical form, not a hero card. */
+/* A FRAME, not a column. The panel is absolutely positioned, which means when its content outgrew the
+   workspace the PAGE scrolled rather than the panel — and Preview/Launch went off the bottom with nothing
+   to grab. Rendering a play's declared params (six of them for Email Cohort) made that reachable in normal
+   use. So the panel is now height-bounded and its middle region owns the overflow.
+
+   `max-height: 100%` resolves because the offset parent (.sonar-mgr-content) carries a definite height;
+   verified at runtime rather than assumed, since a percentage max-height against an auto-height ancestor
+   silently computes to none. */
 .sonar-launch {
     position: absolute;
     top: 0.25rem;
     right: 0;
     z-index: 30;
     width: min(26rem, calc(100% - 1rem));
+    /* The 4.5rem is not padding taste: MJ's chat launcher is position:fixed in the bottom-right corner at
+       z-index 2147483647, so nothing can be layered above it. At full height the panel's footer reached into
+       that corner and the bubble sliced 23px off the Launch button. Ending the panel short of the corner
+       costs a little scroll height in a region that already scrolls, and keeps the primary action whole. */
+    max-height: calc(100% - 4.5rem);
     margin: 0;
-    padding: 1rem 1.25rem;
+    /* Padding belongs to the three regions now, so the scrolling one can run edge to edge. */
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    min-height: 0;
+    overflow: hidden;
     border: 1px solid var(--sonar-border-strong);
     box-shadow: 0 16px 40px color-mix(in srgb, var(--sonar-ink) 18%, transparent);
 }
-.sonar-launch__head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+
+/* Pinned top: who you are about to contact. */
+.sonar-launch__head {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 0.75rem;
+}
+.sonar-launch__titlerow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+
+/* The scrolling middle. min-height:0 is what actually lets it shrink inside the flex frame — without it a
+   flex item refuses to go below its content size and the overflow never engages. */
+.sonar-launch__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0 1.25rem 0.75rem;
+}
+
+/* Pinned bottom: how many, and go. Separated by a hairline so it reads as chrome, not as another field. */
+.sonar-launch__footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid var(--sonar-border);
+    background: var(--sonar-surface-sunken);
+}
 .sonar-launch__title { font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-ink); white-space: nowrap; }
 .sonar-launch__title i { color: var(--sonar-accent); margin-right: 0.25rem; }
 .sonar-launch__scope { margin: 0; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.45; }
@@ -818,4 +865,6 @@
 .sonar-launch__textarea { height: auto; padding: 0.5rem 0.75rem; line-height: 1.5; resize: vertical; font: inherit; }
 /* The required marker earns the accent because skipping it is what blocks the launch. */
 .sonar-launch__req { color: var(--sonar-accent); font-weight: 700; margin-left: 0.125rem; }
-.sonar-launch__hint { font-size: var(--sonar-font-xs); color: var(--sonar-faint); line-height: 1.4; }
+/* Muted, not faint: this is a play's own param description and it is the only explanation of what the field
+   wants, so it has to clear the 4.5:1 floor rather than sit decoratively under it (faint measured 4.34 light). */
+.sonar-launch__hint { font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }
