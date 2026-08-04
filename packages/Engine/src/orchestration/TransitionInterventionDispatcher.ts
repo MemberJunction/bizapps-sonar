@@ -24,9 +24,65 @@ interface WatchingIntervention {
     actionParams: { name: string; value: string }[];
     segmentFilter: SegmentFilter;
     segmentBandId: string | null;
-    /** True when the segment is a delta rule (dropped/gained N since the last run) — these fire on
-     *  CURRENT membership each recompute (delta is per-run state), not on band transitions. */
-    isDeltaRule: boolean;
+    /** How this segment decides someone just "entered" it. See {@link triggerKindFor}. */
+    trigger: SegmentTriggerKind;
+}
+
+/**
+ * How a segment's "entered" edge is detected.
+ *
+ * - `band`     — keyed off this run's ScoreBandTransition rows (ToBandID matches the filter's band).
+ * - `derived`  — the membership is RECOMPUTED from this run's scoring, so the filter itself selects the
+ *                entrants and no transition row is needed. Fires on current membership each recompute;
+ *                per-member idempotency in the runner stops anyone being fired twice.
+ * - `none`     — nothing in the filter changes as a result of a run, so there is no entry event to fire on.
+ */
+export type SegmentTriggerKind = "band" | "derived" | "none";
+
+/**
+ * Classify a segment filter's trigger.
+ *
+ * ## Why this exists as a function
+ *
+ * It used to be an inline `isDeltaRule` boolean that tested ONLY `minDelta`/`maxDelta`. Every other
+ * per-run rule therefore fell through to the "neither a band nor a delta rule" bucket and was skipped —
+ * so a scheduled TRAJECTORY intervention ("losing 8 points a month", "sliding 3 cycles") matched nobody,
+ * every run, and the log line called its segment unconfigured rather than unsupported. The rule was fine;
+ * the dispatcher just had no branch for it.
+ *
+ * The distinction that actually matters is not delta-vs-trajectory, it is **whether a recompute can change
+ * who is in the segment**. Delta, band-crossing, trajectory and reason are all recomputed from the run that
+ * just finished, so "entering" is meaningful for all of them and they behave identically: resolve the
+ * segment now, fire the newcomers, let idempotency handle the rest.
+ *
+ * A pure score range, a data-completeness gate or a member-attribute condition (`anchor`) is NOT recomputed
+ * in that sense — a member's join date does not change because scoring ran — so those genuinely have no
+ * entry edge and remain unsupported rather than silently mishandled.
+ */
+export function triggerKindFor(filter: SegmentFilter): SegmentTriggerKind {
+    if (filter.bandId) return "band";
+
+    // Per-run score state.
+    if (filter.minDelta != null || filter.maxDelta != null) return "derived";
+    if (filter.crossedBandOnly === true) return "derived";
+
+    // Trajectory, read from ScoreHistory and re-fitted every run. `windowDays` and `minSnapshots` are
+    // deliberately NOT here: a horizon and a minimum-data gate are qualifiers, not predicates — on their
+    // own they select nobody in particular and would make every segment look like a trigger.
+    if (
+        filter.minSlopePer30Days != null ||
+        filter.maxSlopePer30Days != null ||
+        filter.minDeclineRun != null ||
+        filter.minNetDrop != null ||
+        filter.maxVolatility != null
+    ) {
+        return "derived";
+    }
+
+    // Why the member is low, re-derived from this run's factor contributions.
+    if (filter.reason != null) return "derived";
+
+    return "none";
 }
 
 /** What one dispatch did — surfaced to the run log, never thrown. */
@@ -49,11 +105,13 @@ export interface TransitionDispatchSummary {
  *   (InterventionRunner.onlyAnchorIds), so a member whose score doesn't satisfy the full filter can
  *   never be fired. Transitions are marked Handled only when at least one band watcher exists — an
  *   unconfigured deployment keeps rows queued for later consumers (e.g. write-back).
- * - DELTA segments ("dropped N+ since the last run"): the delta IS per-run state, so these fire on
- *   the segment's CURRENT membership after every recompute — no transition row needed. Per-member
- *   idempotency keeps anyone from being fired twice by the same intervention across runs.
- * - Segments with neither a band nor a delta rule are skipped (logged) — a pure score range has no
- *   "entered" edge to key off.
+ * - DERIVED segments — delta ("dropped N+ since the last run"), band-crossing, TRAJECTORY ("losing 8
+ *   points a month", "sliding 3 cycles") and reason ("low on events"). All of these are recomputed from
+ *   the run that just finished, so the filter itself selects the entrants and no transition row is
+ *   needed; they fire on CURRENT membership after every recompute. Per-member idempotency keeps anyone
+ *   from being fired twice by the same intervention across runs. See {@link triggerKindFor}.
+ * - Segments whose membership a recompute cannot change — a pure score range, a completeness gate, or a
+ *   member-attribute (`anchor`) condition — have no "entered" edge and are skipped, naming which ones.
  * - The fired Action gets the intervention's persisted params (ActionParamsJSON, `{{member}}` token
  *   filled per fire); null/malformed params → fire param-less.
  * - Failures NEVER propagate: the scoring run already succeeded; a broken intervention is logged and
@@ -70,8 +128,8 @@ export class TransitionInterventionDispatcher {
             const watchers = await this.loadWatchers(modelId, contextUser);
             if (watchers.length === 0) return summary; // nothing configured — leave transitions queued
 
-            const bandWatchers = watchers.filter((w) => w.segmentBandId);
-            const deltaWatchers = watchers.filter((w) => !w.segmentBandId && w.isDeltaRule);
+            const bandWatchers = watchers.filter((w) => w.trigger === "band");
+            const derivedWatchers = watchers.filter((w) => w.trigger === "derived");
             const runner = new InterventionRunner(createInterventionInvoker());
 
             // Band watchers key off this run's transitions (the crisp "entered the band" event).
@@ -87,17 +145,24 @@ export class TransitionInterventionDispatcher {
                 await this.markHandled(transitions, contextUser);
             }
 
-            // Delta watchers fire on CURRENT membership each recompute — the delta IS this run's
-            // state, so the segment filter itself selects the entrants. Per-member idempotency in
-            // the runner keeps a member from being re-fired on later runs.
-            for (const w of deltaWatchers) {
+            // Derived watchers (delta, band-crossing, trajectory, reason) fire on CURRENT membership each
+            // recompute — the rule IS this run's state, so the segment filter itself selects the entrants.
+            // Per-member idempotency in the runner keeps a member from being re-fired on later runs.
+            for (const w of derivedWatchers) {
                 summary.interventionsMatched++;
                 this.tally(summary, await this.fireForEntrants(runner, modelId, w, null, contextUser));
             }
 
-            const skipped = watchers.length - bandWatchers.length - deltaWatchers.length;
-            if (skipped > 0) {
-                LogStatus(`Sonar: ${skipped} OnEnterSegment intervention(s) watch segments with neither a band nor a delta rule — skipped.`);
+            // Name what was skipped and why. The old line reported only a count and described these as
+            // segments with "neither a band nor a delta rule", which read as "you configured it wrong" —
+            // and swept up every trajectory rule, whose configuration was perfectly good.
+            const unsupported = watchers.filter((w) => w.trigger === "none");
+            if (unsupported.length > 0) {
+                LogStatus(
+                    `Sonar: ${unsupported.length} OnEnterSegment intervention(s) skipped — a score range or ` +
+                        `record-attribute rule has no "entered" edge to fire on, because a recompute does not ` +
+                        `change who it matches: ${unsupported.map((w) => w.name).join(", ")}.`,
+                );
             }
             if (summary.interventionsMatched > 0) {
                 LogStatus(
@@ -155,7 +220,7 @@ export class TransitionInterventionDispatcher {
                 actionParams: this.parseParams(i.ActionParamsJSON),
                 segmentFilter: filter,
                 segmentBandId: filter.bandId ?? null,
-                isDeltaRule: filter.minDelta != null || filter.maxDelta != null,
+                trigger: triggerKindFor(filter),
             };
         });
     }
