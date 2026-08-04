@@ -60,8 +60,19 @@ export class SonarRunInterventionAction extends SonarActionBase {
         }
 
         try {
-            const segmentId = await this.findOrCreateSegment(cfg, params.ContextUser);
-            const interventionId = await this.findOrCreateIntervention(cfg, segmentId, params.ContextUser);
+            // A PREVIEW LOOKS BUT DOES NOT CREATE. This used to find-or-create unconditionally, so every
+            // preview minted a ScoreSegment and an Intervention before the runner had even been told it
+            // was a dry run — leaving empty Intervention rows in the tab for previews nobody committed,
+            // and quietly making "nothing is written until you commit" untrue.
+            //
+            // An existing segment/intervention is still resolved on preview, because that is what makes
+            // the already-assigned exclusion (and therefore the treated/held counts) honest for a cohort
+            // that has been run before. Only the WRITE is withheld.
+            const create = !cfg.preview;
+            const segmentId = await this.resolveSegment(cfg, params.ContextUser, create);
+            const interventionId = segmentId
+                ? await this.resolveIntervention(cfg, segmentId, params.ContextUser, create)
+                : null;
 
             const request: InterventionRunRequest = {
                 interventionId,
@@ -93,8 +104,8 @@ export class SonarRunInterventionAction extends SonarActionBase {
                 Success: true,
                 ResultCode: "SUCCESS",
                 Message: cfg.preview
-                    ? `Preview: would ${verb} ${result.treated} member(s), hold back ${result.held}.${result.playApproved ? "" : " (Play not approved — commit will be blocked.)"}`
-                    : `${done} ${cfg.kind === "TrackOnly" ? result.treated : result.sent} member(s), held back ${result.held}, ${result.failed} failed.`,
+                    ? `Preview: would ${verb} ${result.treated} record(s), hold back ${result.held}.${result.playApproved ? "" : " (Play not approved — commit will be blocked.)"}`
+                    : `${done} ${cfg.kind === "TrackOnly" ? result.treated : result.sent} record(s), held back ${result.held}, ${result.failed} failed.`,
                 Params: [...params.Params, { Name: "Result", Value: JSON.stringify(result), Type: "Both" }],
             };
         } catch (e: unknown) {
@@ -133,8 +144,16 @@ export class SonarRunInterventionAction extends SonarActionBase {
         };
     }
 
-    /** Reuse an ad-hoc segment with the same model + filter (dedup), else create one. */
-    private async findOrCreateSegment(cfg: RunInterventionConfig, contextUser: UserInfo): Promise<string> {
+    /**
+     * Reuse an ad-hoc segment with the same model + filter (dedup), else create one.
+     *
+     * @param create When false (preview), returns null instead of writing a row.
+     */
+    private async resolveSegment(
+        cfg: RunInterventionConfig,
+        contextUser: UserInfo,
+        create: boolean,
+    ): Promise<string | null> {
         const filterJson = JSON.stringify(cfg.segment.filter);
         const existing = await new RunView().RunView<{ ID: string }>(
             {
@@ -149,6 +168,7 @@ export class SonarRunInterventionAction extends SonarActionBase {
         if (existing.Success && existing.Results?.[0]) {
             return existing.Results[0].ID;
         }
+        if (!create) return null;
         const md = new Metadata();
         const seg = await md.GetEntityObject<mjBizAppsSonarScoreSegmentEntity>(SEGMENT_ENTITY, contextUser);
         seg.NewRecord();
@@ -162,13 +182,18 @@ export class SonarRunInterventionAction extends SonarActionBase {
         return seg.ID;
     }
 
-    /** Reuse an intervention for the same segment + action + holdout (so re-runs share assignment
-     *  history → idempotency), else create one. */
-    private async findOrCreateIntervention(
+    /**
+     * Reuse an intervention for the same segment + action + holdout (so re-runs share assignment
+     * history → idempotency), else create one.
+     *
+     * @param create When false (preview), returns null instead of writing a row.
+     */
+    private async resolveIntervention(
         cfg: RunInterventionConfig,
         segmentId: string,
         contextUser: UserInfo,
-    ): Promise<string> {
+        create: boolean,
+    ): Promise<string | null> {
         const pct = cfg.intervention.holdoutPercent;
         // Dedup key differs by kind: Action/BulkSync de-dup on kind+segment+action+holdout (Kind is
         // in the key so a per-member play and a batch play bound to the SAME action stay separate
@@ -190,6 +215,7 @@ export class SonarRunInterventionAction extends SonarActionBase {
         if (existing.Success && existing.Results?.[0]) {
             return existing.Results[0].ID;
         }
+        if (!create) return null;
         const md = new Metadata();
         const iv = await md.GetEntityObject<mjBizAppsSonarInterventionEntity>(INTERVENTION_ENTITY, contextUser);
         iv.NewRecord();

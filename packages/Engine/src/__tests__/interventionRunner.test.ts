@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cohortFor, fillTokens, hashToPercent, planAssignments } from "../orchestration/InterventionRunner";
+import { cohortFor, fillTokens, hashToPercent, InterventionRunner, planAssignments } from "../orchestration/InterventionRunner";
 import type { SegmentMember } from "../orchestration/SegmentEvaluator";
 
 const member = (id: string): SegmentMember => ({
@@ -130,5 +130,65 @@ describe("fillTokens (fire-time param substitution)", () => {
         const params = [{ name: "AnchorRecordID", value: "{{member}}" }];
         fillTokens(params, tokens);
         expect(params[0].value).toBe("{{member}}");
+    });
+});
+
+/**
+ * The dry-run gate. Preview is the promise the whole governance story rests on — "nothing is written or
+ * fired until you commit" — and it used to be false: the action minted a ScoreSegment and an Intervention
+ * before the runner was even told it was a preview, so the Interventions tab collected empty rows for
+ * previews nobody committed.
+ *
+ * These run with a stubbed cohort resolver and no intervention id, which is exactly the shape of a preview
+ * on a cohort that has never been run. In that shape the runner should touch no database at all, so if any
+ * of this reaches RunView or Metadata the test fails by throwing rather than by asserting.
+ */
+describe("InterventionRunner — preview writes nothing", () => {
+    const cohort = [member("m1"), member("m2"), member("m3"), member("m4")];
+    /** Stands in for SegmentEvaluator: returns a fixed cohort and never touches the database. */
+    const stubEvaluator = () =>
+        ({ resolve: async () => cohort }) as unknown as ConstructorParameters<typeof InterventionRunner>[1];
+    /** An invoker that fails the test if a play is ever fired. */
+    const noFire = {
+        invoke: async () => {
+            throw new Error("preview fired a play");
+        },
+    } as unknown as ConstructorParameters<typeof InterventionRunner>[0];
+    const user = {} as unknown as Parameters<InterventionRunner["run"]>[1];
+
+    const previewRequest = {
+        interventionId: null,
+        modelId: "mod-1",
+        segmentFilter: {},
+        holdoutPercent: 25,
+        kind: "TrackOnly",
+        cap: 100,
+        preview: true,
+    } as unknown as Parameters<InterventionRunner["run"]>[0];
+
+    it("returns real counts without an intervention to write them against", async () => {
+        const runner = new InterventionRunner(noFire, stubEvaluator());
+        const result = await runner.run(previewRequest, user);
+
+        expect(result.preview).toBe(true);
+        expect(result.cohortSize).toBe(4);
+        expect(result.treated + result.held).toBe(4);
+        // Nothing was sent or failed, because nothing was fired.
+        expect(result.sent).toBe(0);
+        expect(result.failed).toBe(0);
+    });
+
+    it("counts nobody as already-assigned when the intervention does not exist yet", async () => {
+        const runner = new InterventionRunner(noFire, stubEvaluator());
+        const result = await runner.run(previewRequest, user);
+        // A null id must short-circuit the assignment lookup rather than query InterventionID='null'.
+        expect(result.alreadyAssigned).toBe(0);
+        expect(result.eligible).toBe(4);
+    });
+
+    it("refuses to COMMIT without an intervention rather than writing orphan assignments", async () => {
+        const runner = new InterventionRunner(noFire, stubEvaluator());
+        const commit = { ...previewRequest, preview: false } as Parameters<InterventionRunner["run"]>[0];
+        await expect(runner.run(commit, user)).rejects.toThrow(/cannot commit without an interventionId/);
     });
 });

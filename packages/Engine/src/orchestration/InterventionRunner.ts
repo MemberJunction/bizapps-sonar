@@ -21,7 +21,17 @@ export interface InterventionActionConfig {
  *  `onlyAnchorIds` restricts the resolved cohort to a subset — the OnEnterSegment path targets
  *  ONLY the members whose band transition just entered the segment, not the whole standing cohort. */
 export interface InterventionRunRequest {
-    interventionId: string;
+    /**
+     * The intervention these assignments belong to, or `null` when it does not exist yet.
+     *
+     * Null is only legal with `preview: true`. A preview must not bring an Intervention row into
+     * existence just to count a cohort — that is how the Interventions tab collected empty rows for
+     * previews nobody committed. A preview on a cohort that HAS been run before still passes the real
+     * id, so the already-assigned exclusion stays accurate.
+     *
+     * The commit path rejects null rather than inventing an id, so the type carries the rule.
+     */
+    interventionId: string | null;
     modelId: string;
     segmentFilter: SegmentFilter;
     holdoutPercent: number;
@@ -139,9 +149,20 @@ export function fillTokens(
  * the honest comparison baseline. Outcomes/lift are NOT written here.
  */
 export class InterventionRunner {
-    private readonly segments = new SegmentEvaluator();
+    private readonly segments: SegmentEvaluator;
 
-    constructor(private readonly invoker?: InterventionActionInvoker) {}
+    /**
+     * @param invoker  Fires plays. Omitted in dry runs and in tests.
+     * @param segments Cohort resolver. Injectable so a test can supply a fixed cohort — with that stubbed,
+     *                 a TrackOnly preview touches no database at all, which is what makes the
+     *                 "preview writes nothing" guarantee testable without a mocking harness.
+     */
+    constructor(
+        private readonly invoker?: InterventionActionInvoker,
+        segments?: SegmentEvaluator,
+    ) {
+        this.segments = segments ?? new SegmentEvaluator();
+    }
 
     public async run(req: InterventionRunRequest, contextUser: UserInfo): Promise<InterventionRunResult> {
         const resolved = await this.segments.resolve(req.modelId, req.segmentFilter, contextUser);
@@ -170,6 +191,16 @@ export class InterventionRunner {
         // assignments, fire nothing (the gate holds for BOTH manual and autonomous callers).
         if (req.preview || !playApproved) {
             return base;
+        }
+
+        // Past the preview gate, so every path below writes. A missing id here would mean a caller
+        // asked to commit without an intervention to attach the assignments to; fail loudly rather
+        // than write orphans or silently no-op.
+        const interventionId = req.interventionId;
+        if (!interventionId) {
+            throw new Error(
+                "InterventionRunner: cannot commit without an interventionId (null is only valid for preview).",
+            );
         }
 
         if (req.kind === "BulkSync") {
@@ -284,7 +315,13 @@ export class InterventionRunner {
     }
 
     /** Anchor ids already assigned to this intervention (idempotency — never re-fire them). */
-    private async loadAssignedAnchorIds(interventionId: string, contextUser: UserInfo): Promise<Set<string>> {
+    private async loadAssignedAnchorIds(
+        interventionId: string | null,
+        contextUser: UserInfo,
+    ): Promise<Set<string>> {
+        // No intervention yet (a preview on a cohort never run before) means no assignments can exist.
+        // Returning early rather than querying avoids a nonsense `InterventionID='null'` filter.
+        if (!interventionId) return new Set();
         const res = await new RunView().RunView<{ AnchorRecordID: string }>(
             {
                 EntityName: ASSIGNMENT_ENTITY,
