@@ -32,7 +32,7 @@
             [Filterable]="true"
             Placeholder="Search entities…"
             [ngModel]="anchorEntityID()"
-            (ngModelChange)="anchorEntityID.set($event)">
+            (ngModelChange)="anchorEntityID.set($event ?? '')">
         </mj-combobox>
     </section>
 
@@ -54,7 +54,7 @@
                    [ngModel]="trendWindowDays()" (ngModelChange)="trendWindowDays.set($event)" placeholder="—" />
             <span class="sonar-ms__trend-unit">days</span>
         </div>
-        <p class="sonar-fb__hint">Score deltas and the biggest-movers lists compare each member against their score from about this many days ago. Leave empty to compare against the previous recompute only — beware that re-running a recompute then resets everyone's change to zero.</p>
+        <p class="sonar-fb__hint">Score deltas and the biggest-movers lists compare each {{ noun().one }} against their score from about this many days ago. Leave empty to compare against the previous recompute only — beware that re-running a recompute then resets everyone's change to zero.</p>
     </section>
 
     <section class="sonar-card sonar-note">

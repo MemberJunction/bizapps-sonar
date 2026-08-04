@@ -1,0 +1,39 @@
+/* Slide-over drawer — overlays the page from the right edge. Tokens only (sonar-shell.css). */
+/* The shell's :host rule (display:block; height:100%) would make the CLOSED drawer's empty host
+   box eat its parent column — the panel/scrim are position:fixed, so the host needs NO box. */
+:host { display: contents; }
+.sonar-drawer__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1000; /* above the Explorer shell chrome — a drawer overlays everything */
+    background: color-mix(in srgb, var(--sonar-ink) 22%, transparent);
+}
+.sonar-drawer__panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1001;
+    width: min(30rem, 94vw);
+    background: var(--sonar-surface);
+    border-left: 1px solid var(--sonar-border-strong);
+    box-shadow: -16px 0 40px color-mix(in srgb, var(--sonar-ink) 15%, transparent);
+    overflow-y: auto;
+    /* Extra headroom so projected content never collides with the ✕. */
+    padding: 2.75rem 1.25rem 2rem;
+    animation: sonar-drawer-in 160ms ease-out;
+}
+.sonar-drawer__close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1;
+    padding: 0.25rem 0.6rem;
+}
+@keyframes sonar-drawer-in {
+    from { transform: translateX(1.5rem); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sonar-drawer__panel { animation: none; }
+}

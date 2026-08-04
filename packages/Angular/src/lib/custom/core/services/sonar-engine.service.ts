@@ -201,7 +201,7 @@ export class SonarEngineService {
         }
         const payload = this.extractResult<FactorPreviewPayload>(result);
         if (!payload || payload.sampleRawValue === null) {
-            return { ...empty, valid: true, explanation: "No members have data for this signal yet." };
+            return { ...empty, valid: true, explanation: "No records have data for this signal yet." };
         }
         const strength = Math.round((payload.sampleStrength ?? 0) * 100) / 100;
         return {
@@ -209,7 +209,7 @@ export class SonarEngineService {
             errors: [],
             matching: payload.sampleRawValue,
             strength,
-            explanation: `Across ${payload.membersWithData} member${payload.membersWithData === 1 ? "" : "s"} with data, the strongest measures ${payload.sampleRawValue}.`,
+            explanation: `Across ${payload.membersWithData} record${payload.membersWithData === 1 ? "" : "s"} with data, the strongest measures ${payload.sampleRawValue}.`,
             anchorId: payload.sampleAnchorId,
             membersWithData: payload.membersWithData,
         };

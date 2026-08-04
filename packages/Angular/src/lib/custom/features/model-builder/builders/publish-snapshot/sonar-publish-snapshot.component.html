@@ -70,13 +70,13 @@
                     @if (imp.error) {
                         <div class="sonar-chip sonar-chip--critical" style="margin-top:0.5rem; white-space:normal; height:auto; padding:0.5rem 0.75rem">⚠ {{ imp.error }}</div>
                     } @else if (imp.rows.length === 0) {
-                        <p class="sonar-faint" style="font-size:0.85rem; margin-top:0.5rem">No scoreable members — add signals to see a projection.</p>
+                        <p class="sonar-faint" style="font-size:0.85rem; margin-top:0.5rem">No scoreable records — add signals to see a projection.</p>
                     } @else {
                         <p class="sonar-note" style="margin-top:0.4rem">
                             @if (imp.firstScoring) {
-                                First scoring run — <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> members would be scored on publish.
+                                First scoring run — <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> records would be scored on publish.
                             } @else {
-                                Projected for <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> members vs. the scores live now.
+                                Projected for <strong class="sonar-ink">{{ imp.projectedTotal | number }}</strong> records vs. the scores live now.
                             }
                         </p>
                         <div class="sonar-stack sonar-impact">

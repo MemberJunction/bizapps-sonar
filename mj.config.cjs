@@ -24,6 +24,11 @@ module.exports = {
    */
   entityPackageName: '@mj-biz-apps/sonar-entities',
 
+  // The dev DB (a clone of Sonar_Demo_v545) carries migrations from sibling branches
+  // (next's population count, sonar_datetimeoffset), so this branch's intervention-layer
+  // series must apply out of order until the branches converge on next.
+  outOfOrder: true,
+
   output: [
     { type: 'SQL', directory: './SQL Scripts/generated', appendOutputCode: true },
     {

@@ -1,0 +1,5 @@
+/* Pager — count left, controls right, on one baseline. Tokens only (sonar-shell.css). */
+:host { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; }
+.sonar-pager__count { font-size: var(--sonar-font-xs); color: var(--sonar-faint); font-variant-numeric: tabular-nums; }
+.sonar-pager__btns { display: inline-flex; gap: 0.25rem; }
+.sonar-pager__btn { padding: 0.125rem 0.6rem; line-height: 1.3; }

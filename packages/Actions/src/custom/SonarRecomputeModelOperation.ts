@@ -58,7 +58,7 @@ export class SonarRecomputeModelServerOperation extends BaseRemotableOperation<S
                     Status: "Running",
                     Processed: processed,
                     Total: total,
-                    Message: `Scored ${processed} of ${total} members`,
+                    Message: `Scored ${processed} of ${total} records`,
                 }),
         );
         return {

@@ -137,9 +137,6 @@
 
 /* Pagination folded into the filter track (far right) — compact prev/next + a count readout, so
    the search, score pill, sort, and paging all share one baseline. */
-.sonar-mgr__track-pager { display: inline-flex; align-items: center; gap: 0.25rem; }
-.sonar-mgr__count { font-size: var(--sonar-font-xs); color: var(--sonar-muted); white-space: nowrap; padding: 0 0.25rem; }
-.sonar-mgr__pgbtn { padding: 0.25rem 0.55rem; min-width: 1.75rem; justify-content: center; }
 
 /* Triage filters now use the shared <sonar-filter-bar> (chrome lives there). These styles only
    cover the projected suggestion-ROW content (rendered into the bar's menu via ng-template). */
@@ -172,6 +169,8 @@
 .sonar-mgr .sonar-with-rail__main { display: flex; flex-direction: row; gap: 1.25rem; min-height: 0; overflow: hidden; height: 100%; }
 .sonar-mgr .sonar-mgr-main-stack { flex: 1 1 0%; min-height: 0; height: auto; display: flex; flex-direction: column; overflow: hidden; }
 .sonar-mgr .sonar-triage-split { flex: 1 1 0%; min-height: 0; height: auto; align-items: stretch; grid-template-rows: minmax(0, 1fr); }
+/* Every tab's content area scrolls itself (the tabs strip stays put above it). */
+.sonar-mgr .sonar-mgr-main-stack { overflow-y: auto; }
 /* Triage section becomes a flex column: filter + head pinned, rows scroll. */
 .sonar-mgr .sonar-triage-card { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 1rem 1.5rem 0; }
 .sonar-mgr .sonar-triage-card > .sonar-triage__foot { flex: 0 0 auto; }
@@ -220,9 +219,31 @@
 /* Drill-down rides along at full height (scrolls itself only if a long breakdown overflows). */
 .sonar-mgr .sonar-drill { height: 100%; min-height: 0; overflow-y: auto; }
 
-/* --- Engagement Manager Sidebar navigation rail --- */
+/* --- Header model scope + slim section tabs (replaced the two vertical rails) --- */
+.sonar-mgr__modelpick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 1.25rem;
+    font-size: var(--sonar-font-xs);
+    font-weight: 600;
+    color: var(--sonar-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sonar-mgr__modelpick select { height: 2rem; max-width: 260px; font-weight: 400; text-transform: none; letter-spacing: normal; }
+
+.sonar-mgr__body-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1.5rem;
+    min-height: 0;
+    height: 100%;
+}
 .sonar-mgr-sidebar {
-    width: 240px;
+    width: 220px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -287,6 +308,7 @@
     color: color-mix(in srgb, var(--sonar-accent) 70%, var(--sonar-faint));
 }
 .sonar-mgr-content {
+    position: relative; /* anchors the floating launch popover */
     flex: 1;
     min-width: 0;
     display: flex;
@@ -332,31 +354,517 @@
     border-color: var(--sonar-accent);
     box-shadow: 0 0 0 1px var(--sonar-accent), 0 0 0 4px color-mix(in srgb, var(--sonar-accent) 15%, transparent);
 }
-/* Custom pager buttons styling inside triage filter bar */
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn {
-    border-radius: 999px;
-    width: 2rem;
-    height: 2rem;
+/* Responsive (scroll-over-stack): the Engagement Manager is a multi-pane workstation — section rail +
+   member list + drill-down. Rather than crush those panes at tablet, hold a comfortable min-width and
+   let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
+.sonar-mgr .sonar-page__body { min-width: 980px; }
+
+/* ── Action layer: launch panel + interventions tab ─────────────────────── */
+/* Floating popover anchored top-right of the workspace, directly under the header's
+   "Launch intervention" button. It OVERLAYS the triage/movers content instead of reflowing it,
+   so the member list keeps its full height and the filter stays usable underneath (the cohort
+   sentence updates live). A compact vertical form, not a hero card. */
+/* A FRAME, not a column. The panel is absolutely positioned, which means when its content outgrew the
+   workspace the PAGE scrolled rather than the panel — and Preview/Launch went off the bottom with nothing
+   to grab. Rendering a play's declared params (six of them for Email Cohort) made that reachable in normal
+   use. So the panel is now height-bounded and its middle region owns the overflow.
+
+   `max-height: 100%` resolves because the offset parent (.sonar-mgr-content) carries a definite height;
+   verified at runtime rather than assumed, since a percentage max-height against an auto-height ancestor
+   silently computes to none. */
+.sonar-launch {
+    position: absolute;
+    top: 0.25rem;
+    right: 0;
+    z-index: 30;
+    width: min(26rem, calc(100% - 1rem));
+    /* The 4.5rem is not padding taste: MJ's chat launcher is position:fixed in the bottom-right corner at
+       z-index 2147483647, so nothing can be layered above it. At full height the panel's footer reached into
+       that corner and the bubble sliced 23px off the Launch button. Ending the panel short of the corner
+       costs a little scroll height in a region that already scrolls, and keeps the primary action whole. */
+    max-height: calc(100% - 4.5rem);
+    margin: 0;
+    /* Padding belongs to the three regions now, so the scrolling one can run edge to edge. */
     padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    border: 1px solid var(--sonar-border);
-    background: var(--sonar-surface);
-}
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn:hover {
-    background: var(--sonar-surface-sunken);
-    border-color: var(--sonar-border-strong);
-}
-.sonar-triage-card sonar-filter-bar ::ng-deep .sonar-mgr__pgbtn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    background: transparent;
-    border-color: var(--sonar-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--sonar-border-strong);
+    box-shadow: 0 16px 40px color-mix(in srgb, var(--sonar-ink) 18%, transparent);
 }
 
-/* Responsive (scroll-over-stack): the Engagement Manager is a multi-pane workstation — model rail +
-   triage nav + member drill-down. Rather than crush those panes at tablet, hold a comfortable
-   min-width and let .sonar-page pan horizontally below it (matches the Model Builder cockpit). */
-.sonar-mgr .sonar-page__body.sonar-with-rail { min-width: 980px; }
+/* Pinned top: who you are about to contact. */
+.sonar-launch__head {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 0.75rem;
+}
+.sonar-launch__titlerow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+
+/* The scrolling middle. min-height:0 is what actually lets it shrink inside the flex frame — without it a
+   flex item refuses to go below its content size and the overflow never engages. */
+.sonar-launch__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0 1.25rem 0.75rem;
+}
+
+/* Pinned bottom: how many, and go. Separated by a hairline so it reads as chrome, not as another field. */
+.sonar-launch__footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid var(--sonar-border);
+    background: var(--sonar-surface-sunken);
+}
+.sonar-launch__title { font-size: var(--sonar-font-sm); font-weight: 700; color: var(--sonar-ink); white-space: nowrap; }
+.sonar-launch__title i { color: var(--sonar-accent); margin-right: 0.25rem; }
+.sonar-launch__scope { margin: 0; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.45; }
+.sonar-launch__close { padding: 0.125rem 0.5rem; }
+.sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.sonar-launch__field--num { flex: 0 0 4.5rem; }
+.sonar-launch__label { font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-ink); }
+.sonar-launch__field .sonar-input { width: 100%; font: inherit; }
+.sonar-launch__field--num .sonar-input { text-align: right; font-variant-numeric: tabular-nums; }
+/* Holdout + Cap share a line; the actions sit right-aligned, wrapping to their own line when tight. */
+.sonar-launch__pair { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-launch__actions { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.sonar-launch__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-launch__foot--empty { display: none; }
+.sonar-launch__counts { font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-launch__counts strong { color: var(--sonar-ink); }
+.sonar-launch__counts--done { color: var(--sonar-ink); }
+.sonar-launch__counts--done i { margin-right: 0.25rem; }
+.sonar-launch__error { font-size: var(--sonar-font-sm); color: var(--sonar-critical); }
+.sonar-launch__link { background: none; border: none; padding: 0; font: inherit; color: var(--sonar-brand); cursor: pointer; text-decoration: underline; }
+@media (max-width: 1075px) {
+    /* Narrow rails: the popover spans the workspace width; Holdout/Cap/actions stack. */
+    .sonar-launch { width: calc(100% - 0.5rem); }
+    .sonar-launch__pair { flex-wrap: wrap; }
+    .sonar-launch__actions { margin-left: 0; }
+}
+
+/* ── Play cards: each intervention wears its funnel (treated → … → lift). ─────────────────── */
+.sonar-play { background: var(--sonar-surface); border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius); padding: 0.9rem 1.1rem; }
+.sonar-play__top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-play__name { font-weight: 700; font-size: var(--sonar-font-lg); color: var(--sonar-ink); }
+.sonar-play__spacer { flex: 1 1 auto; }
+.sonar-play__funnel { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.35rem; margin: 0.8rem 0 0.6rem; }
+.sonar-play__stage { flex: 0 0 auto; min-width: 6rem; padding: 0.45rem 0.7rem; border-radius: var(--sonar-radius-sm); background: var(--sonar-surface-sunken); border: 1px solid var(--sonar-border); }
+.sonar-play__stage--hot { border-color: color-mix(in srgb, var(--sonar-watch) 45%, var(--sonar-border)); background: color-mix(in srgb, var(--sonar-watch) 9%, var(--sonar-surface)); }
+.sonar-play__stage--neg { border-color: color-mix(in srgb, var(--sonar-critical) 40%, var(--sonar-border)); background: color-mix(in srgb, var(--sonar-critical) 8%, var(--sonar-surface)); }
+.sonar-play__stage--lift { display: flex; flex-direction: column; justify-content: center; }
+.sonar-play__sv { font-weight: 700; font-size: var(--sonar-font-xl); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.sonar-play__sk { font-size: var(--sonar-font-xs); color: var(--sonar-faint); white-space: nowrap; }
+.sonar-play__arrow { align-self: center; color: var(--sonar-faint); font-size: var(--sonar-font-sm); }
+.sonar-play__measure { font-size: var(--sonar-font-xs); padding: 0.2rem 0.5rem; align-self: flex-start; }
+.sonar-play__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 1.1rem; font-size: var(--sonar-font-xs); color: var(--sonar-faint); }
+.sonar-play__meta .sonar-mono { color: var(--sonar-ink); }
+.sonar-play__cta { font-size: var(--sonar-font-xs); padding: 0.3rem 0.65rem; }
+
+/* Interventions table: hairline dividers, right-aligned tabular numerics, no full grid borders. */
+.sonar-iv-table { width: 100%; border-collapse: collapse; font-size: var(--sonar-font-sm); }
+.sonar-iv-table th { text-align: left; font-size: var(--sonar-font-xs); font-weight: 600; color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--sonar-border); }
+.sonar-iv-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--sonar-border); vertical-align: middle; }
+.sonar-iv-table tbody tr:last-child td { border-bottom: none; }
+.sonar-iv-table__num { text-align: right; font-variant-numeric: tabular-nums; }
+.sonar-iv-table__name { font-weight: 600; color: var(--sonar-ink); }
+.sonar-iv-table__lift { white-space: nowrap; }
+.sonar-iv-table__measure { font-size: var(--sonar-font-xs); padding: 0.25rem 0.5rem; }
+
+/* ── Movers explorer: a live segment view (filter → list → launch) ──────── */
+.sonar-movers2__sub { margin: 0.25rem 0 0; font-size: var(--sonar-font-sm); line-height: 1.5; }
+/* Horizontal-first filter row; wraps to a column on narrow rails. */
+/* flex: 0 0 auto is load-bearing: as a flex child of the card this row would otherwise SHRINK,
+   and once the controls wrap to a second line the compressed box lets them overflow on top of the
+   table header. It must always take the height its content needs. */
+.sonar-movers2__filters { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+.sonar-movers2__mag { display: inline-flex; align-items: center; gap: 0.375rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-movers2__mag .sonar-input { width: 4.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.sonar-movers2__cross { cursor: pointer; border: 1px dashed var(--sonar-border-strong); background: var(--sonar-surface); }
+.sonar-movers2__cross--on { border-style: solid; border-color: var(--sonar-brand); color: var(--sonar-brand); }
+.sonar-movers2__spacer { flex: 1 1 auto; }
+/* Rule-mode switch sits first in the filter row: it decides which controls follow. */
+.sonar-movers2__mode { flex: 0 0 auto; }
+.sonar-movers2__mag select.sonar-input { width: auto; padding-right: 1.5rem; }
+/* Trajectory reads as a compact phrase, so it needs room without wrapping mid-measure. */
+.sonar-movers2__traj { white-space: nowrap; font-size: var(--sonar-font-xs); }
+/* Second filter row: the rule's parameters. Same flex-shrink guard as the row above. */
+.sonar-movers2__params { flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin: 0 0 0.75rem; }
+.sonar-movers2__launch { margin-left: auto; }
+/* Named rules: chips that read as outcomes rather than as filter syntax. */
+.sonar-movers2__presets { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-movers2__preset {
+    cursor: pointer; font: inherit; font-size: var(--sonar-font-sm);
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--sonar-border-strong); background: var(--sonar-surface); color: var(--sonar-muted);
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.sonar-movers2__preset:hover { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
+.sonar-movers2__preset--on {
+    border-color: var(--sonar-accent); color: var(--sonar-accent);
+    background: color-mix(in srgb, var(--sonar-accent) 8%, transparent); font-weight: 600;
+}
+/* The rule and its result as one sentence, between the controls and the rows it explains. */
+.sonar-movers2__explain { flex: 0 0 auto; margin: 0 0 1rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); line-height: 1.5; }
+/* sonar-shell.css gives EVERY component host `height: 100%` (it's written for full-page resource
+   surfaces). Inside a wrapping filter row that makes the toggle stretch to the row's height, and
+   once the row wraps the two feed each other into a tall empty band. Pin it to its content. */
+.sonar-movers2__params > sonar-toggle-filter { height: auto; align-self: center; }
+@media (max-width: 1075px) {
+    /* Stacked: full-width targets, and no auto margin to strand the button mid-row. */
+    .sonar-movers2__launch { margin-left: 0; width: 100%; justify-content: center; }
+    .sonar-movers2__mode { width: 100%; }
+}
+.sonar-movers2__row { cursor: pointer; transition: background 130ms ease; }
+.sonar-movers2__row:hover { background: color-mix(in srgb, var(--sonar-brand) 5%, transparent); }
+.sonar-movers2__list { margin-top: 0.25rem; }
+@media (max-width: 1075px) {
+    .sonar-movers2__filters { flex-direction: column; align-items: stretch; }
+    .sonar-movers2__spacer { display: none; }
+}
+/* The list pane lost ~300px to the rule column, so the prose column is the one that gives way.
+   Score and Trajectory keep their full width: they are tabular numerics and truncating them would
+   make the numbers unreadable, which is the opposite of the point. */
+.sonar-movers2__why {
+    font-size: var(--sonar-font-sm);
+    max-width: 11rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sonar-movers2__list th, .sonar-movers2__list td { padding-left: 0.4rem; padding-right: 0.4rem; }
+.sonar-movers2__traj { white-space: nowrap; }
+/* Nothing in a row may wrap. In the narrower list column "Katherine Thomas" broke onto two lines and
+   the At Risk pill onto three, taking rows from 44px to 62px — which spent most of the height the
+   split had just won back. One line per cell, and long text truncates instead. */
+.sonar-movers2__list td, .sonar-movers2__list th { white-space: nowrap; }
+.sonar-movers2__list td:first-child {
+    max-width: 9rem; overflow: hidden; text-overflow: ellipsis;
+}
+.sonar-movers2__list .sonar-chip { white-space: nowrap; }
+.sonar-movers2__causechip { margin-left: 0.25rem; }
+
+/* --- Who beyond the score: member conditions + the order the list is worked in --------------- */
+/* One horizontal band: conditions on the left (they grow), ordering pinned right. Sits above the
+   reason strip so the rule reads top-down: what shape, then who, then which problem. */
+.sonar-movers2__context {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0 0 0.75rem;
+}
+/* The condition builder takes the slack so the ordering controls stay together on the right. */
+.sonar-movers2__context > sonar-member-filter { flex: 1 1 auto; min-width: 0; }
+
+/* Mode + value stay side by side and wrap as one unit. */
+.sonar-movers2__ranks { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-movers2__rank { display: inline-flex; align-items: center; gap: 0.5rem; }
+.sonar-movers2__rankselect { max-width: 11rem; }
+
+
+
+/* --- Reason breakdown: how the cohort splits by main problem -------------------------------- */
+/* Reads as DATA first and controls second: the slices stay quiet until one is picked, so the strip
+   doesn't compete with the preset chips above it for attention. Only the selected slice takes the
+   accent, which keeps the accent ration at two per viewport (preset + slice). */
+.sonar-reasons {
+    flex: 0 0 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+    margin: 0 0 0.75rem;
+}
+.sonar-reasons__slice {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    cursor: pointer; font: inherit; font-size: var(--sonar-font-sm);
+    padding: 0.3rem 0.7rem;
+    /* border-strong, matching the preset chips directly above: at 1px a faint border drops under the
+       3:1 non-text contrast floor in dark mode. */
+    border: 1px solid var(--sonar-border-strong); background: var(--sonar-surface); color: var(--sonar-muted);
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.sonar-reasons__slice:hover:not(:disabled) { color: var(--sonar-ink); background: var(--sonar-surface-sunken); }
+.sonar-reasons__slice:focus-visible {
+    outline: 2px solid var(--sonar-accent); outline-offset: 2px;
+}
+.sonar-reasons__slice--on {
+    border-color: var(--sonar-accent); color: var(--sonar-accent); font-weight: 600;
+    background: color-mix(in srgb, var(--sonar-accent) 8%, transparent);
+}
+/* A data gap is a different KIND of problem: fix the integration, don't contact the member. The
+   dashed edge marks it as not-a-person-to-email without spending a second colour on it. */
+.sonar-reasons__slice--gap { border-style: dashed; }
+/* Members Sonar can't explain: shown for honesty (dropping them would overstate coverage), but
+   there is no signal to target, so the chip is inert rather than a dead-end button. */
+.sonar-reasons__slice--mute { color: var(--sonar-faint); cursor: default; border-style: dotted; }
+.sonar-reasons__count { font-variant-numeric: tabular-nums; color: var(--sonar-faint); }
+.sonar-reasons__slice--on .sonar-reasons__count { color: inherit; }
+.sonar-reasons__clear { font-size: var(--sonar-font-sm); padding: 0.3rem 0.6rem; }
+/* No column-stacking fallback on the rail: these are chips, not form inputs, so `flex-wrap` already
+   degrades them cleanly onto a second line at their natural width. Stretching them full-width made
+   them read as text fields (the count floating off at the far right, disconnected from its label) and
+   cost enough height on a 1075px rail to squeeze the member table down to its header. */
+/* Card fills its tab; rows scroll inside it so the pager foot stays pinned (mirrors the triage card). */
+.sonar-mgr .sonar-movers2 { flex: 1 1 0%; min-height: 0; display: flex; flex-direction: column; }
+
+/* --- Two-pane split: the rule on the left, the members on the right --------------------------- */
+.sonar-movers2__head { flex: 0 0 auto; display: flex; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; }
+.sonar-movers2__headtext { flex: 1 1 auto; min-width: 0; }
+.sonar-movers2__head .sonar-movers2__launch { flex: 0 0 auto; margin-left: 0; }
+.sonar-movers2__ruletoggle { display: none; flex: 0 0 auto; }
+
+.sonar-movers2__split {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.sonar-movers2__rulepane {
+    flex: 0 0 15rem;
+    border-right: 1px solid var(--sonar-border);
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    /* Groups are separated by their own margins (below), not by a uniform gap — a single gap made
+       five unrelated groups read as one undifferentiated pile of controls. */
+    gap: 0;
+    padding-right: 0.75rem;
+    /* Vertical only. Anything too wide for the column is the column's problem to solve (below), not
+       something to hand the operator a second scrollbar for. */
+    overflow-x: hidden;
+}
+
+.sonar-movers2__listpane {
+    /* Zero basis, not `auto`: with an auto basis this grows from its CONTENT, so a 50-row table made
+       it 2388px tall and the scroll region below never clipped anything. */
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Section labels use the shared `.sonar-card__label` primitive rather than local copies — it is the
+   one definition of an uppercase section label and is used ~30 times across the app. It carries a 1rem
+   bottom margin for stacked card sections, which these tight/inline uses don't want, so they reset it
+   the same way `.sonar-card__head .sonar-card__label` already does in sonar-shell.css. */
+.sonar-movers2__group > .sonar-card__label,
+.sonar-reasons > .sonar-card__label { margin-bottom: 0; }
+.sonar-movers2__rank > .sonar-card__label { margin-bottom: 0; white-space: nowrap; }
+
+/* One control language in the pane: everything a person operates is the shared 2.25rem height, so the
+   column stops reading as a pile of unrelated widgets. The primitives themselves live in
+   sonar-shell.css (.sonar-optlist / .sonar-switch / .sonar-fieldrow / .sonar-field__unit / .sonar-token)
+   so Triage and the factor builder inherit the same language. */
+.sonar-movers2__rulepane .sonar-fieldrow__label { flex: 0 0 3.6rem; }
+.sonar-movers2__rulepane .sonar-movers2__rank { display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem; }
+.sonar-movers2__rulepane .sonar-movers2__rankselect { width: 100%; max-width: none; }
+.sonar-movers2__rulepane .sonar-optlist__opt { font-size: var(--sonar-font-sm); }
+
+/* The promise of "one control system" is literal: every operable control in this pane resolves to the
+   same height and the same radius. Each of these set its own before (31/32/33/35/36px, and radii of
+   0/4/999px in the same column), which is the raggedness that read as unfinished. */
+.sonar-movers2__rulepane .sonar-input,
+.sonar-movers2__rulepane .sonar-optlist__opt,
+.sonar-movers2__rulepane .sonar-switch {
+    height: var(--sonar-ctl-h);
+    min-height: var(--sonar-ctl-h);
+    box-sizing: border-box;
+}
+/* Both two-option controls in this pane are side-by-side segmented controls. They were briefly
+   inconsistent with each other — the mode control stacked while the direction control didn't, because
+   the parent's flex-direction rule reached the mode control (its own template) but not the direction
+   control (inside sonar-toggle-filter, where emulated encapsulation blocks it). Side by side is the
+   conventional form and costs one control height rather than two. */
+.sonar-movers2__rulepane .sonar-segmented { height: var(--sonar-ctl-h); box-sizing: border-box; }
+.sonar-movers2__rulepane .sonar-segmented__opt { height: var(--sonar-ctl-h); box-sizing: border-box; }
+.sonar-movers2__rulepane .sonar-input,
+.sonar-movers2__rulepane .sonar-optlist,
+.sonar-movers2__rulepane .sonar-segmented { border-radius: var(--sonar-radius-sm); }
+/* A segmented control is one control: the container owns the height and its options fill it. */
+.sonar-movers2__rulepane .sonar-segmented { padding: 2px; gap: 2px; }
+/* Equal halves, one line each. The pane is 15rem, so the labels are kept short enough to fit. */
+.sonar-movers2__rulepane .sonar-segmented__opt {
+    flex: 1 1 0%; min-width: 0;
+    padding: 0 0.35rem; justify-content: center; white-space: nowrap;
+    font-size: var(--sonar-font-sm); font-weight: 500;
+}
+.sonar-movers2__rulepane .sonar-segmented__opt--active { font-weight: 600; }
+
+/* --- Polish: the rule reads as titled groups, not a stack of widgets ------------------------- */
+/* Each group announces itself, so the pane can be scanned rather than parsed. */
+.sonar-movers2__group { display: flex; flex-direction: column; gap: 0.4rem; }
+.sonar-movers2__group + .sonar-movers2__group {
+    margin-top: 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px dashed var(--sonar-border);
+}
+
+/* Every control row in the rule pane stacks: it is a 15rem column, not a full-width band. */
+.sonar-movers2__rulepane .sonar-movers2__filters,
+.sonar-movers2__rulepane .sonar-movers2__params,
+.sonar-movers2__rulepane .sonar-movers2__context {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin: 0;
+}
+.sonar-movers2__rulepane .sonar-movers2__mode { width: 100%; }
+/* Label on the left, control on the right, one baseline — the pane's whole rhythm. */
+.sonar-movers2__rulepane .sonar-movers2__ranks { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+.sonar-movers2__rulepane .sonar-movers2__rankselect { width: 100%; max-width: none; }
+/* The direction toggle is a segmented control now, so it stacks and sizes exactly like the mode
+   switch above it rather than needing its own height override. */
+.sonar-movers2__rulepane sonar-toggle-filter { align-self: stretch; }
+.sonar-movers2__rulepane sonar-toggle-filter { width: 100%; }
+/* The rows scroll inside the list pane; the pager foot below them stays pinned. The min-height floor
+   is kept as a backstop — the split makes a zero-height list far less likely, but a guarantee costs
+   nothing and this collapsed to literally zero once. */
+.sonar-movers2__scroll { flex: 1 1 0%; min-height: 6rem; overflow-y: auto; }
+.sonar-movers2__foot { flex: 0 0 auto; display: flex; align-items: center; padding: 0.5rem 0 0; margin-top: 0.35rem; border-top: 1px solid var(--sonar-border); }
+.sonar-iv-table__outcome { display: block; font-size: var(--sonar-font-xs); margin-top: 0.125rem; }
+
+/* ── Launch: kind toggle (fire a play / sync / track only). Hints live in each button's title. ── */
+.sonar-launch__kind { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-launch__kindbtn { cursor: pointer; border: 1px solid var(--sonar-border-strong); background: var(--sonar-surface); border-radius: 6px; padding: 0 0.75rem; height: 2.25rem; font: inherit; font-size: var(--sonar-font-sm); color: var(--sonar-muted); white-space: nowrap; }
+.sonar-launch__kindbtn--on { border-color: var(--sonar-brand); color: var(--sonar-brand); background: color-mix(in srgb, var(--sonar-brand) 8%, transparent); font-weight: 600; }
+
+/* ── Outreach queue: draft list (narrow rail) + the selected draft (wide editor) ─────────────── */
+/* The card fills its tab so the split below it has a bounded height to divide. Without this the card
+   grows to fit its content and the whole page scrolls instead of the two panes.
+   Mirrors how the Movers card is set up. */
+.sonar-outreach-card {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+/* The head stays put above both scrolling panes. */
+.sonar-outreach-card > .sonar-outreach__head { flex: 0 0 auto; }
+
+/* Two INDEPENDENT scroll regions. The queue is a work surface: you scan the list on the left while
+   reading and editing one draft on the right, and a single page-level scrollbar makes that impossible
+   (scrolling to the bottom of a long draft drags the list away with it). So the split fills the card's
+   remaining height and each side scrolls on its own.
+   `align-items: start` is deliberately gone — it collapses each column to its content height, which is
+   exactly what prevents a column from becoming a scroll container. */
+.sonar-outreach {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+.sonar-outreach__head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+.sonar-outreach__blurb { margin: 0.25rem 0 0; font-size: var(--sonar-font-sm); }
+.sonar-outreach__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-outreach__filter { margin-bottom: 0.75rem; }
+/* Left column: pinned status filter, scrolling items beneath it. */
+.sonar-outreach__list { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; min-height: 0; }
+.sonar-outreach__items {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Room for the scrollbar so it never sits on top of a status chip. */
+    padding-right: 0.25rem;
+}
+.sonar-outreach__item {
+    font: inherit; text-align: left; cursor: pointer;
+    display: flex; flex-direction: column; gap: 0.25rem;
+    padding: 0.75rem; border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface); color: var(--sonar-ink);
+    transition: border-color 130ms ease, background 130ms ease;
+}
+.sonar-outreach__item:hover { background: color-mix(in srgb, var(--sonar-brand) 5%, transparent); }
+.sonar-outreach__item--active { border-color: var(--sonar-brand); background: color-mix(in srgb, var(--sonar-brand) 8%, transparent); }
+.sonar-outreach__item-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.sonar-outreach__name { font-weight: 600; }
+.sonar-outreach__subject { font-size: var(--sonar-font-sm); color: var(--sonar-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sonar-outreach__meta { font-size: var(--sonar-font-xs); }
+/* Right column scrolls as one piece: the grounding, the editable subject/body and the decide buttons
+   all belong to the same reading task, so splitting them into sub-scrollers would be worse. */
+.sonar-outreach__detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+.sonar-outreach__who { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.sonar-outreach__member { margin: 0; font-size: var(--sonar-font-lg); }
+/* The grounding panel: the audit trail the draft was written from ("why this member"). */
+.sonar-outreach__grounding {
+    border: 1px solid var(--sonar-border); border-left: 3px solid var(--sonar-brand);
+    border-radius: var(--sonar-radius-sm); background: color-mix(in srgb, var(--sonar-brand) 4%, var(--sonar-surface));
+    padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.375rem;
+}
+.sonar-outreach__grounding-title { font-size: var(--sonar-font-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sonar-muted); }
+.sonar-outreach__rationale { margin: 0; font-size: var(--sonar-font-sm); font-style: italic; }
+.sonar-outreach__facts { margin: 0; font-size: var(--sonar-font-sm); }
+.sonar-outreach__factor { margin: 0; font-size: var(--sonar-font-xs); }
+.sonar-outreach__why { font-style: italic; }
+.sonar-outreach__field { display: flex; flex-direction: column; gap: 0.25rem; font-size: var(--sonar-font-sm); color: var(--sonar-muted); }
+.sonar-outreach__body { height: auto; min-height: 11rem; padding: 0.5rem 0.75rem; resize: vertical; line-height: 1.55; }
+.sonar-outreach__decide { display: flex; align-items: center; gap: 0.5rem; }
+.sonar-outreach__note { margin: 0; font-size: var(--sonar-font-sm); }
+@media (max-width: 1075px) {
+    .sonar-outreach { grid-template-columns: 1fr; }
+}
+
+/* Below this width a permanent rule column leaves the member list too little room, so the rule
+   collapses behind the header toggle and overlays when opened rather than reflowing the list. */
+@media (max-width: 1200px) {
+    .sonar-movers2__ruletoggle { display: inline-flex; }
+    .sonar-movers2__split { position: relative; }
+    .sonar-movers2__rulepane {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        z-index: 20;
+        width: 17rem;
+        background: var(--sonar-surface);
+        border-right: 1px solid var(--sonar-border-strong);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+        padding: 0.75rem;
+    }
+    .sonar-movers2__rulepane--open { display: flex; }
+    .sonar-movers2__ruletoggle--on { border-color: var(--sonar-accent); color: var(--sonar-accent); }
+}
+
+/* --- Play params in the launch panel ---------------------------------------------------------- */
+/* Only rendered when the chosen play declares params a person must fill. Stacked (not the panel's
+   usual side-by-side pair) because these are prose fields — a subject line and a message body — and
+   cramming them into the numeric row's widths makes both unusable. */
+.sonar-launch__params {
+    display: flex; flex-direction: column; gap: 0.75rem;
+    margin: 0 0 1rem; padding: 0.75rem;
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+}
+.sonar-launch__params .sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; }
+.sonar-launch__textarea { height: auto; padding: 0.5rem 0.75rem; line-height: 1.5; resize: vertical; font: inherit; }
+/* The required marker earns the accent because skipping it is what blocks the launch. */
+.sonar-launch__req { color: var(--sonar-accent); font-weight: 700; margin-left: 0.125rem; }
+/* Muted, not faint: this is a play's own param description and it is the only explanation of what the field
+   wants, so it has to clear the 4.5:1 floor rather than sit decoratively under it (faint measured 4.34 light). */
+.sonar-launch__hint { font-size: var(--sonar-font-xs); color: var(--sonar-muted); line-height: 1.4; }

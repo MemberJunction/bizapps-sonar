@@ -9,6 +9,3030 @@ export const loadModule = () => {
      
  
 /**
+ * zod schema definition for the entity Accrediting Bodies
+ */
+export const AssociationDemoAccreditingBodySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Abbreviation: z.string().nullable().describe(`
+        * * Field Name: Abbreviation
+        * * Display Name: Abbreviation
+        * * SQL Data Type: nvarchar(50)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    ContactEmail: z.string().nullable().describe(`
+        * * Field Name: ContactEmail
+        * * Display Name: Contact Email
+        * * SQL Data Type: nvarchar(255)`),
+    ContactPhone: z.string().nullable().describe(`
+        * * Field Name: ContactPhone
+        * * Display Name: Contact Phone
+        * * SQL Data Type: nvarchar(50)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    IsRecognized: z.boolean().nullable().describe(`
+        * * Field Name: IsRecognized
+        * * Display Name: Is Recognized
+        * * SQL Data Type: bit`),
+    EstablishedDate: z.date().nullable().describe(`
+        * * Field Name: EstablishedDate
+        * * Display Name: Established Date
+        * * SQL Data Type: date`),
+    Country: z.string().nullable().describe(`
+        * * Field Name: Country
+        * * Display Name: Country
+        * * SQL Data Type: nvarchar(100)`),
+    CertificationCount: z.number().nullable().describe(`
+        * * Field Name: CertificationCount
+        * * Display Name: Certification Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Mj Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Mj Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoAccreditingBodyEntityType = z.infer<typeof AssociationDemoAccreditingBodySchema>;
+
+/**
+ * zod schema definition for the entity Advocacy Actions
+ */
+export const AssociationDemoAdvocacyActionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    LegislativeIssueID: z.string().describe(`
+        * * Field Name: LegislativeIssueID
+        * * Display Name: Legislative Issue
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)`),
+    MemberID: z.string().nullable().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    GovernmentContactID: z.string().nullable().describe(`
+        * * Field Name: GovernmentContactID
+        * * Display Name: Government Contact
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Government Contacts (vwGovernmentContacts.ID)`),
+    ActionType: z.string().describe(`
+        * * Field Name: ActionType
+        * * Display Name: Action Type
+        * * SQL Data Type: nvarchar(50)`),
+    ActionDate: z.date().describe(`
+        * * Field Name: ActionDate
+        * * Display Name: Action Date
+        * * SQL Data Type: date`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Outcome: z.string().nullable().describe(`
+        * * Field Name: Outcome
+        * * Display Name: Outcome
+        * * SQL Data Type: nvarchar(MAX)`),
+    FollowUpRequired: z.boolean().nullable().describe(`
+        * * Field Name: FollowUpRequired
+        * * Display Name: Follow Up Required
+        * * SQL Data Type: bit`),
+    FollowUpDate: z.date().nullable().describe(`
+        * * Field Name: FollowUpDate
+        * * Display Name: Follow Up Date
+        * * SQL Data Type: date`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoAdvocacyActionEntityType = z.infer<typeof AssociationDemoAdvocacyActionSchema>;
+
+/**
+ * zod schema definition for the entity Board Members
+ */
+export const AssociationDemoBoardMemberSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    BoardPositionID: z.string().describe(`
+        * * Field Name: BoardPositionID
+        * * Display Name: Board Position
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Board Positions (vwBoardPositions.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().nullable().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    ElectionDate: z.date().nullable().describe(`
+        * * Field Name: ElectionDate
+        * * Display Name: Election Date
+        * * SQL Data Type: date`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoBoardMemberEntityType = z.infer<typeof AssociationDemoBoardMemberSchema>;
+
+/**
+ * zod schema definition for the entity Board Positions
+ */
+export const AssociationDemoBoardPositionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    PositionTitle: z.string().describe(`
+        * * Field Name: PositionTitle
+        * * Display Name: Position Title
+        * * SQL Data Type: nvarchar(100)`),
+    PositionOrder: z.number().describe(`
+        * * Field Name: PositionOrder
+        * * Display Name: Position Order
+        * * SQL Data Type: int`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    TermLengthYears: z.number().nullable().describe(`
+        * * Field Name: TermLengthYears
+        * * Display Name: Term Length (Years)
+        * * SQL Data Type: int`),
+    IsOfficer: z.boolean().describe(`
+        * * Field Name: IsOfficer
+        * * Display Name: Is Officer
+        * * SQL Data Type: bit`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoBoardPositionEntityType = z.infer<typeof AssociationDemoBoardPositionSchema>;
+
+/**
+ * zod schema definition for the entity Campaign Members
+ */
+export const AssociationDemoCampaignMemberSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CampaignID: z.string().describe(`
+        * * Field Name: CampaignID
+        * * Display Name: Campaign
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Campaigns (vwCampaigns.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    SegmentID: z.string().nullable().describe(`
+        * * Field Name: SegmentID
+        * * Display Name: Segment
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Segments (vwSegments.ID)`),
+    AddedDate: z.date().describe(`
+        * * Field Name: AddedDate
+        * * Display Name: Added Date
+        * * SQL Data Type: datetime`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    ResponseDate: z.date().nullable().describe(`
+        * * Field Name: ResponseDate
+        * * Display Name: Response Date
+        * * SQL Data Type: datetime`),
+    ConversionValue: z.number().nullable().describe(`
+        * * Field Name: ConversionValue
+        * * Display Name: Conversion Value
+        * * SQL Data Type: decimal(12, 2)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCampaignMemberEntityType = z.infer<typeof AssociationDemoCampaignMemberSchema>;
+
+/**
+ * zod schema definition for the entity Campaigns
+ */
+export const AssociationDemoCampaignSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    CampaignType: z.string().describe(`
+        * * Field Name: CampaignType
+        * * Display Name: Campaign Type
+        * * SQL Data Type: nvarchar(50)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    StartDate: z.date().nullable().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().nullable().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    Budget: z.number().nullable().describe(`
+        * * Field Name: Budget
+        * * Display Name: Budget
+        * * SQL Data Type: decimal(12, 2)`),
+    ActualCost: z.number().nullable().describe(`
+        * * Field Name: ActualCost
+        * * Display Name: Actual Cost
+        * * SQL Data Type: decimal(12, 2)`),
+    TargetAudience: z.string().nullable().describe(`
+        * * Field Name: TargetAudience
+        * * Display Name: Target Audience
+        * * SQL Data Type: nvarchar(MAX)`),
+    Goals: z.string().nullable().describe(`
+        * * Field Name: Goals
+        * * Display Name: Goals
+        * * SQL Data Type: nvarchar(MAX)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCampaignEntityType = z.infer<typeof AssociationDemoCampaignSchema>;
+
+/**
+ * zod schema definition for the entity Certificates
+ */
+export const AssociationDemoCertificateSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    EnrollmentID: z.string().describe(`
+        * * Field Name: EnrollmentID
+        * * Display Name: Enrollment
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Enrollments (vwEnrollments.ID)`),
+    CertificateNumber: z.string().describe(`
+        * * Field Name: CertificateNumber
+        * * Display Name: Certificate Number
+        * * SQL Data Type: nvarchar(50)`),
+    IssuedDate: z.date().describe(`
+        * * Field Name: IssuedDate
+        * * Display Name: Issued Date
+        * * SQL Data Type: date`),
+    ExpirationDate: z.date().nullable().describe(`
+        * * Field Name: ExpirationDate
+        * * Display Name: Expiration Date
+        * * SQL Data Type: date`),
+    CertificatePDFURL: z.string().nullable().describe(`
+        * * Field Name: CertificatePDFURL
+        * * Display Name: Certificate PDF
+        * * SQL Data Type: nvarchar(500)`),
+    VerificationCode: z.string().nullable().describe(`
+        * * Field Name: VerificationCode
+        * * Display Name: Verification Code
+        * * SQL Data Type: nvarchar(100)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCertificateEntityType = z.infer<typeof AssociationDemoCertificateSchema>;
+
+/**
+ * zod schema definition for the entity Certification Renewals
+ */
+export const AssociationDemoCertificationRenewalSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CertificationID: z.string().describe(`
+        * * Field Name: CertificationID
+        * * Display Name: Certification
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Certifications__AssociationDemo (vwCertifications__AssociationDemo.ID)`),
+    RenewalDate: z.date().describe(`
+        * * Field Name: RenewalDate
+        * * Display Name: Renewal Date
+        * * SQL Data Type: date`),
+    ExpirationDate: z.date().describe(`
+        * * Field Name: ExpirationDate
+        * * Display Name: Expiration Date
+        * * SQL Data Type: date`),
+    CECreditsApplied: z.number().nullable().describe(`
+        * * Field Name: CECreditsApplied
+        * * Display Name: CE Credits Applied
+        * * SQL Data Type: int`),
+    FeePaid: z.number().nullable().describe(`
+        * * Field Name: FeePaid
+        * * Display Name: Fee Paid
+        * * SQL Data Type: decimal(10, 2)`),
+    PaymentDate: z.date().nullable().describe(`
+        * * Field Name: PaymentDate
+        * * Display Name: Payment Date
+        * * SQL Data Type: date`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    ProcessedBy: z.string().nullable().describe(`
+        * * Field Name: ProcessedBy
+        * * Display Name: Processed By
+        * * SQL Data Type: nvarchar(255)`),
+    ProcessedDate: z.date().nullable().describe(`
+        * * Field Name: ProcessedDate
+        * * Display Name: Processed Date
+        * * SQL Data Type: date`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCertificationRenewalEntityType = z.infer<typeof AssociationDemoCertificationRenewalSchema>;
+
+/**
+ * zod schema definition for the entity Certification Requirements
+ */
+export const AssociationDemoCertificationRequirementSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CertificationTypeID: z.string().describe(`
+        * * Field Name: CertificationTypeID
+        * * Display Name: Certification Type
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Certification Types (vwCertificationTypes.ID)`),
+    RequirementType: z.string().describe(`
+        * * Field Name: RequirementType
+        * * Display Name: Requirement Type
+        * * SQL Data Type: nvarchar(100)`),
+    Description: z.string().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    IsRequired: z.boolean().nullable().describe(`
+        * * Field Name: IsRequired
+        * * Display Name: Is Required
+        * * SQL Data Type: bit`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    Details: z.string().nullable().describe(`
+        * * Field Name: Details
+        * * Display Name: Details
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCertificationRequirementEntityType = z.infer<typeof AssociationDemoCertificationRequirementSchema>;
+
+/**
+ * zod schema definition for the entity Certification Types
+ */
+export const AssociationDemoCertificationTypeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    AccreditingBodyID: z.string().describe(`
+        * * Field Name: AccreditingBodyID
+        * * Display Name: Accrediting Body
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Accrediting Bodies (vwAccreditingBodies.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Abbreviation: z.string().nullable().describe(`
+        * * Field Name: Abbreviation
+        * * Display Name: Abbreviation
+        * * SQL Data Type: nvarchar(50)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Level: z.string().nullable().describe(`
+        * * Field Name: Level
+        * * Display Name: Level
+        * * SQL Data Type: nvarchar(50)`),
+    DurationMonths: z.number().nullable().describe(`
+        * * Field Name: DurationMonths
+        * * Display Name: Duration (Months)
+        * * SQL Data Type: int`),
+    RenewalRequiredMonths: z.number().nullable().describe(`
+        * * Field Name: RenewalRequiredMonths
+        * * Display Name: Renewal Required (Months)
+        * * SQL Data Type: int`),
+    CECreditsRequired: z.number().nullable().describe(`
+        * * Field Name: CECreditsRequired
+        * * Display Name: CE Credits Required
+        * * SQL Data Type: int`),
+    ExamRequired: z.boolean().nullable().describe(`
+        * * Field Name: ExamRequired
+        * * Display Name: Exam Required
+        * * SQL Data Type: bit`),
+    PracticalRequired: z.boolean().nullable().describe(`
+        * * Field Name: PracticalRequired
+        * * Display Name: Practical Required
+        * * SQL Data Type: bit`),
+    CostUSD: z.number().nullable().describe(`
+        * * Field Name: CostUSD
+        * * Display Name: Cost (USD)
+        * * SQL Data Type: decimal(10, 2)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    Prerequisites: z.string().nullable().describe(`
+        * * Field Name: Prerequisites
+        * * Display Name: Prerequisites
+        * * SQL Data Type: nvarchar(MAX)`),
+    TargetAudience: z.string().nullable().describe(`
+        * * Field Name: TargetAudience
+        * * Display Name: Target Audience
+        * * SQL Data Type: nvarchar(500)`),
+    CertificationCount: z.number().nullable().describe(`
+        * * Field Name: CertificationCount
+        * * Display Name: Certification Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCertificationTypeEntityType = z.infer<typeof AssociationDemoCertificationTypeSchema>;
+
+/**
+ * zod schema definition for the entity Certifications
+ */
+export const membershipCertificationSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier`),
+    CourseName: z.string().describe(`
+        * * Field Name: CourseName
+        * * Display Name: Course Name
+        * * SQL Data Type: nvarchar(200)`),
+    CompletedOn: z.date().describe(`
+        * * Field Name: CompletedOn
+        * * Display Name: Completion Date
+        * * SQL Data Type: date`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    CreditHours: z.number().describe(`
+        * * Field Name: CreditHours
+        * * Display Name: Credit Hours
+        * * SQL Data Type: decimal(5, 1)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipCertificationEntityType = z.infer<typeof membershipCertificationSchema>;
+
+/**
+ * zod schema definition for the entity Certifications__AssociationDemo
+ */
+export const AssociationDemoCertification__AssociationDemoSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    CertificationTypeID: z.string().describe(`
+        * * Field Name: CertificationTypeID
+        * * Display Name: Certification Type
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Certification Types (vwCertificationTypes.ID)`),
+    CertificationNumber: z.string().nullable().describe(`
+        * * Field Name: CertificationNumber
+        * * Display Name: Certification Number
+        * * SQL Data Type: nvarchar(100)`),
+    DateEarned: z.date().describe(`
+        * * Field Name: DateEarned
+        * * Display Name: Date Earned
+        * * SQL Data Type: date`),
+    DateExpires: z.date().nullable().describe(`
+        * * Field Name: DateExpires
+        * * Display Name: Date Expires
+        * * SQL Data Type: date`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    Score: z.number().nullable().describe(`
+        * * Field Name: Score
+        * * Display Name: Score
+        * * SQL Data Type: int`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    VerificationURL: z.string().nullable().describe(`
+        * * Field Name: VerificationURL
+        * * Display Name: Verification URL
+        * * SQL Data Type: nvarchar(500)`),
+    IssuedBy: z.string().nullable().describe(`
+        * * Field Name: IssuedBy
+        * * Display Name: Issued By
+        * * SQL Data Type: nvarchar(255)`),
+    LastRenewalDate: z.date().nullable().describe(`
+        * * Field Name: LastRenewalDate
+        * * Display Name: Last Renewal Date
+        * * SQL Data Type: date`),
+    NextRenewalDate: z.date().nullable().describe(`
+        * * Field Name: NextRenewalDate
+        * * Display Name: Next Renewal Date
+        * * SQL Data Type: date`),
+    CECreditsEarned: z.number().nullable().describe(`
+        * * Field Name: CECreditsEarned
+        * * Display Name: CE Credits Earned
+        * * SQL Data Type: int`),
+    RenewalCount: z.number().nullable().describe(`
+        * * Field Name: RenewalCount
+        * * Display Name: Renewal Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCertification__AssociationDemoEntityType = z.infer<typeof AssociationDemoCertification__AssociationDemoSchema>;
+
+/**
+ * zod schema definition for the entity Chapter Memberships
+ */
+export const AssociationDemoChapterMembershipSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ChapterID: z.string().describe(`
+        * * Field Name: ChapterID
+        * * Display Name: Chapter
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Chapters (vwChapters.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    JoinDate: z.date().describe(`
+        * * Field Name: JoinDate
+        * * Display Name: Join Date
+        * * SQL Data Type: date`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    Role: z.string().nullable().describe(`
+        * * Field Name: Role
+        * * Display Name: Role
+        * * SQL Data Type: nvarchar(100)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoChapterMembershipEntityType = z.infer<typeof AssociationDemoChapterMembershipSchema>;
+
+/**
+ * zod schema definition for the entity Chapter Officers
+ */
+export const AssociationDemoChapterOfficerSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ChapterID: z.string().describe(`
+        * * Field Name: ChapterID
+        * * Display Name: Chapter
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Chapters (vwChapters.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    Position: z.string().describe(`
+        * * Field Name: Position
+        * * Display Name: Position
+        * * SQL Data Type: nvarchar(100)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().nullable().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoChapterOfficerEntityType = z.infer<typeof AssociationDemoChapterOfficerSchema>;
+
+/**
+ * zod schema definition for the entity Chapters
+ */
+export const AssociationDemoChapterSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    ChapterType: z.string().describe(`
+        * * Field Name: ChapterType
+        * * Display Name: Chapter Type
+        * * SQL Data Type: nvarchar(50)`),
+    Region: z.string().nullable().describe(`
+        * * Field Name: Region
+        * * Display Name: Region
+        * * SQL Data Type: nvarchar(100)`),
+    City: z.string().nullable().describe(`
+        * * Field Name: City
+        * * Display Name: City
+        * * SQL Data Type: nvarchar(100)`),
+    State: z.string().nullable().describe(`
+        * * Field Name: State
+        * * Display Name: State
+        * * SQL Data Type: nvarchar(50)`),
+    Country: z.string().nullable().describe(`
+        * * Field Name: Country
+        * * Display Name: Country
+        * * SQL Data Type: nvarchar(100)`),
+    FoundedDate: z.date().nullable().describe(`
+        * * Field Name: FoundedDate
+        * * Display Name: Founded Date
+        * * SQL Data Type: date`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    Email: z.string().nullable().describe(`
+        * * Field Name: Email
+        * * Display Name: Email
+        * * SQL Data Type: nvarchar(255)`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Active
+        * * SQL Data Type: bit`),
+    MeetingFrequency: z.string().nullable().describe(`
+        * * Field Name: MeetingFrequency
+        * * Display Name: Meeting Frequency
+        * * SQL Data Type: nvarchar(100)`),
+    MemberCount: z.number().nullable().describe(`
+        * * Field Name: MemberCount
+        * * Display Name: Member Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Mj Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Mj Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoChapterEntityType = z.infer<typeof AssociationDemoChapterSchema>;
+
+/**
+ * zod schema definition for the entity Committee Memberships
+ */
+export const AssociationDemoCommitteeMembershipSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CommitteeID: z.string().describe(`
+        * * Field Name: CommitteeID
+        * * Display Name: Committee
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Committees (vwCommittees.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    Role: z.string().describe(`
+        * * Field Name: Role
+        * * Display Name: Role
+        * * SQL Data Type: nvarchar(100)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().nullable().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    AppointedBy: z.string().nullable().describe(`
+        * * Field Name: AppointedBy
+        * * Display Name: Appointed By
+        * * SQL Data Type: nvarchar(255)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCommitteeMembershipEntityType = z.infer<typeof AssociationDemoCommitteeMembershipSchema>;
+
+/**
+ * zod schema definition for the entity Committees
+ */
+export const AssociationDemoCommitteeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    CommitteeType: z.string().describe(`
+        * * Field Name: CommitteeType
+        * * Display Name: Committee Type
+        * * SQL Data Type: nvarchar(50)`),
+    Purpose: z.string().nullable().describe(`
+        * * Field Name: Purpose
+        * * Display Name: Purpose
+        * * SQL Data Type: nvarchar(MAX)`),
+    MeetingFrequency: z.string().nullable().describe(`
+        * * Field Name: MeetingFrequency
+        * * Display Name: Meeting Frequency
+        * * SQL Data Type: nvarchar(100)`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    FormedDate: z.date().nullable().describe(`
+        * * Field Name: FormedDate
+        * * Display Name: Formed Date
+        * * SQL Data Type: date`),
+    DisbandedDate: z.date().nullable().describe(`
+        * * Field Name: DisbandedDate
+        * * Display Name: Disbanded Date
+        * * SQL Data Type: date`),
+    ChairMemberID: z.string().nullable().describe(`
+        * * Field Name: ChairMemberID
+        * * Display Name: Chair Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    MaxMembers: z.number().nullable().describe(`
+        * * Field Name: MaxMembers
+        * * Display Name: Max Members
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCommitteeEntityType = z.infer<typeof AssociationDemoCommitteeSchema>;
+
+/**
+ * zod schema definition for the entity Competition Entries
+ */
+export const AssociationDemoCompetitionEntrySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CompetitionID: z.string().describe(`
+        * * Field Name: CompetitionID
+        * * Display Name: Competition
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)`),
+    ProductID: z.string().describe(`
+        * * Field Name: ProductID
+        * * Display Name: Product
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Products (vwProducts.ID)`),
+    CategoryID: z.string().describe(`
+        * * Field Name: CategoryID
+        * * Display Name: Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)`),
+    EntryNumber: z.string().nullable().describe(`
+        * * Field Name: EntryNumber
+        * * Display Name: Entry Number
+        * * SQL Data Type: nvarchar(50)`),
+    SubmittedDate: z.date().describe(`
+        * * Field Name: SubmittedDate
+        * * Display Name: Submitted Date
+        * * SQL Data Type: date`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    Score: z.number().nullable().describe(`
+        * * Field Name: Score
+        * * Display Name: Score
+        * * SQL Data Type: decimal(5, 2)`),
+    Ranking: z.number().nullable().describe(`
+        * * Field Name: Ranking
+        * * Display Name: Ranking
+        * * SQL Data Type: int`),
+    AwardLevel: z.string().nullable().describe(`
+        * * Field Name: AwardLevel
+        * * Display Name: Award Level
+        * * SQL Data Type: nvarchar(100)`),
+    JudgingNotes: z.string().nullable().describe(`
+        * * Field Name: JudgingNotes
+        * * Display Name: Judging Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    FeedbackProvided: z.boolean().nullable().describe(`
+        * * Field Name: FeedbackProvided
+        * * Display Name: Feedback Provided
+        * * SQL Data Type: bit`),
+    EntryFee: z.number().nullable().describe(`
+        * * Field Name: EntryFee
+        * * Display Name: Entry Fee
+        * * SQL Data Type: decimal(10, 2)`),
+    PaymentStatus: z.string().nullable().describe(`
+        * * Field Name: PaymentStatus
+        * * Display Name: Payment Status
+        * * SQL Data Type: nvarchar(50)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCompetitionEntryEntityType = z.infer<typeof AssociationDemoCompetitionEntrySchema>;
+
+/**
+ * zod schema definition for the entity Competition Judges
+ */
+export const AssociationDemoCompetitionJudgeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CompetitionID: z.string().describe(`
+        * * Field Name: CompetitionID
+        * * Display Name: Competition
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)`),
+    MemberID: z.string().nullable().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    FirstName: z.string().describe(`
+        * * Field Name: FirstName
+        * * Display Name: First Name
+        * * SQL Data Type: nvarchar(100)`),
+    LastName: z.string().describe(`
+        * * Field Name: LastName
+        * * Display Name: Last Name
+        * * SQL Data Type: nvarchar(100)`),
+    Email: z.string().nullable().describe(`
+        * * Field Name: Email
+        * * Display Name: Email Address
+        * * SQL Data Type: nvarchar(255)`),
+    Organization: z.string().nullable().describe(`
+        * * Field Name: Organization
+        * * Display Name: Organization
+        * * SQL Data Type: nvarchar(255)`),
+    Credentials: z.string().nullable().describe(`
+        * * Field Name: Credentials
+        * * Display Name: Credentials
+        * * SQL Data Type: nvarchar(MAX)`),
+    YearsExperience: z.number().nullable().describe(`
+        * * Field Name: YearsExperience
+        * * Display Name: Years of Experience
+        * * SQL Data Type: int`),
+    Specialty: z.string().nullable().describe(`
+        * * Field Name: Specialty
+        * * Display Name: Specialty
+        * * SQL Data Type: nvarchar(255)`),
+    Role: z.string().nullable().describe(`
+        * * Field Name: Role
+        * * Display Name: Role
+        * * SQL Data Type: nvarchar(100)`),
+    AssignedCategories: z.string().nullable().describe(`
+        * * Field Name: AssignedCategories
+        * * Display Name: Assigned Categories
+        * * SQL Data Type: nvarchar(MAX)`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    InvitedDate: z.date().nullable().describe(`
+        * * Field Name: InvitedDate
+        * * Display Name: Invited Date
+        * * SQL Data Type: date`),
+    ConfirmedDate: z.date().nullable().describe(`
+        * * Field Name: ConfirmedDate
+        * * Display Name: Confirmed Date
+        * * SQL Data Type: date`),
+    CompensationAmount: z.number().nullable().describe(`
+        * * Field Name: CompensationAmount
+        * * Display Name: Compensation Amount
+        * * SQL Data Type: decimal(10, 2)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoCompetitionJudgeEntityType = z.infer<typeof AssociationDemoCompetitionJudgeSchema>;
+
+/**
+ * zod schema definition for the entity Competitions
+ */
+export const AssociationDemoCompetitionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Year: z.number().describe(`
+        * * Field Name: Year
+        * * Display Name: Year
+        * * SQL Data Type: int`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    JudgingDate: z.date().nullable().describe(`
+        * * Field Name: JudgingDate
+        * * Display Name: Judging Date
+        * * SQL Data Type: date`),
+    AwardsDate: z.date().nullable().describe(`
+        * * Field Name: AwardsDate
+        * * Display Name: Awards Date
+        * * SQL Data Type: date`),
+    Location: z.string().nullable().describe(`
+        * * Field Name: Location
+        * * Display Name: Location
+        * * SQL Data Type: nvarchar(255)`),
+    EntryDeadline: z.date().nullable().describe(`
+        * * Field Name: EntryDeadline
+        * * Display Name: Entry Deadline
+        * * SQL Data Type: date`),
+    EntryFee: z.number().nullable().describe(`
+        * * Field Name: EntryFee
+        * * Display Name: Entry Fee
+        * * SQL Data Type: decimal(10, 2)`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    TotalEntries: z.number().nullable().describe(`
+        * * Field Name: TotalEntries
+        * * Display Name: Total Entries
+        * * SQL Data Type: int`),
+    TotalCategories: z.number().nullable().describe(`
+        * * Field Name: TotalCategories
+        * * Display Name: Total Categories
+        * * SQL Data Type: int`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    ContactEmail: z.string().nullable().describe(`
+        * * Field Name: ContactEmail
+        * * Display Name: Contact Email
+        * * SQL Data Type: nvarchar(255)`),
+    IsAnnual: z.boolean().nullable().describe(`
+        * * Field Name: IsAnnual
+        * * Display Name: Is Annual
+        * * SQL Data Type: bit`),
+    IsInternational: z.boolean().nullable().describe(`
+        * * Field Name: IsInternational
+        * * Display Name: Is International
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Mj Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Mj Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoCompetitionEntityType = z.infer<typeof AssociationDemoCompetitionSchema>;
+
+/**
+ * zod schema definition for the entity Continuing Educations
+ */
+export const AssociationDemoContinuingEducationSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    CertificationID: z.string().nullable().describe(`
+        * * Field Name: CertificationID
+        * * Display Name: Certification
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Certifications__AssociationDemo (vwCertifications__AssociationDemo.ID)`),
+    ActivityTitle: z.string().describe(`
+        * * Field Name: ActivityTitle
+        * * Display Name: Activity Title
+        * * SQL Data Type: nvarchar(500)`),
+    ActivityType: z.string().describe(`
+        * * Field Name: ActivityType
+        * * Display Name: Activity Type
+        * * SQL Data Type: nvarchar(100)`),
+    Provider: z.string().nullable().describe(`
+        * * Field Name: Provider
+        * * Display Name: Provider
+        * * SQL Data Type: nvarchar(255)`),
+    CompletionDate: z.date().describe(`
+        * * Field Name: CompletionDate
+        * * Display Name: Completion Date
+        * * SQL Data Type: date`),
+    CreditsEarned: z.number().describe(`
+        * * Field Name: CreditsEarned
+        * * Display Name: Credits Earned
+        * * SQL Data Type: decimal(5, 2)`),
+    CreditsType: z.string().nullable().describe(`
+        * * Field Name: CreditsType
+        * * Display Name: Credits Type
+        * * SQL Data Type: nvarchar(50)`),
+    HoursSpent: z.number().nullable().describe(`
+        * * Field Name: HoursSpent
+        * * Display Name: Hours Spent
+        * * SQL Data Type: decimal(5, 2)`),
+    VerificationCode: z.string().nullable().describe(`
+        * * Field Name: VerificationCode
+        * * Display Name: Verification Code
+        * * SQL Data Type: nvarchar(100)`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    DocumentURL: z.string().nullable().describe(`
+        * * Field Name: DocumentURL
+        * * Display Name: Document URL
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoContinuingEducationEntityType = z.infer<typeof AssociationDemoContinuingEducationSchema>;
+
+/**
+ * zod schema definition for the entity Courses
+ */
+export const AssociationDemoCourseSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Code: z.string().describe(`
+        * * Field Name: Code
+        * * Display Name: Code
+        * * SQL Data Type: nvarchar(50)`),
+    Title: z.string().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Category: z.string().nullable().describe(`
+        * * Field Name: Category
+        * * Display Name: Category
+        * * SQL Data Type: nvarchar(100)`),
+    Level: z.string().describe(`
+        * * Field Name: Level
+        * * Display Name: Level
+        * * SQL Data Type: nvarchar(20)`),
+    DurationHours: z.number().nullable().describe(`
+        * * Field Name: DurationHours
+        * * Display Name: Duration (Hours)
+        * * SQL Data Type: decimal(5, 2)`),
+    CEUCredits: z.number().nullable().describe(`
+        * * Field Name: CEUCredits
+        * * Display Name: CEU Credits
+        * * SQL Data Type: decimal(4, 2)`),
+    Price: z.number().nullable().describe(`
+        * * Field Name: Price
+        * * Display Name: Price
+        * * SQL Data Type: decimal(10, 2)`),
+    MemberPrice: z.number().nullable().describe(`
+        * * Field Name: MemberPrice
+        * * Display Name: Member Price
+        * * SQL Data Type: decimal(10, 2)`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    PublishedDate: z.date().nullable().describe(`
+        * * Field Name: PublishedDate
+        * * Display Name: Published Date
+        * * SQL Data Type: date`),
+    InstructorName: z.string().nullable().describe(`
+        * * Field Name: InstructorName
+        * * Display Name: Instructor Name
+        * * SQL Data Type: nvarchar(255)`),
+    PrerequisiteCourseID: z.string().nullable().describe(`
+        * * Field Name: PrerequisiteCourseID
+        * * Display Name: Prerequisite Course
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Courses (vwCourses.ID)`),
+    ThumbnailURL: z.string().nullable().describe(`
+        * * Field Name: ThumbnailURL
+        * * Display Name: Thumbnail URL
+        * * SQL Data Type: nvarchar(500)`),
+    LearningObjectives: z.string().nullable().describe(`
+        * * Field Name: LearningObjectives
+        * * Display Name: Learning Objectives
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    RootPrerequisiteCourseID: z.string().nullable().describe(`
+        * * Field Name: RootPrerequisiteCourseID
+        * * Display Name: Root Prerequisite Course
+        * * SQL Data Type: uniqueidentifier`),
+});
+
+export type AssociationDemoCourseEntityType = z.infer<typeof AssociationDemoCourseSchema>;
+
+/**
+ * zod schema definition for the entity Email Clicks
+ */
+export const AssociationDemoEmailClickSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    EmailSendID: z.string().describe(`
+        * * Field Name: EmailSendID
+        * * Display Name: Email Send
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Email Sends (vwEmailSends.ID)`),
+    ClickDate: z.date().describe(`
+        * * Field Name: ClickDate
+        * * Display Name: Click Date
+        * * SQL Data Type: datetime`),
+    URL: z.string().describe(`
+        * * Field Name: URL
+        * * Display Name: URL
+        * * SQL Data Type: nvarchar(2000)`),
+    LinkName: z.string().nullable().describe(`
+        * * Field Name: LinkName
+        * * Display Name: Link Name
+        * * SQL Data Type: nvarchar(255)`),
+    IPAddress: z.string().nullable().describe(`
+        * * Field Name: IPAddress
+        * * Display Name: IP Address
+        * * SQL Data Type: nvarchar(50)`),
+    UserAgent: z.string().nullable().describe(`
+        * * Field Name: UserAgent
+        * * Display Name: User Agent
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEmailClickEntityType = z.infer<typeof AssociationDemoEmailClickSchema>;
+
+/**
+ * zod schema definition for the entity Email Engagements
+ */
+export const membershipEmailEngagementSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier`),
+    ActivityType: z.string().describe(`
+        * * Field Name: ActivityType
+        * * Display Name: Activity Type
+        * * SQL Data Type: nvarchar(50)`),
+    OccurredOn: z.date().describe(`
+        * * Field Name: OccurredOn
+        * * Display Name: Occurred On
+        * * SQL Data Type: datetime2`),
+    CampaignName: z.string().describe(`
+        * * Field Name: CampaignName
+        * * Display Name: Campaign Name
+        * * SQL Data Type: nvarchar(200)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipEmailEngagementEntityType = z.infer<typeof membershipEmailEngagementSchema>;
+
+/**
+ * zod schema definition for the entity Email Sends
+ */
+export const AssociationDemoEmailSendSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    TemplateID: z.string().nullable().describe(`
+        * * Field Name: TemplateID
+        * * Display Name: Template
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Email Templates (vwEmailTemplates.ID)`),
+    CampaignID: z.string().nullable().describe(`
+        * * Field Name: CampaignID
+        * * Display Name: Campaign
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Campaigns (vwCampaigns.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    Subject: z.string().nullable().describe(`
+        * * Field Name: Subject
+        * * Display Name: Subject
+        * * SQL Data Type: nvarchar(500)`),
+    SentDate: z.date().describe(`
+        * * Field Name: SentDate
+        * * Display Name: Sent Date
+        * * SQL Data Type: datetime`),
+    DeliveredDate: z.date().nullable().describe(`
+        * * Field Name: DeliveredDate
+        * * Display Name: Delivered Date
+        * * SQL Data Type: datetime`),
+    OpenedDate: z.date().nullable().describe(`
+        * * Field Name: OpenedDate
+        * * Display Name: Opened Date
+        * * SQL Data Type: datetime`),
+    OpenCount: z.number().nullable().describe(`
+        * * Field Name: OpenCount
+        * * Display Name: Open Count
+        * * SQL Data Type: int`),
+    ClickedDate: z.date().nullable().describe(`
+        * * Field Name: ClickedDate
+        * * Display Name: Clicked Date
+        * * SQL Data Type: datetime`),
+    ClickCount: z.number().nullable().describe(`
+        * * Field Name: ClickCount
+        * * Display Name: Click Count
+        * * SQL Data Type: int`),
+    BouncedDate: z.date().nullable().describe(`
+        * * Field Name: BouncedDate
+        * * Display Name: Bounced Date
+        * * SQL Data Type: datetime`),
+    BounceType: z.string().nullable().describe(`
+        * * Field Name: BounceType
+        * * Display Name: Bounce Type
+        * * SQL Data Type: nvarchar(20)`),
+    BounceReason: z.string().nullable().describe(`
+        * * Field Name: BounceReason
+        * * Display Name: Bounce Reason
+        * * SQL Data Type: nvarchar(MAX)`),
+    UnsubscribedDate: z.date().nullable().describe(`
+        * * Field Name: UnsubscribedDate
+        * * Display Name: Unsubscribed Date
+        * * SQL Data Type: datetime`),
+    SpamReportedDate: z.date().nullable().describe(`
+        * * Field Name: SpamReportedDate
+        * * Display Name: Spam Reported Date
+        * * SQL Data Type: datetime`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    ExternalMessageID: z.string().nullable().describe(`
+        * * Field Name: ExternalMessageID
+        * * Display Name: External Message ID
+        * * SQL Data Type: nvarchar(255)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEmailSendEntityType = z.infer<typeof AssociationDemoEmailSendSchema>;
+
+/**
+ * zod schema definition for the entity Email Templates
+ */
+export const AssociationDemoEmailTemplateSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Template Name
+        * * SQL Data Type: nvarchar(255)`),
+    Subject: z.string().nullable().describe(`
+        * * Field Name: Subject
+        * * Display Name: Subject
+        * * SQL Data Type: nvarchar(500)`),
+    FromName: z.string().nullable().describe(`
+        * * Field Name: FromName
+        * * Display Name: From Name
+        * * SQL Data Type: nvarchar(255)`),
+    FromEmail: z.string().nullable().describe(`
+        * * Field Name: FromEmail
+        * * Display Name: From Email
+        * * SQL Data Type: nvarchar(255)`),
+    ReplyToEmail: z.string().nullable().describe(`
+        * * Field Name: ReplyToEmail
+        * * Display Name: Reply To Email
+        * * SQL Data Type: nvarchar(255)`),
+    HtmlBody: z.string().nullable().describe(`
+        * * Field Name: HtmlBody
+        * * Display Name: HTML Body
+        * * SQL Data Type: nvarchar(MAX)`),
+    TextBody: z.string().nullable().describe(`
+        * * Field Name: TextBody
+        * * Display Name: Text Body
+        * * SQL Data Type: nvarchar(MAX)`),
+    Category: z.string().nullable().describe(`
+        * * Field Name: Category
+        * * Display Name: Category
+        * * SQL Data Type: nvarchar(100)`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    PreviewText: z.string().nullable().describe(`
+        * * Field Name: PreviewText
+        * * Display Name: Preview Text
+        * * SQL Data Type: nvarchar(255)`),
+    Tags: z.string().nullable().describe(`
+        * * Field Name: Tags
+        * * Display Name: Tags
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEmailTemplateEntityType = z.infer<typeof AssociationDemoEmailTemplateSchema>;
+
+/**
+ * zod schema definition for the entity Enrollments
+ */
+export const AssociationDemoEnrollmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CourseID: z.string().describe(`
+        * * Field Name: CourseID
+        * * Display Name: Course
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Courses (vwCourses.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    EnrollmentDate: z.date().describe(`
+        * * Field Name: EnrollmentDate
+        * * Display Name: Enrollment Date
+        * * SQL Data Type: datetime`),
+    StartDate: z.date().nullable().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: datetime`),
+    CompletionDate: z.date().nullable().describe(`
+        * * Field Name: CompletionDate
+        * * Display Name: Completion Date
+        * * SQL Data Type: datetime`),
+    ExpirationDate: z.date().nullable().describe(`
+        * * Field Name: ExpirationDate
+        * * Display Name: Expiration Date
+        * * SQL Data Type: datetime`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    ProgressPercentage: z.number().nullable().describe(`
+        * * Field Name: ProgressPercentage
+        * * Display Name: Progress Percentage
+        * * SQL Data Type: int`),
+    LastAccessedDate: z.date().nullable().describe(`
+        * * Field Name: LastAccessedDate
+        * * Display Name: Last Accessed Date
+        * * SQL Data Type: datetime`),
+    TimeSpentMinutes: z.number().nullable().describe(`
+        * * Field Name: TimeSpentMinutes
+        * * Display Name: Time Spent (Minutes)
+        * * SQL Data Type: int`),
+    FinalScore: z.number().nullable().describe(`
+        * * Field Name: FinalScore
+        * * Display Name: Final Score
+        * * SQL Data Type: decimal(5, 2)`),
+    PassingScore: z.number().nullable().describe(`
+        * * Field Name: PassingScore
+        * * Display Name: Passing Score
+        * * SQL Data Type: decimal(5, 2)`),
+    Passed: z.boolean().nullable().describe(`
+        * * Field Name: Passed
+        * * Display Name: Passed
+        * * SQL Data Type: bit`),
+    InvoiceID: z.string().nullable().describe(`
+        * * Field Name: InvoiceID
+        * * Display Name: Invoice
+        * * SQL Data Type: uniqueidentifier`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEnrollmentEntityType = z.infer<typeof AssociationDemoEnrollmentSchema>;
+
+/**
+ * zod schema definition for the entity Event Registrations
+ */
+export const membershipEventRegistrationSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier`),
+    EventName: z.string().describe(`
+        * * Field Name: EventName
+        * * Display Name: Event Name
+        * * SQL Data Type: nvarchar(200)`),
+    EventDate: z.date().describe(`
+        * * Field Name: EventDate
+        * * Display Name: Event Date
+        * * SQL Data Type: date`),
+    Attended: z.boolean().describe(`
+        * * Field Name: Attended
+        * * Display Name: Attended
+        * * SQL Data Type: bit`),
+    RegistrationType: z.string().describe(`
+        * * Field Name: RegistrationType
+        * * Display Name: Registration Type
+        * * SQL Data Type: nvarchar(50)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipEventRegistrationEntityType = z.infer<typeof membershipEventRegistrationSchema>;
+
+/**
+ * zod schema definition for the entity Event Registrations__AssociationDemo
+ */
+export const AssociationDemoEventRegistration__AssociationDemoSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    EventID: z.string().describe(`
+        * * Field Name: EventID
+        * * Display Name: Event
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Events (vwEvents.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    RegistrationDate: z.date().describe(`
+        * * Field Name: RegistrationDate
+        * * Display Name: Registration Date
+        * * SQL Data Type: datetime`),
+    RegistrationType: z.string().nullable().describe(`
+        * * Field Name: RegistrationType
+        * * Display Name: Registration Type
+        * * SQL Data Type: nvarchar(50)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    CheckInTime: z.date().nullable().describe(`
+        * * Field Name: CheckInTime
+        * * Display Name: Check-In Time
+        * * SQL Data Type: datetime`),
+    InvoiceID: z.string().nullable().describe(`
+        * * Field Name: InvoiceID
+        * * Display Name: Invoice
+        * * SQL Data Type: uniqueidentifier`),
+    CEUAwarded: z.boolean().describe(`
+        * * Field Name: CEUAwarded
+        * * Display Name: CEU Awarded
+        * * SQL Data Type: bit`),
+    CEUAwardedDate: z.date().nullable().describe(`
+        * * Field Name: CEUAwardedDate
+        * * Display Name: CEU Awarded Date
+        * * SQL Data Type: datetime`),
+    CancellationDate: z.date().nullable().describe(`
+        * * Field Name: CancellationDate
+        * * Display Name: Cancellation Date
+        * * SQL Data Type: datetime`),
+    CancellationReason: z.string().nullable().describe(`
+        * * Field Name: CancellationReason
+        * * Display Name: Cancellation Reason
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEventRegistration__AssociationDemoEntityType = z.infer<typeof AssociationDemoEventRegistration__AssociationDemoSchema>;
+
+/**
+ * zod schema definition for the entity Event Sessions
+ */
+export const AssociationDemoEventSessionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    EventID: z.string().describe(`
+        * * Field Name: EventID
+        * * Display Name: Event
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Events (vwEvents.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Session Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    StartTime: z.date().describe(`
+        * * Field Name: StartTime
+        * * Display Name: Start Time
+        * * SQL Data Type: datetime`),
+    EndTime: z.date().describe(`
+        * * Field Name: EndTime
+        * * Display Name: End Time
+        * * SQL Data Type: datetime`),
+    Room: z.string().nullable().describe(`
+        * * Field Name: Room
+        * * Display Name: Room
+        * * SQL Data Type: nvarchar(100)`),
+    SpeakerName: z.string().nullable().describe(`
+        * * Field Name: SpeakerName
+        * * Display Name: Speaker Name
+        * * SQL Data Type: nvarchar(255)`),
+    SessionType: z.string().nullable().describe(`
+        * * Field Name: SessionType
+        * * Display Name: Session Type
+        * * SQL Data Type: nvarchar(50)`),
+    Capacity: z.number().nullable().describe(`
+        * * Field Name: Capacity
+        * * Display Name: Capacity
+        * * SQL Data Type: int`),
+    CEUCredits: z.number().nullable().describe(`
+        * * Field Name: CEUCredits
+        * * Display Name: CEU Credits
+        * * SQL Data Type: decimal(4, 2)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoEventSessionEntityType = z.infer<typeof AssociationDemoEventSessionSchema>;
+
+/**
+ * zod schema definition for the entity Events
+ */
+export const AssociationDemoEventSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    EventType: z.string().describe(`
+        * * Field Name: EventType
+        * * Display Name: Event Type
+        * * SQL Data Type: nvarchar(50)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: datetime`),
+    EndDate: z.date().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: datetime`),
+    Timezone: z.string().nullable().describe(`
+        * * Field Name: Timezone
+        * * Display Name: Timezone
+        * * SQL Data Type: nvarchar(50)`),
+    Location: z.string().nullable().describe(`
+        * * Field Name: Location
+        * * Display Name: Location
+        * * SQL Data Type: nvarchar(255)`),
+    IsVirtual: z.boolean().describe(`
+        * * Field Name: IsVirtual
+        * * Display Name: Is Virtual
+        * * SQL Data Type: bit`),
+    VirtualPlatform: z.string().nullable().describe(`
+        * * Field Name: VirtualPlatform
+        * * Display Name: Virtual Platform
+        * * SQL Data Type: nvarchar(100)`),
+    MeetingURL: z.string().nullable().describe(`
+        * * Field Name: MeetingURL
+        * * Display Name: Meeting URL
+        * * SQL Data Type: nvarchar(500)`),
+    ChapterID: z.string().nullable().describe(`
+        * * Field Name: ChapterID
+        * * Display Name: Chapter
+        * * SQL Data Type: uniqueidentifier`),
+    Capacity: z.number().nullable().describe(`
+        * * Field Name: Capacity
+        * * Display Name: Capacity
+        * * SQL Data Type: int`),
+    RegistrationOpenDate: z.date().nullable().describe(`
+        * * Field Name: RegistrationOpenDate
+        * * Display Name: Registration Open Date
+        * * SQL Data Type: datetime`),
+    RegistrationCloseDate: z.date().nullable().describe(`
+        * * Field Name: RegistrationCloseDate
+        * * Display Name: Registration Close Date
+        * * SQL Data Type: datetime`),
+    RegistrationFee: z.number().nullable().describe(`
+        * * Field Name: RegistrationFee
+        * * Display Name: Registration Fee
+        * * SQL Data Type: decimal(10, 2)`),
+    MemberPrice: z.number().nullable().describe(`
+        * * Field Name: MemberPrice
+        * * Display Name: Member Price
+        * * SQL Data Type: decimal(10, 2)`),
+    NonMemberPrice: z.number().nullable().describe(`
+        * * Field Name: NonMemberPrice
+        * * Display Name: Non-Member Price
+        * * SQL Data Type: decimal(10, 2)`),
+    CEUCredits: z.number().nullable().describe(`
+        * * Field Name: CEUCredits
+        * * Display Name: CEU Credits
+        * * SQL Data Type: decimal(4, 2)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoEventEntityType = z.infer<typeof AssociationDemoEventSchema>;
+
+/**
+ * zod schema definition for the entity Forum Categories
+ */
+export const AssociationDemoForumCategorySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    ParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: ParentCategoryID
+        * * Display Name: Parent Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Categories (vwForumCategories.ID)`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    Icon: z.string().nullable().describe(`
+        * * Field Name: Icon
+        * * Display Name: Icon
+        * * SQL Data Type: nvarchar(100)`),
+    Color: z.string().nullable().describe(`
+        * * Field Name: Color
+        * * Display Name: Color
+        * * SQL Data Type: nvarchar(50)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Active
+        * * SQL Data Type: bit`),
+    RequiresMembership: z.boolean().nullable().describe(`
+        * * Field Name: RequiresMembership
+        * * Display Name: Requires Membership
+        * * SQL Data Type: bit`),
+    ThreadCount: z.number().nullable().describe(`
+        * * Field Name: ThreadCount
+        * * Display Name: Thread Count
+        * * SQL Data Type: int`),
+    PostCount: z.number().nullable().describe(`
+        * * Field Name: PostCount
+        * * Display Name: Post Count
+        * * SQL Data Type: int`),
+    LastPostDate: z.date().nullable().describe(`
+        * * Field Name: LastPostDate
+        * * Display Name: Last Post Date
+        * * SQL Data Type: datetime`),
+    LastPostAuthorID: z.string().nullable().describe(`
+        * * Field Name: LastPostAuthorID
+        * * Display Name: Last Post Author
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    RootParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: RootParentCategoryID
+        * * Display Name: Root Parent Category
+        * * SQL Data Type: uniqueidentifier`),
+});
+
+export type AssociationDemoForumCategoryEntityType = z.infer<typeof AssociationDemoForumCategorySchema>;
+
+/**
+ * zod schema definition for the entity Forum Moderations
+ */
+export const AssociationDemoForumModerationSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    PostID: z.string().describe(`
+        * * Field Name: PostID
+        * * Display Name: Post
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)`),
+    ReportedByID: z.string().describe(`
+        * * Field Name: ReportedByID
+        * * Display Name: Reported By
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    ReportedDate: z.date().describe(`
+        * * Field Name: ReportedDate
+        * * Display Name: Reported Date
+        * * SQL Data Type: datetime`),
+    ReportReason: z.string().nullable().describe(`
+        * * Field Name: ReportReason
+        * * Display Name: Report Reason
+        * * SQL Data Type: nvarchar(500)`),
+    ModerationStatus: z.string().nullable().describe(`
+        * * Field Name: ModerationStatus
+        * * Display Name: Moderation Status
+        * * SQL Data Type: nvarchar(50)`),
+    ModeratedByID: z.string().nullable().describe(`
+        * * Field Name: ModeratedByID
+        * * Display Name: Moderated By
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    ModeratedDate: z.date().nullable().describe(`
+        * * Field Name: ModeratedDate
+        * * Display Name: Moderated Date
+        * * SQL Data Type: datetime`),
+    ModeratorNotes: z.string().nullable().describe(`
+        * * Field Name: ModeratorNotes
+        * * Display Name: Moderator Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    Action: z.string().nullable().describe(`
+        * * Field Name: Action
+        * * Display Name: Action
+        * * SQL Data Type: nvarchar(100)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoForumModerationEntityType = z.infer<typeof AssociationDemoForumModerationSchema>;
+
+/**
+ * zod schema definition for the entity Forum Posts
+ */
+export const AssociationDemoForumPostSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ThreadID: z.string().describe(`
+        * * Field Name: ThreadID
+        * * Display Name: Thread
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Threads (vwForumThreads.ID)`),
+    ParentPostID: z.string().nullable().describe(`
+        * * Field Name: ParentPostID
+        * * Display Name: Parent Post
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)`),
+    AuthorID: z.string().describe(`
+        * * Field Name: AuthorID
+        * * Display Name: Author
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    Content: z.string().describe(`
+        * * Field Name: Content
+        * * Display Name: Content
+        * * SQL Data Type: nvarchar(MAX)`),
+    PostedDate: z.date().describe(`
+        * * Field Name: PostedDate
+        * * Display Name: Posted Date
+        * * SQL Data Type: datetime`),
+    EditedDate: z.date().nullable().describe(`
+        * * Field Name: EditedDate
+        * * Display Name: Edited Date
+        * * SQL Data Type: datetime`),
+    EditedByID: z.string().nullable().describe(`
+        * * Field Name: EditedByID
+        * * Display Name: Edited By
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    LikeCount: z.number().nullable().describe(`
+        * * Field Name: LikeCount
+        * * Display Name: Like Count
+        * * SQL Data Type: int`),
+    HelpfulCount: z.number().nullable().describe(`
+        * * Field Name: HelpfulCount
+        * * Display Name: Helpful Count
+        * * SQL Data Type: int`),
+    IsAcceptedAnswer: z.boolean().nullable().describe(`
+        * * Field Name: IsAcceptedAnswer
+        * * Display Name: Is Accepted Answer
+        * * SQL Data Type: bit`),
+    IsFlagged: z.boolean().nullable().describe(`
+        * * Field Name: IsFlagged
+        * * Display Name: Is Flagged
+        * * SQL Data Type: bit`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    RootParentPostID: z.string().nullable().describe(`
+        * * Field Name: RootParentPostID
+        * * Display Name: Root Parent Post
+        * * SQL Data Type: uniqueidentifier`),
+});
+
+export type AssociationDemoForumPostEntityType = z.infer<typeof AssociationDemoForumPostSchema>;
+
+/**
+ * zod schema definition for the entity Forum Threads
+ */
+export const AssociationDemoForumThreadSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CategoryID: z.string().describe(`
+        * * Field Name: CategoryID
+        * * Display Name: Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Categories (vwForumCategories.ID)`),
+    Title: z.string().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(500)`),
+    AuthorID: z.string().describe(`
+        * * Field Name: AuthorID
+        * * Display Name: Author
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    ViewCount: z.number().nullable().describe(`
+        * * Field Name: ViewCount
+        * * Display Name: View Count
+        * * SQL Data Type: int`),
+    ReplyCount: z.number().nullable().describe(`
+        * * Field Name: ReplyCount
+        * * Display Name: Reply Count
+        * * SQL Data Type: int`),
+    LastActivityDate: z.date().nullable().describe(`
+        * * Field Name: LastActivityDate
+        * * Display Name: Last Activity Date
+        * * SQL Data Type: datetime`),
+    LastReplyAuthorID: z.string().nullable().describe(`
+        * * Field Name: LastReplyAuthorID
+        * * Display Name: Last Reply Author
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    IsPinned: z.boolean().nullable().describe(`
+        * * Field Name: IsPinned
+        * * Display Name: Is Pinned
+        * * SQL Data Type: bit`),
+    IsLocked: z.boolean().nullable().describe(`
+        * * Field Name: IsLocked
+        * * Display Name: Is Locked
+        * * SQL Data Type: bit`),
+    IsFeatured: z.boolean().nullable().describe(`
+        * * Field Name: IsFeatured
+        * * Display Name: Is Featured
+        * * SQL Data Type: bit`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoForumThreadEntityType = z.infer<typeof AssociationDemoForumThreadSchema>;
+
+/**
+ * zod schema definition for the entity Government Contacts
+ */
+export const AssociationDemoGovernmentContactSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    LegislativeBodyID: z.string().nullable().describe(`
+        * * Field Name: LegislativeBodyID
+        * * Display Name: Legislative Body
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Legislative Bodies (vwLegislativeBodies.ID)`),
+    FirstName: z.string().describe(`
+        * * Field Name: FirstName
+        * * Display Name: First Name
+        * * SQL Data Type: nvarchar(100)`),
+    LastName: z.string().describe(`
+        * * Field Name: LastName
+        * * Display Name: Last Name
+        * * SQL Data Type: nvarchar(100)`),
+    Title: z.string().nullable().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(255)`),
+    ContactType: z.string().describe(`
+        * * Field Name: ContactType
+        * * Display Name: Contact Type
+        * * SQL Data Type: nvarchar(50)`),
+    Party: z.string().nullable().describe(`
+        * * Field Name: Party
+        * * Display Name: Party
+        * * SQL Data Type: nvarchar(50)`),
+    District: z.string().nullable().describe(`
+        * * Field Name: District
+        * * Display Name: District
+        * * SQL Data Type: nvarchar(100)`),
+    Committee: z.string().nullable().describe(`
+        * * Field Name: Committee
+        * * Display Name: Committee
+        * * SQL Data Type: nvarchar(255)`),
+    Email: z.string().nullable().describe(`
+        * * Field Name: Email
+        * * Display Name: Email
+        * * SQL Data Type: nvarchar(255)`),
+    Phone: z.string().nullable().describe(`
+        * * Field Name: Phone
+        * * Display Name: Phone
+        * * SQL Data Type: nvarchar(50)`),
+    OfficeAddress: z.string().nullable().describe(`
+        * * Field Name: OfficeAddress
+        * * Display Name: Office Address
+        * * SQL Data Type: nvarchar(500)`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    TermStart: z.date().nullable().describe(`
+        * * Field Name: TermStart
+        * * Display Name: Term Start
+        * * SQL Data Type: date`),
+    TermEnd: z.date().nullable().describe(`
+        * * Field Name: TermEnd
+        * * Display Name: Term End
+        * * SQL Data Type: date`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoGovernmentContactEntityType = z.infer<typeof AssociationDemoGovernmentContactSchema>;
+
+/**
+ * zod schema definition for the entity Invoice Line Items
+ */
+export const AssociationDemoInvoiceLineItemSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    InvoiceID: z.string().describe(`
+        * * Field Name: InvoiceID
+        * * Display Name: Invoice
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Invoices (vwInvoices.ID)`),
+    Description: z.string().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(500)`),
+    ItemType: z.string().describe(`
+        * * Field Name: ItemType
+        * * Display Name: Item Type
+        * * SQL Data Type: nvarchar(50)`),
+    Quantity: z.number().nullable().describe(`
+        * * Field Name: Quantity
+        * * Display Name: Quantity
+        * * SQL Data Type: int`),
+    UnitPrice: z.number().describe(`
+        * * Field Name: UnitPrice
+        * * Display Name: Unit Price
+        * * SQL Data Type: decimal(10, 2)`),
+    Amount: z.number().describe(`
+        * * Field Name: Amount
+        * * Display Name: Amount
+        * * SQL Data Type: decimal(12, 2)`),
+    TaxAmount: z.number().nullable().describe(`
+        * * Field Name: TaxAmount
+        * * Display Name: Tax Amount
+        * * SQL Data Type: decimal(12, 2)`),
+    RelatedEntityType: z.string().nullable().describe(`
+        * * Field Name: RelatedEntityType
+        * * Display Name: Related Entity Type
+        * * SQL Data Type: nvarchar(100)`),
+    RelatedEntityID: z.string().nullable().describe(`
+        * * Field Name: RelatedEntityID
+        * * Display Name: Related Entity
+        * * SQL Data Type: uniqueidentifier`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoInvoiceLineItemEntityType = z.infer<typeof AssociationDemoInvoiceLineItemSchema>;
+
+/**
+ * zod schema definition for the entity Invoices
+ */
+export const AssociationDemoInvoiceSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    InvoiceNumber: z.string().describe(`
+        * * Field Name: InvoiceNumber
+        * * Display Name: Invoice Number
+        * * SQL Data Type: nvarchar(50)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    InvoiceDate: z.date().describe(`
+        * * Field Name: InvoiceDate
+        * * Display Name: Invoice Date
+        * * SQL Data Type: date`),
+    DueDate: z.date().describe(`
+        * * Field Name: DueDate
+        * * Display Name: Due Date
+        * * SQL Data Type: date`),
+    SubTotal: z.number().describe(`
+        * * Field Name: SubTotal
+        * * Display Name: Subtotal
+        * * SQL Data Type: decimal(12, 2)`),
+    Tax: z.number().nullable().describe(`
+        * * Field Name: Tax
+        * * Display Name: Tax
+        * * SQL Data Type: decimal(12, 2)`),
+    Discount: z.number().nullable().describe(`
+        * * Field Name: Discount
+        * * Display Name: Discount
+        * * SQL Data Type: decimal(12, 2)`),
+    Total: z.number().describe(`
+        * * Field Name: Total
+        * * Display Name: Total
+        * * SQL Data Type: decimal(12, 2)`),
+    AmountPaid: z.number().nullable().describe(`
+        * * Field Name: AmountPaid
+        * * Display Name: Amount Paid
+        * * SQL Data Type: decimal(12, 2)`),
+    Balance: z.number().describe(`
+        * * Field Name: Balance
+        * * Display Name: Balance
+        * * SQL Data Type: decimal(12, 2)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    PaymentTerms: z.string().nullable().describe(`
+        * * Field Name: PaymentTerms
+        * * Display Name: Payment Terms
+        * * SQL Data Type: nvarchar(100)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoInvoiceEntityType = z.infer<typeof AssociationDemoInvoiceSchema>;
+
+/**
+ * zod schema definition for the entity Legislative Bodies
+ */
+export const AssociationDemoLegislativeBodySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    BodyType: z.string().describe(`
+        * * Field Name: BodyType
+        * * Display Name: Body Type
+        * * SQL Data Type: nvarchar(50)`),
+    Level: z.string().describe(`
+        * * Field Name: Level
+        * * Display Name: Level
+        * * SQL Data Type: nvarchar(20)`),
+    State: z.string().nullable().describe(`
+        * * Field Name: State
+        * * Display Name: State
+        * * SQL Data Type: nvarchar(2)`),
+    Country: z.string().nullable().describe(`
+        * * Field Name: Country
+        * * Display Name: Country
+        * * SQL Data Type: nvarchar(100)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    SessionSchedule: z.string().nullable().describe(`
+        * * Field Name: SessionSchedule
+        * * Display Name: Session Schedule
+        * * SQL Data Type: nvarchar(500)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Mj Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Mj Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoLegislativeBodyEntityType = z.infer<typeof AssociationDemoLegislativeBodySchema>;
+
+/**
+ * zod schema definition for the entity Legislative Issues
+ */
+export const AssociationDemoLegislativeIssueSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    LegislativeBodyID: z.string().describe(`
+        * * Field Name: LegislativeBodyID
+        * * Display Name: Legislative Body
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Legislative Bodies (vwLegislativeBodies.ID)`),
+    Title: z.string().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(500)`),
+    IssueType: z.string().describe(`
+        * * Field Name: IssueType
+        * * Display Name: Issue Type
+        * * SQL Data Type: nvarchar(50)`),
+    BillNumber: z.string().nullable().describe(`
+        * * Field Name: BillNumber
+        * * Display Name: Bill Number
+        * * SQL Data Type: nvarchar(100)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    IntroducedDate: z.date().nullable().describe(`
+        * * Field Name: IntroducedDate
+        * * Display Name: Introduced Date
+        * * SQL Data Type: date`),
+    LastActionDate: z.date().nullable().describe(`
+        * * Field Name: LastActionDate
+        * * Display Name: Last Action Date
+        * * SQL Data Type: date`),
+    EffectiveDate: z.date().nullable().describe(`
+        * * Field Name: EffectiveDate
+        * * Display Name: Effective Date
+        * * SQL Data Type: date`),
+    Summary: z.string().nullable().describe(`
+        * * Field Name: Summary
+        * * Display Name: Summary
+        * * SQL Data Type: nvarchar(MAX)`),
+    ImpactLevel: z.string().nullable().describe(`
+        * * Field Name: ImpactLevel
+        * * Display Name: Impact Level
+        * * SQL Data Type: nvarchar(20)`),
+    ImpactDescription: z.string().nullable().describe(`
+        * * Field Name: ImpactDescription
+        * * Display Name: Impact Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    Category: z.string().nullable().describe(`
+        * * Field Name: Category
+        * * Display Name: Category
+        * * SQL Data Type: nvarchar(100)`),
+    Sponsor: z.string().nullable().describe(`
+        * * Field Name: Sponsor
+        * * Display Name: Sponsor
+        * * SQL Data Type: nvarchar(255)`),
+    TrackingURL: z.string().nullable().describe(`
+        * * Field Name: TrackingURL
+        * * Display Name: Tracking URL
+        * * SQL Data Type: nvarchar(500)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoLegislativeIssueEntityType = z.infer<typeof AssociationDemoLegislativeIssueSchema>;
+
+/**
+ * zod schema definition for the entity Member Follows
+ */
+export const AssociationDemoMemberFollowSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    FollowerID: z.string().describe(`
+        * * Field Name: FollowerID
+        * * Display Name: Follower
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    FollowType: z.string().describe(`
+        * * Field Name: FollowType
+        * * Display Name: Follow Type
+        * * SQL Data Type: nvarchar(50)`),
+    FollowedEntityID: z.string().describe(`
+        * * Field Name: FollowedEntityID
+        * * Display Name: Followed Entity
+        * * SQL Data Type: uniqueidentifier`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Followed Date
+        * * SQL Data Type: datetime`),
+    NotifyOnActivity: z.boolean().nullable().describe(`
+        * * Field Name: NotifyOnActivity
+        * * Display Name: Notify On Activity
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoMemberFollowEntityType = z.infer<typeof AssociationDemoMemberFollowSchema>;
+
+/**
+ * zod schema definition for the entity Members
+ */
+export const membershipMemberSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    FirstName: z.string().describe(`
+        * * Field Name: FirstName
+        * * Display Name: First Name
+        * * SQL Data Type: nvarchar(100)`),
+    LastName: z.string().describe(`
+        * * Field Name: LastName
+        * * Display Name: Last Name
+        * * SQL Data Type: nvarchar(100)`),
+    Email: z.string().describe(`
+        * * Field Name: Email
+        * * Display Name: Email
+        * * SQL Data Type: nvarchar(255)`),
+    MembershipType: z.string().describe(`
+        * * Field Name: MembershipType
+        * * Display Name: Membership Type
+        * * SQL Data Type: nvarchar(50)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    JoinDate: z.date().describe(`
+        * * Field Name: JoinDate
+        * * Display Name: Join Date
+        * * SQL Data Type: date`),
+    RenewalDate: z.date().nullable().describe(`
+        * * Field Name: RenewalDate
+        * * Display Name: Renewal Date
+        * * SQL Data Type: date`),
+    ChapterRegion: z.string().nullable().describe(`
+        * * Field Name: ChapterRegion
+        * * Display Name: Chapter Region
+        * * SQL Data Type: nvarchar(100)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipMemberEntityType = z.infer<typeof membershipMemberSchema>;
+
+/**
+ * zod schema definition for the entity Members__AssociationDemo
+ */
+export const AssociationDemoMember__AssociationDemoSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Email: z.string().describe(`
+        * * Field Name: Email
+        * * Display Name: Email
+        * * SQL Data Type: nvarchar(255)`),
+    FirstName: z.string().describe(`
+        * * Field Name: FirstName
+        * * Display Name: First Name
+        * * SQL Data Type: nvarchar(100)`),
+    LastName: z.string().describe(`
+        * * Field Name: LastName
+        * * Display Name: Last Name
+        * * SQL Data Type: nvarchar(100)`),
+    Title: z.string().nullable().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(100)`),
+    OrganizationID: z.string().nullable().describe(`
+        * * Field Name: OrganizationID
+        * * Display Name: Organization
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Organizations (vwOrganizations.ID)`),
+    Industry: z.string().nullable().describe(`
+        * * Field Name: Industry
+        * * Display Name: Industry
+        * * SQL Data Type: nvarchar(100)`),
+    JobFunction: z.string().nullable().describe(`
+        * * Field Name: JobFunction
+        * * Display Name: Job Function
+        * * SQL Data Type: nvarchar(100)`),
+    YearsInProfession: z.number().nullable().describe(`
+        * * Field Name: YearsInProfession
+        * * Display Name: Years In Profession
+        * * SQL Data Type: int`),
+    JoinDate: z.date().describe(`
+        * * Field Name: JoinDate
+        * * Display Name: Join Date
+        * * SQL Data Type: date`),
+    LinkedInURL: z.string().nullable().describe(`
+        * * Field Name: LinkedInURL
+        * * Display Name: LinkedIn URL
+        * * SQL Data Type: nvarchar(500)`),
+    Bio: z.string().nullable().describe(`
+        * * Field Name: Bio
+        * * Display Name: Bio
+        * * SQL Data Type: nvarchar(MAX)`),
+    PreferredLanguage: z.string().nullable().describe(`
+        * * Field Name: PreferredLanguage
+        * * Display Name: Preferred Language
+        * * SQL Data Type: nvarchar(10)`),
+    Timezone: z.string().nullable().describe(`
+        * * Field Name: Timezone
+        * * Display Name: Timezone
+        * * SQL Data Type: nvarchar(50)`),
+    Phone: z.string().nullable().describe(`
+        * * Field Name: Phone
+        * * Display Name: Phone
+        * * SQL Data Type: nvarchar(50)`),
+    Mobile: z.string().nullable().describe(`
+        * * Field Name: Mobile
+        * * Display Name: Mobile
+        * * SQL Data Type: nvarchar(50)`),
+    City: z.string().nullable().describe(`
+        * * Field Name: City
+        * * Display Name: City
+        * * SQL Data Type: nvarchar(100)`),
+    State: z.string().nullable().describe(`
+        * * Field Name: State
+        * * Display Name: State
+        * * SQL Data Type: nvarchar(50)`),
+    Country: z.string().nullable().describe(`
+        * * Field Name: Country
+        * * Display Name: Country
+        * * SQL Data Type: nvarchar(100)`),
+    PostalCode: z.string().nullable().describe(`
+        * * Field Name: PostalCode
+        * * Display Name: Postal Code
+        * * SQL Data Type: nvarchar(20)`),
+    EngagementScore: z.number().nullable().describe(`
+        * * Field Name: EngagementScore
+        * * Display Name: Engagement Score
+        * * SQL Data Type: int`),
+    LastActivityDate: z.date().nullable().describe(`
+        * * Field Name: LastActivityDate
+        * * Display Name: Last Activity Date
+        * * SQL Data Type: datetime`),
+    ProfilePhotoURL: z.string().nullable().describe(`
+        * * Field Name: ProfilePhotoURL
+        * * Display Name: Profile Photo URL
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoMember__AssociationDemoEntityType = z.infer<typeof AssociationDemoMember__AssociationDemoSchema>;
+
+/**
+ * zod schema definition for the entity Membership Types
+ */
+export const AssociationDemoMembershipTypeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(100)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    AnnualDues: z.number().describe(`
+        * * Field Name: AnnualDues
+        * * Display Name: Annual Dues
+        * * SQL Data Type: decimal(10, 2)`),
+    RenewalPeriodMonths: z.number().describe(`
+        * * Field Name: RenewalPeriodMonths
+        * * Display Name: Renewal Period (Months)
+        * * SQL Data Type: int`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    AllowAutoRenew: z.boolean().describe(`
+        * * Field Name: AllowAutoRenew
+        * * Display Name: Allow Auto-Renew
+        * * SQL Data Type: bit`),
+    RequiresApproval: z.boolean().describe(`
+        * * Field Name: RequiresApproval
+        * * Display Name: Requires Approval
+        * * SQL Data Type: bit`),
+    Benefits: z.string().nullable().describe(`
+        * * Field Name: Benefits
+        * * Display Name: Benefits
+        * * SQL Data Type: nvarchar(MAX)`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoMembershipTypeEntityType = z.infer<typeof AssociationDemoMembershipTypeSchema>;
+
+/**
+ * zod schema definition for the entity Memberships
+ */
+export const AssociationDemoMembershipSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    MembershipTypeID: z.string().describe(`
+        * * Field Name: MembershipTypeID
+        * * Display Name: Membership Type
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Membership Types (vwMembershipTypes.ID)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    StartDate: z.date().describe(`
+        * * Field Name: StartDate
+        * * Display Name: Start Date
+        * * SQL Data Type: date`),
+    EndDate: z.date().describe(`
+        * * Field Name: EndDate
+        * * Display Name: End Date
+        * * SQL Data Type: date`),
+    RenewalDate: z.date().nullable().describe(`
+        * * Field Name: RenewalDate
+        * * Display Name: Renewal Date
+        * * SQL Data Type: date`),
+    AutoRenew: z.boolean().describe(`
+        * * Field Name: AutoRenew
+        * * Display Name: Auto Renew
+        * * SQL Data Type: bit`),
+    CancellationDate: z.date().nullable().describe(`
+        * * Field Name: CancellationDate
+        * * Display Name: Cancellation Date
+        * * SQL Data Type: date`),
+    CancellationReason: z.string().nullable().describe(`
+        * * Field Name: CancellationReason
+        * * Display Name: Cancellation Reason
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoMembershipEntityType = z.infer<typeof AssociationDemoMembershipSchema>;
+
+/**
  * zod schema definition for the entity MJ_BizApps_Sonar: Factors
  */
 export const mjBizAppsSonarFactorSchema = z.object({
@@ -205,7 +3229,7 @@ export const mjBizAppsSonarFactorSchema = z.object({
     LastValidatedAt: z.date().nullable().describe(`
         * * Field Name: LastValidatedAt
         * * Display Name: Last Validated At
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: UTC timestamp of the most recent validation of the factor.`),
     CreatedByAgent: z.string().nullable().describe(`
         * * Field Name: CreatedByAgent
@@ -254,6 +3278,302 @@ export const mjBizAppsSonarFactorSchema = z.object({
 });
 
 export type mjBizAppsSonarFactorEntityType = z.infer<typeof mjBizAppsSonarFactorSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Intervention Assignments
+ */
+export const mjBizAppsSonarInterventionAssignmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    InterventionID: z.string().describe(`
+        * * Field Name: InterventionID
+        * * Display Name: Intervention
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)`),
+    AnchorRecordID: z.string().describe(`
+        * * Field Name: AnchorRecordID
+        * * Display Name: Anchor Record ID
+        * * SQL Data Type: nvarchar(450)
+        * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).`),
+    AnchorRecordKeyJSON: z.string().nullable().describe(`
+        * * Field Name: AnchorRecordKeyJSON
+        * * Display Name: Anchor Record Key
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.`),
+    Cohort: z.union([z.literal('Control'), z.literal('Treatment')]).describe(`
+        * * Field Name: Cohort
+        * * Display Name: Cohort
+        * * SQL Data Type: nvarchar(10)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Control
+    *   * Treatment
+        * * Description: Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).`),
+    AssignedAt: z.date().describe(`
+        * * Field Name: AssignedAt
+        * * Display Name: Assigned At
+        * * SQL Data Type: datetime2
+        * * Default Value: getutcdate()
+        * * Description: When the member was assigned to this intervention.`),
+    ActionDeliveryStatus: z.string().nullable().describe(`
+        * * Field Name: ActionDeliveryStatus
+        * * Display Name: Action Delivery Status
+        * * SQL Data Type: nvarchar(20)
+        * * Description: Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    Intervention: z.string().describe(`
+        * * Field Name: Intervention
+        * * Display Name: Intervention Name
+        * * SQL Data Type: nvarchar(200)`),
+});
+
+export type mjBizAppsSonarInterventionAssignmentEntityType = z.infer<typeof mjBizAppsSonarInterventionAssignmentSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Intervention Outcomes
+ */
+export const mjBizAppsSonarInterventionOutcomeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    AssignmentID: z.string().describe(`
+        * * Field Name: AssignmentID
+        * * Display Name: Assignment
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)`),
+    OutcomeType: z.union([z.literal('Churned'), z.literal('NoChange'), z.literal('Reactivated'), z.literal('Renewed'), z.literal('Upgraded')]).describe(`
+        * * Field Name: OutcomeType
+        * * Display Name: Outcome Type
+        * * SQL Data Type: nvarchar(16)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Churned
+    *   * NoChange
+    *   * Reactivated
+    *   * Renewed
+    *   * Upgraded
+        * * Description: The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.`),
+    OutcomeAt: z.date().nullable().describe(`
+        * * Field Name: OutcomeAt
+        * * Display Name: Outcome Date
+        * * SQL Data Type: datetime2
+        * * Description: When the business outcome occurred.`),
+    ScoreDeltaAfter: z.number().nullable().describe(`
+        * * Field Name: ScoreDeltaAfter
+        * * Display Name: Score Delta After
+        * * SQL Data Type: decimal(9, 4)
+        * * Description: Change in the member's normalized score from assignment to measurement (engagement movement after the play).`),
+    MeasuredAt: z.date().nullable().describe(`
+        * * Field Name: MeasuredAt
+        * * Display Name: Measured At
+        * * SQL Data Type: datetime2
+        * * Description: When the outcome was measured/recorded.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type mjBizAppsSonarInterventionOutcomeEntityType = z.infer<typeof mjBizAppsSonarInterventionOutcomeSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Intervention Proposals
+ */
+export const mjBizAppsSonarInterventionProposalSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    InterventionID: z.string().describe(`
+        * * Field Name: InterventionID
+        * * Display Name: Intervention ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)`),
+    AnchorRecordID: z.string().describe(`
+        * * Field Name: AnchorRecordID
+        * * Display Name: Anchor Record ID
+        * * SQL Data Type: nvarchar(450)
+        * * Description: Canonical id of the anchor record this proposal is for (matches Score.AnchorRecordID).`),
+    AnchorName: z.string().nullable().describe(`
+        * * Field Name: AnchorName
+        * * Display Name: Anchor Name
+        * * SQL Data Type: nvarchar(300)
+        * * Description: Display name of the member at draft time (denormalized so the review queue never re-resolves anchors).`),
+    ProposalType: z.string().describe(`
+        * * Field Name: ProposalType
+        * * Display Name: Proposal Type
+        * * SQL Data Type: nvarchar(30)
+        * * Default Value: EmailDraft
+        * * Description: What kind of action is proposed (e.g. EmailDraft). Determines how PayloadJSON is shaped and rendered; an open set — new plays add new types.`),
+    Rationale: z.string().nullable().describe(`
+        * * Field Name: Rationale
+        * * Display Name: Rationale
+        * * SQL Data Type: nvarchar(1000)
+        * * Description: One-line human-readable reason this member got this proposal (shown on the review queue card).`),
+    PayloadJSON: z.string().nullable().describe(`
+        * * Field Name: PayloadJSON
+        * * Display Name: Payload JSON
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: The proposal content, shaped per ProposalType (EmailDraft: {subject, body, recipientEmail}).`),
+    GroundingJSON: z.string().nullable().describe(`
+        * * Field Name: GroundingJSON
+        * * Display Name: Grounding JSON
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: The score facts the proposal was grounded in ({score, bandName, delta, dominantCause, factors[]}) — the audit trail for "why this member".`),
+    Status: z.union([z.literal('Approved'), z.literal('Executed'), z.literal('Proposed'), z.literal('Rejected')]).describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(16)
+        * * Default Value: Proposed
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Approved
+    *   * Executed
+    *   * Proposed
+    *   * Rejected
+        * * Description: Review lifecycle: Proposed (awaiting review), Approved, Rejected, or Executed (carried out — for the PoC, a simulated send).`),
+    ReviewedAt: z.date().nullable().describe(`
+        * * Field Name: ReviewedAt
+        * * Display Name: Reviewed At
+        * * SQL Data Type: datetime2
+        * * Description: When a human approved or rejected the proposal.`),
+    ExecutedAt: z.date().nullable().describe(`
+        * * Field Name: ExecutedAt
+        * * Display Name: Executed At
+        * * SQL Data Type: datetime2
+        * * Description: When the approved proposal was executed (PoC: the simulated send).`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    Intervention: z.string().describe(`
+        * * Field Name: Intervention
+        * * Display Name: Intervention
+        * * SQL Data Type: nvarchar(200)`),
+});
+
+export type mjBizAppsSonarInterventionProposalEntityType = z.infer<typeof mjBizAppsSonarInterventionProposalSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Interventions
+ */
+export const mjBizAppsSonarInterventionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    ScoreSegmentID: z.string().describe(`
+        * * Field Name: ScoreSegmentID
+        * * Display Name: Score Segment ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(200)
+        * * Description: Display name of the intervention.`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional description of the play and its intent.`),
+    TriggerType: z.union([z.literal('Manual'), z.literal('OnEnterSegment'), z.literal('Scheduled')]).describe(`
+        * * Field Name: TriggerType
+        * * Display Name: Trigger Type
+        * * SQL Data Type: nvarchar(20)
+        * * Default Value: Manual
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Manual
+    *   * OnEnterSegment
+    *   * Scheduled
+        * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.`),
+    ActionID: z.string().nullable().describe(`
+        * * Field Name: ActionID
+        * * Display Name: Action ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)`),
+    ControlGroupPercent: z.number().nullable().describe(`
+        * * Field Name: ControlGroupPercent
+        * * Display Name: Control Group Percent
+        * * SQL Data Type: decimal(5, 2)
+        * * Description: Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.`),
+    Status: z.union([z.literal('Active'), z.literal('Draft'), z.literal('Paused')]).describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(16)
+        * * Default Value: Draft
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Active
+    *   * Draft
+    *   * Paused
+        * * Description: Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.`),
+    ActionParamsJSON: z.string().nullable().describe(`
+        * * Field Name: ActionParamsJSON
+        * * Display Name: Action Parameters
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.`),
+    Kind: z.union([z.literal('Action'), z.literal('BulkSync'), z.literal('TrackOnly')]).describe(`
+        * * Field Name: Kind
+        * * Display Name: Kind
+        * * SQL Data Type: nvarchar(20)
+        * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+        * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    ScoreSegment: z.string().describe(`
+        * * Field Name: ScoreSegment
+        * * Display Name: Score Segment
+        * * SQL Data Type: nvarchar(200)`),
+    Action: z.string().nullable().describe(`
+        * * Field Name: Action
+        * * Display Name: Action
+        * * SQL Data Type: nvarchar(425)`),
+});
+
+export type mjBizAppsSonarInterventionEntityType = z.infer<typeof mjBizAppsSonarInterventionSchema>;
 
 /**
  * zod schema definition for the entity MJ_BizApps_Sonar: Model Factors
@@ -512,8 +3832,8 @@ export const mjBizAppsSonarScoreBandTransitionSchema = z.object({
     OccurredAt: z.date().describe(`
         * * Field Name: OccurredAt
         * * Display Name: Occurred At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp at which the band crossing occurred.`),
     RecomputeRunID: z.string().nullable().describe(`
         * * Field Name: RecomputeRunID
@@ -739,13 +4059,13 @@ export const mjBizAppsSonarScoreHistorySchema = z.object({
     AsOfDate: z.date().nullable().describe(`
         * * Field Name: AsOfDate
         * * Display Name: As Of Date
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: The "now" the time windows resolved against for this snapshot.`),
     ComputedAt: z.date().describe(`
         * * Field Name: ComputedAt
         * * Display Name: Computed At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp at which this snapshot was computed.`),
     DataCompleteness: z.number().nullable().describe(`
         * * Field Name: DataCompleteness
@@ -837,8 +4157,8 @@ export const mjBizAppsSonarScoreModelAuditEventSchema = z.object({
     ChangedAt: z.date().describe(`
         * * Field Name: ChangedAt
         * * Display Name: Changed At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp at which the change occurred.`),
     __mj_CreatedAt: z.date().describe(`
         * * Field Name: __mj_CreatedAt
@@ -904,8 +4224,8 @@ export const mjBizAppsSonarScoreModelVersionSchema = z.object({
     PublishedAt: z.date().describe(`
         * * Field Name: PublishedAt
         * * Display Name: Published At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp at which this version was published.`),
     IsCurrent: z.boolean().describe(`
         * * Field Name: IsCurrent
@@ -983,13 +4303,13 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     ScoreScaleMin: z.number().describe(`
         * * Field Name: ScoreScaleMin
-        * * Display Name: Score Scale Min
+        * * Display Name: Score Scale Minimum
         * * SQL Data Type: decimal(9, 4)
         * * Default Value: 0
         * * Description: Minimum value of the output score scale (default 0).`),
     ScoreScaleMax: z.number().describe(`
         * * Field Name: ScoreScaleMax
-        * * Display Name: Score Scale Max
+        * * Display Name: Score Scale Maximum
         * * SQL Data Type: decimal(9, 4)
         * * Default Value: 100
         * * Description: Maximum value of the output score scale (default 100).`),
@@ -1057,23 +4377,23 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: When set, the model consumes cross-tenant benchmark distributions for normalization (calibration network).`),
     TrendWindowDays: z.number().nullable().describe(`
         * * Field Name: TrendWindowDays
-        * * Display Name: Trend Window Days
+        * * Display Name: Trend Window (Days)
         * * SQL Data Type: int
         * * Description: Number of days used to compute the headline Delta and trend on each score.`),
     OwnerUserID: z.string().nullable().describe(`
         * * Field Name: OwnerUserID
-        * * Display Name: Owner User ID
+        * * Display Name: Owner
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)`),
     EffectiveFrom: z.date().nullable().describe(`
         * * Field Name: EffectiveFrom
         * * Display Name: Effective From
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: Start of the bounded time range during which the model is active (optional).`),
     EffectiveTo: z.date().nullable().describe(`
         * * Field Name: EffectiveTo
         * * Display Name: Effective To
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: End of the bounded time range during which the model is active (optional).`),
     Notes: z.string().nullable().describe(`
         * * Field Name: Notes
@@ -1090,6 +4410,11 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    OutcomeDefinitionJSON: z.string().nullable().describe(`
+        * * Field Name: OutcomeDefinitionJSON
+        * * Display Name: Outcome Definition
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.`),
     AnchorEntity: z.string().describe(`
         * * Field Name: AnchorEntity
         * * Display Name: Anchor Entity
@@ -1100,7 +4425,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * SQL Data Type: nvarchar(200)`),
     OwnerUser: z.string().nullable().describe(`
         * * Field Name: OwnerUser
-        * * Display Name: Owner User
+        * * Display Name: Owner Name
         * * SQL Data Type: nvarchar(100)`),
 });
 
@@ -1149,13 +4474,13 @@ export const mjBizAppsSonarScoreRecomputeRunSchema = z.object({
     StartedAt: z.date().describe(`
         * * Field Name: StartedAt
         * * Display Name: Started At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp when the run started.`),
     CompletedAt: z.date().nullable().describe(`
         * * Field Name: CompletedAt
         * * Display Name: Completed At
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: UTC timestamp when the run completed.`),
     Status: z.union([z.literal('Failed'), z.literal('PartialSuccess'), z.literal('Running'), z.literal('Succeeded')]).describe(`
         * * Field Name: Status
@@ -1216,6 +4541,69 @@ export const mjBizAppsSonarScoreRecomputeRunSchema = z.object({
 });
 
 export type mjBizAppsSonarScoreRecomputeRunEntityType = z.infer<typeof mjBizAppsSonarScoreRecomputeRunSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Segments
+ */
+export const mjBizAppsSonarScoreSegmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    ScoreModelID: z.string().describe(`
+        * * Field Name: ScoreModelID
+        * * Display Name: Score Model ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(200)
+        * * Description: Display name of the segment.`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional description of who the segment captures and why.`),
+    FilterExpression: z.string().nullable().describe(`
+        * * Field Name: FilterExpression
+        * * Display Name: Filter Expression
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.`),
+    IsDynamic: z.boolean().describe(`
+        * * Field Name: IsDynamic
+        * * Display Name: Is Dynamic
+        * * SQL Data Type: bit
+        * * Default Value: 1
+        * * Description: When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.`),
+    MemberCountCached: z.number().nullable().describe(`
+        * * Field Name: MemberCountCached
+        * * Display Name: Cached Member Count
+        * * SQL Data Type: int
+        * * Description: Cached count of members in the segment as of LastEvaluatedAt (display/perf only).`),
+    LastEvaluatedAt: z.date().nullable().describe(`
+        * * Field Name: LastEvaluatedAt
+        * * Display Name: Last Evaluated At
+        * * SQL Data Type: datetime2
+        * * Description: When the segment membership/count was last evaluated.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    ScoreModel: z.string().describe(`
+        * * Field Name: ScoreModel
+        * * Display Name: Score Model
+        * * SQL Data Type: nvarchar(200)`),
+});
+
+export type mjBizAppsSonarScoreSegmentEntityType = z.infer<typeof mjBizAppsSonarScoreSegmentSchema>;
 
 /**
  * zod schema definition for the entity MJ_BizApps_Sonar: Scores
@@ -1309,18 +4697,18 @@ export const mjBizAppsSonarScoreSchema = z.object({
     ComputedAt: z.date().describe(`
         * * Field Name: ComputedAt
         * * Display Name: Computed At
-        * * SQL Data Type: datetime2
-        * * Default Value: getutcdate()
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
         * * Description: UTC timestamp at which this score was computed.`),
     AsOfDate: z.date().nullable().describe(`
         * * Field Name: AsOfDate
         * * Display Name: As Of Date
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: The "now" the time windows resolved against for this score.`),
     NextRecomputeAt: z.date().nullable().describe(`
         * * Field Name: NextRecomputeAt
         * * Display Name: Next Recompute At
-        * * SQL Data Type: datetime2
+        * * SQL Data Type: datetimeoffset
         * * Description: Optional scheduled time for the next recompute of this score.`),
     IsStale: z.boolean().describe(`
         * * Field Name: IsStale
@@ -1419,8 +4807,9916 @@ export const mjBizAppsSonarTimeWindowSchema = z.object({
 });
 
 export type mjBizAppsSonarTimeWindowEntityType = z.infer<typeof mjBizAppsSonarTimeWindowSchema>;
+
+/**
+ * zod schema definition for the entity Organizations
+ */
+export const AssociationDemoOrganizationSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Industry: z.string().nullable().describe(`
+        * * Field Name: Industry
+        * * Display Name: Industry
+        * * SQL Data Type: nvarchar(100)`),
+    EmployeeCount: z.number().nullable().describe(`
+        * * Field Name: EmployeeCount
+        * * Display Name: Employee Count
+        * * SQL Data Type: int`),
+    AnnualRevenue: z.number().nullable().describe(`
+        * * Field Name: AnnualRevenue
+        * * Display Name: Annual Revenue
+        * * SQL Data Type: decimal(18, 2)`),
+    MarketCapitalization: z.number().nullable().describe(`
+        * * Field Name: MarketCapitalization
+        * * Display Name: Market Capitalization
+        * * SQL Data Type: decimal(18, 2)`),
+    TickerSymbol: z.string().nullable().describe(`
+        * * Field Name: TickerSymbol
+        * * Display Name: Ticker Symbol
+        * * SQL Data Type: nvarchar(10)`),
+    Exchange: z.string().nullable().describe(`
+        * * Field Name: Exchange
+        * * Display Name: Exchange
+        * * SQL Data Type: nvarchar(50)`),
+    Website: z.string().nullable().describe(`
+        * * Field Name: Website
+        * * Display Name: Website
+        * * SQL Data Type: nvarchar(500)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    YearFounded: z.number().nullable().describe(`
+        * * Field Name: YearFounded
+        * * Display Name: Year Founded
+        * * SQL Data Type: int`),
+    City: z.string().nullable().describe(`
+        * * Field Name: City
+        * * Display Name: City
+        * * SQL Data Type: nvarchar(100)`),
+    State: z.string().nullable().describe(`
+        * * Field Name: State
+        * * Display Name: State
+        * * SQL Data Type: nvarchar(50)`),
+    Country: z.string().nullable().describe(`
+        * * Field Name: Country
+        * * Display Name: Country
+        * * SQL Data Type: nvarchar(100)`),
+    PostalCode: z.string().nullable().describe(`
+        * * Field Name: PostalCode
+        * * Display Name: Postal Code
+        * * SQL Data Type: nvarchar(20)`),
+    Phone: z.string().nullable().describe(`
+        * * Field Name: Phone
+        * * Display Name: Phone
+        * * SQL Data Type: nvarchar(50)`),
+    LogoURL: z.string().nullable().describe(`
+        * * Field Name: LogoURL
+        * * Display Name: Logo URL
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_Latitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Latitude
+        * * Display Name: Mj Latitude
+        * * SQL Data Type: decimal(10, 6)`),
+    __mj_Longitude: z.number().nullable().describe(`
+        * * Field Name: __mj_Longitude
+        * * Display Name: Mj Longitude
+        * * SQL Data Type: decimal(10, 6)`),
+});
+
+export type AssociationDemoOrganizationEntityType = z.infer<typeof AssociationDemoOrganizationSchema>;
+
+/**
+ * zod schema definition for the entity Payments
+ */
+export const membershipPaymentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier`),
+    Amount: z.number().describe(`
+        * * Field Name: Amount
+        * * Display Name: Amount
+        * * SQL Data Type: decimal(10, 2)`),
+    PaidOn: z.date().describe(`
+        * * Field Name: PaidOn
+        * * Display Name: Paid On
+        * * SQL Data Type: date`),
+    PaymentType: z.string().describe(`
+        * * Field Name: PaymentType
+        * * Display Name: Payment Type
+        * * SQL Data Type: nvarchar(50)`),
+    TermYear: z.number().nullable().describe(`
+        * * Field Name: TermYear
+        * * Display Name: Term Year
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipPaymentEntityType = z.infer<typeof membershipPaymentSchema>;
+
+/**
+ * zod schema definition for the entity Payments__AssociationDemo
+ */
+export const AssociationDemoPayment__AssociationDemoSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    InvoiceID: z.string().describe(`
+        * * Field Name: InvoiceID
+        * * Display Name: Invoice
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Invoices (vwInvoices.ID)`),
+    PaymentDate: z.date().describe(`
+        * * Field Name: PaymentDate
+        * * Display Name: Payment Date
+        * * SQL Data Type: datetime`),
+    Amount: z.number().describe(`
+        * * Field Name: Amount
+        * * Display Name: Amount
+        * * SQL Data Type: decimal(12, 2)`),
+    PaymentMethod: z.string().describe(`
+        * * Field Name: PaymentMethod
+        * * Display Name: Payment Method
+        * * SQL Data Type: nvarchar(50)`),
+    TransactionID: z.string().nullable().describe(`
+        * * Field Name: TransactionID
+        * * Display Name: Transaction ID
+        * * SQL Data Type: nvarchar(255)`),
+    Status: z.string().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    ProcessedDate: z.date().nullable().describe(`
+        * * Field Name: ProcessedDate
+        * * Display Name: Processed Date
+        * * SQL Data Type: datetime`),
+    FailureReason: z.string().nullable().describe(`
+        * * Field Name: FailureReason
+        * * Display Name: Failure Reason
+        * * SQL Data Type: nvarchar(MAX)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoPayment__AssociationDemoEntityType = z.infer<typeof AssociationDemoPayment__AssociationDemoSchema>;
+
+/**
+ * zod schema definition for the entity Policy Positions
+ */
+export const AssociationDemoPolicyPositionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    LegislativeIssueID: z.string().describe(`
+        * * Field Name: LegislativeIssueID
+        * * Display Name: Legislative Issue
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)`),
+    Position: z.string().describe(`
+        * * Field Name: Position
+        * * Display Name: Position
+        * * SQL Data Type: nvarchar(30)`),
+    PositionStatement: z.string().describe(`
+        * * Field Name: PositionStatement
+        * * Display Name: Position Statement
+        * * SQL Data Type: nvarchar(MAX)`),
+    Rationale: z.string().nullable().describe(`
+        * * Field Name: Rationale
+        * * Display Name: Rationale
+        * * SQL Data Type: nvarchar(MAX)`),
+    AdoptedDate: z.date().describe(`
+        * * Field Name: AdoptedDate
+        * * Display Name: Adopted Date
+        * * SQL Data Type: date`),
+    AdoptedBy: z.string().nullable().describe(`
+        * * Field Name: AdoptedBy
+        * * Display Name: Adopted By
+        * * SQL Data Type: nvarchar(255)`),
+    ExpirationDate: z.date().nullable().describe(`
+        * * Field Name: ExpirationDate
+        * * Display Name: Expiration Date
+        * * SQL Data Type: date`),
+    Priority: z.string().nullable().describe(`
+        * * Field Name: Priority
+        * * Display Name: Priority
+        * * SQL Data Type: nvarchar(20)`),
+    IsPublic: z.boolean().nullable().describe(`
+        * * Field Name: IsPublic
+        * * Display Name: Is Public
+        * * SQL Data Type: bit`),
+    DocumentURL: z.string().nullable().describe(`
+        * * Field Name: DocumentURL
+        * * Display Name: Document URL
+        * * SQL Data Type: nvarchar(500)`),
+    ContactPerson: z.string().nullable().describe(`
+        * * Field Name: ContactPerson
+        * * Display Name: Contact Person
+        * * SQL Data Type: nvarchar(255)`),
+    LastReviewedDate: z.date().nullable().describe(`
+        * * Field Name: LastReviewedDate
+        * * Display Name: Last Reviewed Date
+        * * SQL Data Type: date`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoPolicyPositionEntityType = z.infer<typeof AssociationDemoPolicyPositionSchema>;
+
+/**
+ * zod schema definition for the entity Post Attachments
+ */
+export const AssociationDemoPostAttachmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    PostID: z.string().describe(`
+        * * Field Name: PostID
+        * * Display Name: Post
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)`),
+    FileName: z.string().describe(`
+        * * Field Name: FileName
+        * * Display Name: File Name
+        * * SQL Data Type: nvarchar(255)`),
+    FileURL: z.string().describe(`
+        * * Field Name: FileURL
+        * * Display Name: File URL
+        * * SQL Data Type: nvarchar(1000)`),
+    FileType: z.string().nullable().describe(`
+        * * Field Name: FileType
+        * * Display Name: File Type
+        * * SQL Data Type: nvarchar(100)`),
+    FileSizeBytes: z.number().nullable().describe(`
+        * * Field Name: FileSizeBytes
+        * * Display Name: File Size (Bytes)
+        * * SQL Data Type: bigint`),
+    UploadedDate: z.date().describe(`
+        * * Field Name: UploadedDate
+        * * Display Name: Uploaded Date
+        * * SQL Data Type: datetime`),
+    UploadedByID: z.string().describe(`
+        * * Field Name: UploadedByID
+        * * Display Name: Uploaded By
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    DownloadCount: z.number().nullable().describe(`
+        * * Field Name: DownloadCount
+        * * Display Name: Download Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoPostAttachmentEntityType = z.infer<typeof AssociationDemoPostAttachmentSchema>;
+
+/**
+ * zod schema definition for the entity Post Reactions
+ */
+export const AssociationDemoPostReactionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    PostID: z.string().describe(`
+        * * Field Name: PostID
+        * * Display Name: Post
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    ReactionType: z.string().describe(`
+        * * Field Name: ReactionType
+        * * Display Name: Reaction Type
+        * * SQL Data Type: nvarchar(50)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoPostReactionEntityType = z.infer<typeof AssociationDemoPostReactionSchema>;
+
+/**
+ * zod schema definition for the entity Post Tags
+ */
+export const AssociationDemoPostTagSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    PostID: z.string().describe(`
+        * * Field Name: PostID
+        * * Display Name: Post
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)`),
+    TagName: z.string().describe(`
+        * * Field Name: TagName
+        * * Display Name: Tag Name
+        * * SQL Data Type: nvarchar(100)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoPostTagEntityType = z.infer<typeof AssociationDemoPostTagSchema>;
+
+/**
+ * zod schema definition for the entity Product Awards
+ */
+export const AssociationDemoProductAwardSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ProductID: z.string().describe(`
+        * * Field Name: ProductID
+        * * Display Name: Product
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Products (vwProducts.ID)`),
+    CompetitionID: z.string().nullable().describe(`
+        * * Field Name: CompetitionID
+        * * Display Name: Competition
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)`),
+    CompetitionEntryID: z.string().nullable().describe(`
+        * * Field Name: CompetitionEntryID
+        * * Display Name: Competition Entry
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Competition Entries (vwCompetitionEntries.ID)`),
+    AwardName: z.string().describe(`
+        * * Field Name: AwardName
+        * * Display Name: Award Name
+        * * SQL Data Type: nvarchar(255)`),
+    AwardLevel: z.string().describe(`
+        * * Field Name: AwardLevel
+        * * Display Name: Award Level
+        * * SQL Data Type: nvarchar(100)`),
+    AwardingOrganization: z.string().nullable().describe(`
+        * * Field Name: AwardingOrganization
+        * * Display Name: Awarding Organization
+        * * SQL Data Type: nvarchar(255)`),
+    AwardDate: z.date().describe(`
+        * * Field Name: AwardDate
+        * * Display Name: Award Date
+        * * SQL Data Type: date`),
+    Year: z.number().describe(`
+        * * Field Name: Year
+        * * Display Name: Year
+        * * SQL Data Type: int`),
+    Category: z.string().nullable().describe(`
+        * * Field Name: Category
+        * * Display Name: Category
+        * * SQL Data Type: nvarchar(255)`),
+    Score: z.number().nullable().describe(`
+        * * Field Name: Score
+        * * Display Name: Score
+        * * SQL Data Type: decimal(5, 2)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    CertificateURL: z.string().nullable().describe(`
+        * * Field Name: CertificateURL
+        * * Display Name: Certificate URL
+        * * SQL Data Type: nvarchar(500)`),
+    IsDisplayed: z.boolean().nullable().describe(`
+        * * Field Name: IsDisplayed
+        * * Display Name: Is Displayed
+        * * SQL Data Type: bit`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoProductAwardEntityType = z.infer<typeof AssociationDemoProductAwardSchema>;
+
+/**
+ * zod schema definition for the entity Product Categories
+ */
+export const AssociationDemoProductCategorySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    ParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: ParentCategoryID
+        * * Display Name: Parent Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    ImageURL: z.string().nullable().describe(`
+        * * Field Name: ImageURL
+        * * Display Name: Image URL
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    RootParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: RootParentCategoryID
+        * * Display Name: Root Parent Category
+        * * SQL Data Type: uniqueidentifier`),
+});
+
+export type AssociationDemoProductCategoryEntityType = z.infer<typeof AssociationDemoProductCategorySchema>;
+
+/**
+ * zod schema definition for the entity Products
+ */
+export const AssociationDemoProductSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    CategoryID: z.string().describe(`
+        * * Field Name: CategoryID
+        * * Display Name: Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Product Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    CheeseType: z.string().nullable().describe(`
+        * * Field Name: CheeseType
+        * * Display Name: Cheese Type
+        * * SQL Data Type: nvarchar(100)`),
+    MilkSource: z.string().nullable().describe(`
+        * * Field Name: MilkSource
+        * * Display Name: Milk Source
+        * * SQL Data Type: nvarchar(100)`),
+    AgeMonths: z.number().nullable().describe(`
+        * * Field Name: AgeMonths
+        * * Display Name: Age (Months)
+        * * SQL Data Type: int`),
+    Weight: z.number().nullable().describe(`
+        * * Field Name: Weight
+        * * Display Name: Weight
+        * * SQL Data Type: decimal(10, 2)`),
+    WeightUnit: z.string().nullable().describe(`
+        * * Field Name: WeightUnit
+        * * Display Name: Weight Unit
+        * * SQL Data Type: nvarchar(20)`),
+    RetailPrice: z.number().nullable().describe(`
+        * * Field Name: RetailPrice
+        * * Display Name: Retail Price
+        * * SQL Data Type: decimal(10, 2)`),
+    IsOrganic: z.boolean().nullable().describe(`
+        * * Field Name: IsOrganic
+        * * Display Name: Is Organic
+        * * SQL Data Type: bit`),
+    IsRawMilk: z.boolean().nullable().describe(`
+        * * Field Name: IsRawMilk
+        * * Display Name: Is Raw Milk
+        * * SQL Data Type: bit`),
+    IsAwardWinner: z.boolean().nullable().describe(`
+        * * Field Name: IsAwardWinner
+        * * Display Name: Is Award Winner
+        * * SQL Data Type: bit`),
+    DateIntroduced: z.date().nullable().describe(`
+        * * Field Name: DateIntroduced
+        * * Display Name: Date Introduced
+        * * SQL Data Type: date`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    ImageURL: z.string().nullable().describe(`
+        * * Field Name: ImageURL
+        * * Display Name: Image URL
+        * * SQL Data Type: nvarchar(500)`),
+    TastingNotes: z.string().nullable().describe(`
+        * * Field Name: TastingNotes
+        * * Display Name: Tasting Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    PairingNotes: z.string().nullable().describe(`
+        * * Field Name: PairingNotes
+        * * Display Name: Pairing Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    ProductionMethod: z.string().nullable().describe(`
+        * * Field Name: ProductionMethod
+        * * Display Name: Production Method
+        * * SQL Data Type: nvarchar(MAX)`),
+    AwardCount: z.number().nullable().describe(`
+        * * Field Name: AwardCount
+        * * Display Name: Award Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoProductEntityType = z.infer<typeof AssociationDemoProductSchema>;
+
+/**
+ * zod schema definition for the entity Regulatory Comments
+ */
+export const AssociationDemoRegulatoryCommentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    LegislativeIssueID: z.string().describe(`
+        * * Field Name: LegislativeIssueID
+        * * Display Name: Legislative Issue
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)`),
+    DocketNumber: z.string().nullable().describe(`
+        * * Field Name: DocketNumber
+        * * Display Name: Docket Number
+        * * SQL Data Type: nvarchar(100)`),
+    CommentPeriodStart: z.date().nullable().describe(`
+        * * Field Name: CommentPeriodStart
+        * * Display Name: Comment Period Start
+        * * SQL Data Type: date`),
+    CommentPeriodEnd: z.date().nullable().describe(`
+        * * Field Name: CommentPeriodEnd
+        * * Display Name: Comment Period End
+        * * SQL Data Type: date`),
+    SubmittedDate: z.date().describe(`
+        * * Field Name: SubmittedDate
+        * * Display Name: Submitted Date
+        * * SQL Data Type: date`),
+    SubmittedBy: z.string().nullable().describe(`
+        * * Field Name: SubmittedBy
+        * * Display Name: Submitted By
+        * * SQL Data Type: nvarchar(255)`),
+    CommentText: z.string().describe(`
+        * * Field Name: CommentText
+        * * Display Name: Comment Text
+        * * SQL Data Type: nvarchar(MAX)`),
+    CommentType: z.string().nullable().describe(`
+        * * Field Name: CommentType
+        * * Display Name: Comment Type
+        * * SQL Data Type: nvarchar(50)`),
+    AttachmentURL: z.string().nullable().describe(`
+        * * Field Name: AttachmentURL
+        * * Display Name: Attachment URL
+        * * SQL Data Type: nvarchar(500)`),
+    ConfirmationNumber: z.string().nullable().describe(`
+        * * Field Name: ConfirmationNumber
+        * * Display Name: Confirmation Number
+        * * SQL Data Type: nvarchar(100)`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(50)`),
+    Response: z.string().nullable().describe(`
+        * * Field Name: Response
+        * * Display Name: Response
+        * * SQL Data Type: nvarchar(MAX)`),
+    Notes: z.string().nullable().describe(`
+        * * Field Name: Notes
+        * * Display Name: Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoRegulatoryCommentEntityType = z.infer<typeof AssociationDemoRegulatoryCommentSchema>;
+
+/**
+ * zod schema definition for the entity Resource Categories
+ */
+export const AssociationDemoResourceCategorySchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    ParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: ParentCategoryID
+        * * Display Name: Parent Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resource Categories (vwResourceCategories.ID)`),
+    DisplayOrder: z.number().nullable().describe(`
+        * * Field Name: DisplayOrder
+        * * Display Name: Display Order
+        * * SQL Data Type: int`),
+    Icon: z.string().nullable().describe(`
+        * * Field Name: Icon
+        * * Display Name: Icon
+        * * SQL Data Type: nvarchar(100)`),
+    Color: z.string().nullable().describe(`
+        * * Field Name: Color
+        * * Display Name: Color
+        * * SQL Data Type: nvarchar(50)`),
+    IsActive: z.boolean().nullable().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    RequiresMembership: z.boolean().nullable().describe(`
+        * * Field Name: RequiresMembership
+        * * Display Name: Requires Membership
+        * * SQL Data Type: bit`),
+    ResourceCount: z.number().nullable().describe(`
+        * * Field Name: ResourceCount
+        * * Display Name: Resource Count
+        * * SQL Data Type: int`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    RootParentCategoryID: z.string().nullable().describe(`
+        * * Field Name: RootParentCategoryID
+        * * Display Name: Root Parent Category
+        * * SQL Data Type: uniqueidentifier`),
+});
+
+export type AssociationDemoResourceCategoryEntityType = z.infer<typeof AssociationDemoResourceCategorySchema>;
+
+/**
+ * zod schema definition for the entity Resource Downloads
+ */
+export const AssociationDemoResourceDownloadSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ResourceID: z.string().describe(`
+        * * Field Name: ResourceID
+        * * Display Name: Resource
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resources (vwResources.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    DownloadDate: z.date().describe(`
+        * * Field Name: DownloadDate
+        * * Display Name: Download Date
+        * * SQL Data Type: datetime`),
+    IPAddress: z.string().nullable().describe(`
+        * * Field Name: IPAddress
+        * * Display Name: IP Address
+        * * SQL Data Type: nvarchar(50)`),
+    UserAgent: z.string().nullable().describe(`
+        * * Field Name: UserAgent
+        * * Display Name: User Agent
+        * * SQL Data Type: nvarchar(500)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoResourceDownloadEntityType = z.infer<typeof AssociationDemoResourceDownloadSchema>;
+
+/**
+ * zod schema definition for the entity Resource Ratings
+ */
+export const AssociationDemoResourceRatingSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ResourceID: z.string().describe(`
+        * * Field Name: ResourceID
+        * * Display Name: Resource
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resources (vwResources.ID)`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    Rating: z.number().describe(`
+        * * Field Name: Rating
+        * * Display Name: Rating
+        * * SQL Data Type: int`),
+    Review: z.string().nullable().describe(`
+        * * Field Name: Review
+        * * Display Name: Review
+        * * SQL Data Type: nvarchar(MAX)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    IsHelpful: z.boolean().nullable().describe(`
+        * * Field Name: IsHelpful
+        * * Display Name: Is Helpful
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoResourceRatingEntityType = z.infer<typeof AssociationDemoResourceRatingSchema>;
+
+/**
+ * zod schema definition for the entity Resource Reviews
+ */
+export const membershipResourceReviewSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    MemberID: z.string().describe(`
+        * * Field Name: MemberID
+        * * Display Name: Member
+        * * SQL Data Type: uniqueidentifier`),
+    ResourceTitle: z.string().describe(`
+        * * Field Name: ResourceTitle
+        * * Display Name: Resource Title
+        * * SQL Data Type: nvarchar(200)`),
+    Rating: z.number().describe(`
+        * * Field Name: Rating
+        * * Display Name: Rating
+        * * SQL Data Type: int`),
+    Review: z.string().nullable().describe(`
+        * * Field Name: Review
+        * * Display Name: Review Content
+        * * SQL Data Type: nvarchar(MAX)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime2`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type membershipResourceReviewEntityType = z.infer<typeof membershipResourceReviewSchema>;
+
+/**
+ * zod schema definition for the entity Resource Tags
+ */
+export const AssociationDemoResourceTagSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ResourceID: z.string().describe(`
+        * * Field Name: ResourceID
+        * * Display Name: Resource
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resources (vwResources.ID)`),
+    TagName: z.string().describe(`
+        * * Field Name: TagName
+        * * Display Name: Tag Name
+        * * SQL Data Type: nvarchar(100)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoResourceTagEntityType = z.infer<typeof AssociationDemoResourceTagSchema>;
+
+/**
+ * zod schema definition for the entity Resource Versions
+ */
+export const AssociationDemoResourceVersionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    ResourceID: z.string().describe(`
+        * * Field Name: ResourceID
+        * * Display Name: Resource
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resources (vwResources.ID)`),
+    VersionNumber: z.string().describe(`
+        * * Field Name: VersionNumber
+        * * Display Name: Version Number
+        * * SQL Data Type: nvarchar(20)`),
+    VersionNotes: z.string().nullable().describe(`
+        * * Field Name: VersionNotes
+        * * Display Name: Version Notes
+        * * SQL Data Type: nvarchar(MAX)`),
+    FileURL: z.string().nullable().describe(`
+        * * Field Name: FileURL
+        * * Display Name: File URL
+        * * SQL Data Type: nvarchar(1000)`),
+    FileSizeBytes: z.number().nullable().describe(`
+        * * Field Name: FileSizeBytes
+        * * Display Name: File Size (Bytes)
+        * * SQL Data Type: bigint`),
+    CreatedByID: z.string().describe(`
+        * * Field Name: CreatedByID
+        * * Display Name: Created By
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    CreatedDate: z.date().describe(`
+        * * Field Name: CreatedDate
+        * * Display Name: Created Date
+        * * SQL Data Type: datetime`),
+    IsCurrent: z.boolean().nullable().describe(`
+        * * Field Name: IsCurrent
+        * * Display Name: Is Current Version
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoResourceVersionEntityType = z.infer<typeof AssociationDemoResourceVersionSchema>;
+
+/**
+ * zod schema definition for the entity Resources
+ */
+export const AssociationDemoResourceSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    CategoryID: z.string().describe(`
+        * * Field Name: CategoryID
+        * * Display Name: Category
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Resource Categories (vwResourceCategories.ID)`),
+    Title: z.string().describe(`
+        * * Field Name: Title
+        * * Display Name: Title
+        * * SQL Data Type: nvarchar(500)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    ResourceType: z.string().describe(`
+        * * Field Name: ResourceType
+        * * Display Name: Resource Type
+        * * SQL Data Type: nvarchar(50)`),
+    FileURL: z.string().nullable().describe(`
+        * * Field Name: FileURL
+        * * Display Name: File URL
+        * * SQL Data Type: nvarchar(1000)`),
+    FileSizeBytes: z.number().nullable().describe(`
+        * * Field Name: FileSizeBytes
+        * * Display Name: File Size (Bytes)
+        * * SQL Data Type: bigint`),
+    MimeType: z.string().nullable().describe(`
+        * * Field Name: MimeType
+        * * Display Name: Mime Type
+        * * SQL Data Type: nvarchar(100)`),
+    AuthorID: z.string().nullable().describe(`
+        * * Field Name: AuthorID
+        * * Display Name: Author
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)`),
+    PublishedDate: z.date().describe(`
+        * * Field Name: PublishedDate
+        * * Display Name: Published Date
+        * * SQL Data Type: datetime`),
+    LastUpdatedDate: z.date().nullable().describe(`
+        * * Field Name: LastUpdatedDate
+        * * Display Name: Last Updated Date
+        * * SQL Data Type: datetime`),
+    ViewCount: z.number().nullable().describe(`
+        * * Field Name: ViewCount
+        * * Display Name: View Count
+        * * SQL Data Type: int`),
+    DownloadCount: z.number().nullable().describe(`
+        * * Field Name: DownloadCount
+        * * Display Name: Download Count
+        * * SQL Data Type: int`),
+    AverageRating: z.number().nullable().describe(`
+        * * Field Name: AverageRating
+        * * Display Name: Average Rating
+        * * SQL Data Type: decimal(3, 2)`),
+    RatingCount: z.number().nullable().describe(`
+        * * Field Name: RatingCount
+        * * Display Name: Rating Count
+        * * SQL Data Type: int`),
+    IsFeatured: z.boolean().nullable().describe(`
+        * * Field Name: IsFeatured
+        * * Display Name: Is Featured
+        * * SQL Data Type: bit`),
+    RequiresMembership: z.boolean().nullable().describe(`
+        * * Field Name: RequiresMembership
+        * * Display Name: Requires Membership
+        * * SQL Data Type: bit`),
+    Status: z.string().nullable().describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(20)`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoResourceEntityType = z.infer<typeof AssociationDemoResourceSchema>;
+
+/**
+ * zod schema definition for the entity Segments
+ */
+export const AssociationDemoSegmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(255)`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)`),
+    SegmentType: z.string().nullable().describe(`
+        * * Field Name: SegmentType
+        * * Display Name: Segment Type
+        * * SQL Data Type: nvarchar(50)`),
+    FilterCriteria: z.string().nullable().describe(`
+        * * Field Name: FilterCriteria
+        * * Display Name: Filter Criteria
+        * * SQL Data Type: nvarchar(MAX)`),
+    MemberCount: z.number().nullable().describe(`
+        * * Field Name: MemberCount
+        * * Display Name: Member Count
+        * * SQL Data Type: int`),
+    LastCalculatedDate: z.date().nullable().describe(`
+        * * Field Name: LastCalculatedDate
+        * * Display Name: Last Calculated Date
+        * * SQL Data Type: datetime`),
+    IsActive: z.boolean().describe(`
+        * * Field Name: IsActive
+        * * Display Name: Is Active
+        * * SQL Data Type: bit`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+});
+
+export type AssociationDemoSegmentEntityType = z.infer<typeof AssociationDemoSegmentSchema>;
  
  
+
+/**
+ * Accrediting Bodies - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: AccreditingBody
+ * * Base View: vwAccreditingBodies
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Accrediting Bodies')
+export class AssociationDemoAccreditingBodyEntity extends BaseEntity<AssociationDemoAccreditingBodyEntityType> {
+    /**
+    * Loads the Accrediting Bodies record from the database
+    * @param ID: string - primary key value to load the Accrediting Bodies record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoAccreditingBodyEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Abbreviation
+    * * Display Name: Abbreviation
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Abbreviation(): string | null {
+        return this.Get('Abbreviation');
+    }
+    set Abbreviation(value: string | null) {
+        this.Set('Abbreviation', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: ContactEmail
+    * * Display Name: Contact Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ContactEmail(): string | null {
+        return this.Get('ContactEmail');
+    }
+    set ContactEmail(value: string | null) {
+        this.Set('ContactEmail', value);
+    }
+
+    /**
+    * * Field Name: ContactPhone
+    * * Display Name: Contact Phone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ContactPhone(): string | null {
+        return this.Get('ContactPhone');
+    }
+    set ContactPhone(value: string | null) {
+        this.Set('ContactPhone', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: IsRecognized
+    * * Display Name: Is Recognized
+    * * SQL Data Type: bit
+    */
+    get IsRecognized(): boolean | null {
+        return this.Get('IsRecognized');
+    }
+    set IsRecognized(value: boolean | null) {
+        this.Set('IsRecognized', value);
+    }
+
+    /**
+    * * Field Name: EstablishedDate
+    * * Display Name: Established Date
+    * * SQL Data Type: date
+    */
+    get EstablishedDate(): Date | null {
+        return this.Get('EstablishedDate');
+    }
+    set EstablishedDate(value: Date | null) {
+        this.Set('EstablishedDate', value);
+    }
+
+    /**
+    * * Field Name: Country
+    * * Display Name: Country
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Country(): string | null {
+        return this.Get('Country');
+    }
+    set Country(value: string | null) {
+        this.Set('Country', value);
+    }
+
+    /**
+    * * Field Name: CertificationCount
+    * * Display Name: Certification Count
+    * * SQL Data Type: int
+    */
+    get CertificationCount(): number | null {
+        return this.Get('CertificationCount');
+    }
+    set CertificationCount(value: number | null) {
+        this.Set('CertificationCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Mj Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Mj Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Advocacy Actions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: AdvocacyAction
+ * * Base View: vwAdvocacyActions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Advocacy Actions')
+export class AssociationDemoAdvocacyActionEntity extends BaseEntity<AssociationDemoAdvocacyActionEntityType> {
+    /**
+    * Loads the Advocacy Actions record from the database
+    * @param ID: string - primary key value to load the Advocacy Actions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoAdvocacyActionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: LegislativeIssueID
+    * * Display Name: Legislative Issue
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)
+    */
+    get LegislativeIssueID(): string {
+        return this.Get('LegislativeIssueID');
+    }
+    set LegislativeIssueID(value: string) {
+        this.Set('LegislativeIssueID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string | null {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string | null) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: GovernmentContactID
+    * * Display Name: Government Contact
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Government Contacts (vwGovernmentContacts.ID)
+    */
+    get GovernmentContactID(): string | null {
+        return this.Get('GovernmentContactID');
+    }
+    set GovernmentContactID(value: string | null) {
+        this.Set('GovernmentContactID', value);
+    }
+
+    /**
+    * * Field Name: ActionType
+    * * Display Name: Action Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ActionType(): string {
+        return this.Get('ActionType');
+    }
+    set ActionType(value: string) {
+        this.Set('ActionType', value);
+    }
+
+    /**
+    * * Field Name: ActionDate
+    * * Display Name: Action Date
+    * * SQL Data Type: date
+    */
+    get ActionDate(): Date {
+        return this.Get('ActionDate');
+    }
+    set ActionDate(value: Date) {
+        this.Set('ActionDate', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Outcome
+    * * Display Name: Outcome
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Outcome(): string | null {
+        return this.Get('Outcome');
+    }
+    set Outcome(value: string | null) {
+        this.Set('Outcome', value);
+    }
+
+    /**
+    * * Field Name: FollowUpRequired
+    * * Display Name: Follow Up Required
+    * * SQL Data Type: bit
+    */
+    get FollowUpRequired(): boolean | null {
+        return this.Get('FollowUpRequired');
+    }
+    set FollowUpRequired(value: boolean | null) {
+        this.Set('FollowUpRequired', value);
+    }
+
+    /**
+    * * Field Name: FollowUpDate
+    * * Display Name: Follow Up Date
+    * * SQL Data Type: date
+    */
+    get FollowUpDate(): Date | null {
+        return this.Get('FollowUpDate');
+    }
+    set FollowUpDate(value: Date | null) {
+        this.Set('FollowUpDate', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Board Members - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: BoardMember
+ * * Base View: vwBoardMembers
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Board Members')
+export class AssociationDemoBoardMemberEntity extends BaseEntity<AssociationDemoBoardMemberEntityType> {
+    /**
+    * Loads the Board Members record from the database
+    * @param ID: string - primary key value to load the Board Members record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoBoardMemberEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: BoardPositionID
+    * * Display Name: Board Position
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Board Positions (vwBoardPositions.ID)
+    */
+    get BoardPositionID(): string {
+        return this.Get('BoardPositionID');
+    }
+    set BoardPositionID(value: string) {
+        this.Set('BoardPositionID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date | null {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date | null) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: ElectionDate
+    * * Display Name: Election Date
+    * * SQL Data Type: date
+    */
+    get ElectionDate(): Date | null {
+        return this.Get('ElectionDate');
+    }
+    set ElectionDate(value: Date | null) {
+        this.Set('ElectionDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Board Positions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: BoardPosition
+ * * Base View: vwBoardPositions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Board Positions')
+export class AssociationDemoBoardPositionEntity extends BaseEntity<AssociationDemoBoardPositionEntityType> {
+    /**
+    * Loads the Board Positions record from the database
+    * @param ID: string - primary key value to load the Board Positions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoBoardPositionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: PositionTitle
+    * * Display Name: Position Title
+    * * SQL Data Type: nvarchar(100)
+    */
+    get PositionTitle(): string {
+        return this.Get('PositionTitle');
+    }
+    set PositionTitle(value: string) {
+        this.Set('PositionTitle', value);
+    }
+
+    /**
+    * * Field Name: PositionOrder
+    * * Display Name: Position Order
+    * * SQL Data Type: int
+    */
+    get PositionOrder(): number {
+        return this.Get('PositionOrder');
+    }
+    set PositionOrder(value: number) {
+        this.Set('PositionOrder', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: TermLengthYears
+    * * Display Name: Term Length (Years)
+    * * SQL Data Type: int
+    */
+    get TermLengthYears(): number | null {
+        return this.Get('TermLengthYears');
+    }
+    set TermLengthYears(value: number | null) {
+        this.Set('TermLengthYears', value);
+    }
+
+    /**
+    * * Field Name: IsOfficer
+    * * Display Name: Is Officer
+    * * SQL Data Type: bit
+    */
+    get IsOfficer(): boolean {
+        return this.Get('IsOfficer');
+    }
+    set IsOfficer(value: boolean) {
+        this.Set('IsOfficer', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Campaign Members - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CampaignMember
+ * * Base View: vwCampaignMembers
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Campaign Members')
+export class AssociationDemoCampaignMemberEntity extends BaseEntity<AssociationDemoCampaignMemberEntityType> {
+    /**
+    * Loads the Campaign Members record from the database
+    * @param ID: string - primary key value to load the Campaign Members record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCampaignMemberEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CampaignID
+    * * Display Name: Campaign
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Campaigns (vwCampaigns.ID)
+    */
+    get CampaignID(): string {
+        return this.Get('CampaignID');
+    }
+    set CampaignID(value: string) {
+        this.Set('CampaignID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: SegmentID
+    * * Display Name: Segment
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Segments (vwSegments.ID)
+    */
+    get SegmentID(): string | null {
+        return this.Get('SegmentID');
+    }
+    set SegmentID(value: string | null) {
+        this.Set('SegmentID', value);
+    }
+
+    /**
+    * * Field Name: AddedDate
+    * * Display Name: Added Date
+    * * SQL Data Type: datetime
+    */
+    get AddedDate(): Date {
+        return this.Get('AddedDate');
+    }
+    set AddedDate(value: Date) {
+        this.Set('AddedDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ResponseDate
+    * * Display Name: Response Date
+    * * SQL Data Type: datetime
+    */
+    get ResponseDate(): Date | null {
+        return this.Get('ResponseDate');
+    }
+    set ResponseDate(value: Date | null) {
+        this.Set('ResponseDate', value);
+    }
+
+    /**
+    * * Field Name: ConversionValue
+    * * Display Name: Conversion Value
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get ConversionValue(): number | null {
+        return this.Get('ConversionValue');
+    }
+    set ConversionValue(value: number | null) {
+        this.Set('ConversionValue', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Campaigns - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Campaign
+ * * Base View: vwCampaigns
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Campaigns')
+export class AssociationDemoCampaignEntity extends BaseEntity<AssociationDemoCampaignEntityType> {
+    /**
+    * Loads the Campaigns record from the database
+    * @param ID: string - primary key value to load the Campaigns record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCampaignEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: CampaignType
+    * * Display Name: Campaign Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get CampaignType(): string {
+        return this.Get('CampaignType');
+    }
+    set CampaignType(value: string) {
+        this.Set('CampaignType', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date | null {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date | null) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date | null {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date | null) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: Budget
+    * * Display Name: Budget
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Budget(): number | null {
+        return this.Get('Budget');
+    }
+    set Budget(value: number | null) {
+        this.Set('Budget', value);
+    }
+
+    /**
+    * * Field Name: ActualCost
+    * * Display Name: Actual Cost
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get ActualCost(): number | null {
+        return this.Get('ActualCost');
+    }
+    set ActualCost(value: number | null) {
+        this.Set('ActualCost', value);
+    }
+
+    /**
+    * * Field Name: TargetAudience
+    * * Display Name: Target Audience
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get TargetAudience(): string | null {
+        return this.Get('TargetAudience');
+    }
+    set TargetAudience(value: string | null) {
+        this.Set('TargetAudience', value);
+    }
+
+    /**
+    * * Field Name: Goals
+    * * Display Name: Goals
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Goals(): string | null {
+        return this.Get('Goals');
+    }
+    set Goals(value: string | null) {
+        this.Set('Goals', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certificates - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Certificate
+ * * Base View: vwCertificates
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certificates')
+export class AssociationDemoCertificateEntity extends BaseEntity<AssociationDemoCertificateEntityType> {
+    /**
+    * Loads the Certificates record from the database
+    * @param ID: string - primary key value to load the Certificates record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCertificateEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: EnrollmentID
+    * * Display Name: Enrollment
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Enrollments (vwEnrollments.ID)
+    */
+    get EnrollmentID(): string {
+        return this.Get('EnrollmentID');
+    }
+    set EnrollmentID(value: string) {
+        this.Set('EnrollmentID', value);
+    }
+
+    /**
+    * * Field Name: CertificateNumber
+    * * Display Name: Certificate Number
+    * * SQL Data Type: nvarchar(50)
+    */
+    get CertificateNumber(): string {
+        return this.Get('CertificateNumber');
+    }
+    set CertificateNumber(value: string) {
+        this.Set('CertificateNumber', value);
+    }
+
+    /**
+    * * Field Name: IssuedDate
+    * * Display Name: Issued Date
+    * * SQL Data Type: date
+    */
+    get IssuedDate(): Date {
+        return this.Get('IssuedDate');
+    }
+    set IssuedDate(value: Date) {
+        this.Set('IssuedDate', value);
+    }
+
+    /**
+    * * Field Name: ExpirationDate
+    * * Display Name: Expiration Date
+    * * SQL Data Type: date
+    */
+    get ExpirationDate(): Date | null {
+        return this.Get('ExpirationDate');
+    }
+    set ExpirationDate(value: Date | null) {
+        this.Set('ExpirationDate', value);
+    }
+
+    /**
+    * * Field Name: CertificatePDFURL
+    * * Display Name: Certificate PDF
+    * * SQL Data Type: nvarchar(500)
+    */
+    get CertificatePDFURL(): string | null {
+        return this.Get('CertificatePDFURL');
+    }
+    set CertificatePDFURL(value: string | null) {
+        this.Set('CertificatePDFURL', value);
+    }
+
+    /**
+    * * Field Name: VerificationCode
+    * * Display Name: Verification Code
+    * * SQL Data Type: nvarchar(100)
+    */
+    get VerificationCode(): string | null {
+        return this.Get('VerificationCode');
+    }
+    set VerificationCode(value: string | null) {
+        this.Set('VerificationCode', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certification Renewals - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CertificationRenewal
+ * * Base View: vwCertificationRenewals
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certification Renewals')
+export class AssociationDemoCertificationRenewalEntity extends BaseEntity<AssociationDemoCertificationRenewalEntityType> {
+    /**
+    * Loads the Certification Renewals record from the database
+    * @param ID: string - primary key value to load the Certification Renewals record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCertificationRenewalEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CertificationID
+    * * Display Name: Certification
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Certifications__AssociationDemo (vwCertifications__AssociationDemo.ID)
+    */
+    get CertificationID(): string {
+        return this.Get('CertificationID');
+    }
+    set CertificationID(value: string) {
+        this.Set('CertificationID', value);
+    }
+
+    /**
+    * * Field Name: RenewalDate
+    * * Display Name: Renewal Date
+    * * SQL Data Type: date
+    */
+    get RenewalDate(): Date {
+        return this.Get('RenewalDate');
+    }
+    set RenewalDate(value: Date) {
+        this.Set('RenewalDate', value);
+    }
+
+    /**
+    * * Field Name: ExpirationDate
+    * * Display Name: Expiration Date
+    * * SQL Data Type: date
+    */
+    get ExpirationDate(): Date {
+        return this.Get('ExpirationDate');
+    }
+    set ExpirationDate(value: Date) {
+        this.Set('ExpirationDate', value);
+    }
+
+    /**
+    * * Field Name: CECreditsApplied
+    * * Display Name: CE Credits Applied
+    * * SQL Data Type: int
+    */
+    get CECreditsApplied(): number | null {
+        return this.Get('CECreditsApplied');
+    }
+    set CECreditsApplied(value: number | null) {
+        this.Set('CECreditsApplied', value);
+    }
+
+    /**
+    * * Field Name: FeePaid
+    * * Display Name: Fee Paid
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get FeePaid(): number | null {
+        return this.Get('FeePaid');
+    }
+    set FeePaid(value: number | null) {
+        this.Set('FeePaid', value);
+    }
+
+    /**
+    * * Field Name: PaymentDate
+    * * Display Name: Payment Date
+    * * SQL Data Type: date
+    */
+    get PaymentDate(): Date | null {
+        return this.Get('PaymentDate');
+    }
+    set PaymentDate(value: Date | null) {
+        this.Set('PaymentDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: ProcessedBy
+    * * Display Name: Processed By
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ProcessedBy(): string | null {
+        return this.Get('ProcessedBy');
+    }
+    set ProcessedBy(value: string | null) {
+        this.Set('ProcessedBy', value);
+    }
+
+    /**
+    * * Field Name: ProcessedDate
+    * * Display Name: Processed Date
+    * * SQL Data Type: date
+    */
+    get ProcessedDate(): Date | null {
+        return this.Get('ProcessedDate');
+    }
+    set ProcessedDate(value: Date | null) {
+        this.Set('ProcessedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certification Requirements - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CertificationRequirement
+ * * Base View: vwCertificationRequirements
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certification Requirements')
+export class AssociationDemoCertificationRequirementEntity extends BaseEntity<AssociationDemoCertificationRequirementEntityType> {
+    /**
+    * Loads the Certification Requirements record from the database
+    * @param ID: string - primary key value to load the Certification Requirements record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCertificationRequirementEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CertificationTypeID
+    * * Display Name: Certification Type
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Certification Types (vwCertificationTypes.ID)
+    */
+    get CertificationTypeID(): string {
+        return this.Get('CertificationTypeID');
+    }
+    set CertificationTypeID(value: string) {
+        this.Set('CertificationTypeID', value);
+    }
+
+    /**
+    * * Field Name: RequirementType
+    * * Display Name: Requirement Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get RequirementType(): string {
+        return this.Get('RequirementType');
+    }
+    set RequirementType(value: string) {
+        this.Set('RequirementType', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string {
+        return this.Get('Description');
+    }
+    set Description(value: string) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: IsRequired
+    * * Display Name: Is Required
+    * * SQL Data Type: bit
+    */
+    get IsRequired(): boolean | null {
+        return this.Get('IsRequired');
+    }
+    set IsRequired(value: boolean | null) {
+        this.Set('IsRequired', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: Details
+    * * Display Name: Details
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Details(): string | null {
+        return this.Get('Details');
+    }
+    set Details(value: string | null) {
+        this.Set('Details', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certification Types - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CertificationType
+ * * Base View: vwCertificationTypes
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certification Types')
+export class AssociationDemoCertificationTypeEntity extends BaseEntity<AssociationDemoCertificationTypeEntityType> {
+    /**
+    * Loads the Certification Types record from the database
+    * @param ID: string - primary key value to load the Certification Types record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCertificationTypeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: AccreditingBodyID
+    * * Display Name: Accrediting Body
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Accrediting Bodies (vwAccreditingBodies.ID)
+    */
+    get AccreditingBodyID(): string {
+        return this.Get('AccreditingBodyID');
+    }
+    set AccreditingBodyID(value: string) {
+        this.Set('AccreditingBodyID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Abbreviation
+    * * Display Name: Abbreviation
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Abbreviation(): string | null {
+        return this.Get('Abbreviation');
+    }
+    set Abbreviation(value: string | null) {
+        this.Set('Abbreviation', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Level
+    * * Display Name: Level
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Level(): string | null {
+        return this.Get('Level');
+    }
+    set Level(value: string | null) {
+        this.Set('Level', value);
+    }
+
+    /**
+    * * Field Name: DurationMonths
+    * * Display Name: Duration (Months)
+    * * SQL Data Type: int
+    */
+    get DurationMonths(): number | null {
+        return this.Get('DurationMonths');
+    }
+    set DurationMonths(value: number | null) {
+        this.Set('DurationMonths', value);
+    }
+
+    /**
+    * * Field Name: RenewalRequiredMonths
+    * * Display Name: Renewal Required (Months)
+    * * SQL Data Type: int
+    */
+    get RenewalRequiredMonths(): number | null {
+        return this.Get('RenewalRequiredMonths');
+    }
+    set RenewalRequiredMonths(value: number | null) {
+        this.Set('RenewalRequiredMonths', value);
+    }
+
+    /**
+    * * Field Name: CECreditsRequired
+    * * Display Name: CE Credits Required
+    * * SQL Data Type: int
+    */
+    get CECreditsRequired(): number | null {
+        return this.Get('CECreditsRequired');
+    }
+    set CECreditsRequired(value: number | null) {
+        this.Set('CECreditsRequired', value);
+    }
+
+    /**
+    * * Field Name: ExamRequired
+    * * Display Name: Exam Required
+    * * SQL Data Type: bit
+    */
+    get ExamRequired(): boolean | null {
+        return this.Get('ExamRequired');
+    }
+    set ExamRequired(value: boolean | null) {
+        this.Set('ExamRequired', value);
+    }
+
+    /**
+    * * Field Name: PracticalRequired
+    * * Display Name: Practical Required
+    * * SQL Data Type: bit
+    */
+    get PracticalRequired(): boolean | null {
+        return this.Get('PracticalRequired');
+    }
+    set PracticalRequired(value: boolean | null) {
+        this.Set('PracticalRequired', value);
+    }
+
+    /**
+    * * Field Name: CostUSD
+    * * Display Name: Cost (USD)
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get CostUSD(): number | null {
+        return this.Get('CostUSD');
+    }
+    set CostUSD(value: number | null) {
+        this.Set('CostUSD', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: Prerequisites
+    * * Display Name: Prerequisites
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Prerequisites(): string | null {
+        return this.Get('Prerequisites');
+    }
+    set Prerequisites(value: string | null) {
+        this.Set('Prerequisites', value);
+    }
+
+    /**
+    * * Field Name: TargetAudience
+    * * Display Name: Target Audience
+    * * SQL Data Type: nvarchar(500)
+    */
+    get TargetAudience(): string | null {
+        return this.Get('TargetAudience');
+    }
+    set TargetAudience(value: string | null) {
+        this.Set('TargetAudience', value);
+    }
+
+    /**
+    * * Field Name: CertificationCount
+    * * Display Name: Certification Count
+    * * SQL Data Type: int
+    */
+    get CertificationCount(): number | null {
+        return this.Get('CertificationCount');
+    }
+    set CertificationCount(value: number | null) {
+        this.Set('CertificationCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certifications - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: Certification
+ * * Base View: vwCertifications
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certifications')
+export class membershipCertificationEntity extends BaseEntity<membershipCertificationEntityType> {
+    /**
+    * Loads the Certifications record from the database
+    * @param ID: string - primary key value to load the Certifications record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipCertificationEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: CourseName
+    * * Display Name: Course Name
+    * * SQL Data Type: nvarchar(200)
+    */
+    get CourseName(): string {
+        return this.Get('CourseName');
+    }
+    set CourseName(value: string) {
+        this.Set('CourseName', value);
+    }
+
+    /**
+    * * Field Name: CompletedOn
+    * * Display Name: Completion Date
+    * * SQL Data Type: date
+    */
+    get CompletedOn(): Date {
+        return this.Get('CompletedOn');
+    }
+    set CompletedOn(value: Date) {
+        this.Set('CompletedOn', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: CreditHours
+    * * Display Name: Credit Hours
+    * * SQL Data Type: decimal(5, 1)
+    */
+    get CreditHours(): number {
+        return this.Get('CreditHours');
+    }
+    set CreditHours(value: number) {
+        this.Set('CreditHours', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Certifications__AssociationDemo - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Certification
+ * * Base View: vwCertifications__AssociationDemo
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Certifications__AssociationDemo')
+export class AssociationDemoCertification__AssociationDemoEntity extends BaseEntity<AssociationDemoCertification__AssociationDemoEntityType> {
+    /**
+    * Loads the Certifications__AssociationDemo record from the database
+    * @param ID: string - primary key value to load the Certifications__AssociationDemo record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCertification__AssociationDemoEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: CertificationTypeID
+    * * Display Name: Certification Type
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Certification Types (vwCertificationTypes.ID)
+    */
+    get CertificationTypeID(): string {
+        return this.Get('CertificationTypeID');
+    }
+    set CertificationTypeID(value: string) {
+        this.Set('CertificationTypeID', value);
+    }
+
+    /**
+    * * Field Name: CertificationNumber
+    * * Display Name: Certification Number
+    * * SQL Data Type: nvarchar(100)
+    */
+    get CertificationNumber(): string | null {
+        return this.Get('CertificationNumber');
+    }
+    set CertificationNumber(value: string | null) {
+        this.Set('CertificationNumber', value);
+    }
+
+    /**
+    * * Field Name: DateEarned
+    * * Display Name: Date Earned
+    * * SQL Data Type: date
+    */
+    get DateEarned(): Date {
+        return this.Get('DateEarned');
+    }
+    set DateEarned(value: Date) {
+        this.Set('DateEarned', value);
+    }
+
+    /**
+    * * Field Name: DateExpires
+    * * Display Name: Date Expires
+    * * SQL Data Type: date
+    */
+    get DateExpires(): Date | null {
+        return this.Get('DateExpires');
+    }
+    set DateExpires(value: Date | null) {
+        this.Set('DateExpires', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Score
+    * * Display Name: Score
+    * * SQL Data Type: int
+    */
+    get Score(): number | null {
+        return this.Get('Score');
+    }
+    set Score(value: number | null) {
+        this.Set('Score', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: VerificationURL
+    * * Display Name: Verification URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get VerificationURL(): string | null {
+        return this.Get('VerificationURL');
+    }
+    set VerificationURL(value: string | null) {
+        this.Set('VerificationURL', value);
+    }
+
+    /**
+    * * Field Name: IssuedBy
+    * * Display Name: Issued By
+    * * SQL Data Type: nvarchar(255)
+    */
+    get IssuedBy(): string | null {
+        return this.Get('IssuedBy');
+    }
+    set IssuedBy(value: string | null) {
+        this.Set('IssuedBy', value);
+    }
+
+    /**
+    * * Field Name: LastRenewalDate
+    * * Display Name: Last Renewal Date
+    * * SQL Data Type: date
+    */
+    get LastRenewalDate(): Date | null {
+        return this.Get('LastRenewalDate');
+    }
+    set LastRenewalDate(value: Date | null) {
+        this.Set('LastRenewalDate', value);
+    }
+
+    /**
+    * * Field Name: NextRenewalDate
+    * * Display Name: Next Renewal Date
+    * * SQL Data Type: date
+    */
+    get NextRenewalDate(): Date | null {
+        return this.Get('NextRenewalDate');
+    }
+    set NextRenewalDate(value: Date | null) {
+        this.Set('NextRenewalDate', value);
+    }
+
+    /**
+    * * Field Name: CECreditsEarned
+    * * Display Name: CE Credits Earned
+    * * SQL Data Type: int
+    */
+    get CECreditsEarned(): number | null {
+        return this.Get('CECreditsEarned');
+    }
+    set CECreditsEarned(value: number | null) {
+        this.Set('CECreditsEarned', value);
+    }
+
+    /**
+    * * Field Name: RenewalCount
+    * * Display Name: Renewal Count
+    * * SQL Data Type: int
+    */
+    get RenewalCount(): number | null {
+        return this.Get('RenewalCount');
+    }
+    set RenewalCount(value: number | null) {
+        this.Set('RenewalCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Chapter Memberships - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ChapterMembership
+ * * Base View: vwChapterMemberships
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Chapter Memberships')
+export class AssociationDemoChapterMembershipEntity extends BaseEntity<AssociationDemoChapterMembershipEntityType> {
+    /**
+    * Loads the Chapter Memberships record from the database
+    * @param ID: string - primary key value to load the Chapter Memberships record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoChapterMembershipEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ChapterID
+    * * Display Name: Chapter
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Chapters (vwChapters.ID)
+    */
+    get ChapterID(): string {
+        return this.Get('ChapterID');
+    }
+    set ChapterID(value: string) {
+        this.Set('ChapterID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: JoinDate
+    * * Display Name: Join Date
+    * * SQL Data Type: date
+    */
+    get JoinDate(): Date {
+        return this.Get('JoinDate');
+    }
+    set JoinDate(value: Date) {
+        this.Set('JoinDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Role
+    * * Display Name: Role
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Role(): string | null {
+        return this.Get('Role');
+    }
+    set Role(value: string | null) {
+        this.Set('Role', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Chapter Officers - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ChapterOfficer
+ * * Base View: vwChapterOfficers
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Chapter Officers')
+export class AssociationDemoChapterOfficerEntity extends BaseEntity<AssociationDemoChapterOfficerEntityType> {
+    /**
+    * Loads the Chapter Officers record from the database
+    * @param ID: string - primary key value to load the Chapter Officers record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoChapterOfficerEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ChapterID
+    * * Display Name: Chapter
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Chapters (vwChapters.ID)
+    */
+    get ChapterID(): string {
+        return this.Get('ChapterID');
+    }
+    set ChapterID(value: string) {
+        this.Set('ChapterID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: Position
+    * * Display Name: Position
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Position(): string {
+        return this.Get('Position');
+    }
+    set Position(value: string) {
+        this.Set('Position', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date | null {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date | null) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Chapters - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Chapter
+ * * Base View: vwChapters
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Chapters')
+export class AssociationDemoChapterEntity extends BaseEntity<AssociationDemoChapterEntityType> {
+    /**
+    * Loads the Chapters record from the database
+    * @param ID: string - primary key value to load the Chapters record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoChapterEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: ChapterType
+    * * Display Name: Chapter Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ChapterType(): string {
+        return this.Get('ChapterType');
+    }
+    set ChapterType(value: string) {
+        this.Set('ChapterType', value);
+    }
+
+    /**
+    * * Field Name: Region
+    * * Display Name: Region
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Region(): string | null {
+        return this.Get('Region');
+    }
+    set Region(value: string | null) {
+        this.Set('Region', value);
+    }
+
+    /**
+    * * Field Name: City
+    * * Display Name: City
+    * * SQL Data Type: nvarchar(100)
+    */
+    get City(): string | null {
+        return this.Get('City');
+    }
+    set City(value: string | null) {
+        this.Set('City', value);
+    }
+
+    /**
+    * * Field Name: State
+    * * Display Name: State
+    * * SQL Data Type: nvarchar(50)
+    */
+    get State(): string | null {
+        return this.Get('State');
+    }
+    set State(value: string | null) {
+        this.Set('State', value);
+    }
+
+    /**
+    * * Field Name: Country
+    * * Display Name: Country
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Country(): string | null {
+        return this.Get('Country');
+    }
+    set Country(value: string | null) {
+        this.Set('Country', value);
+    }
+
+    /**
+    * * Field Name: FoundedDate
+    * * Display Name: Founded Date
+    * * SQL Data Type: date
+    */
+    get FoundedDate(): Date | null {
+        return this.Get('FoundedDate');
+    }
+    set FoundedDate(value: Date | null) {
+        this.Set('FoundedDate', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: Email
+    * * Display Name: Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Email(): string | null {
+        return this.Get('Email');
+    }
+    set Email(value: string | null) {
+        this.Set('Email', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: MeetingFrequency
+    * * Display Name: Meeting Frequency
+    * * SQL Data Type: nvarchar(100)
+    */
+    get MeetingFrequency(): string | null {
+        return this.Get('MeetingFrequency');
+    }
+    set MeetingFrequency(value: string | null) {
+        this.Set('MeetingFrequency', value);
+    }
+
+    /**
+    * * Field Name: MemberCount
+    * * Display Name: Member Count
+    * * SQL Data Type: int
+    */
+    get MemberCount(): number | null {
+        return this.Get('MemberCount');
+    }
+    set MemberCount(value: number | null) {
+        this.Set('MemberCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Mj Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Mj Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Committee Memberships - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CommitteeMembership
+ * * Base View: vwCommitteeMemberships
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Committee Memberships')
+export class AssociationDemoCommitteeMembershipEntity extends BaseEntity<AssociationDemoCommitteeMembershipEntityType> {
+    /**
+    * Loads the Committee Memberships record from the database
+    * @param ID: string - primary key value to load the Committee Memberships record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCommitteeMembershipEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CommitteeID
+    * * Display Name: Committee
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Committees (vwCommittees.ID)
+    */
+    get CommitteeID(): string {
+        return this.Get('CommitteeID');
+    }
+    set CommitteeID(value: string) {
+        this.Set('CommitteeID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: Role
+    * * Display Name: Role
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Role(): string {
+        return this.Get('Role');
+    }
+    set Role(value: string) {
+        this.Set('Role', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date | null {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date | null) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: AppointedBy
+    * * Display Name: Appointed By
+    * * SQL Data Type: nvarchar(255)
+    */
+    get AppointedBy(): string | null {
+        return this.Get('AppointedBy');
+    }
+    set AppointedBy(value: string | null) {
+        this.Set('AppointedBy', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Committees - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Committee
+ * * Base View: vwCommittees
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Committees')
+export class AssociationDemoCommitteeEntity extends BaseEntity<AssociationDemoCommitteeEntityType> {
+    /**
+    * Loads the Committees record from the database
+    * @param ID: string - primary key value to load the Committees record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCommitteeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: CommitteeType
+    * * Display Name: Committee Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get CommitteeType(): string {
+        return this.Get('CommitteeType');
+    }
+    set CommitteeType(value: string) {
+        this.Set('CommitteeType', value);
+    }
+
+    /**
+    * * Field Name: Purpose
+    * * Display Name: Purpose
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Purpose(): string | null {
+        return this.Get('Purpose');
+    }
+    set Purpose(value: string | null) {
+        this.Set('Purpose', value);
+    }
+
+    /**
+    * * Field Name: MeetingFrequency
+    * * Display Name: Meeting Frequency
+    * * SQL Data Type: nvarchar(100)
+    */
+    get MeetingFrequency(): string | null {
+        return this.Get('MeetingFrequency');
+    }
+    set MeetingFrequency(value: string | null) {
+        this.Set('MeetingFrequency', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: FormedDate
+    * * Display Name: Formed Date
+    * * SQL Data Type: date
+    */
+    get FormedDate(): Date | null {
+        return this.Get('FormedDate');
+    }
+    set FormedDate(value: Date | null) {
+        this.Set('FormedDate', value);
+    }
+
+    /**
+    * * Field Name: DisbandedDate
+    * * Display Name: Disbanded Date
+    * * SQL Data Type: date
+    */
+    get DisbandedDate(): Date | null {
+        return this.Get('DisbandedDate');
+    }
+    set DisbandedDate(value: Date | null) {
+        this.Set('DisbandedDate', value);
+    }
+
+    /**
+    * * Field Name: ChairMemberID
+    * * Display Name: Chair Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get ChairMemberID(): string | null {
+        return this.Get('ChairMemberID');
+    }
+    set ChairMemberID(value: string | null) {
+        this.Set('ChairMemberID', value);
+    }
+
+    /**
+    * * Field Name: MaxMembers
+    * * Display Name: Max Members
+    * * SQL Data Type: int
+    */
+    get MaxMembers(): number | null {
+        return this.Get('MaxMembers');
+    }
+    set MaxMembers(value: number | null) {
+        this.Set('MaxMembers', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Competition Entries - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CompetitionEntry
+ * * Base View: vwCompetitionEntries
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Competition Entries')
+export class AssociationDemoCompetitionEntryEntity extends BaseEntity<AssociationDemoCompetitionEntryEntityType> {
+    /**
+    * Loads the Competition Entries record from the database
+    * @param ID: string - primary key value to load the Competition Entries record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCompetitionEntryEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CompetitionID
+    * * Display Name: Competition
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)
+    */
+    get CompetitionID(): string {
+        return this.Get('CompetitionID');
+    }
+    set CompetitionID(value: string) {
+        this.Set('CompetitionID', value);
+    }
+
+    /**
+    * * Field Name: ProductID
+    * * Display Name: Product
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Products (vwProducts.ID)
+    */
+    get ProductID(): string {
+        return this.Get('ProductID');
+    }
+    set ProductID(value: string) {
+        this.Set('ProductID', value);
+    }
+
+    /**
+    * * Field Name: CategoryID
+    * * Display Name: Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)
+    */
+    get CategoryID(): string {
+        return this.Get('CategoryID');
+    }
+    set CategoryID(value: string) {
+        this.Set('CategoryID', value);
+    }
+
+    /**
+    * * Field Name: EntryNumber
+    * * Display Name: Entry Number
+    * * SQL Data Type: nvarchar(50)
+    */
+    get EntryNumber(): string | null {
+        return this.Get('EntryNumber');
+    }
+    set EntryNumber(value: string | null) {
+        this.Set('EntryNumber', value);
+    }
+
+    /**
+    * * Field Name: SubmittedDate
+    * * Display Name: Submitted Date
+    * * SQL Data Type: date
+    */
+    get SubmittedDate(): Date {
+        return this.Get('SubmittedDate');
+    }
+    set SubmittedDate(value: Date) {
+        this.Set('SubmittedDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Score
+    * * Display Name: Score
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get Score(): number | null {
+        return this.Get('Score');
+    }
+    set Score(value: number | null) {
+        this.Set('Score', value);
+    }
+
+    /**
+    * * Field Name: Ranking
+    * * Display Name: Ranking
+    * * SQL Data Type: int
+    */
+    get Ranking(): number | null {
+        return this.Get('Ranking');
+    }
+    set Ranking(value: number | null) {
+        this.Set('Ranking', value);
+    }
+
+    /**
+    * * Field Name: AwardLevel
+    * * Display Name: Award Level
+    * * SQL Data Type: nvarchar(100)
+    */
+    get AwardLevel(): string | null {
+        return this.Get('AwardLevel');
+    }
+    set AwardLevel(value: string | null) {
+        this.Set('AwardLevel', value);
+    }
+
+    /**
+    * * Field Name: JudgingNotes
+    * * Display Name: Judging Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get JudgingNotes(): string | null {
+        return this.Get('JudgingNotes');
+    }
+    set JudgingNotes(value: string | null) {
+        this.Set('JudgingNotes', value);
+    }
+
+    /**
+    * * Field Name: FeedbackProvided
+    * * Display Name: Feedback Provided
+    * * SQL Data Type: bit
+    */
+    get FeedbackProvided(): boolean | null {
+        return this.Get('FeedbackProvided');
+    }
+    set FeedbackProvided(value: boolean | null) {
+        this.Set('FeedbackProvided', value);
+    }
+
+    /**
+    * * Field Name: EntryFee
+    * * Display Name: Entry Fee
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get EntryFee(): number | null {
+        return this.Get('EntryFee');
+    }
+    set EntryFee(value: number | null) {
+        this.Set('EntryFee', value);
+    }
+
+    /**
+    * * Field Name: PaymentStatus
+    * * Display Name: Payment Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get PaymentStatus(): string | null {
+        return this.Get('PaymentStatus');
+    }
+    set PaymentStatus(value: string | null) {
+        this.Set('PaymentStatus', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Competition Judges - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: CompetitionJudge
+ * * Base View: vwCompetitionJudges
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Competition Judges')
+export class AssociationDemoCompetitionJudgeEntity extends BaseEntity<AssociationDemoCompetitionJudgeEntityType> {
+    /**
+    * Loads the Competition Judges record from the database
+    * @param ID: string - primary key value to load the Competition Judges record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCompetitionJudgeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CompetitionID
+    * * Display Name: Competition
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)
+    */
+    get CompetitionID(): string {
+        return this.Get('CompetitionID');
+    }
+    set CompetitionID(value: string) {
+        this.Set('CompetitionID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string | null {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string | null) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: FirstName
+    * * Display Name: First Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get FirstName(): string {
+        return this.Get('FirstName');
+    }
+    set FirstName(value: string) {
+        this.Set('FirstName', value);
+    }
+
+    /**
+    * * Field Name: LastName
+    * * Display Name: Last Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get LastName(): string {
+        return this.Get('LastName');
+    }
+    set LastName(value: string) {
+        this.Set('LastName', value);
+    }
+
+    /**
+    * * Field Name: Email
+    * * Display Name: Email Address
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Email(): string | null {
+        return this.Get('Email');
+    }
+    set Email(value: string | null) {
+        this.Set('Email', value);
+    }
+
+    /**
+    * * Field Name: Organization
+    * * Display Name: Organization
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Organization(): string | null {
+        return this.Get('Organization');
+    }
+    set Organization(value: string | null) {
+        this.Set('Organization', value);
+    }
+
+    /**
+    * * Field Name: Credentials
+    * * Display Name: Credentials
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Credentials(): string | null {
+        return this.Get('Credentials');
+    }
+    set Credentials(value: string | null) {
+        this.Set('Credentials', value);
+    }
+
+    /**
+    * * Field Name: YearsExperience
+    * * Display Name: Years of Experience
+    * * SQL Data Type: int
+    */
+    get YearsExperience(): number | null {
+        return this.Get('YearsExperience');
+    }
+    set YearsExperience(value: number | null) {
+        this.Set('YearsExperience', value);
+    }
+
+    /**
+    * * Field Name: Specialty
+    * * Display Name: Specialty
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Specialty(): string | null {
+        return this.Get('Specialty');
+    }
+    set Specialty(value: string | null) {
+        this.Set('Specialty', value);
+    }
+
+    /**
+    * * Field Name: Role
+    * * Display Name: Role
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Role(): string | null {
+        return this.Get('Role');
+    }
+    set Role(value: string | null) {
+        this.Set('Role', value);
+    }
+
+    /**
+    * * Field Name: AssignedCategories
+    * * Display Name: Assigned Categories
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get AssignedCategories(): string | null {
+        return this.Get('AssignedCategories');
+    }
+    set AssignedCategories(value: string | null) {
+        this.Set('AssignedCategories', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: InvitedDate
+    * * Display Name: Invited Date
+    * * SQL Data Type: date
+    */
+    get InvitedDate(): Date | null {
+        return this.Get('InvitedDate');
+    }
+    set InvitedDate(value: Date | null) {
+        this.Set('InvitedDate', value);
+    }
+
+    /**
+    * * Field Name: ConfirmedDate
+    * * Display Name: Confirmed Date
+    * * SQL Data Type: date
+    */
+    get ConfirmedDate(): Date | null {
+        return this.Get('ConfirmedDate');
+    }
+    set ConfirmedDate(value: Date | null) {
+        this.Set('ConfirmedDate', value);
+    }
+
+    /**
+    * * Field Name: CompensationAmount
+    * * Display Name: Compensation Amount
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get CompensationAmount(): number | null {
+        return this.Get('CompensationAmount');
+    }
+    set CompensationAmount(value: number | null) {
+        this.Set('CompensationAmount', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Competitions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Competition
+ * * Base View: vwCompetitions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Competitions')
+export class AssociationDemoCompetitionEntity extends BaseEntity<AssociationDemoCompetitionEntityType> {
+    /**
+    * Loads the Competitions record from the database
+    * @param ID: string - primary key value to load the Competitions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCompetitionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Year
+    * * Display Name: Year
+    * * SQL Data Type: int
+    */
+    get Year(): number {
+        return this.Get('Year');
+    }
+    set Year(value: number) {
+        this.Set('Year', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: JudgingDate
+    * * Display Name: Judging Date
+    * * SQL Data Type: date
+    */
+    get JudgingDate(): Date | null {
+        return this.Get('JudgingDate');
+    }
+    set JudgingDate(value: Date | null) {
+        this.Set('JudgingDate', value);
+    }
+
+    /**
+    * * Field Name: AwardsDate
+    * * Display Name: Awards Date
+    * * SQL Data Type: date
+    */
+    get AwardsDate(): Date | null {
+        return this.Get('AwardsDate');
+    }
+    set AwardsDate(value: Date | null) {
+        this.Set('AwardsDate', value);
+    }
+
+    /**
+    * * Field Name: Location
+    * * Display Name: Location
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Location(): string | null {
+        return this.Get('Location');
+    }
+    set Location(value: string | null) {
+        this.Set('Location', value);
+    }
+
+    /**
+    * * Field Name: EntryDeadline
+    * * Display Name: Entry Deadline
+    * * SQL Data Type: date
+    */
+    get EntryDeadline(): Date | null {
+        return this.Get('EntryDeadline');
+    }
+    set EntryDeadline(value: Date | null) {
+        this.Set('EntryDeadline', value);
+    }
+
+    /**
+    * * Field Name: EntryFee
+    * * Display Name: Entry Fee
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get EntryFee(): number | null {
+        return this.Get('EntryFee');
+    }
+    set EntryFee(value: number | null) {
+        this.Set('EntryFee', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: TotalEntries
+    * * Display Name: Total Entries
+    * * SQL Data Type: int
+    */
+    get TotalEntries(): number | null {
+        return this.Get('TotalEntries');
+    }
+    set TotalEntries(value: number | null) {
+        this.Set('TotalEntries', value);
+    }
+
+    /**
+    * * Field Name: TotalCategories
+    * * Display Name: Total Categories
+    * * SQL Data Type: int
+    */
+    get TotalCategories(): number | null {
+        return this.Get('TotalCategories');
+    }
+    set TotalCategories(value: number | null) {
+        this.Set('TotalCategories', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: ContactEmail
+    * * Display Name: Contact Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ContactEmail(): string | null {
+        return this.Get('ContactEmail');
+    }
+    set ContactEmail(value: string | null) {
+        this.Set('ContactEmail', value);
+    }
+
+    /**
+    * * Field Name: IsAnnual
+    * * Display Name: Is Annual
+    * * SQL Data Type: bit
+    */
+    get IsAnnual(): boolean | null {
+        return this.Get('IsAnnual');
+    }
+    set IsAnnual(value: boolean | null) {
+        this.Set('IsAnnual', value);
+    }
+
+    /**
+    * * Field Name: IsInternational
+    * * Display Name: Is International
+    * * SQL Data Type: bit
+    */
+    get IsInternational(): boolean | null {
+        return this.Get('IsInternational');
+    }
+    set IsInternational(value: boolean | null) {
+        this.Set('IsInternational', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Mj Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Mj Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Continuing Educations - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ContinuingEducation
+ * * Base View: vwContinuingEducations
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Continuing Educations')
+export class AssociationDemoContinuingEducationEntity extends BaseEntity<AssociationDemoContinuingEducationEntityType> {
+    /**
+    * Loads the Continuing Educations record from the database
+    * @param ID: string - primary key value to load the Continuing Educations record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoContinuingEducationEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: CertificationID
+    * * Display Name: Certification
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Certifications__AssociationDemo (vwCertifications__AssociationDemo.ID)
+    */
+    get CertificationID(): string | null {
+        return this.Get('CertificationID');
+    }
+    set CertificationID(value: string | null) {
+        this.Set('CertificationID', value);
+    }
+
+    /**
+    * * Field Name: ActivityTitle
+    * * Display Name: Activity Title
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ActivityTitle(): string {
+        return this.Get('ActivityTitle');
+    }
+    set ActivityTitle(value: string) {
+        this.Set('ActivityTitle', value);
+    }
+
+    /**
+    * * Field Name: ActivityType
+    * * Display Name: Activity Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get ActivityType(): string {
+        return this.Get('ActivityType');
+    }
+    set ActivityType(value: string) {
+        this.Set('ActivityType', value);
+    }
+
+    /**
+    * * Field Name: Provider
+    * * Display Name: Provider
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Provider(): string | null {
+        return this.Get('Provider');
+    }
+    set Provider(value: string | null) {
+        this.Set('Provider', value);
+    }
+
+    /**
+    * * Field Name: CompletionDate
+    * * Display Name: Completion Date
+    * * SQL Data Type: date
+    */
+    get CompletionDate(): Date {
+        return this.Get('CompletionDate');
+    }
+    set CompletionDate(value: Date) {
+        this.Set('CompletionDate', value);
+    }
+
+    /**
+    * * Field Name: CreditsEarned
+    * * Display Name: Credits Earned
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get CreditsEarned(): number {
+        return this.Get('CreditsEarned');
+    }
+    set CreditsEarned(value: number) {
+        this.Set('CreditsEarned', value);
+    }
+
+    /**
+    * * Field Name: CreditsType
+    * * Display Name: Credits Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get CreditsType(): string | null {
+        return this.Get('CreditsType');
+    }
+    set CreditsType(value: string | null) {
+        this.Set('CreditsType', value);
+    }
+
+    /**
+    * * Field Name: HoursSpent
+    * * Display Name: Hours Spent
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get HoursSpent(): number | null {
+        return this.Get('HoursSpent');
+    }
+    set HoursSpent(value: number | null) {
+        this.Set('HoursSpent', value);
+    }
+
+    /**
+    * * Field Name: VerificationCode
+    * * Display Name: Verification Code
+    * * SQL Data Type: nvarchar(100)
+    */
+    get VerificationCode(): string | null {
+        return this.Get('VerificationCode');
+    }
+    set VerificationCode(value: string | null) {
+        this.Set('VerificationCode', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: DocumentURL
+    * * Display Name: Document URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get DocumentURL(): string | null {
+        return this.Get('DocumentURL');
+    }
+    set DocumentURL(value: string | null) {
+        this.Set('DocumentURL', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Courses - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Course
+ * * Base View: vwCourses
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Courses')
+export class AssociationDemoCourseEntity extends BaseEntity<AssociationDemoCourseEntityType> {
+    /**
+    * Loads the Courses record from the database
+    * @param ID: string - primary key value to load the Courses record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoCourseEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Code
+    * * Display Name: Code
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Code(): string {
+        return this.Get('Code');
+    }
+    set Code(value: string) {
+        this.Set('Code', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Title(): string {
+        return this.Get('Title');
+    }
+    set Title(value: string) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Category
+    * * Display Name: Category
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Category(): string | null {
+        return this.Get('Category');
+    }
+    set Category(value: string | null) {
+        this.Set('Category', value);
+    }
+
+    /**
+    * * Field Name: Level
+    * * Display Name: Level
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Level(): string {
+        return this.Get('Level');
+    }
+    set Level(value: string) {
+        this.Set('Level', value);
+    }
+
+    /**
+    * * Field Name: DurationHours
+    * * Display Name: Duration (Hours)
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get DurationHours(): number | null {
+        return this.Get('DurationHours');
+    }
+    set DurationHours(value: number | null) {
+        this.Set('DurationHours', value);
+    }
+
+    /**
+    * * Field Name: CEUCredits
+    * * Display Name: CEU Credits
+    * * SQL Data Type: decimal(4, 2)
+    */
+    get CEUCredits(): number | null {
+        return this.Get('CEUCredits');
+    }
+    set CEUCredits(value: number | null) {
+        this.Set('CEUCredits', value);
+    }
+
+    /**
+    * * Field Name: Price
+    * * Display Name: Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get Price(): number | null {
+        return this.Get('Price');
+    }
+    set Price(value: number | null) {
+        this.Set('Price', value);
+    }
+
+    /**
+    * * Field Name: MemberPrice
+    * * Display Name: Member Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get MemberPrice(): number | null {
+        return this.Get('MemberPrice');
+    }
+    set MemberPrice(value: number | null) {
+        this.Set('MemberPrice', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: PublishedDate
+    * * Display Name: Published Date
+    * * SQL Data Type: date
+    */
+    get PublishedDate(): Date | null {
+        return this.Get('PublishedDate');
+    }
+    set PublishedDate(value: Date | null) {
+        this.Set('PublishedDate', value);
+    }
+
+    /**
+    * * Field Name: InstructorName
+    * * Display Name: Instructor Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get InstructorName(): string | null {
+        return this.Get('InstructorName');
+    }
+    set InstructorName(value: string | null) {
+        this.Set('InstructorName', value);
+    }
+
+    /**
+    * * Field Name: PrerequisiteCourseID
+    * * Display Name: Prerequisite Course
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Courses (vwCourses.ID)
+    */
+    get PrerequisiteCourseID(): string | null {
+        return this.Get('PrerequisiteCourseID');
+    }
+    set PrerequisiteCourseID(value: string | null) {
+        this.Set('PrerequisiteCourseID', value);
+    }
+
+    /**
+    * * Field Name: ThumbnailURL
+    * * Display Name: Thumbnail URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ThumbnailURL(): string | null {
+        return this.Get('ThumbnailURL');
+    }
+    set ThumbnailURL(value: string | null) {
+        this.Set('ThumbnailURL', value);
+    }
+
+    /**
+    * * Field Name: LearningObjectives
+    * * Display Name: Learning Objectives
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get LearningObjectives(): string | null {
+        return this.Get('LearningObjectives');
+    }
+    set LearningObjectives(value: string | null) {
+        this.Set('LearningObjectives', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: RootPrerequisiteCourseID
+    * * Display Name: Root Prerequisite Course
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RootPrerequisiteCourseID(): string | null {
+        return this.Get('RootPrerequisiteCourseID');
+    }
+}
+
+
+/**
+ * Email Clicks - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: EmailClick
+ * * Base View: vwEmailClicks
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Email Clicks')
+export class AssociationDemoEmailClickEntity extends BaseEntity<AssociationDemoEmailClickEntityType> {
+    /**
+    * Loads the Email Clicks record from the database
+    * @param ID: string - primary key value to load the Email Clicks record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEmailClickEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: EmailSendID
+    * * Display Name: Email Send
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Email Sends (vwEmailSends.ID)
+    */
+    get EmailSendID(): string {
+        return this.Get('EmailSendID');
+    }
+    set EmailSendID(value: string) {
+        this.Set('EmailSendID', value);
+    }
+
+    /**
+    * * Field Name: ClickDate
+    * * Display Name: Click Date
+    * * SQL Data Type: datetime
+    */
+    get ClickDate(): Date {
+        return this.Get('ClickDate');
+    }
+    set ClickDate(value: Date) {
+        this.Set('ClickDate', value);
+    }
+
+    /**
+    * * Field Name: URL
+    * * Display Name: URL
+    * * SQL Data Type: nvarchar(2000)
+    */
+    get URL(): string {
+        return this.Get('URL');
+    }
+    set URL(value: string) {
+        this.Set('URL', value);
+    }
+
+    /**
+    * * Field Name: LinkName
+    * * Display Name: Link Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get LinkName(): string | null {
+        return this.Get('LinkName');
+    }
+    set LinkName(value: string | null) {
+        this.Set('LinkName', value);
+    }
+
+    /**
+    * * Field Name: IPAddress
+    * * Display Name: IP Address
+    * * SQL Data Type: nvarchar(50)
+    */
+    get IPAddress(): string | null {
+        return this.Get('IPAddress');
+    }
+    set IPAddress(value: string | null) {
+        this.Set('IPAddress', value);
+    }
+
+    /**
+    * * Field Name: UserAgent
+    * * Display Name: User Agent
+    * * SQL Data Type: nvarchar(500)
+    */
+    get UserAgent(): string | null {
+        return this.Get('UserAgent');
+    }
+    set UserAgent(value: string | null) {
+        this.Set('UserAgent', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Email Engagements - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: EmailEngagement
+ * * Base View: vwEmailEngagements
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Email Engagements')
+export class membershipEmailEngagementEntity extends BaseEntity<membershipEmailEngagementEntityType> {
+    /**
+    * Loads the Email Engagements record from the database
+    * @param ID: string - primary key value to load the Email Engagements record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipEmailEngagementEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: ActivityType
+    * * Display Name: Activity Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ActivityType(): string {
+        return this.Get('ActivityType');
+    }
+    set ActivityType(value: string) {
+        this.Set('ActivityType', value);
+    }
+
+    /**
+    * * Field Name: OccurredOn
+    * * Display Name: Occurred On
+    * * SQL Data Type: datetime2
+    */
+    get OccurredOn(): Date {
+        return this.Get('OccurredOn');
+    }
+    set OccurredOn(value: Date) {
+        this.Set('OccurredOn', value);
+    }
+
+    /**
+    * * Field Name: CampaignName
+    * * Display Name: Campaign Name
+    * * SQL Data Type: nvarchar(200)
+    */
+    get CampaignName(): string {
+        return this.Get('CampaignName');
+    }
+    set CampaignName(value: string) {
+        this.Set('CampaignName', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Email Sends - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: EmailSend
+ * * Base View: vwEmailSends
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Email Sends')
+export class AssociationDemoEmailSendEntity extends BaseEntity<AssociationDemoEmailSendEntityType> {
+    /**
+    * Loads the Email Sends record from the database
+    * @param ID: string - primary key value to load the Email Sends record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEmailSendEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: TemplateID
+    * * Display Name: Template
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Email Templates (vwEmailTemplates.ID)
+    */
+    get TemplateID(): string | null {
+        return this.Get('TemplateID');
+    }
+    set TemplateID(value: string | null) {
+        this.Set('TemplateID', value);
+    }
+
+    /**
+    * * Field Name: CampaignID
+    * * Display Name: Campaign
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Campaigns (vwCampaigns.ID)
+    */
+    get CampaignID(): string | null {
+        return this.Get('CampaignID');
+    }
+    set CampaignID(value: string | null) {
+        this.Set('CampaignID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: Subject
+    * * Display Name: Subject
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Subject(): string | null {
+        return this.Get('Subject');
+    }
+    set Subject(value: string | null) {
+        this.Set('Subject', value);
+    }
+
+    /**
+    * * Field Name: SentDate
+    * * Display Name: Sent Date
+    * * SQL Data Type: datetime
+    */
+    get SentDate(): Date {
+        return this.Get('SentDate');
+    }
+    set SentDate(value: Date) {
+        this.Set('SentDate', value);
+    }
+
+    /**
+    * * Field Name: DeliveredDate
+    * * Display Name: Delivered Date
+    * * SQL Data Type: datetime
+    */
+    get DeliveredDate(): Date | null {
+        return this.Get('DeliveredDate');
+    }
+    set DeliveredDate(value: Date | null) {
+        this.Set('DeliveredDate', value);
+    }
+
+    /**
+    * * Field Name: OpenedDate
+    * * Display Name: Opened Date
+    * * SQL Data Type: datetime
+    */
+    get OpenedDate(): Date | null {
+        return this.Get('OpenedDate');
+    }
+    set OpenedDate(value: Date | null) {
+        this.Set('OpenedDate', value);
+    }
+
+    /**
+    * * Field Name: OpenCount
+    * * Display Name: Open Count
+    * * SQL Data Type: int
+    */
+    get OpenCount(): number | null {
+        return this.Get('OpenCount');
+    }
+    set OpenCount(value: number | null) {
+        this.Set('OpenCount', value);
+    }
+
+    /**
+    * * Field Name: ClickedDate
+    * * Display Name: Clicked Date
+    * * SQL Data Type: datetime
+    */
+    get ClickedDate(): Date | null {
+        return this.Get('ClickedDate');
+    }
+    set ClickedDate(value: Date | null) {
+        this.Set('ClickedDate', value);
+    }
+
+    /**
+    * * Field Name: ClickCount
+    * * Display Name: Click Count
+    * * SQL Data Type: int
+    */
+    get ClickCount(): number | null {
+        return this.Get('ClickCount');
+    }
+    set ClickCount(value: number | null) {
+        this.Set('ClickCount', value);
+    }
+
+    /**
+    * * Field Name: BouncedDate
+    * * Display Name: Bounced Date
+    * * SQL Data Type: datetime
+    */
+    get BouncedDate(): Date | null {
+        return this.Get('BouncedDate');
+    }
+    set BouncedDate(value: Date | null) {
+        this.Set('BouncedDate', value);
+    }
+
+    /**
+    * * Field Name: BounceType
+    * * Display Name: Bounce Type
+    * * SQL Data Type: nvarchar(20)
+    */
+    get BounceType(): string | null {
+        return this.Get('BounceType');
+    }
+    set BounceType(value: string | null) {
+        this.Set('BounceType', value);
+    }
+
+    /**
+    * * Field Name: BounceReason
+    * * Display Name: Bounce Reason
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get BounceReason(): string | null {
+        return this.Get('BounceReason');
+    }
+    set BounceReason(value: string | null) {
+        this.Set('BounceReason', value);
+    }
+
+    /**
+    * * Field Name: UnsubscribedDate
+    * * Display Name: Unsubscribed Date
+    * * SQL Data Type: datetime
+    */
+    get UnsubscribedDate(): Date | null {
+        return this.Get('UnsubscribedDate');
+    }
+    set UnsubscribedDate(value: Date | null) {
+        this.Set('UnsubscribedDate', value);
+    }
+
+    /**
+    * * Field Name: SpamReportedDate
+    * * Display Name: Spam Reported Date
+    * * SQL Data Type: datetime
+    */
+    get SpamReportedDate(): Date | null {
+        return this.Get('SpamReportedDate');
+    }
+    set SpamReportedDate(value: Date | null) {
+        this.Set('SpamReportedDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ExternalMessageID
+    * * Display Name: External Message ID
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ExternalMessageID(): string | null {
+        return this.Get('ExternalMessageID');
+    }
+    set ExternalMessageID(value: string | null) {
+        this.Set('ExternalMessageID', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Email Templates - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: EmailTemplate
+ * * Base View: vwEmailTemplates
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Email Templates')
+export class AssociationDemoEmailTemplateEntity extends BaseEntity<AssociationDemoEmailTemplateEntityType> {
+    /**
+    * Loads the Email Templates record from the database
+    * @param ID: string - primary key value to load the Email Templates record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEmailTemplateEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Template Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Subject
+    * * Display Name: Subject
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Subject(): string | null {
+        return this.Get('Subject');
+    }
+    set Subject(value: string | null) {
+        this.Set('Subject', value);
+    }
+
+    /**
+    * * Field Name: FromName
+    * * Display Name: From Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get FromName(): string | null {
+        return this.Get('FromName');
+    }
+    set FromName(value: string | null) {
+        this.Set('FromName', value);
+    }
+
+    /**
+    * * Field Name: FromEmail
+    * * Display Name: From Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get FromEmail(): string | null {
+        return this.Get('FromEmail');
+    }
+    set FromEmail(value: string | null) {
+        this.Set('FromEmail', value);
+    }
+
+    /**
+    * * Field Name: ReplyToEmail
+    * * Display Name: Reply To Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ReplyToEmail(): string | null {
+        return this.Get('ReplyToEmail');
+    }
+    set ReplyToEmail(value: string | null) {
+        this.Set('ReplyToEmail', value);
+    }
+
+    /**
+    * * Field Name: HtmlBody
+    * * Display Name: HTML Body
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get HtmlBody(): string | null {
+        return this.Get('HtmlBody');
+    }
+    set HtmlBody(value: string | null) {
+        this.Set('HtmlBody', value);
+    }
+
+    /**
+    * * Field Name: TextBody
+    * * Display Name: Text Body
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get TextBody(): string | null {
+        return this.Get('TextBody');
+    }
+    set TextBody(value: string | null) {
+        this.Set('TextBody', value);
+    }
+
+    /**
+    * * Field Name: Category
+    * * Display Name: Category
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Category(): string | null {
+        return this.Get('Category');
+    }
+    set Category(value: string | null) {
+        this.Set('Category', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: PreviewText
+    * * Display Name: Preview Text
+    * * SQL Data Type: nvarchar(255)
+    */
+    get PreviewText(): string | null {
+        return this.Get('PreviewText');
+    }
+    set PreviewText(value: string | null) {
+        this.Set('PreviewText', value);
+    }
+
+    /**
+    * * Field Name: Tags
+    * * Display Name: Tags
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Tags(): string | null {
+        return this.Get('Tags');
+    }
+    set Tags(value: string | null) {
+        this.Set('Tags', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Enrollments - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Enrollment
+ * * Base View: vwEnrollments
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Enrollments')
+export class AssociationDemoEnrollmentEntity extends BaseEntity<AssociationDemoEnrollmentEntityType> {
+    /**
+    * Loads the Enrollments record from the database
+    * @param ID: string - primary key value to load the Enrollments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEnrollmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CourseID
+    * * Display Name: Course
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Courses (vwCourses.ID)
+    */
+    get CourseID(): string {
+        return this.Get('CourseID');
+    }
+    set CourseID(value: string) {
+        this.Set('CourseID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: EnrollmentDate
+    * * Display Name: Enrollment Date
+    * * SQL Data Type: datetime
+    */
+    get EnrollmentDate(): Date {
+        return this.Get('EnrollmentDate');
+    }
+    set EnrollmentDate(value: Date) {
+        this.Set('EnrollmentDate', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: datetime
+    */
+    get StartDate(): Date | null {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date | null) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: CompletionDate
+    * * Display Name: Completion Date
+    * * SQL Data Type: datetime
+    */
+    get CompletionDate(): Date | null {
+        return this.Get('CompletionDate');
+    }
+    set CompletionDate(value: Date | null) {
+        this.Set('CompletionDate', value);
+    }
+
+    /**
+    * * Field Name: ExpirationDate
+    * * Display Name: Expiration Date
+    * * SQL Data Type: datetime
+    */
+    get ExpirationDate(): Date | null {
+        return this.Get('ExpirationDate');
+    }
+    set ExpirationDate(value: Date | null) {
+        this.Set('ExpirationDate', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ProgressPercentage
+    * * Display Name: Progress Percentage
+    * * SQL Data Type: int
+    */
+    get ProgressPercentage(): number | null {
+        return this.Get('ProgressPercentage');
+    }
+    set ProgressPercentage(value: number | null) {
+        this.Set('ProgressPercentage', value);
+    }
+
+    /**
+    * * Field Name: LastAccessedDate
+    * * Display Name: Last Accessed Date
+    * * SQL Data Type: datetime
+    */
+    get LastAccessedDate(): Date | null {
+        return this.Get('LastAccessedDate');
+    }
+    set LastAccessedDate(value: Date | null) {
+        this.Set('LastAccessedDate', value);
+    }
+
+    /**
+    * * Field Name: TimeSpentMinutes
+    * * Display Name: Time Spent (Minutes)
+    * * SQL Data Type: int
+    */
+    get TimeSpentMinutes(): number | null {
+        return this.Get('TimeSpentMinutes');
+    }
+    set TimeSpentMinutes(value: number | null) {
+        this.Set('TimeSpentMinutes', value);
+    }
+
+    /**
+    * * Field Name: FinalScore
+    * * Display Name: Final Score
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get FinalScore(): number | null {
+        return this.Get('FinalScore');
+    }
+    set FinalScore(value: number | null) {
+        this.Set('FinalScore', value);
+    }
+
+    /**
+    * * Field Name: PassingScore
+    * * Display Name: Passing Score
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get PassingScore(): number | null {
+        return this.Get('PassingScore');
+    }
+    set PassingScore(value: number | null) {
+        this.Set('PassingScore', value);
+    }
+
+    /**
+    * * Field Name: Passed
+    * * Display Name: Passed
+    * * SQL Data Type: bit
+    */
+    get Passed(): boolean | null {
+        return this.Get('Passed');
+    }
+    set Passed(value: boolean | null) {
+        this.Set('Passed', value);
+    }
+
+    /**
+    * * Field Name: InvoiceID
+    * * Display Name: Invoice
+    * * SQL Data Type: uniqueidentifier
+    */
+    get InvoiceID(): string | null {
+        return this.Get('InvoiceID');
+    }
+    set InvoiceID(value: string | null) {
+        this.Set('InvoiceID', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Event Registrations - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: EventRegistration
+ * * Base View: vwEventRegistrations
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Event Registrations')
+export class membershipEventRegistrationEntity extends BaseEntity<membershipEventRegistrationEntityType> {
+    /**
+    * Loads the Event Registrations record from the database
+    * @param ID: string - primary key value to load the Event Registrations record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipEventRegistrationEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: EventName
+    * * Display Name: Event Name
+    * * SQL Data Type: nvarchar(200)
+    */
+    get EventName(): string {
+        return this.Get('EventName');
+    }
+    set EventName(value: string) {
+        this.Set('EventName', value);
+    }
+
+    /**
+    * * Field Name: EventDate
+    * * Display Name: Event Date
+    * * SQL Data Type: date
+    */
+    get EventDate(): Date {
+        return this.Get('EventDate');
+    }
+    set EventDate(value: Date) {
+        this.Set('EventDate', value);
+    }
+
+    /**
+    * * Field Name: Attended
+    * * Display Name: Attended
+    * * SQL Data Type: bit
+    */
+    get Attended(): boolean {
+        return this.Get('Attended');
+    }
+    set Attended(value: boolean) {
+        this.Set('Attended', value);
+    }
+
+    /**
+    * * Field Name: RegistrationType
+    * * Display Name: Registration Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get RegistrationType(): string {
+        return this.Get('RegistrationType');
+    }
+    set RegistrationType(value: string) {
+        this.Set('RegistrationType', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Event Registrations__AssociationDemo - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: EventRegistration
+ * * Base View: vwEventRegistrations__AssociationDemo
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Event Registrations__AssociationDemo')
+export class AssociationDemoEventRegistration__AssociationDemoEntity extends BaseEntity<AssociationDemoEventRegistration__AssociationDemoEntityType> {
+    /**
+    * Loads the Event Registrations__AssociationDemo record from the database
+    * @param ID: string - primary key value to load the Event Registrations__AssociationDemo record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEventRegistration__AssociationDemoEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: EventID
+    * * Display Name: Event
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Events (vwEvents.ID)
+    */
+    get EventID(): string {
+        return this.Get('EventID');
+    }
+    set EventID(value: string) {
+        this.Set('EventID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: RegistrationDate
+    * * Display Name: Registration Date
+    * * SQL Data Type: datetime
+    */
+    get RegistrationDate(): Date {
+        return this.Get('RegistrationDate');
+    }
+    set RegistrationDate(value: Date) {
+        this.Set('RegistrationDate', value);
+    }
+
+    /**
+    * * Field Name: RegistrationType
+    * * Display Name: Registration Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get RegistrationType(): string | null {
+        return this.Get('RegistrationType');
+    }
+    set RegistrationType(value: string | null) {
+        this.Set('RegistrationType', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: CheckInTime
+    * * Display Name: Check-In Time
+    * * SQL Data Type: datetime
+    */
+    get CheckInTime(): Date | null {
+        return this.Get('CheckInTime');
+    }
+    set CheckInTime(value: Date | null) {
+        this.Set('CheckInTime', value);
+    }
+
+    /**
+    * * Field Name: InvoiceID
+    * * Display Name: Invoice
+    * * SQL Data Type: uniqueidentifier
+    */
+    get InvoiceID(): string | null {
+        return this.Get('InvoiceID');
+    }
+    set InvoiceID(value: string | null) {
+        this.Set('InvoiceID', value);
+    }
+
+    /**
+    * * Field Name: CEUAwarded
+    * * Display Name: CEU Awarded
+    * * SQL Data Type: bit
+    */
+    get CEUAwarded(): boolean {
+        return this.Get('CEUAwarded');
+    }
+    set CEUAwarded(value: boolean) {
+        this.Set('CEUAwarded', value);
+    }
+
+    /**
+    * * Field Name: CEUAwardedDate
+    * * Display Name: CEU Awarded Date
+    * * SQL Data Type: datetime
+    */
+    get CEUAwardedDate(): Date | null {
+        return this.Get('CEUAwardedDate');
+    }
+    set CEUAwardedDate(value: Date | null) {
+        this.Set('CEUAwardedDate', value);
+    }
+
+    /**
+    * * Field Name: CancellationDate
+    * * Display Name: Cancellation Date
+    * * SQL Data Type: datetime
+    */
+    get CancellationDate(): Date | null {
+        return this.Get('CancellationDate');
+    }
+    set CancellationDate(value: Date | null) {
+        this.Set('CancellationDate', value);
+    }
+
+    /**
+    * * Field Name: CancellationReason
+    * * Display Name: Cancellation Reason
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get CancellationReason(): string | null {
+        return this.Get('CancellationReason');
+    }
+    set CancellationReason(value: string | null) {
+        this.Set('CancellationReason', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Event Sessions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: EventSession
+ * * Base View: vwEventSessions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Event Sessions')
+export class AssociationDemoEventSessionEntity extends BaseEntity<AssociationDemoEventSessionEntityType> {
+    /**
+    * Loads the Event Sessions record from the database
+    * @param ID: string - primary key value to load the Event Sessions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEventSessionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: EventID
+    * * Display Name: Event
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Events (vwEvents.ID)
+    */
+    get EventID(): string {
+        return this.Get('EventID');
+    }
+    set EventID(value: string) {
+        this.Set('EventID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Session Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: StartTime
+    * * Display Name: Start Time
+    * * SQL Data Type: datetime
+    */
+    get StartTime(): Date {
+        return this.Get('StartTime');
+    }
+    set StartTime(value: Date) {
+        this.Set('StartTime', value);
+    }
+
+    /**
+    * * Field Name: EndTime
+    * * Display Name: End Time
+    * * SQL Data Type: datetime
+    */
+    get EndTime(): Date {
+        return this.Get('EndTime');
+    }
+    set EndTime(value: Date) {
+        this.Set('EndTime', value);
+    }
+
+    /**
+    * * Field Name: Room
+    * * Display Name: Room
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Room(): string | null {
+        return this.Get('Room');
+    }
+    set Room(value: string | null) {
+        this.Set('Room', value);
+    }
+
+    /**
+    * * Field Name: SpeakerName
+    * * Display Name: Speaker Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get SpeakerName(): string | null {
+        return this.Get('SpeakerName');
+    }
+    set SpeakerName(value: string | null) {
+        this.Set('SpeakerName', value);
+    }
+
+    /**
+    * * Field Name: SessionType
+    * * Display Name: Session Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get SessionType(): string | null {
+        return this.Get('SessionType');
+    }
+    set SessionType(value: string | null) {
+        this.Set('SessionType', value);
+    }
+
+    /**
+    * * Field Name: Capacity
+    * * Display Name: Capacity
+    * * SQL Data Type: int
+    */
+    get Capacity(): number | null {
+        return this.Get('Capacity');
+    }
+    set Capacity(value: number | null) {
+        this.Set('Capacity', value);
+    }
+
+    /**
+    * * Field Name: CEUCredits
+    * * Display Name: CEU Credits
+    * * SQL Data Type: decimal(4, 2)
+    */
+    get CEUCredits(): number | null {
+        return this.Get('CEUCredits');
+    }
+    set CEUCredits(value: number | null) {
+        this.Set('CEUCredits', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Events - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Event
+ * * Base View: vwEvents
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Events')
+export class AssociationDemoEventEntity extends BaseEntity<AssociationDemoEventEntityType> {
+    /**
+    * Loads the Events record from the database
+    * @param ID: string - primary key value to load the Events record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoEventEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: EventType
+    * * Display Name: Event Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get EventType(): string {
+        return this.Get('EventType');
+    }
+    set EventType(value: string) {
+        this.Set('EventType', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: datetime
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: datetime
+    */
+    get EndDate(): Date {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: Timezone
+    * * Display Name: Timezone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Timezone(): string | null {
+        return this.Get('Timezone');
+    }
+    set Timezone(value: string | null) {
+        this.Set('Timezone', value);
+    }
+
+    /**
+    * * Field Name: Location
+    * * Display Name: Location
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Location(): string | null {
+        return this.Get('Location');
+    }
+    set Location(value: string | null) {
+        this.Set('Location', value);
+    }
+
+    /**
+    * * Field Name: IsVirtual
+    * * Display Name: Is Virtual
+    * * SQL Data Type: bit
+    */
+    get IsVirtual(): boolean {
+        return this.Get('IsVirtual');
+    }
+    set IsVirtual(value: boolean) {
+        this.Set('IsVirtual', value);
+    }
+
+    /**
+    * * Field Name: VirtualPlatform
+    * * Display Name: Virtual Platform
+    * * SQL Data Type: nvarchar(100)
+    */
+    get VirtualPlatform(): string | null {
+        return this.Get('VirtualPlatform');
+    }
+    set VirtualPlatform(value: string | null) {
+        this.Set('VirtualPlatform', value);
+    }
+
+    /**
+    * * Field Name: MeetingURL
+    * * Display Name: Meeting URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get MeetingURL(): string | null {
+        return this.Get('MeetingURL');
+    }
+    set MeetingURL(value: string | null) {
+        this.Set('MeetingURL', value);
+    }
+
+    /**
+    * * Field Name: ChapterID
+    * * Display Name: Chapter
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ChapterID(): string | null {
+        return this.Get('ChapterID');
+    }
+    set ChapterID(value: string | null) {
+        this.Set('ChapterID', value);
+    }
+
+    /**
+    * * Field Name: Capacity
+    * * Display Name: Capacity
+    * * SQL Data Type: int
+    */
+    get Capacity(): number | null {
+        return this.Get('Capacity');
+    }
+    set Capacity(value: number | null) {
+        this.Set('Capacity', value);
+    }
+
+    /**
+    * * Field Name: RegistrationOpenDate
+    * * Display Name: Registration Open Date
+    * * SQL Data Type: datetime
+    */
+    get RegistrationOpenDate(): Date | null {
+        return this.Get('RegistrationOpenDate');
+    }
+    set RegistrationOpenDate(value: Date | null) {
+        this.Set('RegistrationOpenDate', value);
+    }
+
+    /**
+    * * Field Name: RegistrationCloseDate
+    * * Display Name: Registration Close Date
+    * * SQL Data Type: datetime
+    */
+    get RegistrationCloseDate(): Date | null {
+        return this.Get('RegistrationCloseDate');
+    }
+    set RegistrationCloseDate(value: Date | null) {
+        this.Set('RegistrationCloseDate', value);
+    }
+
+    /**
+    * * Field Name: RegistrationFee
+    * * Display Name: Registration Fee
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get RegistrationFee(): number | null {
+        return this.Get('RegistrationFee');
+    }
+    set RegistrationFee(value: number | null) {
+        this.Set('RegistrationFee', value);
+    }
+
+    /**
+    * * Field Name: MemberPrice
+    * * Display Name: Member Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get MemberPrice(): number | null {
+        return this.Get('MemberPrice');
+    }
+    set MemberPrice(value: number | null) {
+        this.Set('MemberPrice', value);
+    }
+
+    /**
+    * * Field Name: NonMemberPrice
+    * * Display Name: Non-Member Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get NonMemberPrice(): number | null {
+        return this.Get('NonMemberPrice');
+    }
+    set NonMemberPrice(value: number | null) {
+        this.Set('NonMemberPrice', value);
+    }
+
+    /**
+    * * Field Name: CEUCredits
+    * * Display Name: CEU Credits
+    * * SQL Data Type: decimal(4, 2)
+    */
+    get CEUCredits(): number | null {
+        return this.Get('CEUCredits');
+    }
+    set CEUCredits(value: number | null) {
+        this.Set('CEUCredits', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Forum Categories - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ForumCategory
+ * * Base View: vwForumCategories
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Forum Categories')
+export class AssociationDemoForumCategoryEntity extends BaseEntity<AssociationDemoForumCategoryEntityType> {
+    /**
+    * Loads the Forum Categories record from the database
+    * @param ID: string - primary key value to load the Forum Categories record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoForumCategoryEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: ParentCategoryID
+    * * Display Name: Parent Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Categories (vwForumCategories.ID)
+    */
+    get ParentCategoryID(): string | null {
+        return this.Get('ParentCategoryID');
+    }
+    set ParentCategoryID(value: string | null) {
+        this.Set('ParentCategoryID', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: Icon
+    * * Display Name: Icon
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Icon(): string | null {
+        return this.Get('Icon');
+    }
+    set Icon(value: string | null) {
+        this.Set('Icon', value);
+    }
+
+    /**
+    * * Field Name: Color
+    * * Display Name: Color
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Color(): string | null {
+        return this.Get('Color');
+    }
+    set Color(value: string | null) {
+        this.Set('Color', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: RequiresMembership
+    * * Display Name: Requires Membership
+    * * SQL Data Type: bit
+    */
+    get RequiresMembership(): boolean | null {
+        return this.Get('RequiresMembership');
+    }
+    set RequiresMembership(value: boolean | null) {
+        this.Set('RequiresMembership', value);
+    }
+
+    /**
+    * * Field Name: ThreadCount
+    * * Display Name: Thread Count
+    * * SQL Data Type: int
+    */
+    get ThreadCount(): number | null {
+        return this.Get('ThreadCount');
+    }
+    set ThreadCount(value: number | null) {
+        this.Set('ThreadCount', value);
+    }
+
+    /**
+    * * Field Name: PostCount
+    * * Display Name: Post Count
+    * * SQL Data Type: int
+    */
+    get PostCount(): number | null {
+        return this.Get('PostCount');
+    }
+    set PostCount(value: number | null) {
+        this.Set('PostCount', value);
+    }
+
+    /**
+    * * Field Name: LastPostDate
+    * * Display Name: Last Post Date
+    * * SQL Data Type: datetime
+    */
+    get LastPostDate(): Date | null {
+        return this.Get('LastPostDate');
+    }
+    set LastPostDate(value: Date | null) {
+        this.Set('LastPostDate', value);
+    }
+
+    /**
+    * * Field Name: LastPostAuthorID
+    * * Display Name: Last Post Author
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get LastPostAuthorID(): string | null {
+        return this.Get('LastPostAuthorID');
+    }
+    set LastPostAuthorID(value: string | null) {
+        this.Set('LastPostAuthorID', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: RootParentCategoryID
+    * * Display Name: Root Parent Category
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RootParentCategoryID(): string | null {
+        return this.Get('RootParentCategoryID');
+    }
+}
+
+
+/**
+ * Forum Moderations - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ForumModeration
+ * * Base View: vwForumModerations
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Forum Moderations')
+export class AssociationDemoForumModerationEntity extends BaseEntity<AssociationDemoForumModerationEntityType> {
+    /**
+    * Loads the Forum Moderations record from the database
+    * @param ID: string - primary key value to load the Forum Moderations record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoForumModerationEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: PostID
+    * * Display Name: Post
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)
+    */
+    get PostID(): string {
+        return this.Get('PostID');
+    }
+    set PostID(value: string) {
+        this.Set('PostID', value);
+    }
+
+    /**
+    * * Field Name: ReportedByID
+    * * Display Name: Reported By
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get ReportedByID(): string {
+        return this.Get('ReportedByID');
+    }
+    set ReportedByID(value: string) {
+        this.Set('ReportedByID', value);
+    }
+
+    /**
+    * * Field Name: ReportedDate
+    * * Display Name: Reported Date
+    * * SQL Data Type: datetime
+    */
+    get ReportedDate(): Date {
+        return this.Get('ReportedDate');
+    }
+    set ReportedDate(value: Date) {
+        this.Set('ReportedDate', value);
+    }
+
+    /**
+    * * Field Name: ReportReason
+    * * Display Name: Report Reason
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ReportReason(): string | null {
+        return this.Get('ReportReason');
+    }
+    set ReportReason(value: string | null) {
+        this.Set('ReportReason', value);
+    }
+
+    /**
+    * * Field Name: ModerationStatus
+    * * Display Name: Moderation Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ModerationStatus(): string | null {
+        return this.Get('ModerationStatus');
+    }
+    set ModerationStatus(value: string | null) {
+        this.Set('ModerationStatus', value);
+    }
+
+    /**
+    * * Field Name: ModeratedByID
+    * * Display Name: Moderated By
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get ModeratedByID(): string | null {
+        return this.Get('ModeratedByID');
+    }
+    set ModeratedByID(value: string | null) {
+        this.Set('ModeratedByID', value);
+    }
+
+    /**
+    * * Field Name: ModeratedDate
+    * * Display Name: Moderated Date
+    * * SQL Data Type: datetime
+    */
+    get ModeratedDate(): Date | null {
+        return this.Get('ModeratedDate');
+    }
+    set ModeratedDate(value: Date | null) {
+        this.Set('ModeratedDate', value);
+    }
+
+    /**
+    * * Field Name: ModeratorNotes
+    * * Display Name: Moderator Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get ModeratorNotes(): string | null {
+        return this.Get('ModeratorNotes');
+    }
+    set ModeratorNotes(value: string | null) {
+        this.Set('ModeratorNotes', value);
+    }
+
+    /**
+    * * Field Name: Action
+    * * Display Name: Action
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Action(): string | null {
+        return this.Get('Action');
+    }
+    set Action(value: string | null) {
+        this.Set('Action', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Forum Posts - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ForumPost
+ * * Base View: vwForumPosts
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Forum Posts')
+export class AssociationDemoForumPostEntity extends BaseEntity<AssociationDemoForumPostEntityType> {
+    /**
+    * Loads the Forum Posts record from the database
+    * @param ID: string - primary key value to load the Forum Posts record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoForumPostEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ThreadID
+    * * Display Name: Thread
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Threads (vwForumThreads.ID)
+    */
+    get ThreadID(): string {
+        return this.Get('ThreadID');
+    }
+    set ThreadID(value: string) {
+        this.Set('ThreadID', value);
+    }
+
+    /**
+    * * Field Name: ParentPostID
+    * * Display Name: Parent Post
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)
+    */
+    get ParentPostID(): string | null {
+        return this.Get('ParentPostID');
+    }
+    set ParentPostID(value: string | null) {
+        this.Set('ParentPostID', value);
+    }
+
+    /**
+    * * Field Name: AuthorID
+    * * Display Name: Author
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get AuthorID(): string {
+        return this.Get('AuthorID');
+    }
+    set AuthorID(value: string) {
+        this.Set('AuthorID', value);
+    }
+
+    /**
+    * * Field Name: Content
+    * * Display Name: Content
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Content(): string {
+        return this.Get('Content');
+    }
+    set Content(value: string) {
+        this.Set('Content', value);
+    }
+
+    /**
+    * * Field Name: PostedDate
+    * * Display Name: Posted Date
+    * * SQL Data Type: datetime
+    */
+    get PostedDate(): Date {
+        return this.Get('PostedDate');
+    }
+    set PostedDate(value: Date) {
+        this.Set('PostedDate', value);
+    }
+
+    /**
+    * * Field Name: EditedDate
+    * * Display Name: Edited Date
+    * * SQL Data Type: datetime
+    */
+    get EditedDate(): Date | null {
+        return this.Get('EditedDate');
+    }
+    set EditedDate(value: Date | null) {
+        this.Set('EditedDate', value);
+    }
+
+    /**
+    * * Field Name: EditedByID
+    * * Display Name: Edited By
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get EditedByID(): string | null {
+        return this.Get('EditedByID');
+    }
+    set EditedByID(value: string | null) {
+        this.Set('EditedByID', value);
+    }
+
+    /**
+    * * Field Name: LikeCount
+    * * Display Name: Like Count
+    * * SQL Data Type: int
+    */
+    get LikeCount(): number | null {
+        return this.Get('LikeCount');
+    }
+    set LikeCount(value: number | null) {
+        this.Set('LikeCount', value);
+    }
+
+    /**
+    * * Field Name: HelpfulCount
+    * * Display Name: Helpful Count
+    * * SQL Data Type: int
+    */
+    get HelpfulCount(): number | null {
+        return this.Get('HelpfulCount');
+    }
+    set HelpfulCount(value: number | null) {
+        this.Set('HelpfulCount', value);
+    }
+
+    /**
+    * * Field Name: IsAcceptedAnswer
+    * * Display Name: Is Accepted Answer
+    * * SQL Data Type: bit
+    */
+    get IsAcceptedAnswer(): boolean | null {
+        return this.Get('IsAcceptedAnswer');
+    }
+    set IsAcceptedAnswer(value: boolean | null) {
+        this.Set('IsAcceptedAnswer', value);
+    }
+
+    /**
+    * * Field Name: IsFlagged
+    * * Display Name: Is Flagged
+    * * SQL Data Type: bit
+    */
+    get IsFlagged(): boolean | null {
+        return this.Get('IsFlagged');
+    }
+    set IsFlagged(value: boolean | null) {
+        this.Set('IsFlagged', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: RootParentPostID
+    * * Display Name: Root Parent Post
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RootParentPostID(): string | null {
+        return this.Get('RootParentPostID');
+    }
+}
+
+
+/**
+ * Forum Threads - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ForumThread
+ * * Base View: vwForumThreads
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Forum Threads')
+export class AssociationDemoForumThreadEntity extends BaseEntity<AssociationDemoForumThreadEntityType> {
+    /**
+    * Loads the Forum Threads record from the database
+    * @param ID: string - primary key value to load the Forum Threads record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoForumThreadEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CategoryID
+    * * Display Name: Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Categories (vwForumCategories.ID)
+    */
+    get CategoryID(): string {
+        return this.Get('CategoryID');
+    }
+    set CategoryID(value: string) {
+        this.Set('CategoryID', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Title(): string {
+        return this.Get('Title');
+    }
+    set Title(value: string) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: AuthorID
+    * * Display Name: Author
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get AuthorID(): string {
+        return this.Get('AuthorID');
+    }
+    set AuthorID(value: string) {
+        this.Set('AuthorID', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: ViewCount
+    * * Display Name: View Count
+    * * SQL Data Type: int
+    */
+    get ViewCount(): number | null {
+        return this.Get('ViewCount');
+    }
+    set ViewCount(value: number | null) {
+        this.Set('ViewCount', value);
+    }
+
+    /**
+    * * Field Name: ReplyCount
+    * * Display Name: Reply Count
+    * * SQL Data Type: int
+    */
+    get ReplyCount(): number | null {
+        return this.Get('ReplyCount');
+    }
+    set ReplyCount(value: number | null) {
+        this.Set('ReplyCount', value);
+    }
+
+    /**
+    * * Field Name: LastActivityDate
+    * * Display Name: Last Activity Date
+    * * SQL Data Type: datetime
+    */
+    get LastActivityDate(): Date | null {
+        return this.Get('LastActivityDate');
+    }
+    set LastActivityDate(value: Date | null) {
+        this.Set('LastActivityDate', value);
+    }
+
+    /**
+    * * Field Name: LastReplyAuthorID
+    * * Display Name: Last Reply Author
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get LastReplyAuthorID(): string | null {
+        return this.Get('LastReplyAuthorID');
+    }
+    set LastReplyAuthorID(value: string | null) {
+        this.Set('LastReplyAuthorID', value);
+    }
+
+    /**
+    * * Field Name: IsPinned
+    * * Display Name: Is Pinned
+    * * SQL Data Type: bit
+    */
+    get IsPinned(): boolean | null {
+        return this.Get('IsPinned');
+    }
+    set IsPinned(value: boolean | null) {
+        this.Set('IsPinned', value);
+    }
+
+    /**
+    * * Field Name: IsLocked
+    * * Display Name: Is Locked
+    * * SQL Data Type: bit
+    */
+    get IsLocked(): boolean | null {
+        return this.Get('IsLocked');
+    }
+    set IsLocked(value: boolean | null) {
+        this.Set('IsLocked', value);
+    }
+
+    /**
+    * * Field Name: IsFeatured
+    * * Display Name: Is Featured
+    * * SQL Data Type: bit
+    */
+    get IsFeatured(): boolean | null {
+        return this.Get('IsFeatured');
+    }
+    set IsFeatured(value: boolean | null) {
+        this.Set('IsFeatured', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Government Contacts - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: GovernmentContact
+ * * Base View: vwGovernmentContacts
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Government Contacts')
+export class AssociationDemoGovernmentContactEntity extends BaseEntity<AssociationDemoGovernmentContactEntityType> {
+    /**
+    * Loads the Government Contacts record from the database
+    * @param ID: string - primary key value to load the Government Contacts record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoGovernmentContactEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: LegislativeBodyID
+    * * Display Name: Legislative Body
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Legislative Bodies (vwLegislativeBodies.ID)
+    */
+    get LegislativeBodyID(): string | null {
+        return this.Get('LegislativeBodyID');
+    }
+    set LegislativeBodyID(value: string | null) {
+        this.Set('LegislativeBodyID', value);
+    }
+
+    /**
+    * * Field Name: FirstName
+    * * Display Name: First Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get FirstName(): string {
+        return this.Get('FirstName');
+    }
+    set FirstName(value: string) {
+        this.Set('FirstName', value);
+    }
+
+    /**
+    * * Field Name: LastName
+    * * Display Name: Last Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get LastName(): string {
+        return this.Get('LastName');
+    }
+    set LastName(value: string) {
+        this.Set('LastName', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Title(): string | null {
+        return this.Get('Title');
+    }
+    set Title(value: string | null) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: ContactType
+    * * Display Name: Contact Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ContactType(): string {
+        return this.Get('ContactType');
+    }
+    set ContactType(value: string) {
+        this.Set('ContactType', value);
+    }
+
+    /**
+    * * Field Name: Party
+    * * Display Name: Party
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Party(): string | null {
+        return this.Get('Party');
+    }
+    set Party(value: string | null) {
+        this.Set('Party', value);
+    }
+
+    /**
+    * * Field Name: District
+    * * Display Name: District
+    * * SQL Data Type: nvarchar(100)
+    */
+    get District(): string | null {
+        return this.Get('District');
+    }
+    set District(value: string | null) {
+        this.Set('District', value);
+    }
+
+    /**
+    * * Field Name: Committee
+    * * Display Name: Committee
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Committee(): string | null {
+        return this.Get('Committee');
+    }
+    set Committee(value: string | null) {
+        this.Set('Committee', value);
+    }
+
+    /**
+    * * Field Name: Email
+    * * Display Name: Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Email(): string | null {
+        return this.Get('Email');
+    }
+    set Email(value: string | null) {
+        this.Set('Email', value);
+    }
+
+    /**
+    * * Field Name: Phone
+    * * Display Name: Phone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Phone(): string | null {
+        return this.Get('Phone');
+    }
+    set Phone(value: string | null) {
+        this.Set('Phone', value);
+    }
+
+    /**
+    * * Field Name: OfficeAddress
+    * * Display Name: Office Address
+    * * SQL Data Type: nvarchar(500)
+    */
+    get OfficeAddress(): string | null {
+        return this.Get('OfficeAddress');
+    }
+    set OfficeAddress(value: string | null) {
+        this.Set('OfficeAddress', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: TermStart
+    * * Display Name: Term Start
+    * * SQL Data Type: date
+    */
+    get TermStart(): Date | null {
+        return this.Get('TermStart');
+    }
+    set TermStart(value: Date | null) {
+        this.Set('TermStart', value);
+    }
+
+    /**
+    * * Field Name: TermEnd
+    * * Display Name: Term End
+    * * SQL Data Type: date
+    */
+    get TermEnd(): Date | null {
+        return this.Get('TermEnd');
+    }
+    set TermEnd(value: Date | null) {
+        this.Set('TermEnd', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Invoice Line Items - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: InvoiceLineItem
+ * * Base View: vwInvoiceLineItems
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Invoice Line Items')
+export class AssociationDemoInvoiceLineItemEntity extends BaseEntity<AssociationDemoInvoiceLineItemEntityType> {
+    /**
+    * Loads the Invoice Line Items record from the database
+    * @param ID: string - primary key value to load the Invoice Line Items record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoInvoiceLineItemEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InvoiceID
+    * * Display Name: Invoice
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Invoices (vwInvoices.ID)
+    */
+    get InvoiceID(): string {
+        return this.Get('InvoiceID');
+    }
+    set InvoiceID(value: string) {
+        this.Set('InvoiceID', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Description(): string {
+        return this.Get('Description');
+    }
+    set Description(value: string) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: ItemType
+    * * Display Name: Item Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ItemType(): string {
+        return this.Get('ItemType');
+    }
+    set ItemType(value: string) {
+        this.Set('ItemType', value);
+    }
+
+    /**
+    * * Field Name: Quantity
+    * * Display Name: Quantity
+    * * SQL Data Type: int
+    */
+    get Quantity(): number | null {
+        return this.Get('Quantity');
+    }
+    set Quantity(value: number | null) {
+        this.Set('Quantity', value);
+    }
+
+    /**
+    * * Field Name: UnitPrice
+    * * Display Name: Unit Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get UnitPrice(): number {
+        return this.Get('UnitPrice');
+    }
+    set UnitPrice(value: number) {
+        this.Set('UnitPrice', value);
+    }
+
+    /**
+    * * Field Name: Amount
+    * * Display Name: Amount
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Amount(): number {
+        return this.Get('Amount');
+    }
+    set Amount(value: number) {
+        this.Set('Amount', value);
+    }
+
+    /**
+    * * Field Name: TaxAmount
+    * * Display Name: Tax Amount
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get TaxAmount(): number | null {
+        return this.Get('TaxAmount');
+    }
+    set TaxAmount(value: number | null) {
+        this.Set('TaxAmount', value);
+    }
+
+    /**
+    * * Field Name: RelatedEntityType
+    * * Display Name: Related Entity Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get RelatedEntityType(): string | null {
+        return this.Get('RelatedEntityType');
+    }
+    set RelatedEntityType(value: string | null) {
+        this.Set('RelatedEntityType', value);
+    }
+
+    /**
+    * * Field Name: RelatedEntityID
+    * * Display Name: Related Entity
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RelatedEntityID(): string | null {
+        return this.Get('RelatedEntityID');
+    }
+    set RelatedEntityID(value: string | null) {
+        this.Set('RelatedEntityID', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Invoices - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Invoice
+ * * Base View: vwInvoices
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Invoices')
+export class AssociationDemoInvoiceEntity extends BaseEntity<AssociationDemoInvoiceEntityType> {
+    /**
+    * Loads the Invoices record from the database
+    * @param ID: string - primary key value to load the Invoices record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoInvoiceEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InvoiceNumber
+    * * Display Name: Invoice Number
+    * * SQL Data Type: nvarchar(50)
+    */
+    get InvoiceNumber(): string {
+        return this.Get('InvoiceNumber');
+    }
+    set InvoiceNumber(value: string) {
+        this.Set('InvoiceNumber', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: InvoiceDate
+    * * Display Name: Invoice Date
+    * * SQL Data Type: date
+    */
+    get InvoiceDate(): Date {
+        return this.Get('InvoiceDate');
+    }
+    set InvoiceDate(value: Date) {
+        this.Set('InvoiceDate', value);
+    }
+
+    /**
+    * * Field Name: DueDate
+    * * Display Name: Due Date
+    * * SQL Data Type: date
+    */
+    get DueDate(): Date {
+        return this.Get('DueDate');
+    }
+    set DueDate(value: Date) {
+        this.Set('DueDate', value);
+    }
+
+    /**
+    * * Field Name: SubTotal
+    * * Display Name: Subtotal
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get SubTotal(): number {
+        return this.Get('SubTotal');
+    }
+    set SubTotal(value: number) {
+        this.Set('SubTotal', value);
+    }
+
+    /**
+    * * Field Name: Tax
+    * * Display Name: Tax
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Tax(): number | null {
+        return this.Get('Tax');
+    }
+    set Tax(value: number | null) {
+        this.Set('Tax', value);
+    }
+
+    /**
+    * * Field Name: Discount
+    * * Display Name: Discount
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Discount(): number | null {
+        return this.Get('Discount');
+    }
+    set Discount(value: number | null) {
+        this.Set('Discount', value);
+    }
+
+    /**
+    * * Field Name: Total
+    * * Display Name: Total
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Total(): number {
+        return this.Get('Total');
+    }
+    set Total(value: number) {
+        this.Set('Total', value);
+    }
+
+    /**
+    * * Field Name: AmountPaid
+    * * Display Name: Amount Paid
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get AmountPaid(): number | null {
+        return this.Get('AmountPaid');
+    }
+    set AmountPaid(value: number | null) {
+        this.Set('AmountPaid', value);
+    }
+
+    /**
+    * * Field Name: Balance
+    * * Display Name: Balance
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Balance(): number {
+        return this.Get('Balance');
+    }
+    set Balance(value: number) {
+        this.Set('Balance', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: PaymentTerms
+    * * Display Name: Payment Terms
+    * * SQL Data Type: nvarchar(100)
+    */
+    get PaymentTerms(): string | null {
+        return this.Get('PaymentTerms');
+    }
+    set PaymentTerms(value: string | null) {
+        this.Set('PaymentTerms', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Legislative Bodies - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: LegislativeBody
+ * * Base View: vwLegislativeBodies
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Legislative Bodies')
+export class AssociationDemoLegislativeBodyEntity extends BaseEntity<AssociationDemoLegislativeBodyEntityType> {
+    /**
+    * Loads the Legislative Bodies record from the database
+    * @param ID: string - primary key value to load the Legislative Bodies record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoLegislativeBodyEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: BodyType
+    * * Display Name: Body Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get BodyType(): string {
+        return this.Get('BodyType');
+    }
+    set BodyType(value: string) {
+        this.Set('BodyType', value);
+    }
+
+    /**
+    * * Field Name: Level
+    * * Display Name: Level
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Level(): string {
+        return this.Get('Level');
+    }
+    set Level(value: string) {
+        this.Set('Level', value);
+    }
+
+    /**
+    * * Field Name: State
+    * * Display Name: State
+    * * SQL Data Type: nvarchar(2)
+    */
+    get State(): string | null {
+        return this.Get('State');
+    }
+    set State(value: string | null) {
+        this.Set('State', value);
+    }
+
+    /**
+    * * Field Name: Country
+    * * Display Name: Country
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Country(): string | null {
+        return this.Get('Country');
+    }
+    set Country(value: string | null) {
+        this.Set('Country', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: SessionSchedule
+    * * Display Name: Session Schedule
+    * * SQL Data Type: nvarchar(500)
+    */
+    get SessionSchedule(): string | null {
+        return this.Get('SessionSchedule');
+    }
+    set SessionSchedule(value: string | null) {
+        this.Set('SessionSchedule', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Mj Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Mj Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Legislative Issues - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: LegislativeIssue
+ * * Base View: vwLegislativeIssues
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Legislative Issues')
+export class AssociationDemoLegislativeIssueEntity extends BaseEntity<AssociationDemoLegislativeIssueEntityType> {
+    /**
+    * Loads the Legislative Issues record from the database
+    * @param ID: string - primary key value to load the Legislative Issues record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoLegislativeIssueEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: LegislativeBodyID
+    * * Display Name: Legislative Body
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Legislative Bodies (vwLegislativeBodies.ID)
+    */
+    get LegislativeBodyID(): string {
+        return this.Get('LegislativeBodyID');
+    }
+    set LegislativeBodyID(value: string) {
+        this.Set('LegislativeBodyID', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Title(): string {
+        return this.Get('Title');
+    }
+    set Title(value: string) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: IssueType
+    * * Display Name: Issue Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get IssueType(): string {
+        return this.Get('IssueType');
+    }
+    set IssueType(value: string) {
+        this.Set('IssueType', value);
+    }
+
+    /**
+    * * Field Name: BillNumber
+    * * Display Name: Bill Number
+    * * SQL Data Type: nvarchar(100)
+    */
+    get BillNumber(): string | null {
+        return this.Get('BillNumber');
+    }
+    set BillNumber(value: string | null) {
+        this.Set('BillNumber', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: IntroducedDate
+    * * Display Name: Introduced Date
+    * * SQL Data Type: date
+    */
+    get IntroducedDate(): Date | null {
+        return this.Get('IntroducedDate');
+    }
+    set IntroducedDate(value: Date | null) {
+        this.Set('IntroducedDate', value);
+    }
+
+    /**
+    * * Field Name: LastActionDate
+    * * Display Name: Last Action Date
+    * * SQL Data Type: date
+    */
+    get LastActionDate(): Date | null {
+        return this.Get('LastActionDate');
+    }
+    set LastActionDate(value: Date | null) {
+        this.Set('LastActionDate', value);
+    }
+
+    /**
+    * * Field Name: EffectiveDate
+    * * Display Name: Effective Date
+    * * SQL Data Type: date
+    */
+    get EffectiveDate(): Date | null {
+        return this.Get('EffectiveDate');
+    }
+    set EffectiveDate(value: Date | null) {
+        this.Set('EffectiveDate', value);
+    }
+
+    /**
+    * * Field Name: Summary
+    * * Display Name: Summary
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Summary(): string | null {
+        return this.Get('Summary');
+    }
+    set Summary(value: string | null) {
+        this.Set('Summary', value);
+    }
+
+    /**
+    * * Field Name: ImpactLevel
+    * * Display Name: Impact Level
+    * * SQL Data Type: nvarchar(20)
+    */
+    get ImpactLevel(): string | null {
+        return this.Get('ImpactLevel');
+    }
+    set ImpactLevel(value: string | null) {
+        this.Set('ImpactLevel', value);
+    }
+
+    /**
+    * * Field Name: ImpactDescription
+    * * Display Name: Impact Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get ImpactDescription(): string | null {
+        return this.Get('ImpactDescription');
+    }
+    set ImpactDescription(value: string | null) {
+        this.Set('ImpactDescription', value);
+    }
+
+    /**
+    * * Field Name: Category
+    * * Display Name: Category
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Category(): string | null {
+        return this.Get('Category');
+    }
+    set Category(value: string | null) {
+        this.Set('Category', value);
+    }
+
+    /**
+    * * Field Name: Sponsor
+    * * Display Name: Sponsor
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Sponsor(): string | null {
+        return this.Get('Sponsor');
+    }
+    set Sponsor(value: string | null) {
+        this.Set('Sponsor', value);
+    }
+
+    /**
+    * * Field Name: TrackingURL
+    * * Display Name: Tracking URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get TrackingURL(): string | null {
+        return this.Get('TrackingURL');
+    }
+    set TrackingURL(value: string | null) {
+        this.Set('TrackingURL', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Member Follows - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: MemberFollow
+ * * Base View: vwMemberFollows
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Member Follows')
+export class AssociationDemoMemberFollowEntity extends BaseEntity<AssociationDemoMemberFollowEntityType> {
+    /**
+    * Loads the Member Follows record from the database
+    * @param ID: string - primary key value to load the Member Follows record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoMemberFollowEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: FollowerID
+    * * Display Name: Follower
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get FollowerID(): string {
+        return this.Get('FollowerID');
+    }
+    set FollowerID(value: string) {
+        this.Set('FollowerID', value);
+    }
+
+    /**
+    * * Field Name: FollowType
+    * * Display Name: Follow Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get FollowType(): string {
+        return this.Get('FollowType');
+    }
+    set FollowType(value: string) {
+        this.Set('FollowType', value);
+    }
+
+    /**
+    * * Field Name: FollowedEntityID
+    * * Display Name: Followed Entity
+    * * SQL Data Type: uniqueidentifier
+    */
+    get FollowedEntityID(): string {
+        return this.Get('FollowedEntityID');
+    }
+    set FollowedEntityID(value: string) {
+        this.Set('FollowedEntityID', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Followed Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: NotifyOnActivity
+    * * Display Name: Notify On Activity
+    * * SQL Data Type: bit
+    */
+    get NotifyOnActivity(): boolean | null {
+        return this.Get('NotifyOnActivity');
+    }
+    set NotifyOnActivity(value: boolean | null) {
+        this.Set('NotifyOnActivity', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Members - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: Member
+ * * Base View: vwMembers
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Members')
+export class membershipMemberEntity extends BaseEntity<membershipMemberEntityType> {
+    /**
+    * Loads the Members record from the database
+    * @param ID: string - primary key value to load the Members record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipMemberEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: FirstName
+    * * Display Name: First Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get FirstName(): string {
+        return this.Get('FirstName');
+    }
+    set FirstName(value: string) {
+        this.Set('FirstName', value);
+    }
+
+    /**
+    * * Field Name: LastName
+    * * Display Name: Last Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get LastName(): string {
+        return this.Get('LastName');
+    }
+    set LastName(value: string) {
+        this.Set('LastName', value);
+    }
+
+    /**
+    * * Field Name: Email
+    * * Display Name: Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Email(): string {
+        return this.Get('Email');
+    }
+    set Email(value: string) {
+        this.Set('Email', value);
+    }
+
+    /**
+    * * Field Name: MembershipType
+    * * Display Name: Membership Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get MembershipType(): string {
+        return this.Get('MembershipType');
+    }
+    set MembershipType(value: string) {
+        this.Set('MembershipType', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: JoinDate
+    * * Display Name: Join Date
+    * * SQL Data Type: date
+    */
+    get JoinDate(): Date {
+        return this.Get('JoinDate');
+    }
+    set JoinDate(value: Date) {
+        this.Set('JoinDate', value);
+    }
+
+    /**
+    * * Field Name: RenewalDate
+    * * Display Name: Renewal Date
+    * * SQL Data Type: date
+    */
+    get RenewalDate(): Date | null {
+        return this.Get('RenewalDate');
+    }
+    set RenewalDate(value: Date | null) {
+        this.Set('RenewalDate', value);
+    }
+
+    /**
+    * * Field Name: ChapterRegion
+    * * Display Name: Chapter Region
+    * * SQL Data Type: nvarchar(100)
+    */
+    get ChapterRegion(): string | null {
+        return this.Get('ChapterRegion');
+    }
+    set ChapterRegion(value: string | null) {
+        this.Set('ChapterRegion', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Members__AssociationDemo - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Member
+ * * Base View: vwMembers__AssociationDemo
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Members__AssociationDemo')
+export class AssociationDemoMember__AssociationDemoEntity extends BaseEntity<AssociationDemoMember__AssociationDemoEntityType> {
+    /**
+    * Loads the Members__AssociationDemo record from the database
+    * @param ID: string - primary key value to load the Members__AssociationDemo record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoMember__AssociationDemoEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Email
+    * * Display Name: Email
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Email(): string {
+        return this.Get('Email');
+    }
+    set Email(value: string) {
+        this.Set('Email', value);
+    }
+
+    /**
+    * * Field Name: FirstName
+    * * Display Name: First Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get FirstName(): string {
+        return this.Get('FirstName');
+    }
+    set FirstName(value: string) {
+        this.Set('FirstName', value);
+    }
+
+    /**
+    * * Field Name: LastName
+    * * Display Name: Last Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get LastName(): string {
+        return this.Get('LastName');
+    }
+    set LastName(value: string) {
+        this.Set('LastName', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Title(): string | null {
+        return this.Get('Title');
+    }
+    set Title(value: string | null) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: OrganizationID
+    * * Display Name: Organization
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Organizations (vwOrganizations.ID)
+    */
+    get OrganizationID(): string | null {
+        return this.Get('OrganizationID');
+    }
+    set OrganizationID(value: string | null) {
+        this.Set('OrganizationID', value);
+    }
+
+    /**
+    * * Field Name: Industry
+    * * Display Name: Industry
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Industry(): string | null {
+        return this.Get('Industry');
+    }
+    set Industry(value: string | null) {
+        this.Set('Industry', value);
+    }
+
+    /**
+    * * Field Name: JobFunction
+    * * Display Name: Job Function
+    * * SQL Data Type: nvarchar(100)
+    */
+    get JobFunction(): string | null {
+        return this.Get('JobFunction');
+    }
+    set JobFunction(value: string | null) {
+        this.Set('JobFunction', value);
+    }
+
+    /**
+    * * Field Name: YearsInProfession
+    * * Display Name: Years In Profession
+    * * SQL Data Type: int
+    */
+    get YearsInProfession(): number | null {
+        return this.Get('YearsInProfession');
+    }
+    set YearsInProfession(value: number | null) {
+        this.Set('YearsInProfession', value);
+    }
+
+    /**
+    * * Field Name: JoinDate
+    * * Display Name: Join Date
+    * * SQL Data Type: date
+    */
+    get JoinDate(): Date {
+        return this.Get('JoinDate');
+    }
+    set JoinDate(value: Date) {
+        this.Set('JoinDate', value);
+    }
+
+    /**
+    * * Field Name: LinkedInURL
+    * * Display Name: LinkedIn URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get LinkedInURL(): string | null {
+        return this.Get('LinkedInURL');
+    }
+    set LinkedInURL(value: string | null) {
+        this.Set('LinkedInURL', value);
+    }
+
+    /**
+    * * Field Name: Bio
+    * * Display Name: Bio
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Bio(): string | null {
+        return this.Get('Bio');
+    }
+    set Bio(value: string | null) {
+        this.Set('Bio', value);
+    }
+
+    /**
+    * * Field Name: PreferredLanguage
+    * * Display Name: Preferred Language
+    * * SQL Data Type: nvarchar(10)
+    */
+    get PreferredLanguage(): string | null {
+        return this.Get('PreferredLanguage');
+    }
+    set PreferredLanguage(value: string | null) {
+        this.Set('PreferredLanguage', value);
+    }
+
+    /**
+    * * Field Name: Timezone
+    * * Display Name: Timezone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Timezone(): string | null {
+        return this.Get('Timezone');
+    }
+    set Timezone(value: string | null) {
+        this.Set('Timezone', value);
+    }
+
+    /**
+    * * Field Name: Phone
+    * * Display Name: Phone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Phone(): string | null {
+        return this.Get('Phone');
+    }
+    set Phone(value: string | null) {
+        this.Set('Phone', value);
+    }
+
+    /**
+    * * Field Name: Mobile
+    * * Display Name: Mobile
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Mobile(): string | null {
+        return this.Get('Mobile');
+    }
+    set Mobile(value: string | null) {
+        this.Set('Mobile', value);
+    }
+
+    /**
+    * * Field Name: City
+    * * Display Name: City
+    * * SQL Data Type: nvarchar(100)
+    */
+    get City(): string | null {
+        return this.Get('City');
+    }
+    set City(value: string | null) {
+        this.Set('City', value);
+    }
+
+    /**
+    * * Field Name: State
+    * * Display Name: State
+    * * SQL Data Type: nvarchar(50)
+    */
+    get State(): string | null {
+        return this.Get('State');
+    }
+    set State(value: string | null) {
+        this.Set('State', value);
+    }
+
+    /**
+    * * Field Name: Country
+    * * Display Name: Country
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Country(): string | null {
+        return this.Get('Country');
+    }
+    set Country(value: string | null) {
+        this.Set('Country', value);
+    }
+
+    /**
+    * * Field Name: PostalCode
+    * * Display Name: Postal Code
+    * * SQL Data Type: nvarchar(20)
+    */
+    get PostalCode(): string | null {
+        return this.Get('PostalCode');
+    }
+    set PostalCode(value: string | null) {
+        this.Set('PostalCode', value);
+    }
+
+    /**
+    * * Field Name: EngagementScore
+    * * Display Name: Engagement Score
+    * * SQL Data Type: int
+    */
+    get EngagementScore(): number | null {
+        return this.Get('EngagementScore');
+    }
+    set EngagementScore(value: number | null) {
+        this.Set('EngagementScore', value);
+    }
+
+    /**
+    * * Field Name: LastActivityDate
+    * * Display Name: Last Activity Date
+    * * SQL Data Type: datetime
+    */
+    get LastActivityDate(): Date | null {
+        return this.Get('LastActivityDate');
+    }
+    set LastActivityDate(value: Date | null) {
+        this.Set('LastActivityDate', value);
+    }
+
+    /**
+    * * Field Name: ProfilePhotoURL
+    * * Display Name: Profile Photo URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ProfilePhotoURL(): string | null {
+        return this.Get('ProfilePhotoURL');
+    }
+    set ProfilePhotoURL(value: string | null) {
+        this.Set('ProfilePhotoURL', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Membership Types - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: MembershipType
+ * * Base View: vwMembershipTypes
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Membership Types')
+export class AssociationDemoMembershipTypeEntity extends BaseEntity<AssociationDemoMembershipTypeEntityType> {
+    /**
+    * Loads the Membership Types record from the database
+    * @param ID: string - primary key value to load the Membership Types record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoMembershipTypeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: AnnualDues
+    * * Display Name: Annual Dues
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get AnnualDues(): number {
+        return this.Get('AnnualDues');
+    }
+    set AnnualDues(value: number) {
+        this.Set('AnnualDues', value);
+    }
+
+    /**
+    * * Field Name: RenewalPeriodMonths
+    * * Display Name: Renewal Period (Months)
+    * * SQL Data Type: int
+    */
+    get RenewalPeriodMonths(): number {
+        return this.Get('RenewalPeriodMonths');
+    }
+    set RenewalPeriodMonths(value: number) {
+        this.Set('RenewalPeriodMonths', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: AllowAutoRenew
+    * * Display Name: Allow Auto-Renew
+    * * SQL Data Type: bit
+    */
+    get AllowAutoRenew(): boolean {
+        return this.Get('AllowAutoRenew');
+    }
+    set AllowAutoRenew(value: boolean) {
+        this.Set('AllowAutoRenew', value);
+    }
+
+    /**
+    * * Field Name: RequiresApproval
+    * * Display Name: Requires Approval
+    * * SQL Data Type: bit
+    */
+    get RequiresApproval(): boolean {
+        return this.Get('RequiresApproval');
+    }
+    set RequiresApproval(value: boolean) {
+        this.Set('RequiresApproval', value);
+    }
+
+    /**
+    * * Field Name: Benefits
+    * * Display Name: Benefits
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Benefits(): string | null {
+        return this.Get('Benefits');
+    }
+    set Benefits(value: string | null) {
+        this.Set('Benefits', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Memberships - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Membership
+ * * Base View: vwMemberships
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Memberships')
+export class AssociationDemoMembershipEntity extends BaseEntity<AssociationDemoMembershipEntityType> {
+    /**
+    * Loads the Memberships record from the database
+    * @param ID: string - primary key value to load the Memberships record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoMembershipEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: MembershipTypeID
+    * * Display Name: Membership Type
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Membership Types (vwMembershipTypes.ID)
+    */
+    get MembershipTypeID(): string {
+        return this.Get('MembershipTypeID');
+    }
+    set MembershipTypeID(value: string) {
+        this.Set('MembershipTypeID', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: StartDate
+    * * Display Name: Start Date
+    * * SQL Data Type: date
+    */
+    get StartDate(): Date {
+        return this.Get('StartDate');
+    }
+    set StartDate(value: Date) {
+        this.Set('StartDate', value);
+    }
+
+    /**
+    * * Field Name: EndDate
+    * * Display Name: End Date
+    * * SQL Data Type: date
+    */
+    get EndDate(): Date {
+        return this.Get('EndDate');
+    }
+    set EndDate(value: Date) {
+        this.Set('EndDate', value);
+    }
+
+    /**
+    * * Field Name: RenewalDate
+    * * Display Name: Renewal Date
+    * * SQL Data Type: date
+    */
+    get RenewalDate(): Date | null {
+        return this.Get('RenewalDate');
+    }
+    set RenewalDate(value: Date | null) {
+        this.Set('RenewalDate', value);
+    }
+
+    /**
+    * * Field Name: AutoRenew
+    * * Display Name: Auto Renew
+    * * SQL Data Type: bit
+    */
+    get AutoRenew(): boolean {
+        return this.Get('AutoRenew');
+    }
+    set AutoRenew(value: boolean) {
+        this.Set('AutoRenew', value);
+    }
+
+    /**
+    * * Field Name: CancellationDate
+    * * Display Name: Cancellation Date
+    * * SQL Data Type: date
+    */
+    get CancellationDate(): Date | null {
+        return this.Get('CancellationDate');
+    }
+    set CancellationDate(value: Date | null) {
+        this.Set('CancellationDate', value);
+    }
+
+    /**
+    * * Field Name: CancellationReason
+    * * Display Name: Cancellation Reason
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get CancellationReason(): string | null {
+        return this.Get('CancellationReason');
+    }
+    set CancellationReason(value: string | null) {
+        this.Set('CancellationReason', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
 
 /**
  * MJ_BizApps_Sonar: Factors - strongly typed entity sub-class
@@ -1877,7 +15173,7 @@ export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorE
     /**
     * * Field Name: LastValidatedAt
     * * Display Name: Last Validated At
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: UTC timestamp of the most recent validation of the factor.
     */
     get LastValidatedAt(): Date | null {
@@ -1985,6 +15281,762 @@ export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorE
     */
     get SourceScoreModel(): string | null {
         return this.Get('SourceScoreModel');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Intervention Assignments - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: InterventionAssignment
+ * * Base View: vwInterventionAssignments
+ * * @description One member's enrollment in an intervention, split into treatment vs. control (the holdout) for lift measurement.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Intervention Assignments')
+export class mjBizAppsSonarInterventionAssignmentEntity extends BaseEntity<mjBizAppsSonarInterventionAssignmentEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Intervention Assignments record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Intervention Assignments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionAssignmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InterventionID
+    * * Display Name: Intervention
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)
+    */
+    get InterventionID(): string {
+        return this.Get('InterventionID');
+    }
+    set InterventionID(value: string) {
+        this.Set('InterventionID', value);
+    }
+
+    /**
+    * * Field Name: AnchorRecordID
+    * * Display Name: Anchor Record ID
+    * * SQL Data Type: nvarchar(450)
+    * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).
+    */
+    get AnchorRecordID(): string {
+        return this.Get('AnchorRecordID');
+    }
+    set AnchorRecordID(value: string) {
+        this.Set('AnchorRecordID', value);
+    }
+
+    /**
+    * * Field Name: AnchorRecordKeyJSON
+    * * Display Name: Anchor Record Key
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.
+    */
+    get AnchorRecordKeyJSON(): string | null {
+        return this.Get('AnchorRecordKeyJSON');
+    }
+    set AnchorRecordKeyJSON(value: string | null) {
+        this.Set('AnchorRecordKeyJSON', value);
+    }
+
+    /**
+    * * Field Name: Cohort
+    * * Display Name: Cohort
+    * * SQL Data Type: nvarchar(10)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Control
+    *   * Treatment
+    * * Description: Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).
+    */
+    get Cohort(): 'Control' | 'Treatment' {
+        return this.Get('Cohort');
+    }
+    set Cohort(value: 'Control' | 'Treatment') {
+        this.Set('Cohort', value);
+    }
+
+    /**
+    * * Field Name: AssignedAt
+    * * Display Name: Assigned At
+    * * SQL Data Type: datetime2
+    * * Default Value: getutcdate()
+    * * Description: When the member was assigned to this intervention.
+    */
+    get AssignedAt(): Date {
+        return this.Get('AssignedAt');
+    }
+    set AssignedAt(value: Date) {
+        this.Set('AssignedAt', value);
+    }
+
+    /**
+    * * Field Name: ActionDeliveryStatus
+    * * Display Name: Action Delivery Status
+    * * SQL Data Type: nvarchar(20)
+    * * Description: Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.
+    */
+    get ActionDeliveryStatus(): string | null {
+        return this.Get('ActionDeliveryStatus');
+    }
+    set ActionDeliveryStatus(value: string | null) {
+        this.Set('ActionDeliveryStatus', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Intervention
+    * * Display Name: Intervention Name
+    * * SQL Data Type: nvarchar(200)
+    */
+    get Intervention(): string {
+        return this.Get('Intervention');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Intervention Outcomes - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: InterventionOutcome
+ * * Base View: vwInterventionOutcomes
+ * * @description The measured result for one intervention assignment (business outcome + score change) — the basis for treatment-vs-control lift.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Intervention Outcomes')
+export class mjBizAppsSonarInterventionOutcomeEntity extends BaseEntity<mjBizAppsSonarInterventionOutcomeEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Intervention Outcomes record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Intervention Outcomes record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionOutcomeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: AssignmentID
+    * * Display Name: Assignment
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)
+    */
+    get AssignmentID(): string {
+        return this.Get('AssignmentID');
+    }
+    set AssignmentID(value: string) {
+        this.Set('AssignmentID', value);
+    }
+
+    /**
+    * * Field Name: OutcomeType
+    * * Display Name: Outcome Type
+    * * SQL Data Type: nvarchar(16)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Churned
+    *   * NoChange
+    *   * Reactivated
+    *   * Renewed
+    *   * Upgraded
+    * * Description: The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.
+    */
+    get OutcomeType(): 'Churned' | 'NoChange' | 'Reactivated' | 'Renewed' | 'Upgraded' {
+        return this.Get('OutcomeType');
+    }
+    set OutcomeType(value: 'Churned' | 'NoChange' | 'Reactivated' | 'Renewed' | 'Upgraded') {
+        this.Set('OutcomeType', value);
+    }
+
+    /**
+    * * Field Name: OutcomeAt
+    * * Display Name: Outcome Date
+    * * SQL Data Type: datetime2
+    * * Description: When the business outcome occurred.
+    */
+    get OutcomeAt(): Date | null {
+        return this.Get('OutcomeAt');
+    }
+    set OutcomeAt(value: Date | null) {
+        this.Set('OutcomeAt', value);
+    }
+
+    /**
+    * * Field Name: ScoreDeltaAfter
+    * * Display Name: Score Delta After
+    * * SQL Data Type: decimal(9, 4)
+    * * Description: Change in the member's normalized score from assignment to measurement (engagement movement after the play).
+    */
+    get ScoreDeltaAfter(): number | null {
+        return this.Get('ScoreDeltaAfter');
+    }
+    set ScoreDeltaAfter(value: number | null) {
+        this.Set('ScoreDeltaAfter', value);
+    }
+
+    /**
+    * * Field Name: MeasuredAt
+    * * Display Name: Measured At
+    * * SQL Data Type: datetime2
+    * * Description: When the outcome was measured/recorded.
+    */
+    get MeasuredAt(): Date | null {
+        return this.Get('MeasuredAt');
+    }
+    set MeasuredAt(value: Date | null) {
+        this.Set('MeasuredAt', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Intervention Proposals - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: InterventionProposal
+ * * Base View: vwInterventionProposals
+ * * @description A concrete per-member action a play prepared for human review (e.g. a drafted outreach email) — proposal type + payload are data, so new play types need no schema change.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Intervention Proposals')
+export class mjBizAppsSonarInterventionProposalEntity extends BaseEntity<mjBizAppsSonarInterventionProposalEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Intervention Proposals record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Intervention Proposals record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionProposalEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InterventionID
+    * * Display Name: Intervention ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)
+    */
+    get InterventionID(): string {
+        return this.Get('InterventionID');
+    }
+    set InterventionID(value: string) {
+        this.Set('InterventionID', value);
+    }
+
+    /**
+    * * Field Name: AnchorRecordID
+    * * Display Name: Anchor Record ID
+    * * SQL Data Type: nvarchar(450)
+    * * Description: Canonical id of the anchor record this proposal is for (matches Score.AnchorRecordID).
+    */
+    get AnchorRecordID(): string {
+        return this.Get('AnchorRecordID');
+    }
+    set AnchorRecordID(value: string) {
+        this.Set('AnchorRecordID', value);
+    }
+
+    /**
+    * * Field Name: AnchorName
+    * * Display Name: Anchor Name
+    * * SQL Data Type: nvarchar(300)
+    * * Description: Display name of the member at draft time (denormalized so the review queue never re-resolves anchors).
+    */
+    get AnchorName(): string | null {
+        return this.Get('AnchorName');
+    }
+    set AnchorName(value: string | null) {
+        this.Set('AnchorName', value);
+    }
+
+    /**
+    * * Field Name: ProposalType
+    * * Display Name: Proposal Type
+    * * SQL Data Type: nvarchar(30)
+    * * Default Value: EmailDraft
+    * * Description: What kind of action is proposed (e.g. EmailDraft). Determines how PayloadJSON is shaped and rendered; an open set — new plays add new types.
+    */
+    get ProposalType(): string {
+        return this.Get('ProposalType');
+    }
+    set ProposalType(value: string) {
+        this.Set('ProposalType', value);
+    }
+
+    /**
+    * * Field Name: Rationale
+    * * Display Name: Rationale
+    * * SQL Data Type: nvarchar(1000)
+    * * Description: One-line human-readable reason this member got this proposal (shown on the review queue card).
+    */
+    get Rationale(): string | null {
+        return this.Get('Rationale');
+    }
+    set Rationale(value: string | null) {
+        this.Set('Rationale', value);
+    }
+
+    /**
+    * * Field Name: PayloadJSON
+    * * Display Name: Payload JSON
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: The proposal content, shaped per ProposalType (EmailDraft: {subject, body, recipientEmail}).
+    */
+    get PayloadJSON(): string | null {
+        return this.Get('PayloadJSON');
+    }
+    set PayloadJSON(value: string | null) {
+        this.Set('PayloadJSON', value);
+    }
+
+    /**
+    * * Field Name: GroundingJSON
+    * * Display Name: Grounding JSON
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: The score facts the proposal was grounded in ({score, bandName, delta, dominantCause, factors[]}) — the audit trail for "why this member".
+    */
+    get GroundingJSON(): string | null {
+        return this.Get('GroundingJSON');
+    }
+    set GroundingJSON(value: string | null) {
+        this.Set('GroundingJSON', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(16)
+    * * Default Value: Proposed
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Approved
+    *   * Executed
+    *   * Proposed
+    *   * Rejected
+    * * Description: Review lifecycle: Proposed (awaiting review), Approved, Rejected, or Executed (carried out — for the PoC, a simulated send).
+    */
+    get Status(): 'Approved' | 'Executed' | 'Proposed' | 'Rejected' {
+        return this.Get('Status');
+    }
+    set Status(value: 'Approved' | 'Executed' | 'Proposed' | 'Rejected') {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ReviewedAt
+    * * Display Name: Reviewed At
+    * * SQL Data Type: datetime2
+    * * Description: When a human approved or rejected the proposal.
+    */
+    get ReviewedAt(): Date | null {
+        return this.Get('ReviewedAt');
+    }
+    set ReviewedAt(value: Date | null) {
+        this.Set('ReviewedAt', value);
+    }
+
+    /**
+    * * Field Name: ExecutedAt
+    * * Display Name: Executed At
+    * * SQL Data Type: datetime2
+    * * Description: When the approved proposal was executed (PoC: the simulated send).
+    */
+    get ExecutedAt(): Date | null {
+        return this.Get('ExecutedAt');
+    }
+    set ExecutedAt(value: Date | null) {
+        this.Set('ExecutedAt', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Intervention
+    * * Display Name: Intervention
+    * * SQL Data Type: nvarchar(200)
+    */
+    get Intervention(): string {
+        return this.Get('Intervention');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Interventions - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: Intervention
+ * * Base View: vwInterventions
+ * * @description What to do for a segment: fire an MJ Action against its members, with an automatic holdout for lift measurement.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Interventions')
+export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarInterventionEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Interventions record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Interventions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * Validate() method override for MJ_BizApps_Sonar: Interventions entity. This is an auto-generated method that invokes the generated validators for this entity for the following fields:
+    * * ControlGroupPercent: Control group percentage must be between 0 and 100.
+    * @public
+    * @method
+    * @override
+    */
+    public override Validate(): ValidationResult {
+        const result = super.Validate();
+        this.ValidateControlGroupPercentRange(result);
+        result.Success = result.Success && (result.Errors.length === 0);
+
+        return result;
+    }
+
+    /**
+    * Control group percentage must be between 0 and 100.
+    * @param result - the ValidationResult object to add any errors or warnings to
+    * @public
+    * @method
+    */
+    public ValidateControlGroupPercentRange(result: ValidationResult) {
+    	if (this.ControlGroupPercent != null && (this.ControlGroupPercent < 0 || this.ControlGroupPercent > 100)) {
+    		result.Errors.push(new ValidationErrorInfo(
+    			"ControlGroupPercent",
+    			"Control group percentage must be between 0 and 100.",
+    			this.ControlGroupPercent,
+    			ValidationErrorType.Failure
+    		));
+    	}
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ScoreSegmentID
+    * * Display Name: Score Segment ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)
+    */
+    get ScoreSegmentID(): string {
+        return this.Get('ScoreSegmentID');
+    }
+    set ScoreSegmentID(value: string) {
+        this.Set('ScoreSegmentID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(200)
+    * * Description: Display name of the intervention.
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional description of the play and its intent.
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: TriggerType
+    * * Display Name: Trigger Type
+    * * SQL Data Type: nvarchar(20)
+    * * Default Value: Manual
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Manual
+    *   * OnEnterSegment
+    *   * Scheduled
+    * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.
+    */
+    get TriggerType(): 'Manual' | 'OnEnterSegment' | 'Scheduled' {
+        return this.Get('TriggerType');
+    }
+    set TriggerType(value: 'Manual' | 'OnEnterSegment' | 'Scheduled') {
+        this.Set('TriggerType', value);
+    }
+
+    /**
+    * * Field Name: ActionID
+    * * Display Name: Action ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)
+    */
+    get ActionID(): string | null {
+        return this.Get('ActionID');
+    }
+    set ActionID(value: string | null) {
+        this.Set('ActionID', value);
+    }
+
+    /**
+    * * Field Name: ControlGroupPercent
+    * * Display Name: Control Group Percent
+    * * SQL Data Type: decimal(5, 2)
+    * * Description: Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.
+    */
+    get ControlGroupPercent(): number | null {
+        return this.Get('ControlGroupPercent');
+    }
+    set ControlGroupPercent(value: number | null) {
+        this.Set('ControlGroupPercent', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(16)
+    * * Default Value: Draft
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Active
+    *   * Draft
+    *   * Paused
+    * * Description: Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.
+    */
+    get Status(): 'Active' | 'Draft' | 'Paused' {
+        return this.Get('Status');
+    }
+    set Status(value: 'Active' | 'Draft' | 'Paused') {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ActionParamsJSON
+    * * Display Name: Action Parameters
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.
+    */
+    get ActionParamsJSON(): string | null {
+        return this.Get('ActionParamsJSON');
+    }
+    set ActionParamsJSON(value: string | null) {
+        this.Set('ActionParamsJSON', value);
+    }
+
+    /**
+    * * Field Name: Kind
+    * * Display Name: Kind
+    * * SQL Data Type: nvarchar(20)
+    * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+    * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.
+    */
+    get Kind(): 'Action' | 'BulkSync' | 'TrackOnly' {
+        return this.Get('Kind');
+    }
+    set Kind(value: 'Action' | 'BulkSync' | 'TrackOnly') {
+        this.Set('Kind', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: ScoreSegment
+    * * Display Name: Score Segment
+    * * SQL Data Type: nvarchar(200)
+    */
+    get ScoreSegment(): string {
+        return this.Get('ScoreSegment');
+    }
+
+    /**
+    * * Field Name: Action
+    * * Display Name: Action
+    * * SQL Data Type: nvarchar(425)
+    */
+    get Action(): string | null {
+        return this.Get('Action');
     }
 }
 
@@ -2639,8 +16691,8 @@ export class mjBizAppsSonarScoreBandTransitionEntity extends BaseEntity<mjBizApp
     /**
     * * Field Name: OccurredAt
     * * Display Name: Occurred At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp at which the band crossing occurred.
     */
     get OccurredAt(): Date {
@@ -3231,7 +17283,7 @@ export class mjBizAppsSonarScoreHistoryEntity extends BaseEntity<mjBizAppsSonarS
     /**
     * * Field Name: AsOfDate
     * * Display Name: As Of Date
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: The "now" the time windows resolved against for this snapshot.
     */
     get AsOfDate(): Date | null {
@@ -3244,8 +17296,8 @@ export class mjBizAppsSonarScoreHistoryEntity extends BaseEntity<mjBizAppsSonarS
     /**
     * * Field Name: ComputedAt
     * * Display Name: Computed At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp at which this snapshot was computed.
     */
     get ComputedAt(): Date {
@@ -3477,8 +17529,8 @@ export class mjBizAppsSonarScoreModelAuditEventEntity extends BaseEntity<mjBizAp
     /**
     * * Field Name: ChangedAt
     * * Display Name: Changed At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp at which the change occurred.
     */
     get ChangedAt(): Date {
@@ -3652,8 +17704,8 @@ export class mjBizAppsSonarScoreModelVersionEntity extends BaseEntity<mjBizAppsS
     /**
     * * Field Name: PublishedAt
     * * Display Name: Published At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp at which this version was published.
     */
     get PublishedAt(): Date {
@@ -3847,7 +17899,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: ScoreScaleMin
-    * * Display Name: Score Scale Min
+    * * Display Name: Score Scale Minimum
     * * SQL Data Type: decimal(9, 4)
     * * Default Value: 0
     * * Description: Minimum value of the output score scale (default 0).
@@ -3861,7 +17913,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: ScoreScaleMax
-    * * Display Name: Score Scale Max
+    * * Display Name: Score Scale Maximum
     * * SQL Data Type: decimal(9, 4)
     * * Default Value: 100
     * * Description: Maximum value of the output score scale (default 100).
@@ -4001,7 +18053,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: TrendWindowDays
-    * * Display Name: Trend Window Days
+    * * Display Name: Trend Window (Days)
     * * SQL Data Type: int
     * * Description: Number of days used to compute the headline Delta and trend on each score.
     */
@@ -4014,7 +18066,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUserID
-    * * Display Name: Owner User ID
+    * * Display Name: Owner
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)
     */
@@ -4028,7 +18080,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
     /**
     * * Field Name: EffectiveFrom
     * * Display Name: Effective From
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: Start of the bounded time range during which the model is active (optional).
     */
     get EffectiveFrom(): Date | null {
@@ -4041,7 +18093,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
     /**
     * * Field Name: EffectiveTo
     * * Display Name: Effective To
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: End of the bounded time range during which the model is active (optional).
     */
     get EffectiveTo(): Date | null {
@@ -4085,6 +18137,19 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
     }
 
     /**
+    * * Field Name: OutcomeDefinitionJSON
+    * * Display Name: Outcome Definition
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.
+    */
+    get OutcomeDefinitionJSON(): string | null {
+        return this.Get('OutcomeDefinitionJSON');
+    }
+    set OutcomeDefinitionJSON(value: string | null) {
+        this.Set('OutcomeDefinitionJSON', value);
+    }
+
+    /**
     * * Field Name: AnchorEntity
     * * Display Name: Anchor Entity
     * * SQL Data Type: nvarchar(255)
@@ -4104,7 +18169,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUser
-    * * Display Name: Owner User
+    * * Display Name: Owner Name
     * * SQL Data Type: nvarchar(100)
     */
     get OwnerUser(): string | null {
@@ -4222,8 +18287,8 @@ export class mjBizAppsSonarScoreRecomputeRunEntity extends BaseEntity<mjBizAppsS
     /**
     * * Field Name: StartedAt
     * * Display Name: Started At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp when the run started.
     */
     get StartedAt(): Date {
@@ -4236,7 +18301,7 @@ export class mjBizAppsSonarScoreRecomputeRunEntity extends BaseEntity<mjBizAppsS
     /**
     * * Field Name: CompletedAt
     * * Display Name: Completed At
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: UTC timestamp when the run completed.
     */
     get CompletedAt(): Date | null {
@@ -4342,6 +18407,172 @@ export class mjBizAppsSonarScoreRecomputeRunEntity extends BaseEntity<mjBizAppsS
     }
     set ErrorsJSON(value: string | null) {
         this.Set('ErrorsJSON', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: ScoreModel
+    * * Display Name: Score Model
+    * * SQL Data Type: nvarchar(200)
+    */
+    get ScoreModel(): string {
+        return this.Get('ScoreModel');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Score Segments - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: ScoreSegment
+ * * Base View: vwScoreSegments
+ * * @description A saved cohort over a model's scored records (e.g. "At-Risk in the renewal window") that interventions key off.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Segments')
+export class mjBizAppsSonarScoreSegmentEntity extends BaseEntity<mjBizAppsSonarScoreSegmentEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Score Segments record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Segments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarScoreSegmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ScoreModelID
+    * * Display Name: Score Model ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
+    */
+    get ScoreModelID(): string {
+        return this.Get('ScoreModelID');
+    }
+    set ScoreModelID(value: string) {
+        this.Set('ScoreModelID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(200)
+    * * Description: Display name of the segment.
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional description of who the segment captures and why.
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: FilterExpression
+    * * Display Name: Filter Expression
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.
+    */
+    get FilterExpression(): string | null {
+        return this.Get('FilterExpression');
+    }
+    set FilterExpression(value: string | null) {
+        this.Set('FilterExpression', value);
+    }
+
+    /**
+    * * Field Name: IsDynamic
+    * * Display Name: Is Dynamic
+    * * SQL Data Type: bit
+    * * Default Value: 1
+    * * Description: When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.
+    */
+    get IsDynamic(): boolean {
+        return this.Get('IsDynamic');
+    }
+    set IsDynamic(value: boolean) {
+        this.Set('IsDynamic', value);
+    }
+
+    /**
+    * * Field Name: MemberCountCached
+    * * Display Name: Cached Member Count
+    * * SQL Data Type: int
+    * * Description: Cached count of members in the segment as of LastEvaluatedAt (display/perf only).
+    */
+    get MemberCountCached(): number | null {
+        return this.Get('MemberCountCached');
+    }
+    set MemberCountCached(value: number | null) {
+        this.Set('MemberCountCached', value);
+    }
+
+    /**
+    * * Field Name: LastEvaluatedAt
+    * * Display Name: Last Evaluated At
+    * * SQL Data Type: datetime2
+    * * Description: When the segment membership/count was last evaluated.
+    */
+    get LastEvaluatedAt(): Date | null {
+        return this.Get('LastEvaluatedAt');
+    }
+    set LastEvaluatedAt(value: Date | null) {
+        this.Set('LastEvaluatedAt', value);
     }
 
     /**
@@ -4621,8 +18852,8 @@ export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEnt
     /**
     * * Field Name: ComputedAt
     * * Display Name: Computed At
-    * * SQL Data Type: datetime2
-    * * Default Value: getutcdate()
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: todatetimeoffset(sysutcdatetime(),(0))
     * * Description: UTC timestamp at which this score was computed.
     */
     get ComputedAt(): Date {
@@ -4635,7 +18866,7 @@ export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEnt
     /**
     * * Field Name: AsOfDate
     * * Display Name: As Of Date
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: The "now" the time windows resolved against for this score.
     */
     get AsOfDate(): Date | null {
@@ -4648,7 +18879,7 @@ export class mjBizAppsSonarScoreEntity extends BaseEntity<mjBizAppsSonarScoreEnt
     /**
     * * Field Name: NextRecomputeAt
     * * Display Name: Next Recompute At
-    * * SQL Data Type: datetime2
+    * * SQL Data Type: datetimeoffset
     * * Description: Optional scheduled time for the next recompute of this score.
     */
     get NextRecomputeAt(): Date | null {
@@ -4864,6 +19095,3303 @@ export class mjBizAppsSonarTimeWindowEntity extends BaseEntity<mjBizAppsSonarTim
     }
     set Description(value: string | null) {
         this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Organizations - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Organization
+ * * Base View: vwOrganizations
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Organizations')
+export class AssociationDemoOrganizationEntity extends BaseEntity<AssociationDemoOrganizationEntityType> {
+    /**
+    * Loads the Organizations record from the database
+    * @param ID: string - primary key value to load the Organizations record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoOrganizationEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Industry
+    * * Display Name: Industry
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Industry(): string | null {
+        return this.Get('Industry');
+    }
+    set Industry(value: string | null) {
+        this.Set('Industry', value);
+    }
+
+    /**
+    * * Field Name: EmployeeCount
+    * * Display Name: Employee Count
+    * * SQL Data Type: int
+    */
+    get EmployeeCount(): number | null {
+        return this.Get('EmployeeCount');
+    }
+    set EmployeeCount(value: number | null) {
+        this.Set('EmployeeCount', value);
+    }
+
+    /**
+    * * Field Name: AnnualRevenue
+    * * Display Name: Annual Revenue
+    * * SQL Data Type: decimal(18, 2)
+    */
+    get AnnualRevenue(): number | null {
+        return this.Get('AnnualRevenue');
+    }
+    set AnnualRevenue(value: number | null) {
+        this.Set('AnnualRevenue', value);
+    }
+
+    /**
+    * * Field Name: MarketCapitalization
+    * * Display Name: Market Capitalization
+    * * SQL Data Type: decimal(18, 2)
+    */
+    get MarketCapitalization(): number | null {
+        return this.Get('MarketCapitalization');
+    }
+    set MarketCapitalization(value: number | null) {
+        this.Set('MarketCapitalization', value);
+    }
+
+    /**
+    * * Field Name: TickerSymbol
+    * * Display Name: Ticker Symbol
+    * * SQL Data Type: nvarchar(10)
+    */
+    get TickerSymbol(): string | null {
+        return this.Get('TickerSymbol');
+    }
+    set TickerSymbol(value: string | null) {
+        this.Set('TickerSymbol', value);
+    }
+
+    /**
+    * * Field Name: Exchange
+    * * Display Name: Exchange
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Exchange(): string | null {
+        return this.Get('Exchange');
+    }
+    set Exchange(value: string | null) {
+        this.Set('Exchange', value);
+    }
+
+    /**
+    * * Field Name: Website
+    * * Display Name: Website
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Website(): string | null {
+        return this.Get('Website');
+    }
+    set Website(value: string | null) {
+        this.Set('Website', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: YearFounded
+    * * Display Name: Year Founded
+    * * SQL Data Type: int
+    */
+    get YearFounded(): number | null {
+        return this.Get('YearFounded');
+    }
+    set YearFounded(value: number | null) {
+        this.Set('YearFounded', value);
+    }
+
+    /**
+    * * Field Name: City
+    * * Display Name: City
+    * * SQL Data Type: nvarchar(100)
+    */
+    get City(): string | null {
+        return this.Get('City');
+    }
+    set City(value: string | null) {
+        this.Set('City', value);
+    }
+
+    /**
+    * * Field Name: State
+    * * Display Name: State
+    * * SQL Data Type: nvarchar(50)
+    */
+    get State(): string | null {
+        return this.Get('State');
+    }
+    set State(value: string | null) {
+        this.Set('State', value);
+    }
+
+    /**
+    * * Field Name: Country
+    * * Display Name: Country
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Country(): string | null {
+        return this.Get('Country');
+    }
+    set Country(value: string | null) {
+        this.Set('Country', value);
+    }
+
+    /**
+    * * Field Name: PostalCode
+    * * Display Name: Postal Code
+    * * SQL Data Type: nvarchar(20)
+    */
+    get PostalCode(): string | null {
+        return this.Get('PostalCode');
+    }
+    set PostalCode(value: string | null) {
+        this.Set('PostalCode', value);
+    }
+
+    /**
+    * * Field Name: Phone
+    * * Display Name: Phone
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Phone(): string | null {
+        return this.Get('Phone');
+    }
+    set Phone(value: string | null) {
+        this.Set('Phone', value);
+    }
+
+    /**
+    * * Field Name: LogoURL
+    * * Display Name: Logo URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get LogoURL(): string | null {
+        return this.Get('LogoURL');
+    }
+    set LogoURL(value: string | null) {
+        this.Set('LogoURL', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_Latitude
+    * * Display Name: Mj Latitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Latitude(): number | null {
+        return this.Get('__mj_Latitude');
+    }
+
+    /**
+    * * Field Name: __mj_Longitude
+    * * Display Name: Mj Longitude
+    * * SQL Data Type: decimal(10, 6)
+    */
+    get __mj_Longitude(): number | null {
+        return this.Get('__mj_Longitude');
+    }
+}
+
+
+/**
+ * Payments - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: Payment
+ * * Base View: vwPayments
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Payments')
+export class membershipPaymentEntity extends BaseEntity<membershipPaymentEntityType> {
+    /**
+    * Loads the Payments record from the database
+    * @param ID: string - primary key value to load the Payments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipPaymentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: Amount
+    * * Display Name: Amount
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get Amount(): number {
+        return this.Get('Amount');
+    }
+    set Amount(value: number) {
+        this.Set('Amount', value);
+    }
+
+    /**
+    * * Field Name: PaidOn
+    * * Display Name: Paid On
+    * * SQL Data Type: date
+    */
+    get PaidOn(): Date {
+        return this.Get('PaidOn');
+    }
+    set PaidOn(value: Date) {
+        this.Set('PaidOn', value);
+    }
+
+    /**
+    * * Field Name: PaymentType
+    * * Display Name: Payment Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get PaymentType(): string {
+        return this.Get('PaymentType');
+    }
+    set PaymentType(value: string) {
+        this.Set('PaymentType', value);
+    }
+
+    /**
+    * * Field Name: TermYear
+    * * Display Name: Term Year
+    * * SQL Data Type: int
+    */
+    get TermYear(): number | null {
+        return this.Get('TermYear');
+    }
+    set TermYear(value: number | null) {
+        this.Set('TermYear', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Payments__AssociationDemo - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Payment
+ * * Base View: vwPayments__AssociationDemo
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Payments__AssociationDemo')
+export class AssociationDemoPayment__AssociationDemoEntity extends BaseEntity<AssociationDemoPayment__AssociationDemoEntityType> {
+    /**
+    * Loads the Payments__AssociationDemo record from the database
+    * @param ID: string - primary key value to load the Payments__AssociationDemo record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoPayment__AssociationDemoEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InvoiceID
+    * * Display Name: Invoice
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Invoices (vwInvoices.ID)
+    */
+    get InvoiceID(): string {
+        return this.Get('InvoiceID');
+    }
+    set InvoiceID(value: string) {
+        this.Set('InvoiceID', value);
+    }
+
+    /**
+    * * Field Name: PaymentDate
+    * * Display Name: Payment Date
+    * * SQL Data Type: datetime
+    */
+    get PaymentDate(): Date {
+        return this.Get('PaymentDate');
+    }
+    set PaymentDate(value: Date) {
+        this.Set('PaymentDate', value);
+    }
+
+    /**
+    * * Field Name: Amount
+    * * Display Name: Amount
+    * * SQL Data Type: decimal(12, 2)
+    */
+    get Amount(): number {
+        return this.Get('Amount');
+    }
+    set Amount(value: number) {
+        this.Set('Amount', value);
+    }
+
+    /**
+    * * Field Name: PaymentMethod
+    * * Display Name: Payment Method
+    * * SQL Data Type: nvarchar(50)
+    */
+    get PaymentMethod(): string {
+        return this.Get('PaymentMethod');
+    }
+    set PaymentMethod(value: string) {
+        this.Set('PaymentMethod', value);
+    }
+
+    /**
+    * * Field Name: TransactionID
+    * * Display Name: Transaction ID
+    * * SQL Data Type: nvarchar(255)
+    */
+    get TransactionID(): string | null {
+        return this.Get('TransactionID');
+    }
+    set TransactionID(value: string | null) {
+        this.Set('TransactionID', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string {
+        return this.Get('Status');
+    }
+    set Status(value: string) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ProcessedDate
+    * * Display Name: Processed Date
+    * * SQL Data Type: datetime
+    */
+    get ProcessedDate(): Date | null {
+        return this.Get('ProcessedDate');
+    }
+    set ProcessedDate(value: Date | null) {
+        this.Set('ProcessedDate', value);
+    }
+
+    /**
+    * * Field Name: FailureReason
+    * * Display Name: Failure Reason
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get FailureReason(): string | null {
+        return this.Get('FailureReason');
+    }
+    set FailureReason(value: string | null) {
+        this.Set('FailureReason', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Policy Positions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: PolicyPosition
+ * * Base View: vwPolicyPositions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Policy Positions')
+export class AssociationDemoPolicyPositionEntity extends BaseEntity<AssociationDemoPolicyPositionEntityType> {
+    /**
+    * Loads the Policy Positions record from the database
+    * @param ID: string - primary key value to load the Policy Positions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoPolicyPositionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: LegislativeIssueID
+    * * Display Name: Legislative Issue
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)
+    */
+    get LegislativeIssueID(): string {
+        return this.Get('LegislativeIssueID');
+    }
+    set LegislativeIssueID(value: string) {
+        this.Set('LegislativeIssueID', value);
+    }
+
+    /**
+    * * Field Name: Position
+    * * Display Name: Position
+    * * SQL Data Type: nvarchar(30)
+    */
+    get Position(): string {
+        return this.Get('Position');
+    }
+    set Position(value: string) {
+        this.Set('Position', value);
+    }
+
+    /**
+    * * Field Name: PositionStatement
+    * * Display Name: Position Statement
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get PositionStatement(): string {
+        return this.Get('PositionStatement');
+    }
+    set PositionStatement(value: string) {
+        this.Set('PositionStatement', value);
+    }
+
+    /**
+    * * Field Name: Rationale
+    * * Display Name: Rationale
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Rationale(): string | null {
+        return this.Get('Rationale');
+    }
+    set Rationale(value: string | null) {
+        this.Set('Rationale', value);
+    }
+
+    /**
+    * * Field Name: AdoptedDate
+    * * Display Name: Adopted Date
+    * * SQL Data Type: date
+    */
+    get AdoptedDate(): Date {
+        return this.Get('AdoptedDate');
+    }
+    set AdoptedDate(value: Date) {
+        this.Set('AdoptedDate', value);
+    }
+
+    /**
+    * * Field Name: AdoptedBy
+    * * Display Name: Adopted By
+    * * SQL Data Type: nvarchar(255)
+    */
+    get AdoptedBy(): string | null {
+        return this.Get('AdoptedBy');
+    }
+    set AdoptedBy(value: string | null) {
+        this.Set('AdoptedBy', value);
+    }
+
+    /**
+    * * Field Name: ExpirationDate
+    * * Display Name: Expiration Date
+    * * SQL Data Type: date
+    */
+    get ExpirationDate(): Date | null {
+        return this.Get('ExpirationDate');
+    }
+    set ExpirationDate(value: Date | null) {
+        this.Set('ExpirationDate', value);
+    }
+
+    /**
+    * * Field Name: Priority
+    * * Display Name: Priority
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Priority(): string | null {
+        return this.Get('Priority');
+    }
+    set Priority(value: string | null) {
+        this.Set('Priority', value);
+    }
+
+    /**
+    * * Field Name: IsPublic
+    * * Display Name: Is Public
+    * * SQL Data Type: bit
+    */
+    get IsPublic(): boolean | null {
+        return this.Get('IsPublic');
+    }
+    set IsPublic(value: boolean | null) {
+        this.Set('IsPublic', value);
+    }
+
+    /**
+    * * Field Name: DocumentURL
+    * * Display Name: Document URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get DocumentURL(): string | null {
+        return this.Get('DocumentURL');
+    }
+    set DocumentURL(value: string | null) {
+        this.Set('DocumentURL', value);
+    }
+
+    /**
+    * * Field Name: ContactPerson
+    * * Display Name: Contact Person
+    * * SQL Data Type: nvarchar(255)
+    */
+    get ContactPerson(): string | null {
+        return this.Get('ContactPerson');
+    }
+    set ContactPerson(value: string | null) {
+        this.Set('ContactPerson', value);
+    }
+
+    /**
+    * * Field Name: LastReviewedDate
+    * * Display Name: Last Reviewed Date
+    * * SQL Data Type: date
+    */
+    get LastReviewedDate(): Date | null {
+        return this.Get('LastReviewedDate');
+    }
+    set LastReviewedDate(value: Date | null) {
+        this.Set('LastReviewedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Post Attachments - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: PostAttachment
+ * * Base View: vwPostAttachments
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Post Attachments')
+export class AssociationDemoPostAttachmentEntity extends BaseEntity<AssociationDemoPostAttachmentEntityType> {
+    /**
+    * Loads the Post Attachments record from the database
+    * @param ID: string - primary key value to load the Post Attachments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoPostAttachmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: PostID
+    * * Display Name: Post
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)
+    */
+    get PostID(): string {
+        return this.Get('PostID');
+    }
+    set PostID(value: string) {
+        this.Set('PostID', value);
+    }
+
+    /**
+    * * Field Name: FileName
+    * * Display Name: File Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get FileName(): string {
+        return this.Get('FileName');
+    }
+    set FileName(value: string) {
+        this.Set('FileName', value);
+    }
+
+    /**
+    * * Field Name: FileURL
+    * * Display Name: File URL
+    * * SQL Data Type: nvarchar(1000)
+    */
+    get FileURL(): string {
+        return this.Get('FileURL');
+    }
+    set FileURL(value: string) {
+        this.Set('FileURL', value);
+    }
+
+    /**
+    * * Field Name: FileType
+    * * Display Name: File Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get FileType(): string | null {
+        return this.Get('FileType');
+    }
+    set FileType(value: string | null) {
+        this.Set('FileType', value);
+    }
+
+    /**
+    * * Field Name: FileSizeBytes
+    * * Display Name: File Size (Bytes)
+    * * SQL Data Type: bigint
+    */
+    get FileSizeBytes(): number | null {
+        return this.Get('FileSizeBytes');
+    }
+    set FileSizeBytes(value: number | null) {
+        this.Set('FileSizeBytes', value);
+    }
+
+    /**
+    * * Field Name: UploadedDate
+    * * Display Name: Uploaded Date
+    * * SQL Data Type: datetime
+    */
+    get UploadedDate(): Date {
+        return this.Get('UploadedDate');
+    }
+    set UploadedDate(value: Date) {
+        this.Set('UploadedDate', value);
+    }
+
+    /**
+    * * Field Name: UploadedByID
+    * * Display Name: Uploaded By
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get UploadedByID(): string {
+        return this.Get('UploadedByID');
+    }
+    set UploadedByID(value: string) {
+        this.Set('UploadedByID', value);
+    }
+
+    /**
+    * * Field Name: DownloadCount
+    * * Display Name: Download Count
+    * * SQL Data Type: int
+    */
+    get DownloadCount(): number | null {
+        return this.Get('DownloadCount');
+    }
+    set DownloadCount(value: number | null) {
+        this.Set('DownloadCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Post Reactions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: PostReaction
+ * * Base View: vwPostReactions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Post Reactions')
+export class AssociationDemoPostReactionEntity extends BaseEntity<AssociationDemoPostReactionEntityType> {
+    /**
+    * Loads the Post Reactions record from the database
+    * @param ID: string - primary key value to load the Post Reactions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoPostReactionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: PostID
+    * * Display Name: Post
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)
+    */
+    get PostID(): string {
+        return this.Get('PostID');
+    }
+    set PostID(value: string) {
+        this.Set('PostID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: ReactionType
+    * * Display Name: Reaction Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ReactionType(): string {
+        return this.Get('ReactionType');
+    }
+    set ReactionType(value: string) {
+        this.Set('ReactionType', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Post Tags - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: PostTag
+ * * Base View: vwPostTags
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Post Tags')
+export class AssociationDemoPostTagEntity extends BaseEntity<AssociationDemoPostTagEntityType> {
+    /**
+    * Loads the Post Tags record from the database
+    * @param ID: string - primary key value to load the Post Tags record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoPostTagEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: PostID
+    * * Display Name: Post
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Forum Posts (vwForumPosts.ID)
+    */
+    get PostID(): string {
+        return this.Get('PostID');
+    }
+    set PostID(value: string) {
+        this.Set('PostID', value);
+    }
+
+    /**
+    * * Field Name: TagName
+    * * Display Name: Tag Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get TagName(): string {
+        return this.Get('TagName');
+    }
+    set TagName(value: string) {
+        this.Set('TagName', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Product Awards - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ProductAward
+ * * Base View: vwProductAwards
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Product Awards')
+export class AssociationDemoProductAwardEntity extends BaseEntity<AssociationDemoProductAwardEntityType> {
+    /**
+    * Loads the Product Awards record from the database
+    * @param ID: string - primary key value to load the Product Awards record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoProductAwardEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ProductID
+    * * Display Name: Product
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Products (vwProducts.ID)
+    */
+    get ProductID(): string {
+        return this.Get('ProductID');
+    }
+    set ProductID(value: string) {
+        this.Set('ProductID', value);
+    }
+
+    /**
+    * * Field Name: CompetitionID
+    * * Display Name: Competition
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Competitions (vwCompetitions.ID)
+    */
+    get CompetitionID(): string | null {
+        return this.Get('CompetitionID');
+    }
+    set CompetitionID(value: string | null) {
+        this.Set('CompetitionID', value);
+    }
+
+    /**
+    * * Field Name: CompetitionEntryID
+    * * Display Name: Competition Entry
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Competition Entries (vwCompetitionEntries.ID)
+    */
+    get CompetitionEntryID(): string | null {
+        return this.Get('CompetitionEntryID');
+    }
+    set CompetitionEntryID(value: string | null) {
+        this.Set('CompetitionEntryID', value);
+    }
+
+    /**
+    * * Field Name: AwardName
+    * * Display Name: Award Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get AwardName(): string {
+        return this.Get('AwardName');
+    }
+    set AwardName(value: string) {
+        this.Set('AwardName', value);
+    }
+
+    /**
+    * * Field Name: AwardLevel
+    * * Display Name: Award Level
+    * * SQL Data Type: nvarchar(100)
+    */
+    get AwardLevel(): string {
+        return this.Get('AwardLevel');
+    }
+    set AwardLevel(value: string) {
+        this.Set('AwardLevel', value);
+    }
+
+    /**
+    * * Field Name: AwardingOrganization
+    * * Display Name: Awarding Organization
+    * * SQL Data Type: nvarchar(255)
+    */
+    get AwardingOrganization(): string | null {
+        return this.Get('AwardingOrganization');
+    }
+    set AwardingOrganization(value: string | null) {
+        this.Set('AwardingOrganization', value);
+    }
+
+    /**
+    * * Field Name: AwardDate
+    * * Display Name: Award Date
+    * * SQL Data Type: date
+    */
+    get AwardDate(): Date {
+        return this.Get('AwardDate');
+    }
+    set AwardDate(value: Date) {
+        this.Set('AwardDate', value);
+    }
+
+    /**
+    * * Field Name: Year
+    * * Display Name: Year
+    * * SQL Data Type: int
+    */
+    get Year(): number {
+        return this.Get('Year');
+    }
+    set Year(value: number) {
+        this.Set('Year', value);
+    }
+
+    /**
+    * * Field Name: Category
+    * * Display Name: Category
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Category(): string | null {
+        return this.Get('Category');
+    }
+    set Category(value: string | null) {
+        this.Set('Category', value);
+    }
+
+    /**
+    * * Field Name: Score
+    * * Display Name: Score
+    * * SQL Data Type: decimal(5, 2)
+    */
+    get Score(): number | null {
+        return this.Get('Score');
+    }
+    set Score(value: number | null) {
+        this.Set('Score', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: CertificateURL
+    * * Display Name: Certificate URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get CertificateURL(): string | null {
+        return this.Get('CertificateURL');
+    }
+    set CertificateURL(value: string | null) {
+        this.Set('CertificateURL', value);
+    }
+
+    /**
+    * * Field Name: IsDisplayed
+    * * Display Name: Is Displayed
+    * * SQL Data Type: bit
+    */
+    get IsDisplayed(): boolean | null {
+        return this.Get('IsDisplayed');
+    }
+    set IsDisplayed(value: boolean | null) {
+        this.Set('IsDisplayed', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Product Categories - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ProductCategory
+ * * Base View: vwProductCategories
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Product Categories')
+export class AssociationDemoProductCategoryEntity extends BaseEntity<AssociationDemoProductCategoryEntityType> {
+    /**
+    * Loads the Product Categories record from the database
+    * @param ID: string - primary key value to load the Product Categories record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoProductCategoryEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: ParentCategoryID
+    * * Display Name: Parent Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)
+    */
+    get ParentCategoryID(): string | null {
+        return this.Get('ParentCategoryID');
+    }
+    set ParentCategoryID(value: string | null) {
+        this.Set('ParentCategoryID', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: ImageURL
+    * * Display Name: Image URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ImageURL(): string | null {
+        return this.Get('ImageURL');
+    }
+    set ImageURL(value: string | null) {
+        this.Set('ImageURL', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: RootParentCategoryID
+    * * Display Name: Root Parent Category
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RootParentCategoryID(): string | null {
+        return this.Get('RootParentCategoryID');
+    }
+}
+
+
+/**
+ * Products - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Product
+ * * Base View: vwProducts
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Products')
+export class AssociationDemoProductEntity extends BaseEntity<AssociationDemoProductEntityType> {
+    /**
+    * Loads the Products record from the database
+    * @param ID: string - primary key value to load the Products record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoProductEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: CategoryID
+    * * Display Name: Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Product Categories (vwProductCategories.ID)
+    */
+    get CategoryID(): string {
+        return this.Get('CategoryID');
+    }
+    set CategoryID(value: string) {
+        this.Set('CategoryID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Product Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: CheeseType
+    * * Display Name: Cheese Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get CheeseType(): string | null {
+        return this.Get('CheeseType');
+    }
+    set CheeseType(value: string | null) {
+        this.Set('CheeseType', value);
+    }
+
+    /**
+    * * Field Name: MilkSource
+    * * Display Name: Milk Source
+    * * SQL Data Type: nvarchar(100)
+    */
+    get MilkSource(): string | null {
+        return this.Get('MilkSource');
+    }
+    set MilkSource(value: string | null) {
+        this.Set('MilkSource', value);
+    }
+
+    /**
+    * * Field Name: AgeMonths
+    * * Display Name: Age (Months)
+    * * SQL Data Type: int
+    */
+    get AgeMonths(): number | null {
+        return this.Get('AgeMonths');
+    }
+    set AgeMonths(value: number | null) {
+        this.Set('AgeMonths', value);
+    }
+
+    /**
+    * * Field Name: Weight
+    * * Display Name: Weight
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get Weight(): number | null {
+        return this.Get('Weight');
+    }
+    set Weight(value: number | null) {
+        this.Set('Weight', value);
+    }
+
+    /**
+    * * Field Name: WeightUnit
+    * * Display Name: Weight Unit
+    * * SQL Data Type: nvarchar(20)
+    */
+    get WeightUnit(): string | null {
+        return this.Get('WeightUnit');
+    }
+    set WeightUnit(value: string | null) {
+        this.Set('WeightUnit', value);
+    }
+
+    /**
+    * * Field Name: RetailPrice
+    * * Display Name: Retail Price
+    * * SQL Data Type: decimal(10, 2)
+    */
+    get RetailPrice(): number | null {
+        return this.Get('RetailPrice');
+    }
+    set RetailPrice(value: number | null) {
+        this.Set('RetailPrice', value);
+    }
+
+    /**
+    * * Field Name: IsOrganic
+    * * Display Name: Is Organic
+    * * SQL Data Type: bit
+    */
+    get IsOrganic(): boolean | null {
+        return this.Get('IsOrganic');
+    }
+    set IsOrganic(value: boolean | null) {
+        this.Set('IsOrganic', value);
+    }
+
+    /**
+    * * Field Name: IsRawMilk
+    * * Display Name: Is Raw Milk
+    * * SQL Data Type: bit
+    */
+    get IsRawMilk(): boolean | null {
+        return this.Get('IsRawMilk');
+    }
+    set IsRawMilk(value: boolean | null) {
+        this.Set('IsRawMilk', value);
+    }
+
+    /**
+    * * Field Name: IsAwardWinner
+    * * Display Name: Is Award Winner
+    * * SQL Data Type: bit
+    */
+    get IsAwardWinner(): boolean | null {
+        return this.Get('IsAwardWinner');
+    }
+    set IsAwardWinner(value: boolean | null) {
+        this.Set('IsAwardWinner', value);
+    }
+
+    /**
+    * * Field Name: DateIntroduced
+    * * Display Name: Date Introduced
+    * * SQL Data Type: date
+    */
+    get DateIntroduced(): Date | null {
+        return this.Get('DateIntroduced');
+    }
+    set DateIntroduced(value: Date | null) {
+        this.Set('DateIntroduced', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ImageURL
+    * * Display Name: Image URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get ImageURL(): string | null {
+        return this.Get('ImageURL');
+    }
+    set ImageURL(value: string | null) {
+        this.Set('ImageURL', value);
+    }
+
+    /**
+    * * Field Name: TastingNotes
+    * * Display Name: Tasting Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get TastingNotes(): string | null {
+        return this.Get('TastingNotes');
+    }
+    set TastingNotes(value: string | null) {
+        this.Set('TastingNotes', value);
+    }
+
+    /**
+    * * Field Name: PairingNotes
+    * * Display Name: Pairing Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get PairingNotes(): string | null {
+        return this.Get('PairingNotes');
+    }
+    set PairingNotes(value: string | null) {
+        this.Set('PairingNotes', value);
+    }
+
+    /**
+    * * Field Name: ProductionMethod
+    * * Display Name: Production Method
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get ProductionMethod(): string | null {
+        return this.Get('ProductionMethod');
+    }
+    set ProductionMethod(value: string | null) {
+        this.Set('ProductionMethod', value);
+    }
+
+    /**
+    * * Field Name: AwardCount
+    * * Display Name: Award Count
+    * * SQL Data Type: int
+    */
+    get AwardCount(): number | null {
+        return this.Get('AwardCount');
+    }
+    set AwardCount(value: number | null) {
+        this.Set('AwardCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Regulatory Comments - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: RegulatoryComment
+ * * Base View: vwRegulatoryComments
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Regulatory Comments')
+export class AssociationDemoRegulatoryCommentEntity extends BaseEntity<AssociationDemoRegulatoryCommentEntityType> {
+    /**
+    * Loads the Regulatory Comments record from the database
+    * @param ID: string - primary key value to load the Regulatory Comments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoRegulatoryCommentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: LegislativeIssueID
+    * * Display Name: Legislative Issue
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Legislative Issues (vwLegislativeIssues.ID)
+    */
+    get LegislativeIssueID(): string {
+        return this.Get('LegislativeIssueID');
+    }
+    set LegislativeIssueID(value: string) {
+        this.Set('LegislativeIssueID', value);
+    }
+
+    /**
+    * * Field Name: DocketNumber
+    * * Display Name: Docket Number
+    * * SQL Data Type: nvarchar(100)
+    */
+    get DocketNumber(): string | null {
+        return this.Get('DocketNumber');
+    }
+    set DocketNumber(value: string | null) {
+        this.Set('DocketNumber', value);
+    }
+
+    /**
+    * * Field Name: CommentPeriodStart
+    * * Display Name: Comment Period Start
+    * * SQL Data Type: date
+    */
+    get CommentPeriodStart(): Date | null {
+        return this.Get('CommentPeriodStart');
+    }
+    set CommentPeriodStart(value: Date | null) {
+        this.Set('CommentPeriodStart', value);
+    }
+
+    /**
+    * * Field Name: CommentPeriodEnd
+    * * Display Name: Comment Period End
+    * * SQL Data Type: date
+    */
+    get CommentPeriodEnd(): Date | null {
+        return this.Get('CommentPeriodEnd');
+    }
+    set CommentPeriodEnd(value: Date | null) {
+        this.Set('CommentPeriodEnd', value);
+    }
+
+    /**
+    * * Field Name: SubmittedDate
+    * * Display Name: Submitted Date
+    * * SQL Data Type: date
+    */
+    get SubmittedDate(): Date {
+        return this.Get('SubmittedDate');
+    }
+    set SubmittedDate(value: Date) {
+        this.Set('SubmittedDate', value);
+    }
+
+    /**
+    * * Field Name: SubmittedBy
+    * * Display Name: Submitted By
+    * * SQL Data Type: nvarchar(255)
+    */
+    get SubmittedBy(): string | null {
+        return this.Get('SubmittedBy');
+    }
+    set SubmittedBy(value: string | null) {
+        this.Set('SubmittedBy', value);
+    }
+
+    /**
+    * * Field Name: CommentText
+    * * Display Name: Comment Text
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get CommentText(): string {
+        return this.Get('CommentText');
+    }
+    set CommentText(value: string) {
+        this.Set('CommentText', value);
+    }
+
+    /**
+    * * Field Name: CommentType
+    * * Display Name: Comment Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get CommentType(): string | null {
+        return this.Get('CommentType');
+    }
+    set CommentType(value: string | null) {
+        this.Set('CommentType', value);
+    }
+
+    /**
+    * * Field Name: AttachmentURL
+    * * Display Name: Attachment URL
+    * * SQL Data Type: nvarchar(500)
+    */
+    get AttachmentURL(): string | null {
+        return this.Get('AttachmentURL');
+    }
+    set AttachmentURL(value: string | null) {
+        this.Set('AttachmentURL', value);
+    }
+
+    /**
+    * * Field Name: ConfirmationNumber
+    * * Display Name: Confirmation Number
+    * * SQL Data Type: nvarchar(100)
+    */
+    get ConfirmationNumber(): string | null {
+        return this.Get('ConfirmationNumber');
+    }
+    set ConfirmationNumber(value: string | null) {
+        this.Set('ConfirmationNumber', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: Response
+    * * Display Name: Response
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Response(): string | null {
+        return this.Get('Response');
+    }
+    set Response(value: string | null) {
+        this.Set('Response', value);
+    }
+
+    /**
+    * * Field Name: Notes
+    * * Display Name: Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Notes(): string | null {
+        return this.Get('Notes');
+    }
+    set Notes(value: string | null) {
+        this.Set('Notes', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resource Categories - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ResourceCategory
+ * * Base View: vwResourceCategories
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Categories')
+export class AssociationDemoResourceCategoryEntity extends BaseEntity<AssociationDemoResourceCategoryEntityType> {
+    /**
+    * Loads the Resource Categories record from the database
+    * @param ID: string - primary key value to load the Resource Categories record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceCategoryEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: ParentCategoryID
+    * * Display Name: Parent Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resource Categories (vwResourceCategories.ID)
+    */
+    get ParentCategoryID(): string | null {
+        return this.Get('ParentCategoryID');
+    }
+    set ParentCategoryID(value: string | null) {
+        this.Set('ParentCategoryID', value);
+    }
+
+    /**
+    * * Field Name: DisplayOrder
+    * * Display Name: Display Order
+    * * SQL Data Type: int
+    */
+    get DisplayOrder(): number | null {
+        return this.Get('DisplayOrder');
+    }
+    set DisplayOrder(value: number | null) {
+        this.Set('DisplayOrder', value);
+    }
+
+    /**
+    * * Field Name: Icon
+    * * Display Name: Icon
+    * * SQL Data Type: nvarchar(100)
+    */
+    get Icon(): string | null {
+        return this.Get('Icon');
+    }
+    set Icon(value: string | null) {
+        this.Set('Icon', value);
+    }
+
+    /**
+    * * Field Name: Color
+    * * Display Name: Color
+    * * SQL Data Type: nvarchar(50)
+    */
+    get Color(): string | null {
+        return this.Get('Color');
+    }
+    set Color(value: string | null) {
+        this.Set('Color', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean | null {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean | null) {
+        this.Set('IsActive', value);
+    }
+
+    /**
+    * * Field Name: RequiresMembership
+    * * Display Name: Requires Membership
+    * * SQL Data Type: bit
+    */
+    get RequiresMembership(): boolean | null {
+        return this.Get('RequiresMembership');
+    }
+    set RequiresMembership(value: boolean | null) {
+        this.Set('RequiresMembership', value);
+    }
+
+    /**
+    * * Field Name: ResourceCount
+    * * Display Name: Resource Count
+    * * SQL Data Type: int
+    */
+    get ResourceCount(): number | null {
+        return this.Get('ResourceCount');
+    }
+    set ResourceCount(value: number | null) {
+        this.Set('ResourceCount', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: RootParentCategoryID
+    * * Display Name: Root Parent Category
+    * * SQL Data Type: uniqueidentifier
+    */
+    get RootParentCategoryID(): string | null {
+        return this.Get('RootParentCategoryID');
+    }
+}
+
+
+/**
+ * Resource Downloads - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ResourceDownload
+ * * Base View: vwResourceDownloads
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Downloads')
+export class AssociationDemoResourceDownloadEntity extends BaseEntity<AssociationDemoResourceDownloadEntityType> {
+    /**
+    * Loads the Resource Downloads record from the database
+    * @param ID: string - primary key value to load the Resource Downloads record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceDownloadEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ResourceID
+    * * Display Name: Resource
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resources (vwResources.ID)
+    */
+    get ResourceID(): string {
+        return this.Get('ResourceID');
+    }
+    set ResourceID(value: string) {
+        this.Set('ResourceID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: DownloadDate
+    * * Display Name: Download Date
+    * * SQL Data Type: datetime
+    */
+    get DownloadDate(): Date {
+        return this.Get('DownloadDate');
+    }
+    set DownloadDate(value: Date) {
+        this.Set('DownloadDate', value);
+    }
+
+    /**
+    * * Field Name: IPAddress
+    * * Display Name: IP Address
+    * * SQL Data Type: nvarchar(50)
+    */
+    get IPAddress(): string | null {
+        return this.Get('IPAddress');
+    }
+    set IPAddress(value: string | null) {
+        this.Set('IPAddress', value);
+    }
+
+    /**
+    * * Field Name: UserAgent
+    * * Display Name: User Agent
+    * * SQL Data Type: nvarchar(500)
+    */
+    get UserAgent(): string | null {
+        return this.Get('UserAgent');
+    }
+    set UserAgent(value: string | null) {
+        this.Set('UserAgent', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resource Ratings - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ResourceRating
+ * * Base View: vwResourceRatings
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Ratings')
+export class AssociationDemoResourceRatingEntity extends BaseEntity<AssociationDemoResourceRatingEntityType> {
+    /**
+    * Loads the Resource Ratings record from the database
+    * @param ID: string - primary key value to load the Resource Ratings record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceRatingEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ResourceID
+    * * Display Name: Resource
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resources (vwResources.ID)
+    */
+    get ResourceID(): string {
+        return this.Get('ResourceID');
+    }
+    set ResourceID(value: string) {
+        this.Set('ResourceID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: Rating
+    * * Display Name: Rating
+    * * SQL Data Type: int
+    */
+    get Rating(): number {
+        return this.Get('Rating');
+    }
+    set Rating(value: number) {
+        this.Set('Rating', value);
+    }
+
+    /**
+    * * Field Name: Review
+    * * Display Name: Review
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Review(): string | null {
+        return this.Get('Review');
+    }
+    set Review(value: string | null) {
+        this.Set('Review', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: IsHelpful
+    * * Display Name: Is Helpful
+    * * SQL Data Type: bit
+    */
+    get IsHelpful(): boolean | null {
+        return this.Get('IsHelpful');
+    }
+    set IsHelpful(value: boolean | null) {
+        this.Set('IsHelpful', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resource Reviews - strongly typed entity sub-class
+ * * Schema: membership
+ * * Base Table: ResourceReview
+ * * Base View: vwResourceReviews
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Reviews')
+export class membershipResourceReviewEntity extends BaseEntity<membershipResourceReviewEntityType> {
+    /**
+    * Loads the Resource Reviews record from the database
+    * @param ID: string - primary key value to load the Resource Reviews record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof membershipResourceReviewEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: MemberID
+    * * Display Name: Member
+    * * SQL Data Type: uniqueidentifier
+    */
+    get MemberID(): string {
+        return this.Get('MemberID');
+    }
+    set MemberID(value: string) {
+        this.Set('MemberID', value);
+    }
+
+    /**
+    * * Field Name: ResourceTitle
+    * * Display Name: Resource Title
+    * * SQL Data Type: nvarchar(200)
+    */
+    get ResourceTitle(): string {
+        return this.Get('ResourceTitle');
+    }
+    set ResourceTitle(value: string) {
+        this.Set('ResourceTitle', value);
+    }
+
+    /**
+    * * Field Name: Rating
+    * * Display Name: Rating
+    * * SQL Data Type: int
+    */
+    get Rating(): number {
+        return this.Get('Rating');
+    }
+    set Rating(value: number) {
+        this.Set('Rating', value);
+    }
+
+    /**
+    * * Field Name: Review
+    * * Display Name: Review Content
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Review(): string | null {
+        return this.Get('Review');
+    }
+    set Review(value: string | null) {
+        this.Set('Review', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime2
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resource Tags - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ResourceTag
+ * * Base View: vwResourceTags
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Tags')
+export class AssociationDemoResourceTagEntity extends BaseEntity<AssociationDemoResourceTagEntityType> {
+    /**
+    * Loads the Resource Tags record from the database
+    * @param ID: string - primary key value to load the Resource Tags record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceTagEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ResourceID
+    * * Display Name: Resource
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resources (vwResources.ID)
+    */
+    get ResourceID(): string {
+        return this.Get('ResourceID');
+    }
+    set ResourceID(value: string) {
+        this.Set('ResourceID', value);
+    }
+
+    /**
+    * * Field Name: TagName
+    * * Display Name: Tag Name
+    * * SQL Data Type: nvarchar(100)
+    */
+    get TagName(): string {
+        return this.Get('TagName');
+    }
+    set TagName(value: string) {
+        this.Set('TagName', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resource Versions - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: ResourceVersion
+ * * Base View: vwResourceVersions
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resource Versions')
+export class AssociationDemoResourceVersionEntity extends BaseEntity<AssociationDemoResourceVersionEntityType> {
+    /**
+    * Loads the Resource Versions record from the database
+    * @param ID: string - primary key value to load the Resource Versions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceVersionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ResourceID
+    * * Display Name: Resource
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resources (vwResources.ID)
+    */
+    get ResourceID(): string {
+        return this.Get('ResourceID');
+    }
+    set ResourceID(value: string) {
+        this.Set('ResourceID', value);
+    }
+
+    /**
+    * * Field Name: VersionNumber
+    * * Display Name: Version Number
+    * * SQL Data Type: nvarchar(20)
+    */
+    get VersionNumber(): string {
+        return this.Get('VersionNumber');
+    }
+    set VersionNumber(value: string) {
+        this.Set('VersionNumber', value);
+    }
+
+    /**
+    * * Field Name: VersionNotes
+    * * Display Name: Version Notes
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get VersionNotes(): string | null {
+        return this.Get('VersionNotes');
+    }
+    set VersionNotes(value: string | null) {
+        this.Set('VersionNotes', value);
+    }
+
+    /**
+    * * Field Name: FileURL
+    * * Display Name: File URL
+    * * SQL Data Type: nvarchar(1000)
+    */
+    get FileURL(): string | null {
+        return this.Get('FileURL');
+    }
+    set FileURL(value: string | null) {
+        this.Set('FileURL', value);
+    }
+
+    /**
+    * * Field Name: FileSizeBytes
+    * * Display Name: File Size (Bytes)
+    * * SQL Data Type: bigint
+    */
+    get FileSizeBytes(): number | null {
+        return this.Get('FileSizeBytes');
+    }
+    set FileSizeBytes(value: number | null) {
+        this.Set('FileSizeBytes', value);
+    }
+
+    /**
+    * * Field Name: CreatedByID
+    * * Display Name: Created By
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get CreatedByID(): string {
+        return this.Get('CreatedByID');
+    }
+    set CreatedByID(value: string) {
+        this.Set('CreatedByID', value);
+    }
+
+    /**
+    * * Field Name: CreatedDate
+    * * Display Name: Created Date
+    * * SQL Data Type: datetime
+    */
+    get CreatedDate(): Date {
+        return this.Get('CreatedDate');
+    }
+    set CreatedDate(value: Date) {
+        this.Set('CreatedDate', value);
+    }
+
+    /**
+    * * Field Name: IsCurrent
+    * * Display Name: Is Current Version
+    * * SQL Data Type: bit
+    */
+    get IsCurrent(): boolean | null {
+        return this.Get('IsCurrent');
+    }
+    set IsCurrent(value: boolean | null) {
+        this.Set('IsCurrent', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Resources - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Resource
+ * * Base View: vwResources
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Resources')
+export class AssociationDemoResourceEntity extends BaseEntity<AssociationDemoResourceEntityType> {
+    /**
+    * Loads the Resources record from the database
+    * @param ID: string - primary key value to load the Resources record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoResourceEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: CategoryID
+    * * Display Name: Category
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Resource Categories (vwResourceCategories.ID)
+    */
+    get CategoryID(): string {
+        return this.Get('CategoryID');
+    }
+    set CategoryID(value: string) {
+        this.Set('CategoryID', value);
+    }
+
+    /**
+    * * Field Name: Title
+    * * Display Name: Title
+    * * SQL Data Type: nvarchar(500)
+    */
+    get Title(): string {
+        return this.Get('Title');
+    }
+    set Title(value: string) {
+        this.Set('Title', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: ResourceType
+    * * Display Name: Resource Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get ResourceType(): string {
+        return this.Get('ResourceType');
+    }
+    set ResourceType(value: string) {
+        this.Set('ResourceType', value);
+    }
+
+    /**
+    * * Field Name: FileURL
+    * * Display Name: File URL
+    * * SQL Data Type: nvarchar(1000)
+    */
+    get FileURL(): string | null {
+        return this.Get('FileURL');
+    }
+    set FileURL(value: string | null) {
+        this.Set('FileURL', value);
+    }
+
+    /**
+    * * Field Name: FileSizeBytes
+    * * Display Name: File Size (Bytes)
+    * * SQL Data Type: bigint
+    */
+    get FileSizeBytes(): number | null {
+        return this.Get('FileSizeBytes');
+    }
+    set FileSizeBytes(value: number | null) {
+        this.Set('FileSizeBytes', value);
+    }
+
+    /**
+    * * Field Name: MimeType
+    * * Display Name: Mime Type
+    * * SQL Data Type: nvarchar(100)
+    */
+    get MimeType(): string | null {
+        return this.Get('MimeType');
+    }
+    set MimeType(value: string | null) {
+        this.Set('MimeType', value);
+    }
+
+    /**
+    * * Field Name: AuthorID
+    * * Display Name: Author
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: Members__AssociationDemo (vwMembers__AssociationDemo.ID)
+    */
+    get AuthorID(): string | null {
+        return this.Get('AuthorID');
+    }
+    set AuthorID(value: string | null) {
+        this.Set('AuthorID', value);
+    }
+
+    /**
+    * * Field Name: PublishedDate
+    * * Display Name: Published Date
+    * * SQL Data Type: datetime
+    */
+    get PublishedDate(): Date {
+        return this.Get('PublishedDate');
+    }
+    set PublishedDate(value: Date) {
+        this.Set('PublishedDate', value);
+    }
+
+    /**
+    * * Field Name: LastUpdatedDate
+    * * Display Name: Last Updated Date
+    * * SQL Data Type: datetime
+    */
+    get LastUpdatedDate(): Date | null {
+        return this.Get('LastUpdatedDate');
+    }
+    set LastUpdatedDate(value: Date | null) {
+        this.Set('LastUpdatedDate', value);
+    }
+
+    /**
+    * * Field Name: ViewCount
+    * * Display Name: View Count
+    * * SQL Data Type: int
+    */
+    get ViewCount(): number | null {
+        return this.Get('ViewCount');
+    }
+    set ViewCount(value: number | null) {
+        this.Set('ViewCount', value);
+    }
+
+    /**
+    * * Field Name: DownloadCount
+    * * Display Name: Download Count
+    * * SQL Data Type: int
+    */
+    get DownloadCount(): number | null {
+        return this.Get('DownloadCount');
+    }
+    set DownloadCount(value: number | null) {
+        this.Set('DownloadCount', value);
+    }
+
+    /**
+    * * Field Name: AverageRating
+    * * Display Name: Average Rating
+    * * SQL Data Type: decimal(3, 2)
+    */
+    get AverageRating(): number | null {
+        return this.Get('AverageRating');
+    }
+    set AverageRating(value: number | null) {
+        this.Set('AverageRating', value);
+    }
+
+    /**
+    * * Field Name: RatingCount
+    * * Display Name: Rating Count
+    * * SQL Data Type: int
+    */
+    get RatingCount(): number | null {
+        return this.Get('RatingCount');
+    }
+    set RatingCount(value: number | null) {
+        this.Set('RatingCount', value);
+    }
+
+    /**
+    * * Field Name: IsFeatured
+    * * Display Name: Is Featured
+    * * SQL Data Type: bit
+    */
+    get IsFeatured(): boolean | null {
+        return this.Get('IsFeatured');
+    }
+    set IsFeatured(value: boolean | null) {
+        this.Set('IsFeatured', value);
+    }
+
+    /**
+    * * Field Name: RequiresMembership
+    * * Display Name: Requires Membership
+    * * SQL Data Type: bit
+    */
+    get RequiresMembership(): boolean | null {
+        return this.Get('RequiresMembership');
+    }
+    set RequiresMembership(value: boolean | null) {
+        this.Set('RequiresMembership', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(20)
+    */
+    get Status(): string | null {
+        return this.Get('Status');
+    }
+    set Status(value: string | null) {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+}
+
+
+/**
+ * Segments - strongly typed entity sub-class
+ * * Schema: AssociationDemo
+ * * Base Table: Segment
+ * * Base View: vwSegments
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'Segments')
+export class AssociationDemoSegmentEntity extends BaseEntity<AssociationDemoSegmentEntityType> {
+    /**
+    * Loads the Segments record from the database
+    * @param ID: string - primary key value to load the Segments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof AssociationDemoSegmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(255)
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: SegmentType
+    * * Display Name: Segment Type
+    * * SQL Data Type: nvarchar(50)
+    */
+    get SegmentType(): string | null {
+        return this.Get('SegmentType');
+    }
+    set SegmentType(value: string | null) {
+        this.Set('SegmentType', value);
+    }
+
+    /**
+    * * Field Name: FilterCriteria
+    * * Display Name: Filter Criteria
+    * * SQL Data Type: nvarchar(MAX)
+    */
+    get FilterCriteria(): string | null {
+        return this.Get('FilterCriteria');
+    }
+    set FilterCriteria(value: string | null) {
+        this.Set('FilterCriteria', value);
+    }
+
+    /**
+    * * Field Name: MemberCount
+    * * Display Name: Member Count
+    * * SQL Data Type: int
+    */
+    get MemberCount(): number | null {
+        return this.Get('MemberCount');
+    }
+    set MemberCount(value: number | null) {
+        this.Set('MemberCount', value);
+    }
+
+    /**
+    * * Field Name: LastCalculatedDate
+    * * Display Name: Last Calculated Date
+    * * SQL Data Type: datetime
+    */
+    get LastCalculatedDate(): Date | null {
+        return this.Get('LastCalculatedDate');
+    }
+    set LastCalculatedDate(value: Date | null) {
+        this.Set('LastCalculatedDate', value);
+    }
+
+    /**
+    * * Field Name: IsActive
+    * * Display Name: Is Active
+    * * SQL Data Type: bit
+    */
+    get IsActive(): boolean {
+        return this.Get('IsActive');
+    }
+    set IsActive(value: boolean) {
+        this.Set('IsActive', value);
     }
 
     /**

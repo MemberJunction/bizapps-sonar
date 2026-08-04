@@ -33,6 +33,18 @@ jobs:
       - name: Validate repository.url in packages
         run: ./.github/scripts/validate-package-repository.sh
 
+      # Runs BEFORE the build on purpose: this failure mode does not show up in a monorepo build,
+      # only on a fresh `mj app install`, so the build passing proves nothing about it.
+      - name: Validate client/server package boundary
+        run: ./.github/scripts/validate-client-package-boundary.sh
+
+      # Also runs BEFORE the build: wrong FK order is invisible on a database that already has the
+      # tables, and only fails on a fresh `mj app install`. The build passing proves nothing about it.
+      - name: Validate migration FK ordering
+        run: |
+          ./.github/scripts/validate-migration-fk-order.sh migrations
+          ./.github/scripts/validate-migration-fk-order.sh migrations-pg
+
       - name: Install dependencies
         run: npm ci
 

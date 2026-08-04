@@ -10,9 +10,10 @@ import { RESOLVER_PATHS } from '@mj-biz-apps/sonar-server';
 // Import pre-built MJ class registrations manifest (covers all @memberjunction/* packages)
 import '@memberjunction/server-bootstrap/mj-class-registrations';
 
-// Optional: Import communication providers if needed
-// import '@memberjunction/communication-sendgrid';
-// import '@memberjunction/communication-teams';
+// Communication providers. NOTE: the mj-class-registrations manifest above does NOT include the
+// communication packages, so a provider's class is only registered if it is imported here. Without
+// this, CommunicationEngine.GetProvider('SendGrid') finds metadata but no implementation.
+import '@memberjunction/communication-sendgrid';
 
 // Optional: Import custom auth/user creation logic
 // See: /docs/examples/custom-user-creation/README.md

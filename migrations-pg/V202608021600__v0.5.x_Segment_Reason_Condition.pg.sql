@@ -1,0 +1,12 @@
+-- PostgreSQL twin of migrations/V202608021600__v0.5.x_Segment_Reason_Condition.sql: document the
+-- REASON layer on "Sonar: Preview Segment" — a rule can now select on WHICH SIGNAL is dragging a
+-- member down, and the preview returns the cohort's breakdown by that signal. UPDATE-only, because
+-- the param rows were seeded by an already-applied migration. Idempotent.
+
+UPDATE __mj."ActionParam"
+SET "Description" = 'JSON SegmentFilter. Point-in-time: { bandId?, minScore?, maxScore?, minDelta?, maxDelta?, crossedBandOnly? }. Trust gate: { minDataCompleteness? }. Trajectory (reads ScoreHistory): { windowDays?, minSlopePer30Days?, maxSlopePer30Days?, minDeclineRun?, minNetDrop?, maxVolatility?, minSnapshots? }. Reason, i.e. WHICH SIGNAL is dragging the member down (reads ScoreFactorContribution): { reason: { dominantFactorIds?: [FactorID], weakOnFactorId?: FactorID, maxNormalizedValue?: 0-1 (default 0.5), requireNoData?: bool, requireData?: bool } }. Use dominantFactorIds for a homogeneous group (everyone shares the same main problem); use weakOnFactorId when the action targets one behaviour regardless of whether it is the member''s worst. A member with no contributions on record never matches a reason condition. requireNoData/requireData are mirror gates on whether the signal has any records for the member at all: a data gap needs the integration fixed, not a person contacted, so the two are separate groups even when they share a dominant factor.'
+WHERE "ID" = '5044a100-0025-4000-8000-0000000000a2';
+
+UPDATE __mj."ActionParam"
+SET "Description" = 'JSON: { total, page, pageSize, usedTrajectory, breakdown: [{ factorId, label, count, share, hadData }], members: [{ scoreId, anchorRecordId, anchorRecordKeyJSON, normalizedScore, bandId, delta, shape, reasonLabel, dominantFactorId, reasonHadData }] }. breakdown covers the WHOLE cohort (not just the page) and is how the group splits by main problem, biggest slice first; factorId null = Sonar cannot tell why those members are low. Each member carries reasonLabel ("Low Event Registrations" / "No Event Registrations") plus the dominantFactorId behind it, so a breakdown row can be turned straight back into a rule. hadData/reasonHadData false = the signal has NO records for that member, so the low score is a data gap rather than measured disengagement. shape is null unless the rule used trajectory bounds.'
+WHERE "ID" = '5044a100-0025-4000-8000-0000000000a5';

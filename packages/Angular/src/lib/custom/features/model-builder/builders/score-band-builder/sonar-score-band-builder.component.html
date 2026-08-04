@@ -22,7 +22,7 @@
 
         <!-- Number-line preview -->
         <div class="sonar-sb__preview-card">
-            <div class="sonar-card__label">Preview &middot; {{ scaleMin }}&ndash;{{ scaleMax }}</div>
+            <div class="sonar-card__label">Preview &middot; {{ scaleMin() }}&ndash;{{ scaleMax() }}</div>
             <div class="sonar-sb__line">
                 @for (s of segments(); track s.label) {
                     <div [class]="'sonar-sb__seg sonar-sb__seg--' + s.cssKey" [style.width.%]="s.widthPct">{{ s.label }}</div>
@@ -87,7 +87,7 @@
 
             <p class="sonar-faint sonar-fb__hint sonar-sb__rows-note">
                 <strong class="sonar-ink">Severity</strong> ranks bands worst&rarr;best (1 is best).
-                A <strong class="sonar-ink">Final</strong> band marks a state members don&rsquo;t bounce back from.
+                A <strong class="sonar-ink">Final</strong> band marks a state records don&rsquo;t bounce back from.
             </p>
         </div>
 

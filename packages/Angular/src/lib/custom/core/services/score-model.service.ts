@@ -22,7 +22,7 @@ const SCORE_MODEL_VERSION = "MJ_BizApps_Sonar: Score Model Versions";
 interface SnapMRE { ID?: string; RelatedEntityID?: string; Alias?: string | null; RelationshipPath?: string | null; JoinType?: string | null; SourceSystemTag?: string | null; Description?: string | null; }
 interface SnapFactor { ID?: string; Name?: string; Slug?: string | null; Description?: string | null; FactorType?: string; AnchorEntityID?: string; SourceRelatedEntityID?: string | null; SourceEntityID?: string | null; FilterExpression?: string | null; Aggregation?: string | null; AggregateFieldName?: string | null; TimeWindowID?: string | null; RecencyDecayHalfLifeDays?: number | null; NormalizationMethod?: string | null; NormalizationParamsJSON?: string | null; OutputMin?: number | null; OutputMax?: number | null; HigherIsBetter?: boolean | null; }
 interface SnapModelFactor { FactorID?: string; Weight?: number | null; WeightMode?: string | null; ContributionCap?: number | null; ContributionFloor?: number | null; TrendWeight?: number | null; MissingDataPolicy?: string | null; IsRequired?: boolean | null; DisplayLabel?: string | null; DisplayOrder?: number | null; }
-interface ConfigSnapshot { model?: { PopulationFilter?: string | null; CombineStrategy?: string | null }; relatedEntities?: SnapMRE[]; factors?: SnapFactor[]; modelFactors?: SnapModelFactor[]; }
+interface ConfigSnapshot { model?: { PopulationFilter?: string | null; CombineStrategy?: string | null; TrendWindowDays?: number | null }; relatedEntities?: SnapMRE[]; factors?: SnapFactor[]; modelFactors?: SnapModelFactor[]; }
 
 /** Snapshot fields copied verbatim onto rows during rollback (keyof-typed so Set() stays type-safe).
  *  Excludes IDs + SourceRelatedEntityID (remapped) — those are handled explicitly. */
@@ -145,6 +145,12 @@ export class ScoreModelService {
         if (cfg.model) {
             model.PopulationFilter = cfg.model.PopulationFilter ?? null;
             if (cfg.model.CombineStrategy) model.Set("CombineStrategy", cfg.model.CombineStrategy);
+            // The trend window is frozen scoring config (publishLock.ts keeps it off the
+            // editable-while-published allowlist), so a rollback has to restore it too — otherwise
+            // "Rollback of v3" would rebuild v3's rubric while silently keeping today's window, and
+            // the restored version's Delta/movers wouldn't match what v3 actually reported.
+            // Snapshots predating this field simply leave the live value alone.
+            if (cfg.model.TrendWindowDays !== undefined) model.TrendWindowDays = cfg.model.TrendWindowDays;
         }
         if (!(await model.Save())) return { ok: false, error: "Couldn't open the model for rollback." };
 

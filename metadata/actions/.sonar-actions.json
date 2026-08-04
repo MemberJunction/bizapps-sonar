@@ -445,7 +445,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": true,
-            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode."
+            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode, missingDataPolicy. missingDataPolicy is Zero|NeutralMidpoint|Exclude and decides what an anchor with NO data for this factor scores on it: Zero counts as zero and still weighs against them, NeutralMidpoint fills the factor's own midpoint so it neither helps nor hurts, Exclude drops it from that anchor's total. Omit it only when you have no view; the default behaves as Zero, which on a sparse source scores every anchor with no rows as the worst possible."
           },
           "primaryKey": {
             "ID": "5044A100-0008-4000-8000-0000000000A2"
@@ -2717,6 +2717,24 @@
         {
           "fields": {
             "ActionID": "@parent:ID",
+            "Name": "MissingDataPolicy",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Zero|NeutralMidpoint|Exclude — what an anchor with NO data for this signal scores on it. Zero counts as zero and still weighs against them; NeutralMidpoint fills the midpoint so it neither helps nor hurts; Exclude drops it from that anchor's total. Omit to leave the default, which behaves as Zero."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A6"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.626Z",
+            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
             "Name": "Name",
             "Type": "Input",
             "ValueType": "Scalar",
@@ -2860,6 +2878,629 @@
           },
           "primaryKey": {
             "ID": "5044A100-001B-4000-8000-0000000000B2"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Run Intervention",
+      "Description": "The action layer's entry point: find-or-creates an ad-hoc ScoreSegment (band/score filter) and an Intervention (segment + chosen MJ Action + holdout %), then runs it. preview:true returns cohort/treated/held counts without writing or firing; preview:false writes one InterventionAssignment per member and fires the Action for each Treatment member (Control is held out). Idempotent: already-assigned members are never re-fired.",
+      "DriverClass": "SonarRunIntervention",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-bullhorn",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001F-4000-8000-00000000001F"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ConfigJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON: { modelId, segment:{name,filter:{bandId?,minScore?,maxScore?}}, intervention:{name,holdoutPercent}, action:{actionId,params[]}, cap, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001F-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON InterventionRunResult: { cohortSize, alreadyAssigned, eligible, capped, treated, held, sent, failed, preview }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001F-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Intervention run (or previewed) successfully."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001F-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ConfigJSON missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001F-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The run failed (segment/intervention create or engine error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001F-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Measure Intervention Outcomes",
+      "Description": "Fills InterventionOutcome for one intervention's assignments (baseline = the member's score history at assignment; outcome = current score/band movement) and returns the treatment-vs-control lift summary. Re-runnable: measured assignments are skipped; lift aggregates everything measured so far. v1 outcomes are engagement outcomes (score/band movement); business outcomes come later.",
+      "DriverClass": "SonarMeasureOutcomes",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-scale-balanced",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001C-4000-8000-00000000001C"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Intervention whose assignments to measure."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON MeasureResult: { measured, alreadyMeasured, unmeasurable, lift: { scoreLift, bandUpLiftPct, ... } }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Outcomes measured; lift summary returned."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "InterventionID missing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Measurement failed (intervention/segment not found or write error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001C-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Sync Cohort To List",
+      "Description": "Bulk play (Kind=BulkSync): fires once per run and lands the whole treated cohort on an MJ List, with each member's score/band/intervention in ListDetail.AdditionalData. Staff work the list in the Lists app (row status), share it, or bind a connector to it. Control members are never included. Idempotent per member — re-runs only append new names.",
+      "DriverClass": "SonarSyncCohortToList",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-list-ul",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Sonar Plays"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001E-4000-8000-00000000001E"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "CohortJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "Runner-injected: JSON array of the TREATED members ({ anchorRecordId, anchorRecordKeyJSON, score, bandId }). Never includes control members."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "Runner-injected: the Score Model whose anchor entity types the list."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Runner-injected: names the default list (\"Sonar: <intervention name>\") and rides in each row's AdditionalData."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ListName",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Optional operator override for the target list's name. The list is found-or-created by name, so re-using a name appends to that list."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { listId, listName, added, alreadyOnList }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000A5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Cohort synced (or already fully on the list)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "CohortJSON/ModelID missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "The list write failed (fully or partially) — the run reports failure so a retry re-syncs; already-synced members are skipped."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001E-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Draft Outreach",
+      "Description": "Per-member play (Kind=Action): for each treated member, an AI prompt drafts a short personalized outreach email grounded ONLY in that member's score facts (band, delta, factor contributions, dominant cause) and saves it as an Intervention Proposal awaiting human review in the Outreach queue. Sends nothing. Idempotent per (intervention, member) — a re-fire returns the existing proposal.",
+      "DriverClass": "SonarDraftOutreach",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-envelope-open-text",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Sonar Plays"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0021-4000-8000-000000000021"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The treated member — set the value to the {{member}} token so the runner fills it per fire."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "InterventionID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The firing intervention (links the proposal back) — set the value to the {{interventionId}} token."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The score model whose facts ground the draft — set the value to the {{modelId}} token."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { proposalId, existing, subject }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000A4"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Proposal drafted (or already existed for this intervention + member)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "AnchorRecordID/InterventionID/ModelID missing or malformed."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "NOT_FOUND",
+            "IsSuccess": false,
+            "Description": "The member has no score on this model (or the model/anchor is missing)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Drafting failed (prompt missing/failed or the proposal row could not be saved). The runner records the member as Failed; a later re-run re-drafts only missing members."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0021-4000-8000-0000000000C4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Preview Segment",
+      "Description": "Resolves a targeting rule (a SegmentFilter) through the scoring engine and returns the full cohort COUNT plus one page of members, with each member's trend shape when the rule uses trajectory bounds. Writes nothing: no segment, intervention, or assignment rows. Read-only; the UI calls this so the cohort it displays is resolved by the same code that decides who gets treated.",
+      "DriverClass": "SonarPreviewSegment",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-crosshairs",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0025-4000-8000-000000000025"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "The Score Model whose persisted scores the rule is resolved against."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "FilterJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON SegmentFilter. Point-in-time: { bandId?, minScore?, maxScore?, minDelta?, maxDelta?, crossedBandOnly? }. Trust gate: { minDataCompleteness? }. Trajectory (reads ScoreHistory): { windowDays?, minSlopePer30Days?, maxSlopePer30Days?, minDeclineRun?, minNetDrop?, maxVolatility?, minSnapshots? }. Reason, i.e. WHICH SIGNAL is dragging the member down (reads ScoreFactorContribution): { reason: { dominantFactorIds?: [FactorID], weakOnFactorId?: FactorID, maxNormalizedValue?: 0-1 (default 0.5), requireNoData?: bool, requireData?: bool } }. Member context, i.e. conditions on the ANCHOR RECORD rather than the score: { anchor: [{ field, op, value }] } where op is one of eq/neq/in/notIn/gte/lte/isNull/isNotNull/withinLastDays/olderThanDays/withinNextDays. The date operators take a number of DAYS relative to now, which is how urgency is actually spoken: JoinDate olderThanDays 365 = a member for over a year; LastActivityDate olderThanDays 90 = dormant for a quarter; a future-dated field withinNextDays 60 = about to come due. olderThanDays is exclusive at the boundary so it and withinLastDays partition cleanly. Ordering: { rank: { mode, urgencyField?, valueField?, weights? } } where mode is worstScore (default) / fastestDecline / biggestDrop / soonest / highestValue / priority. urgencyField is an anchor DATE field (sooner = higher priority, within a 90-day horizon); valueField is an anchor NUMBER field; priority blends severity, urgency and value (defaults 0.5/0.3/0.2, renormalised over whichever terms the rule can supply). All layers AND together. Rank is part of the RULE: the run cap truncates the resolved cohort, so this order decides who gets treated. A condition naming a field the anchor entity does not have FAILS with VALIDATION_ERROR rather than being ignored, because a skipped condition would silently widen the cohort. Use dominantFactorIds for a homogeneous group (everyone shares the same main problem); use weakOnFactorId when the action targets one behaviour regardless of whether it is the member's worst. A member with no contributions on record never matches a reason condition. requireNoData/requireData are mirror gates on whether the signal has any records for the member at all: a data gap needs the integration fixed, not a person contacted, so the two are separate groups even when they share a dominant factor."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Page",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "0-based page of members to return. The returned total is always the FULL cohort, not the page."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A3"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "PageSize",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Members per page (default 50, capped at 500)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A4"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "OrderBy",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "DISPLAY ONLY, and IGNORED when the filter states its own rank (see FilterJSON) so the previewed order can never differ from the order a capped run would treat. 'BiggestDrop'/'BiggestGain' re-sort this RESPONSE by the last-run delta; anything else keeps the resolved order."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A6"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { total, page, pageSize, usedTrajectory, breakdown: [{ factorId, label, count, share, hadData }], members: [{ scoreId, anchorRecordId, anchorRecordKeyJSON, normalizedScore, bandId, delta, shape, reasonLabel, dominantFactorId, reasonHadData }] }. Members come back in the rule's rank order, which is the order a capped run would treat them in. breakdown covers the WHOLE cohort (not just the page) and is how the group splits by main problem, biggest slice first; factorId null = Sonar cannot tell why those members are low. Each member carries reasonLabel (\"Low Event Registrations\" / \"No Event Registrations\") plus the dominantFactorId behind it, so a breakdown row can be turned straight back into a rule. hadData/reasonHadData false = the signal has NO records for that member, so the low score is a data gap rather than measured disengagement. shape is null unless the rule used trajectory bounds."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000A5"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Rule resolved; the count and the requested page are in Result."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ModelID missing/not a GUID, or FilterJSON missing or not a JSON object."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "Resolution failed (bad filter shape or a query error)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0025-4000-8000-0000000000C3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Explain Scores",
+      "Description": "For a set of Score rows, returns WHY each member is low: the signal dragging them down most, as a short label (\"Low Event Registrations\" / \"No Event Registrations\"), plus the factor behind it and whether that signal had any data at all. Ranked on the rubric weight, not the realized percentage, so a MISSING signal can be named as the reason. Read-only. Backs the Why column on member lists that are not resolved from a targeting rule; use Sonar: Preview Segment when there IS a rule, which returns the same labels with the cohort.",
+      "DriverClass": "SonarExplainScores",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-circle-question",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0027-4000-8000-000000000027"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ScoreIDsJSON",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "JSON array of Score.ID values to explain (maximum 500 per call). Non-GUID entries and duplicates are ignored; an empty array succeeds with an empty result rather than failing."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000A1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { reasons: [{ scoreId, reasonLabel, dominantFactorId, hadData }] }. reasonLabel is null when nothing is dragging the member down (they are doing fine on every signal) or when no contributions are on record. hadData false = that signal has NO records for the member, so the low score is a data gap to fix rather than a person to contact."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000A2"
+          }
+        }
+      ],
+      "MJ: Action Result Codes": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "SUCCESS",
+            "IsSuccess": true,
+            "Description": "Reasons resolved (including the empty-input case)."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "VALIDATION_ERROR",
+            "IsSuccess": false,
+            "Description": "ScoreIDsJSON missing, not a JSON array, or over the 500-id limit."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C2"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "ResultCode": "ERROR",
+            "IsSuccess": false,
+            "Description": "A query error while reading contributions, factors, or rubric weights."
+          },
+          "primaryKey": {
+            "ID": "5044A100-0027-4000-8000-0000000000C3"
           }
         }
       ]

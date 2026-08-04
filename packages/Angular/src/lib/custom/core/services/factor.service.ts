@@ -25,6 +25,26 @@ export const PARAMETERIZED_NORMALIZATION: ReadonlySet<NormalizationMethod> = new
 ]);
 /** How a factor's weight combines in the rubric. */
 export type WeightMode = "Additive" | "Penalty";
+/**
+ * What happens to a member's score on this signal when they have NO data for it.
+ *  - Zero: scores 0 and still counts in the total (absence is bad news).
+ *  - NeutralMidpoint: fills the factor's own range midpoint, so it neither helps nor hurts.
+ *  - Exclude: dropped from that member's total, so the remaining signals carry more.
+ *
+ * The column also allows a legacy "ModelDefault", which the engine resolves to Zero (there is no
+ * model-level default column behind it — see RecomputeOrchestrator.resolveMissingDataPolicy). The
+ * UI reads it back as Zero and never writes it, so these three mean exactly what they say.
+ */
+export type MissingDataPolicy = "Zero" | "NeutralMidpoint" | "Exclude";
+
+/** The tunable fields of a rubric binding (the ModelFactor row) — grouped so the bind/update
+ *  signatures stay readable as more binding options get exposed. */
+export interface RubricBinding {
+    /** Weight as a 0–1 fraction (the builder works in 0–100 and divides). */
+    weight: number;
+    weightMode: WeightMode;
+    missingDataPolicy: MissingDataPolicy;
+}
 /** A factor either measures data (compiled to SQL) or runs an Action for its value. */
 export type FactorKind = "Declarative" | "ActionBacked";
 /** Governance gate the engine checks: only 'Approved' action factors are included in real scores. */
@@ -99,6 +119,8 @@ export interface EditFactorVM {
     /** Weight as a 0–100 percentage (stored as 0–1). */
     weightPct: number;
     weightMode: WeightMode;
+    /** Resolved to the three real behaviours (a stored "ModelDefault" reads back as "Zero"). */
+    missingDataPolicy: MissingDataPolicy;
 }
 
 /**
@@ -207,15 +229,34 @@ export class FactorService {
         }
     }
 
-    /** Bind an existing factor into a model's rubric with a weight + mode. */
-    public async bindToModel(modelId: string, factorId: string, weight: number, weightMode: WeightMode): Promise<mjBizAppsSonarModelFactorEntity | null> {
+    /** Bind an existing factor into a model's rubric with a weight + mode + missing-data policy. */
+    public async bindToModel(modelId: string, factorId: string, binding: RubricBinding): Promise<mjBizAppsSonarModelFactorEntity | null> {
         const mf = await this.md.GetEntityObject<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR);
         mf.NewRecord();
         mf.ScoreModelID = modelId;
         mf.FactorID = factorId;
-        mf.Weight = weight;
-        mf.WeightMode = weightMode;
+        this.applyBinding(mf, binding);
         return (await mf.Save()) ? mf : null;
+    }
+
+    /**
+     * Copy a binding onto a ModelFactor row. The missing-data policy is written only when the
+     * EFFECTIVE policy actually changes, so an unrelated signal edit doesn't silently rewrite a
+     * legacy "ModelDefault" row to "Zero" — identical behaviour, but it would surface as a phantom
+     * change in the published-version config diff.
+     */
+    private applyBinding(mf: mjBizAppsSonarModelFactorEntity, binding: RubricBinding): void {
+        mf.Weight = binding.weight;
+        mf.WeightMode = binding.weightMode;
+        if (this.effectiveMissingPolicy(mf.MissingDataPolicy) !== binding.missingDataPolicy) {
+            mf.MissingDataPolicy = binding.missingDataPolicy;
+        }
+    }
+
+    /** Resolve a stored MissingDataPolicy to the three real behaviours, mirroring the engine's
+     *  "ModelDefault → Zero" resolution so the UI never shows a choice the engine won't honour. */
+    private effectiveMissingPolicy(stored: string | null | undefined): MissingDataPolicy {
+        return stored === "NeutralMidpoint" || stored === "Exclude" ? stored : "Zero";
     }
 
     /**
@@ -223,11 +264,11 @@ export class FactorService {
      * TODO atomic: wrap both saves in a Metadata TransactionGroup so a failed bind rolls
      * back the factor. Two-step for now (acceptable for the scaffold).
      */
-    public async createAndBind(input: CreateFactorInput, weight: number, weightMode: WeightMode): Promise<boolean> {
+    public async createAndBind(input: CreateFactorInput, binding: RubricBinding): Promise<boolean> {
         const factor = await this.create(input);
         if (!factor) return false;
-        const binding = await this.bindToModel(input.scoreModelID, factor.ID, weight, weightMode);
-        return binding !== null;
+        const bound = await this.bindToModel(input.scoreModelID, factor.ID, binding);
+        return bound !== null;
     }
 
     /** Load a bound factor's full editable state (Model Factor + its Factor) for the edit dialog. */
@@ -254,6 +295,7 @@ export class FactorService {
             higherIsBetter: factor.HigherIsBetter ?? true,
             weightPct: Math.round((mf.Weight ?? 0) * 100),
             weightMode: (mf.WeightMode ?? "Additive") === "Penalty" ? "Penalty" : "Additive",
+            missingDataPolicy: this.effectiveMissingPolicy(mf.MissingDataPolicy),
         };
     }
 
@@ -281,7 +323,7 @@ export class FactorService {
      * config can't linger. The model's existing Scores were computed with the OLD definition, so
      * they're left stale until the next recompute (the caller should re-run).
      */
-    public async updateFactor(modelFactorId: string, factorId: string, input: CreateFactorInput, weight: number, weightMode: WeightMode): Promise<boolean> {
+    public async updateFactor(modelFactorId: string, factorId: string, input: CreateFactorInput, binding: RubricBinding): Promise<boolean> {
         const factor = await this.md.GetEntityObject<mjBizAppsSonarFactorEntity>(FACTOR, CompositeKey.FromID(factorId));
         if (!factor?.IsSaved) return false;
         factor.Name = input.name;
@@ -295,8 +337,7 @@ export class FactorService {
 
         const mf = await this.md.GetEntityObject<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR, CompositeKey.FromID(modelFactorId));
         if (!mf?.IsSaved) return false;
-        mf.Weight = weight;
-        mf.WeightMode = weightMode;
+        this.applyBinding(mf, binding);
         return mf.Save();
     }
 

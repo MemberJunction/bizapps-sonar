@@ -365,6 +365,28 @@ export class ScoreReadService {
         return { risers, fallers };
     }
 
+    /** Headline counts for the Movers view: how many dropped, climbed, and crossed a band on the
+     *  last run. Three cheap counts (Delta is scannable). */
+    public async moverSummary(modelId: string): Promise<{ dropped: number; climbed: number; crossed: number }> {
+        const m = `ScoreModelID='${sqlString(modelId)}'`;
+        const count = async (extra: string): Promise<number> => {
+            const r = await new RunView().RunView({ EntityName: SCORE, ExtraFilter: `${m} AND ${extra}`, Fields: ["ID"], IgnoreMaxRows: true, ResultType: "simple" });
+            return r.Success ? (r.Results?.length ?? 0) : 0;
+        };
+        const [dropped, climbed, crossed] = await Promise.all([
+            count("Delta < 0"),
+            count("Delta > 0"),
+            count("PreviousBandID IS NOT NULL AND PreviousBandID <> BandID"),
+        ]);
+        return { dropped, climbed, crossed };
+    }
+
+    // A `moverMembers()` used to live here: a client-side re-implementation of the engine's segment
+    // rule, with a comment promising it mirrored SegmentEvaluator "EXACTLY". It has been removed in
+    // favour of the `Sonar: Preview Segment` action, so there is ONE definition of who is in a
+    // cohort. Trajectory rules (slope, sustained decline, volatility) read each member's history and
+    // could never have been expressed as a single Score query anyway.
+
     /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
@@ -512,6 +534,21 @@ export class ScoreReadService {
         }
         return byScore;
     }
+
+    /*
+     * There is deliberately NO dominantCauseForScores here any more.
+     *
+     * "Which signal is dragging this member down" is not a display detail: the ranking depends on the
+     * rubric weight, and the SAME ranking is what a targeting rule selects on. A copy of that maths in
+     * the browser is a second definition of the reason that can drift from the engine's — and it did,
+     * which is how the Triage list, the Movers list and the outreach drafter ended up disagreeing about
+     * the same member. The reason is now computed once on the server and shipped as data:
+     * `InterventionService.reasonsForScores` (via the `Sonar: Explain Scores` action) for lists with no
+     * rule, and `previewSegment` for a rule-resolved cohort.
+     *
+     * That is also less traffic than this used to be: it pulled every factor contribution for all 50
+     * listed members purely to derive 50 short strings.
+     */
 
     /** Pull the human "why" out of a contribution's DetailJSON ({"explanation":"…"}); null if absent/malformed. */
     private parseExplanation(detailJSON: string | null): string | null {

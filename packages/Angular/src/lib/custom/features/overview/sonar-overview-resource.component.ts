@@ -10,6 +10,7 @@ import { ScoreBandService } from "../../core/services/score-band.service";
 import { BandFlow, BandKey, BandSlice, BandTrendPoint, OverviewTrend, ScoreReadService, WindowMover } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
+import { AnchorNoun, anchorNounFor } from "../../core/anchor-noun";
 
 /** The hero's three lenses on the same population. Persisted so a user's preferred default sticks. */
 export type HeroView = "insight" | "flow" | "mix";
@@ -73,6 +74,14 @@ interface Headline {
     styleUrls: ["../../shared/styles/sonar-shell.css", "./sonar-overview-resource.component.css"],
 })
 export class SonarOverviewResourceComponent extends BaseResourceComponent {
+    /** What this model's scored records are called, from the anchor entity — never assumed to be "member". */
+    public readonly noun = computed<AnchorNoun>(() => {
+        const id = this.model()?.AnchorEntityID;
+        if (!id) return anchorNounFor(null);
+        const entity = new Metadata().Entities.find((e) => e.ID === id);
+        return anchorNounFor(entity?.DisplayName || entity?.Name);
+    });
+
     private readonly modelService = inject(ScoreModelService);
     private readonly factorService = inject(FactorService);
     private readonly bandService = inject(ScoreBandService);

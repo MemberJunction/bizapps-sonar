@@ -6,7 +6,7 @@
       <div class="sonar-page__icon"><i class="fa-solid fa-layer-group"></i></div>
       <div>
         <h1 class="sonar-page__title">Portfolio</h1>
-        <p class="sonar-page__subtitle">Monitoring {{ kpiActiveCount() }} active scoring model{{ kpiActiveCount() === 1 ? '' : 's' }} across your membership</p>
+        <p class="sonar-page__subtitle">Monitoring {{ kpiActiveCount() }} active scoring model{{ kpiActiveCount() === 1 ? '' : 's' }} across your data</p>
       </div>
     </div>
     <div class="sonar-page__actions">
@@ -33,7 +33,7 @@
         <span class="sonar-actionbar__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
         <span class="sonar-actionbar__text">
           <strong>{{ fs.model.Name }}</strong> needs attention.
-          <strong>{{ fmtNum(atRiskCount(fs)) }}</strong> members at risk
+          <strong>{{ fmtNum(atRiskCount(fs)) }}</strong> at risk
           <span class="sonar-actionbar__sep">&middot;</span>
           <span class="sonar-actionbar__dim"><strong>{{ fmtNum(fs.slipped) }}</strong> slipped this cycle</span>
         </span>
@@ -120,7 +120,7 @@
             } @else if (mekSlots().length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-column"></i>
-                <p>No active models with scored members yet.</p>
+                <p>No active models with scored records yet.</p>
               </div>
             } @else {
               <apx-chart

@@ -90,3 +90,11 @@ Per repo convention, this idea graduates into its own repository (`bluecypress/s
 - ✅ A **kill criterion** — what would have to be true to shut it down at 6 / 12 / 18 months.
 
 Until then, it lives here.
+
+---
+
+## Where things stand (July 2026)
+
+The engine, authoring agent, and surfaces described above are built. Since this document was written, Sonar also grew the **selection layers** (trajectory, reason, member context, ranking) and the **intervention loop** with holdout-measured lift — see the repo README for the current feature list.
+
+If you are picking Sonar up: read [`../HANDOFF.md`](../HANDOFF.md) first (state of the system, verified vs believed, known traps), then [`future-features.md`](future-features.md) for the ranked roadmap and [`remote-operations.md`](remote-operations.md) for the long-running-operation story.

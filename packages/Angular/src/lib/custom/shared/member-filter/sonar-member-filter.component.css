@@ -1,0 +1,217 @@
+/* Member-condition builder. Reads as data (a row of readable conditions) with one quiet box to add
+   another, so it doesn't compete with the preset chips and the reason strip around it. */
+
+/* sonar-shell.css puts `height: 100%` on every component host (it is written for full-page resource
+   surfaces). Inside a wrapping filter column that stretches this row to the column's height, so pin
+   the host to its content. */
+:host { height: auto; display: block; }
+
+.sonar-memfilter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* The shared `.sonar-card__label` supplies the look; this only drops its stacked-section margin. */
+.sonar-memfilter__labelslot { margin-bottom: 0; }
+
+/* An active condition. Quiet by default: it is a statement of fact, not a control. */
+.sonar-memfilter__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--sonar-font-sm);
+    padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+    border: 1px solid var(--sonar-border-strong);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+}
+
+/* The sentence is the edit affordance. Touch users get no hover, so the dotted underline is permanent —
+   per the omni-channel affordance rule, an editable thing must be identifiable without a pointer. */
+.sonar-memfilter__chiptext {
+    border: 0;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: underline dotted color-mix(in srgb, var(--sonar-ink) 28%, transparent);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 150ms ease;
+}
+.sonar-memfilter__chiptext:hover { text-decoration-color: var(--sonar-accent); }
+.sonar-memfilter__chiptext:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 2px; }
+
+/* The value carries the weight — the operator words around it are scaffolding. */
+.sonar-memfilter__val { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* A missing value is drawn as an empty FIELD, not as text: dashed outline, named for what goes in it
+   ("days", "value"). An ellipsis only said "something trails off here"; this says "you fill this in", which
+   is the thing nobody could work out from the old faint "…".
+   Colour INHERITS from the row on purpose. Accent ink at this size measured 4.21 light / 3.57 dark, under
+   the 4.5 floor, and seven accent-bordered slots at once would also blow the two-accent budget. The row's
+   own colour already passes, so the slot borrows it and the dashes carry the affordance. */
+.sonar-memfilter__blank {
+    display: inline-block;
+    padding: 0 0.3rem;
+    border: 1px dashed var(--sonar-border-strong);
+    border-radius: var(--sonar-radius-sm);
+    font-size: var(--sonar-font-xs);
+    line-height: 1.35;
+    font-weight: 600;
+}
+/* Only the row you are about to commit spends accent on its slot. */
+.sonar-optlist__opt--on .sonar-memfilter__blank { border-color: var(--sonar-accent); }
+/* Inside a chip the condition is already settled, so a blank there is a data problem, not an invitation. */
+.sonar-memfilter__chip .sonar-memfilter__blank { border-style: dotted; }
+
+.sonar-memfilter__x {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: none;
+    padding: 0.125rem;
+    cursor: pointer;
+    color: var(--sonar-faint);
+    font: inherit;
+    transition: color 150ms ease;
+}
+.sonar-memfilter__x:hover { color: var(--sonar-ink); }
+.sonar-memfilter__x:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 2px; }
+
+/* The box owns the positioning context for its suggestion list. */
+.sonar-memfilter__anchor { position: relative; display: inline-flex; }
+
+/* The whole box is the hit target, not just the text cursor's line. Dashed until focused, which keeps it
+   reading as "add something" rather than as a filled-in field. */
+.sonar-memfilter__bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 11rem;
+    height: var(--sonar-ctl-h, 2.25rem);
+    box-sizing: border-box;
+    padding: 0 0.6rem;
+    cursor: text;
+    border: 1px dashed var(--sonar-border-strong);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+.sonar-memfilter__bar:hover { background: var(--sonar-surface-sunken); }
+.sonar-memfilter__bar--open {
+    border-style: solid;
+    border-color: var(--sonar-accent);
+    background: var(--sonar-surface);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sonar-accent) 14%, transparent);
+}
+.sonar-memfilter__bar:focus-within { border-style: solid; border-color: var(--sonar-accent); }
+
+.sonar-memfilter__baricon {
+    flex: 0 0 auto;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-faint);
+    transition: color 150ms ease;
+}
+.sonar-memfilter__bar--open .sonar-memfilter__baricon { color: var(--sonar-accent); }
+
+.sonar-memfilter__box {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-ink);
+}
+.sonar-memfilter__box::placeholder { color: var(--sonar-faint); }
+/* The ring lives on the wrapper, so a second one on the input would double up. */
+.sonar-memfilter__box:focus { outline: none; }
+.sonar-memfilter__box:disabled { cursor: not-allowed; }
+
+/* Floating, so typing never reflows the list underneath.
+   FIXED, not absolute: the rule pane around this control scrolls and clips both axes, so an absolute list
+   is cut off at the pane's edges. top/left/width/max-height come from the component's popPlacement, which
+   also flips it above the box when there is more room up there. */
+.sonar-memfilter__pop {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sonar-surface);
+    border: 1px solid var(--sonar-border-strong);
+    border-radius: var(--sonar-radius-sm);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+/* The caption is the fixed part of the frame; only the rows scroll. */
+.sonar-memfilter__caption {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+    background: var(--sonar-surface-sunken);
+    border-bottom: 1px solid var(--sonar-border);
+}
+
+/* Inside the framed popover, so the shared optlist's own border and radius would double up. */
+.sonar-memfilter__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 0;
+}
+
+/* One sentence per row now — the per-row hint moved into the caption, which can say more and does not have
+   to be readable at 0.72rem inside a row. */
+.sonar-memfilter__opt { gap: 0.25rem; padding: 0.4rem 0.6rem; white-space: nowrap; }
+
+/* Stage-one rows: name hard left, type hard right, so the list reads as a browsable index of what the
+   member record actually offers rather than as a sentence. */
+.sonar-memfilter__opt--field { justify-content: space-between; gap: 0.75rem; }
+.sonar-memfilter__fieldname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sonar-memfilter__fieldtype {
+    flex: 0 0 auto;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+}
+
+/* Contrast floor. Measured against the standard's hard 4.5:1 minimum, the shared .sonar-optlist colours
+   miss it in one theme each: its muted row text lands at 4.36 in dark, and its accent-on-accent-tint
+   highlighted row at 4.26 in light. Overridden HERE rather than in sonar-shell.css because five other
+   surfaces read those same rules and this component is not the place to silently repaint them — the
+   shared fix belongs with the cross-surface control-language pass.
+   The highlighted row loses the accent TEXT on purpose: the tinted background and the weight already say
+   "this is the one", and accent ink on an accent wash was the thing failing. */
+.sonar-memfilter__opt { color: color-mix(in srgb, var(--sonar-muted) 82%, var(--sonar-ink)); }
+.sonar-memfilter__opt.sonar-optlist__opt--on { color: var(--sonar-ink); }
+.sonar-memfilter__none {
+    padding: 0.6rem;
+    font-size: var(--sonar-font-sm);
+    color: var(--sonar-muted);
+}
+
+.sonar-memfilter__clear { font-size: var(--sonar-font-sm); padding: 0.3rem 0.6rem; }
+
+/* Rounded corners come from .sonar-optlist; the scroll container needs them clipped so the first and last
+   rows don't square off the box. */
+.sonar-memfilter__pop { border-radius: var(--sonar-radius-sm); }
+
+/* Dense mode: one control in a narrow column rather than a row in a wide band. Driven by the `dense`
+   input, because a parent stylesheet cannot reach these internals under emulated encapsulation. */
+.sonar-memfilter--dense { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+.sonar-memfilter--dense .sonar-memfilter__anchor { width: 100%; }
+.sonar-memfilter--dense .sonar-memfilter__bar { width: 100%; min-width: 0; }
+.sonar-memfilter--dense .sonar-memfilter__chip {
+    border-radius: var(--sonar-radius-sm);
+    justify-content: space-between;
+}

@@ -13,12 +13,45 @@
                 </h1>
                 <!-- population() is the REAL scored scope (population filter applied), counted by the
                      engine. When a filter narrows it, show it against the entity total so the number
-                     can't be misread: "66 of 2,000 in population". -->
+                     can't be misread: "66 of 2,000 in population". The change window is editable inline
+                     (it drives what Delta/Trend compare against), so it lives here too. -->
                 <p class="sonar-page__subtitle">Anchor: {{ anchorName() }} &middot;
                     <span [title]="populationIsFiltered() ? 'Population filter applied — ' + (population() | number) + ' of ' + (populationTotal() | number) + ' records are scored' : 'Every record of the anchor entity is scored'">
                         {{ population() === null ? '&mdash;' : (population() | number) }}@if (populationIsFiltered()) { of {{ populationTotal() | number }}} in population
                     </span>
-                    &middot; {{ versionLabel() }}</p>
+                    &middot; {{ versionLabel() }}
+                    @if (selectedModelId()) {
+                        &middot; change window:
+                        @if (editingTrendWindow()) {
+                            <span class="sonar-trendwin">
+                                <input class="sonar-trendwin__input" type="text" inputmode="numeric"
+                                       [ngModel]="trendWindowDraft()" (ngModelChange)="trendWindowDraft.set($event)"
+                                       [disabled]="savingTrendWindow()"
+                                       placeholder="&mdash;"
+                                       title="Leave blank to compare against the previous recompute instead of a fixed window"
+                                       aria-label="Change window in days"
+                                       (keydown.enter)="commitTrendWindow()"
+                                       (keydown.escape)="cancelEditTrendWindow()" />
+                                <span class="sonar-trendwin__unit">days</span>
+                                <button class="sonar-trendwin__btn" [disabled]="savingTrendWindow()"
+                                        (click)="commitTrendWindow()" title="Save (Enter)">
+                                    <i class="fa-solid" [class.fa-check]="!savingTrendWindow()" [class.fa-spinner]="savingTrendWindow()" [class.fa-spin]="savingTrendWindow()"></i>
+                                </button>
+                                <button class="sonar-trendwin__btn sonar-trendwin__btn--ghost" [disabled]="savingTrendWindow()"
+                                        (click)="cancelEditTrendWindow()" title="Cancel (Esc)">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </span>
+                        } @else if (trendWindowLockReason(); as reason) {
+                            <span class="sonar-trendwin__locked" [title]="reason">
+                                {{ trendWindowLabel() }} <i class="fa-solid fa-lock"></i>
+                            </span>
+                        } @else {
+                            <button class="sonar-trendwin__trigger" (click)="beginEditTrendWindow()"
+                                    title="Click to change how far back &quot;change&quot; looks">{{ trendWindowLabel() }}</button>
+                        }
+                    }
+                </p>
             </div>
         </div>
         <div class="sonar-page__actions">
@@ -311,6 +344,8 @@
                     } @else {
                         <sonar-score-band-builder
                             [bandSetId]="selectedModel()?.BandSetID ?? null"
+                            [scaleMin]="bandScale().min"
+                            [scaleMax]="bandScale().max"
                             (saved)="onBandsSaved($event)"
                             (close)="selectTab('factors')">
                         </sonar-score-band-builder>
@@ -345,7 +380,7 @@
                 <div class="sonar-deck__panel-head">
                     <span class="sonar-deck__panel-label">
                         BAND DISTRIBUTION
-                        @if (population() !== null) { <span class="sonar-deck__panel-count">{{ population() | number }} members</span> }
+                        @if (population() !== null) { <span class="sonar-deck__panel-count">{{ population() | number }} {{ noun().many }}</span> }
                     </span>
                     @if (recomputingPreview()) {
                         <span class="sonar-sandbox__syncing"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
@@ -381,15 +416,15 @@
                         </svg>
 
                         <div class="sonar-band-rows">
-                            @for (b of bandDist(); track b.label) {
+                            @for (b of bandDist(); track b.bandId ?? b.label) {
                                 <div class="sonar-bandrow-wrap">
                                     <button type="button" class="sonar-bandrow" [disabled]="isPublished()"
-                                            [class.sonar-bandrow--open]="editingBandKey() === b.band"
-                                            (click)="openBandEditor(b.band)"
+                                            [class.sonar-bandrow--open]="editingBandId() === b.bandId"
+                                            (click)="openBandEditor(b.bandId)"
                                             [title]="isPublished() ? '' : 'Click to edit this band'">
                                         <span [class]="'sonar-donut__dot sonar-donut__dot--' + b.band"></span>
                                         <span class="sonar-bandrow__name">{{ b.label }}</span>
-                                        @if (bandFor(b.band); as bd) {
+                                        @if (bandFor(b.bandId); as bd) {
                                             <span class="sonar-bandrow__range">{{ bd.min }}&ndash;{{ bd.max }}</span>
                                         }
                                         <div class="sonar-legend__progress-track">
@@ -397,7 +432,7 @@
                                         </div>
                                         <span [class]="'sonar-bandrow__pct sonar-text--' + b.band">{{ b.pct }}%</span>
                                     </button>
-                                    @if (editingBandKey() === b.band) {
+                                    @if (editingBandId() === b.bandId) {
                                         <div class="sonar-bandpop" (click)="$event.stopPropagation()">
                                             <div class="sonar-bandpop__title">Edit band</div>
                                             <label class="sonar-bandpop__field">Label
@@ -432,17 +467,27 @@
                                 <div class="sonar-bandpop sonar-bandpop--inline" (click)="$event.stopPropagation()">
                                     <div class="sonar-bandpop__title">New band</div>
                                     <label class="sonar-bandpop__field">Label
-                                        <input class="sonar-input" type="text" placeholder="e.g. Watch" [ngModel]="bandDraftLabel()" (ngModelChange)="bandDraftLabel.set($event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
+                                        <input class="sonar-input sonar-bandadd__input" type="text" placeholder="e.g. Watch" [ngModel]="bandDraftLabel()" (ngModelChange)="bandDraftLabel.set($event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
                                     </label>
+                                    <!-- Bands tile the scale, so there's no empty space to append into: a new band is a
+                                         SPLIT of an existing one. Ask only for the split point; the top is whatever the
+                                         host band ended at, shown read-only so the range can't be set to something that
+                                         wouldn't line up. -->
                                     <div class="sonar-bandpop__fields">
-                                        <label class="sonar-bandpop__field">Min
-                                            <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMin()" (ngModelChange)="bandDraftMin.set(+$event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
+                                        <label class="sonar-bandpop__field">Split at
+                                            <input class="sonar-input" type="number" [attr.min]="bandScale().min" [attr.max]="bandScale().max" [ngModel]="bandDraftMin()" (ngModelChange)="bandDraftMin.set(+$event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
                                         </label>
                                         <span class="sonar-bandpop__dash">&ndash;</span>
-                                        <label class="sonar-bandpop__field">Max
-                                            <input class="sonar-input" type="number" min="0" max="100" [ngModel]="bandDraftMax()" (ngModelChange)="bandDraftMax.set(+$event)" (keydown.enter)="createBand()" (keydown.escape)="closeAddBand()" />
+                                        <label class="sonar-bandpop__field">Up to
+                                            <span class="sonar-bandadd__derived sonar-mono">{{ insertPreview().newBand.max }}</span>
                                         </label>
                                     </div>
+                                    @if (insertPreview().hostLabel) {
+                                        <p class="sonar-bandadd__hint">Takes the top of <strong class="sonar-ink">{{ insertPreview().hostLabel }}</strong>, which shrinks to meet it.</p>
+                                    }
+                                    @if (insertPreview().note) {
+                                        <p class="sonar-bandadd__hint sonar-bandadd__hint--warn">{{ insertPreview().note }}</p>
+                                    }
                                     <div class="sonar-bandpop__actions">
                                         <button class="sonar-btn sonar-btn--primary" [disabled]="bandSaving()" (click)="createBand()">{{ bandSaving() ? 'Adding&hellip;' : 'Add band' }}</button>
                                         <button class="sonar-btn" (click)="closeAddBand()">Cancel</button>
@@ -459,7 +504,7 @@
             @if (sampleMember(); as sample) {
                 <div class="sonar-sandbox__section">
                     <div class="sonar-deck__panel-head">
-                        <span class="sonar-deck__panel-label">SAMPLE MEMBER</span>
+                        <span class="sonar-deck__panel-label">SAMPLE {{ noun().One.toUpperCase() }}</span>
                     </div>
                     <div class="sonar-member-preview">
                         <div class="sonar-member-preview__head">
@@ -488,7 +533,7 @@
                 </div>
             } @else {
                 <div class="sonar-sandbox__section">
-                    <p class="sonar-deck__empty-sm">No sample member &mdash; run Simulate to populate.</p>
+                    <p class="sonar-deck__empty-sm">No sample {{ noun().one }} &mdash; run Simulate to populate.</p>
                 </div>
             }
 

@@ -1,0 +1,359 @@
+import { Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { mjBizAppsSonarInterventionAssignmentEntity } from "@mj-biz-apps/sonar-entities";
+import { SegmentEvaluator, SegmentFilter, SegmentMember } from "./SegmentEvaluator";
+
+const ASSIGNMENT_ENTITY = "MJ_BizApps_Sonar: Intervention Assignments";
+
+/** Which cohort a member lands in. Control = held back (nothing fires), the comparison baseline. */
+export type Cohort = "Treatment" | "Control";
+
+/** The MJ Action to fire + its static params (e.g. Slack WebhookURL + Message). Token placeholders
+ *  in any param value are replaced at fire time ({@link fillTokens}): `{{member}}` → the member's
+ *  anchor id, `{{interventionId}}`/`{{modelId}}` → the firing intervention/model, so a per-member
+ *  play can link what it produces (e.g. a drafted proposal) back to the intervention. */
+export interface InterventionActionConfig {
+    actionId: string;
+    params: { name: string; value: string }[];
+}
+
+/** A run request. `preview` resolves + splits but writes/fires nothing (the dry-run gate). `cap`
+ *  bounds how many members are assigned this run (a real-fire safety limit for the demo).
+ *  `onlyAnchorIds` restricts the resolved cohort to a subset — the OnEnterSegment path targets
+ *  ONLY the members whose band transition just entered the segment, not the whole standing cohort. */
+export interface InterventionRunRequest {
+    /**
+     * The intervention these assignments belong to, or `null` when it does not exist yet.
+     *
+     * Null is only legal with `preview: true`. A preview must not bring an Intervention row into
+     * existence just to count a cohort — that is how the Interventions tab collected empty rows for
+     * previews nobody committed. A preview on a cohort that HAS been run before still passes the real
+     * id, so the already-assigned exclusion stays accurate.
+     *
+     * The commit path rejects null rather than inventing an id, so the type carries the rule.
+     */
+    interventionId: string | null;
+    modelId: string;
+    segmentFilter: SegmentFilter;
+    holdoutPercent: number;
+    /** Execution kind. 'Action' fires the play once PER TREATED MEMBER; 'BulkSync' fires the play
+     *  ONCE for the whole treated cohort (the play receives the batch — e.g. sync it to an MJ List
+     *  or push it to an external system); 'TrackOnly' writes the treatment/control split and fires
+     *  NOTHING (the treatment happens in the real world; Sonar only measures). Defaults to 'Action'
+     *  when omitted. */
+    kind?: "Action" | "TrackOnly" | "BulkSync";
+    /** The play to fire — required for 'Action' and 'BulkSync', ignored for 'TrackOnly'. */
+    action?: InterventionActionConfig;
+    cap: number;
+    preview: boolean;
+    onlyAnchorIds?: ReadonlySet<string>;
+}
+
+/** What happened (or would happen, in preview). Counts only — the honest summary the UI shows. */
+export interface InterventionRunResult {
+    cohortSize: number; // total members the segment resolved
+    alreadyAssigned: number; // skipped — already assigned in a prior run (idempotency)
+    eligible: number; // cohort minus already-assigned
+    capped: boolean; // true when eligible exceeded the cap (some left for a later run)
+    treated: number;
+    held: number;
+    sent: number; // treated fires that succeeded (0 in preview)
+    failed: number; // treated fires that failed (0 in preview)
+    preview: boolean;
+    playApproved: boolean; // false → the play isn't cleared to fire; a commit writes/fires NOTHING
+}
+
+/**
+ * Governance gate for a play (plan §5.5, mirrors Bind Signal): a code-in-the-repo action (Type other
+ * than 'Runtime') is inherently trusted — its PR review is its review. A generated 'Runtime' action
+ * must be human-Approved (CodeApprovalStatus) before it can fire, because it carries arbitrary code
+ * that takes a real-world action. Pure, so it's unit-testable and shared by any caller.
+ */
+export function playApprovedFromMeta(type: string | null | undefined, codeApprovalStatus: string | null | undefined): boolean {
+    return type !== "Runtime" || codeApprovalStatus === "Approved";
+}
+
+/** Fires one MJ Action with the given params. Injected (the real one wraps ActionEngineServer in
+ *  interventionInvoker.ts) so the runner's planning logic stays free of the heavy Actions import. */
+export type InterventionActionInvoker = (
+    actionId: string,
+    params: { name: string; value: string }[],
+    contextUser: UserInfo,
+) => Promise<{ success: boolean; message?: string }>;
+
+// ---------------------------------------------------------------- pure planning (unit-tested)
+
+/** Stable hash of an id → 0..99 (FNV-1a). Deterministic, so the same member always lands in the same
+ *  cohort across runs — no Math.random, so the holdout split is reproducible and auditable. */
+export function hashToPercent(id: string): number {
+    let h = 2166136261;
+    for (let i = 0; i < id.length; i++) {
+        h ^= id.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0) % 100;
+}
+
+/** Treatment unless the member's stable hash falls in the bottom `holdoutPercent` band → Control. */
+export function cohortFor(anchorId: string, holdoutPercent: number): Cohort {
+    return hashToPercent(anchorId) < holdoutPercent ? "Control" : "Treatment";
+}
+
+/** Plan a run from the resolved cohort: drop already-assigned (idempotency), cap, then split. Pure. */
+export function planAssignments(
+    members: SegmentMember[],
+    alreadyAssigned: ReadonlySet<string>,
+    holdoutPercent: number,
+    cap: number,
+): { assignments: { member: SegmentMember; cohort: Cohort }[]; alreadyAssigned: number; capped: boolean } {
+    const eligible = members.filter((m) => !alreadyAssigned.has(m.anchorRecordId));
+    const capped = eligible.length > cap;
+    const slice = eligible.slice(0, Math.max(0, cap));
+    return {
+        assignments: slice.map((member) => ({ member, cohort: cohortFor(member.anchorRecordId, holdoutPercent) })),
+        alreadyAssigned: members.length - eligible.length,
+        capped,
+    };
+}
+
+/** The placeholder values substituted into a play's params at fire time. */
+export interface FireTokens {
+    /** The treated member's anchor record id. */
+    member: string;
+    /** The Intervention row that fired the play. */
+    interventionId: string;
+    /** The ScoreModel the intervention runs against. */
+    modelId: string;
+}
+
+/** Substitute the `{{member}}`/`{{interventionId}}`/`{{modelId}}` tokens in each param value.
+ *  Anything else (including unrecognized `{{…}}` text) passes through untouched — it may be
+ *  meaningful to the play itself. Pure, so it's unit-testable. */
+export function fillTokens(
+    params: { name: string; value: string }[],
+    tokens: FireTokens,
+): { name: string; value: string }[] {
+    return params.map((p) => ({
+        name: p.name,
+        value: p.value
+            .split("{{member}}").join(tokens.member)
+            .split("{{interventionId}}").join(tokens.interventionId)
+            .split("{{modelId}}").join(tokens.modelId),
+    }));
+}
+
+/**
+ * Runs an intervention against its segment: resolve the cohort → exclude already-assigned (so a
+ * re-click never re-fires) → cap → deterministically split treated/held → in preview, stop and
+ * return counts; on commit, write an InterventionAssignment per member and fire the action for each
+ * treated member (its delivery status recorded). Held-back (Control) members get a row but no fire —
+ * the honest comparison baseline. Outcomes/lift are NOT written here.
+ */
+export class InterventionRunner {
+    private readonly segments: SegmentEvaluator;
+
+    /**
+     * @param invoker  Fires plays. Omitted in dry runs and in tests.
+     * @param segments Cohort resolver. Injectable so a test can supply a fixed cohort — with that stubbed,
+     *                 a TrackOnly preview touches no database at all, which is what makes the
+     *                 "preview writes nothing" guarantee testable without a mocking harness.
+     */
+    constructor(
+        private readonly invoker?: InterventionActionInvoker,
+        segments?: SegmentEvaluator,
+    ) {
+        this.segments = segments ?? new SegmentEvaluator();
+    }
+
+    public async run(req: InterventionRunRequest, contextUser: UserInfo): Promise<InterventionRunResult> {
+        const resolved = await this.segments.resolve(req.modelId, req.segmentFilter, contextUser);
+        // OnEnterSegment targeting: keep only the members that just transitioned in (still resolved
+        // through the segment so a stale/mismatched entrant can never be fired outside the filter).
+        const members = req.onlyAnchorIds ? resolved.filter((m) => req.onlyAnchorIds!.has(m.anchorRecordId)) : resolved;
+        const assigned = await this.loadAssignedAnchorIds(req.interventionId, contextUser);
+        const plan = planAssignments(members, assigned, req.holdoutPercent, req.cap);
+        // TrackOnly fires nothing, so the play gate is n/a (approved). Action must clear the gate.
+        const trackOnly = req.kind === "TrackOnly";
+        const playApproved = trackOnly ? true : req.action ? await this.isPlayApproved(req.action.actionId, contextUser) : false;
+
+        const base: InterventionRunResult = {
+            cohortSize: members.length,
+            alreadyAssigned: plan.alreadyAssigned,
+            eligible: members.length - plan.alreadyAssigned,
+            capped: plan.capped,
+            treated: plan.assignments.filter((a) => a.cohort === "Treatment").length,
+            held: plan.assignments.filter((a) => a.cohort === "Control").length,
+            sent: 0,
+            failed: 0,
+            preview: req.preview,
+            playApproved,
+        };
+        // Preview never writes/fires. An un-approved Action play is BLOCKED on commit — write no
+        // assignments, fire nothing (the gate holds for BOTH manual and autonomous callers).
+        if (req.preview || !playApproved) {
+            return base;
+        }
+
+        // Past the preview gate, so every path below writes. A missing id here would mean a caller
+        // asked to commit without an intervention to attach the assignments to; fail loudly rather
+        // than write orphans or silently no-op.
+        const interventionId = req.interventionId;
+        if (!interventionId) {
+            throw new Error(
+                "InterventionRunner: cannot commit without an interventionId (null is only valid for preview).",
+            );
+        }
+
+        if (req.kind === "BulkSync") {
+            return this.commitBulkSync(req, plan.assignments, base, contextUser);
+        }
+
+        let sent = 0;
+        let failed = 0;
+        for (const { member, cohort } of plan.assignments) {
+            let deliveryStatus: string | null = null;
+            // TrackOnly writes the split but never fires — every member (treatment + control) gets an
+            // assignment with no delivery status; the treatment happened out in the world.
+            if (!trackOnly && cohort === "Treatment" && req.action) {
+                const tokens: FireTokens = {
+                    member: member.anchorRecordId,
+                    interventionId: req.interventionId,
+                    modelId: req.modelId,
+                };
+                const fired = await this.fire(req.action, tokens, contextUser);
+                deliveryStatus = fired ? "Sent" : "Failed";
+                fired ? sent++ : failed++;
+            }
+            await this.writeAssignment(req.interventionId, member, cohort, deliveryStatus, contextUser);
+        }
+        return { ...base, sent, failed };
+    }
+
+    /**
+     * Commit a BulkSync run: ONE play invocation carrying the whole TREATED cohort, then the
+     * assignment rows. Two deliberate asymmetries vs the per-member 'Action' path:
+     *
+     *  - Control members are NEVER in the payload. The play hands the cohort to whatever acts on it
+     *    (an MJ List a staffer works, an external sync) — leaking the held-back members there would
+     *    contaminate the comparison group and void the lift measurement.
+     *  - A failed batch writes NO assignments. Per-member fires record Failed per member because the
+     *    other sends already happened; here the single call failing means NOTHING happened, so
+     *    burning idempotency on it would strand the whole cohort un-retryable. No rows → the next
+     *    commit retries cleanly.
+     */
+    private async commitBulkSync(
+        req: InterventionRunRequest,
+        assignments: { member: SegmentMember; cohort: Cohort }[],
+        base: InterventionRunResult,
+        contextUser: UserInfo,
+    ): Promise<InterventionRunResult> {
+        const treated = assignments.filter((a) => a.cohort === "Treatment").map((a) => a.member);
+        // Nothing to sync (everyone already assigned or held) — succeed as a no-op, write the split.
+        let synced = treated.length === 0;
+        if (!synced && req.action) {
+            if (!this.invoker) {
+                throw new Error("InterventionRunner: no action invoker configured — cannot fire interventions.");
+            }
+            const payload = treated.map((m) => ({
+                anchorRecordId: m.anchorRecordId,
+                anchorRecordKeyJSON: m.anchorRecordKeyJSON,
+                score: m.normalizedScore,
+                bandId: m.bandId,
+            }));
+            // The batch params are RUNNER-OWNED: any same-named value in the operator's config is
+            // dropped, so a play can never receive a spoofed cohort or a mismatched intervention id.
+            const reserved = new Set(["CohortJSON", "ModelID", "InterventionID"]);
+            const params = [
+                ...req.action.params.filter((p) => !reserved.has(p.name)),
+                { name: "CohortJSON", value: JSON.stringify(payload) },
+                { name: "ModelID", value: req.modelId },
+                { name: "InterventionID", value: req.interventionId },
+            ];
+            try {
+                synced = (await this.invoker(req.action.actionId, params, contextUser)).success;
+            } catch {
+                synced = false;
+            }
+        }
+        if (!synced) {
+            return { ...base, failed: base.treated };
+        }
+        for (const { member, cohort } of assignments) {
+            await this.writeAssignment(req.interventionId, member, cohort, cohort === "Treatment" ? "Sent" : null, contextUser);
+        }
+        return { ...base, sent: base.treated };
+    }
+
+    /** Fire the action for one treated member (token-filled params); a throw/failure → false, never
+     *  aborts the run (one bad send shouldn't strand the rest). */
+    private async fire(
+        action: InterventionActionConfig,
+        tokens: FireTokens,
+        contextUser: UserInfo,
+    ): Promise<boolean> {
+        if (!this.invoker) {
+            throw new Error("InterventionRunner: no action invoker configured — cannot fire interventions.");
+        }
+        try {
+            const res = await this.invoker(action.actionId, fillTokens(action.params, tokens), contextUser);
+            return res.success;
+        } catch {
+            return false;
+        }
+    }
+
+    /** Is the play cleared to fire? Loads the Action's Type + CodeApprovalStatus and applies the gate
+     *  ({@link playApprovedFromMeta}). A missing/unresolvable action is treated as NOT approved (fail
+     *  closed — never fire something we can't verify). */
+    private async isPlayApproved(actionId: string, contextUser: UserInfo): Promise<boolean> {
+        const res = await new RunView().RunView<{ Type: string | null; CodeApprovalStatus: string | null }>(
+            { EntityName: "MJ: Actions", ExtraFilter: `ID='${actionId}'`, Fields: ["Type", "CodeApprovalStatus"], MaxRows: 1, ResultType: "simple" },
+            contextUser,
+        );
+        const row = res.Success ? res.Results?.[0] : undefined;
+        if (!row) return false;
+        return playApprovedFromMeta(row.Type, row.CodeApprovalStatus);
+    }
+
+    /** Anchor ids already assigned to this intervention (idempotency — never re-fire them). */
+    private async loadAssignedAnchorIds(
+        interventionId: string | null,
+        contextUser: UserInfo,
+    ): Promise<Set<string>> {
+        // No intervention yet (a preview on a cohort never run before) means no assignments can exist.
+        // Returning early rather than querying avoids a nonsense `InterventionID='null'` filter.
+        if (!interventionId) return new Set();
+        const res = await new RunView().RunView<{ AnchorRecordID: string }>(
+            {
+                EntityName: ASSIGNMENT_ENTITY,
+                ExtraFilter: `InterventionID='${interventionId}'`,
+                Fields: ["AnchorRecordID"],
+                IgnoreMaxRows: true,
+                ResultType: "simple",
+            },
+            contextUser,
+        );
+        return new Set(res.Success ? (res.Results ?? []).map((r) => r.AnchorRecordID) : []);
+    }
+
+    /** Persist one assignment row (treated/held + delivery status). */
+    private async writeAssignment(
+        interventionId: string,
+        member: SegmentMember,
+        cohort: Cohort,
+        deliveryStatus: string | null,
+        contextUser: UserInfo,
+    ): Promise<void> {
+        const md = new Metadata();
+        const row = await md.GetEntityObject<mjBizAppsSonarInterventionAssignmentEntity>(
+            ASSIGNMENT_ENTITY,
+            contextUser,
+        );
+        row.NewRecord();
+        row.InterventionID = interventionId;
+        row.AnchorRecordID = member.anchorRecordId;
+        if (member.anchorRecordKeyJSON) row.AnchorRecordKeyJSON = member.anchorRecordKeyJSON;
+        row.Cohort = cohort;
+        if (deliveryStatus) row.ActionDeliveryStatus = deliveryStatus;
+        await row.Save();
+    }
+}

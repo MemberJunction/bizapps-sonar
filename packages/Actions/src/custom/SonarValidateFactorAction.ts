@@ -33,7 +33,7 @@ export class SonarValidateFactorAction extends SonarActionBase {
             return {
                 Success: true,
                 ResultCode: "SUCCESS",
-                Message: `Previewed ${result.membersWithData} member${result.membersWithData === 1 ? "" : "s"} with data.`,
+                Message: `Previewed ${result.membersWithData} record${result.membersWithData === 1 ? "" : "s"} with data.`,
                 // Type 'Both' so the MJ ActionResolver serializes it into GraphQL ResultData.
                 Params: [...params.Params, { Name: "Result", Value: JSON.stringify(result), Type: "Both" }],
             };

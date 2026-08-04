@@ -1,0 +1,28 @@
+import { Component } from '@angular/core';
+import { AssociationDemoCertificationTypeEntity } from '@mj-biz-apps/sonar-entities';
+import { RegisterClass } from '@memberjunction/global';
+import { BaseFormComponent } from '@memberjunction/ng-base-forms';
+import {  } from "@memberjunction/ng-entity-viewer"
+
+@RegisterClass(BaseFormComponent, 'Certification Types') // Tell MemberJunction about this class
+@Component({
+    standalone: false,
+    selector: 'gen-associationdemocertificationtype-form',
+    templateUrl: './associationdemocertificationtype.form.component.html'
+})
+export class AssociationDemoCertificationTypeFormComponent extends BaseFormComponent {
+    public record!: AssociationDemoCertificationTypeEntity;
+
+    override async ngOnInit() {
+        await super.ngOnInit();
+        this.initSections([
+            { sectionKey: 'certificationDetails', sectionName: 'Certification Details', isExpanded: true },
+            { sectionKey: 'requirementsAndTerms', sectionName: 'Requirements and Terms', isExpanded: true },
+            { sectionKey: 'audienceAndPrerequisites', sectionName: 'Audience and Prerequisites', isExpanded: true },
+            { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
+            { sectionKey: 'certificationsAssociationDemo', sectionName: 'Certifications__AssociationDemo', isExpanded: false },
+            { sectionKey: 'certificationRequirements', sectionName: 'Certification Requirements', isExpanded: false }
+        ]);
+    }
+}
+

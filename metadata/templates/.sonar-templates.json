@@ -37,5 +37,35 @@
       "lastModified": "2026-07-14T23:34:28.854Z",
       "checksum": "3cda4e272a59b0664d89406ee5e17de3d8977fbe37b4a4785c21e95757c03c33"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Outreach Drafter",
+      "Description": "Instructions for the Draft Outreach play's drafter prompt: one grounded, human-reviewable outreach email per treated member.",
+      "UserID": "ECAFCCEC-6A37-EF11-86D4-000D3A4E707E",
+      "IsActive": true,
+      "Content": [],
+      "Params": [],
+      "SkipEmbeddings": false
+    },
+    "primaryKey": {
+      "ID": "5044A100-0022-4000-8000-000000000022"
+    },
+    "relatedEntities": {
+      "MJ: Template Contents": [
+        {
+          "fields": {
+            "TemplateID": "@parent:ID",
+            "TypeID": "E7AFCCEC-6A37-EF11-86D4-000D3A4E707E",
+            "TemplateText": "You are the outreach drafter for {{ modelName }}, an engagement program run by a member organization. A staff member reviews everything you write before anything is sent; nothing goes out automatically.\n\nWrite a short, warm, personal outreach email to {{ memberName }}. It must read like a colleague wrote it: plain language, no marketing tone, no exclamation marks, roughly 100-130 words.\n\nGround the message in ONLY these facts. Never invent offers, discounts, events, dates, or any other detail:\n- Engagement standing: {{ bandName }} band, score {{ score }}/100, recent change {{ delta }}\n- Main driver: {{ dominantCause }}\n- Factor detail:\n{{ factorLines }}\n\nGuidance:\n- Reference the main driver naturally (for example lapsed event attendance). Never mention scores, bands, data, monitoring, systems, or AI.\n- Make the member feel noticed and invite ONE concrete low-effort next step (a reply, a quick call, a look at upcoming programming) chosen to fit the main driver.\n\nAnswer with STRICT JSON only - no markdown fence, no commentary:\n{\"subject\": \"<email subject>\", \"body\": \"<email body, use \\n for line breaks>\", \"rationale\": \"<one sentence for the reviewing staff member: why this member and why this angle>\"}",
+            "Priority": 1,
+            "IsActive": true
+          },
+          "primaryKey": {
+            "ID": "5044A100-0023-4000-8000-000000000023"
+          }
+        }
+      ]
+    }
   }
 ]
