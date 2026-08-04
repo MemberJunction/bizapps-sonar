@@ -173,6 +173,18 @@
    to be readable at 0.72rem inside a row. */
 .sonar-memfilter__opt { gap: 0.25rem; padding: 0.4rem 0.6rem; white-space: nowrap; }
 
+/* Stage-one rows: name hard left, type hard right, so the list reads as a browsable index of what the
+   member record actually offers rather than as a sentence. */
+.sonar-memfilter__opt--field { justify-content: space-between; gap: 0.75rem; }
+.sonar-memfilter__fieldname { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sonar-memfilter__fieldtype {
+    flex: 0 0 auto;
+    font-size: var(--sonar-font-xs);
+    color: var(--sonar-muted);
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+}
+
 /* Contrast floor. Measured against the standard's hard 4.5:1 minimum, the shared .sonar-optlist colours
    miss it in one theme each: its muted row text lands at 4.36 in dark, and its accent-on-accent-tint
    highlighted row at 4.26 in light. Overridden HERE rather than in sonar-shell.css because five other

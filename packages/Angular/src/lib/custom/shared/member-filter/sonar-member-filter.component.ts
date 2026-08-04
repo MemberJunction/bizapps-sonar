@@ -46,15 +46,40 @@ interface Candidate {
     words: string[];
 }
 
-/** One row of the suggestion list: a ready-to-commit condition and how to render it. */
-export interface MemberSuggestion {
-    condition: MemberCondition;
-    parts: SentencePart[];
-    /** True when the operator takes a value and the query has not supplied one yet. */
-    needsValue: boolean;
-    /** What to ask for when it does: "a number of days", "a city". Drives the list's caption. */
-    valueWord: string;
-}
+/**
+ * One row of the list. Two kinds, because the list works in two stages:
+ *
+ * - a **field** row, offered while it is still ambiguous WHICH field you mean. Taking one does not add a
+ *   condition; it narrows the query so the field's own tests appear.
+ * - a **condition** row, a complete and committable condition.
+ *
+ * Named MemberFilterRow, not MemberSuggestion: `score-read.service.ts` already exports a `MemberSuggestion`
+ * for member-name search, and the Engagement Manager imports that one.
+ */
+export type MemberFilterRow =
+    | {
+        kind: "field";
+        field: MemberField;
+        /** "date" / "number" / "text" — says which tests you are about to be offered. */
+        typeLabel: string;
+    }
+    | {
+        kind: "condition";
+        condition: MemberCondition;
+        parts: SentencePart[];
+        /** True when the operator takes a value and the query has not supplied one yet. */
+        needsValue: boolean;
+        /** What to ask for when it does: "a number of days". Drives the list's caption. */
+        valueWord: string;
+    };
+
+/** What a field's kind is called in the field list, so you can tell what tests are coming. */
+const TYPE_LABEL: Record<MemberFieldKind, string> = {
+    date: "date",
+    number: "number",
+    text: "text",
+    boolean: "yes/no",
+};
 
 /** What each kind of value input is called when we have to ask for one out loud. */
 const VALUE_WORD: Record<OperatorChoice["input"], string> = {
@@ -111,7 +136,7 @@ const VIEWPORT_MARGIN = 12;
  * - Suggestion text and chip text cannot drift, because one function writes both.
  *
  * The one thing the cross product cannot enumerate is a VALUE (no way to pre-list every number). See
- * {@link suggestions} for how a trailing token becomes one, and note the guard: a row whose value slot is
+ * {@link rows} for how a trailing token becomes one, and note the guard: a row whose value slot is
  * still empty will not commit. Enter parks the cursor in the box instead, which is the same protection the
  * old popover's disabled Add button gave.
  *
@@ -140,7 +165,7 @@ export class SonarMemberFilterComponent {
     public readonly query = signal("");
     /** Whether the box has focus, which is what opens the list. */
     public readonly open = signal(false);
-    /** Arrow-key cursor into {@link suggestions}. */
+    /** Arrow-key cursor into {@link rows}. */
     public readonly highlighted = signal(0);
 
     /** Operators per field kind, phrased the way the question is asked out loud. The FIRST entry for a kind
@@ -186,18 +211,33 @@ export class SonarMemberFilterComponent {
     });
 
     /**
-     * The rows to show. Empty query offers the top of the list, so the box is discoverable before you have
-     * typed anything: the point of enumerating is that you can SEE what is askable.
+     * The rows to show, resolved in two stages.
      *
-     * With a query, split it at the last word and work backwards: the leading words find a field, and
-     * anything left over is the value. "joined 90" -> field words "joined", value "90". Trying the longest
-     * field-part first means "join date is within the last 30" still resolves to the right operator, which
-     * is what makes chip editing round-trip.
+     * ## Why two stages
+     *
+     * The list used to be the raw field x operator cross product capped at {@link MAX_SUGGESTIONS}. On a
+     * 12-field entity that showed **two fields**: date fields carry five operators each, so `5 + 2 = 7`
+     * filled the list with Join Date and Last Activity Date and buried the other ten with no scrollbar and
+     * no "more" marker. Anyone opening the box concluded it only filtered on dates — which quietly wrecked
+     * the whole reason this beats a typed syntax, namely that you can SEE what is askable.
+     *
+     * So while it is still ambiguous which field you mean, the rows are FIELDS, one each, uncapped and
+     * scrollable. Once the query narrows to a single field, the rows become that field's conditions.
+     *
+     * The fast path costs nothing: "joined 90" resolves to one field immediately, so the conditions appear
+     * on the first keystroke that disambiguates and Enter still commits in one interaction.
+     *
+     * ## The matching, unchanged
+     *
+     * Split the query at the last word and work backwards: leading words find a field, anything left over
+     * is the value. Trying the longest field-part FIRST is what lets "join date is within the last 30"
+     * resolve back to its own operator, which is what makes chip editing round-trip.
      */
-    public readonly suggestions = computed<MemberSuggestion[]>(() => {
+    public readonly rows = computed<MemberFilterRow[]>(() => {
         const all = this.candidates();
         const raw = this.query().trim();
-        if (!raw) return all.slice(0, MAX_SUGGESTIONS).map((c) => this.toSuggestion(c, ""));
+        // Nothing typed: the plain field list. This is the state that used to lie about what exists.
+        if (!raw) return this.fields().map((f) => this.fieldRow(f));
 
         const typed = raw.toLowerCase().split(/\s+/);
         const rawWords = raw.split(/\s+/);
@@ -205,7 +245,14 @@ export class SonarMemberFilterComponent {
             const fieldWords = typed.slice(0, cut);
             const hits = all.filter((c) => fieldWords.every((w) => wordHit(w, c.words)));
             if (hits.length === 0) continue;
+
             const value = rawWords.slice(cut).join(" ");
+            const named = new Set(hits.map((h) => h.field.name));
+            // Still more than one field in play, and no value committed to yet: pick the field first.
+            // Once a value IS typed, showing fields would throw it away, so conditions win.
+            if (named.size > 1 && !value) {
+                return this.fields().filter((f) => named.has(f.name)).map((f) => this.fieldRow(f));
+            }
             // A typed value is meaningless for the null tests, so they drop out once there is one.
             return hits
                 .filter((c) => !value || c.choice.input !== "none")
@@ -229,10 +276,14 @@ export class SonarMemberFilterComponent {
      * says so, and it says it at the moment the answer is needed rather than as a wall of help text.
      */
     public readonly caption = computed<string>(() => {
-        const rows = this.suggestions();
-        if (!this.query().trim()) return "Start with a field below, or type to narrow";
-        const row = rows[this.highlighted()];
-        if (!row) return "";
+        const rows = this.rows();
+        if (rows.length === 0) return "";
+        const row = rows[this.highlighted()] ?? rows[0];
+        if (row.kind === "field") {
+            return this.query().trim()
+                ? "Enter picks the field · keep typing to narrow"
+                : "Pick a field, or type to narrow";
+        }
         if (row.needsValue) return `Now type ${row.valueWord}`;
         return rows.length > 1 ? "Enter adds it · ↓ for the other tests" : "Enter adds it";
     });
@@ -250,12 +301,12 @@ export class SonarMemberFilterComponent {
     public constructor() {
         // Keep the cursor inside the list when the list shrinks under it.
         effect(() => {
-            const max = this.suggestions().length - 1;
+            const max = this.rows().length - 1;
             if (this.highlighted() > max) this.highlighted.set(Math.max(0, max));
         });
         // Opening, or a query that changes the row count, changes where the list should sit.
         effect(() => {
-            if (this.open() && this.suggestions().length >= 0) this.place();
+            if (this.open() && this.rows().length >= 0) this.place();
         });
 
         // Scroll does not bubble, but it DOES fire on window in the capture phase, which is the only way
@@ -320,7 +371,7 @@ export class SonarMemberFilterComponent {
     }
 
     public onKeydown(event: KeyboardEvent): void {
-        const rows = this.suggestions();
+        const rows = this.rows();
         switch (event.key) {
             case "ArrowDown":
                 this.open.set(true);
@@ -355,13 +406,22 @@ export class SonarMemberFilterComponent {
     // ── committing ──────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Take a suggestion. A row still missing its value does NOT commit — it puts the cursor back in the box
-     * with a trailing space, so the next thing typed lands in the slot. Same guard as the old disabled Add
-     * button, just without a button.
+     * Take a row.
+     *
+     * A FIELD row narrows rather than commits: it rewrites the query as that field's label so the next pass
+     * resolves to one field and offers its tests. A CONDITION row still missing its value does not commit
+     * either — it puts the cursor back in the box with a trailing space so the next thing typed lands in the
+     * slot. That is the same guard the old disabled Add button gave, without a button.
      */
     public commit(index: number): void {
-        const row = this.suggestions()[index];
+        const row = this.rows()[index];
         if (!row) return;
+        if (row.kind === "field") {
+            this.query.set(`${row.field.label} `);
+            this.highlighted.set(0);
+            this.focusBox();
+            return;
+        }
         if (row.needsValue) {
             const raw = this.query().trim();
             this.query.set(raw ? `${raw} ` : raw);
@@ -454,9 +514,10 @@ export class SonarMemberFilterComponent {
     }
 
     /** A candidate plus a typed value, as a committable row. */
-    private toSuggestion(c: Candidate, value: string): MemberSuggestion {
+    private toSuggestion(c: Candidate, value: string): MemberFilterRow {
         const needsValue = c.choice.input !== "none" && value.trim().length === 0;
         return {
+            kind: "condition",
             condition: conditionFor(c.field.name, c.choice, value),
             parts: this.partsFor(c.field.label, c.choice, needsValue ? null : coerce(c.choice, value)),
             needsValue,
@@ -464,7 +525,12 @@ export class SonarMemberFilterComponent {
         };
     }
 
-    /** The words that would re-suggest this exact condition. Inverse of the matching in {@link suggestions}. */
+    /** One field, offered before it is clear which one you mean. */
+    private fieldRow(field: MemberField): MemberFilterRow {
+        return { kind: "field", field, typeLabel: TYPE_LABEL[field.kind] };
+    }
+
+    /** The words that would re-suggest this exact condition. Inverse of the matching in {@link rows}. */
     private reconstructQuery(c: MemberCondition): string {
         const field = this.fields().find((f) => f.name === c.field);
         const choice = field

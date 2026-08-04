@@ -34,7 +34,7 @@
             <i class="fa-solid fa-plus sonar-memfilter__baricon" aria-hidden="true"></i>
             <input #box class="sonar-memfilter__box" type="text" role="combobox" autocomplete="off"
                    [disabled]="fields().length === 0"
-                   [attr.aria-expanded]="open() && suggestions().length > 0"
+                   [attr.aria-expanded]="open() && rows().length > 0"
                    aria-controls="sonar-memfilter-list" aria-autocomplete="list"
                    [attr.aria-activedescendant]="open() ? 'sonar-memfilter-opt-' + highlighted() : null"
                    [placeholder]="fields().length === 0 ? 'No targetable fields' : 'Try “joined 90”'"
@@ -48,15 +48,15 @@
         <!-- Floating, so building a condition never reflows the member list underneath. Placed in viewport
              coordinates by the component: see popPlacement for why it cannot be absolute. -->
         @if (open() && fields().length > 0) {
-            @if (suggestions().length > 0) {
+            @if (rows().length > 0) {
                 <div class="sonar-memfilter__pop" [style]="popPlacement()">
                     <!-- Fixed while the rows scroll: it names the NEXT thing to type, so it has to stay put.
                          aria-live so a screen reader hears "Now type a number of days" too. -->
                     <p class="sonar-memfilter__caption" aria-live="polite">{{ caption() }}</p>
 
                     <div class="sonar-optlist sonar-memfilter__list" id="sonar-memfilter-list" role="listbox"
-                         aria-label="Matching conditions">
-                        @for (row of suggestions(); track $index) {
+                         aria-label="Fields and conditions">
+                        @for (row of rows(); track $index) {
                             <!-- mousedown, not click: blur fires first on click and would close the list.
                                  Deliberately NO mouseenter->highlighted: the list is placed right under the
                                  pointer, so a stationary mouse fires enter on whatever row lands beneath it
@@ -64,12 +64,20 @@
                                  feedback is CSS-only; the mouse commits by clicking, the keyboard by Enter. -->
                             <button type="button" class="sonar-optlist__opt sonar-memfilter__opt"
                                     [class.sonar-optlist__opt--on]="$index === highlighted()"
+                                    [class.sonar-memfilter__opt--field]="row.kind === 'field'"
                                     [id]="'sonar-memfilter-opt-' + $index" role="option"
                                     [attr.aria-selected]="$index === highlighted()"
                                     (mousedown)="commit($index)">
-                                @for (part of row.parts; track $index) {
-                                    <span [class.sonar-memfilter__val]="part.kind === 'value'"
-                                          [class.sonar-memfilter__blank]="part.kind === 'blank'">{{ part.text }}</span>
+                                @if (row.kind === 'field') {
+                                    <!-- Stage one: which field. The type tells you what tests are coming, so
+                                         you can tell a date field from a text one before committing to it. -->
+                                    <span class="sonar-memfilter__fieldname">{{ row.field.label }}</span>
+                                    <span class="sonar-memfilter__fieldtype">{{ row.typeLabel }}</span>
+                                } @else {
+                                    @for (part of row.parts; track $index) {
+                                        <span [class.sonar-memfilter__val]="part.kind === 'value'"
+                                              [class.sonar-memfilter__blank]="part.kind === 'blank'">{{ part.text }}</span>
+                                    }
                                 }
                             </button>
                         }
