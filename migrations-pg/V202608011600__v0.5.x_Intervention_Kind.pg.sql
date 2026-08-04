@@ -1,4 +1,4 @@
--- PostgreSQL twin of migrations/V202607241000__v0.5.x_Intervention_Kind.sql: execution Kind +
+-- PostgreSQL twin of migrations/V202608011600__v0.5.x_Intervention_Kind.sql: execution Kind +
 -- nullable ActionID, and retire the no-op "Add to Worklist" play.
 
 ALTER TABLE __mj_bizappssonar."Intervention" ADD COLUMN "Kind" varchar(20) NOT NULL DEFAULT 'Action';

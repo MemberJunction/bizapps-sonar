@@ -1,5 +1,5 @@
 -- Seeds the `Sonar: Run Intervention` action — PostgreSQL twin of
--- migrations/V202607221100__v0.5.x_Run_Intervention_Action.sql. Idempotent (ON CONFLICT DO NOTHING
+-- migrations/V202608011100__v0.5.x_Run_Intervention_Action.sql. Idempotent (ON CONFLICT DO NOTHING
 -- keyed on the hand-assigned IDs); category resolved by name (IDs can diverge across dialects).
 
 INSERT INTO __mj."Action" ("ID", "CategoryID", "Name", "Description", "Type", "CodeApprovalStatus", "CodeLocked", "ForceCodeGeneration", "Status", "DriverClass", "IconClass")

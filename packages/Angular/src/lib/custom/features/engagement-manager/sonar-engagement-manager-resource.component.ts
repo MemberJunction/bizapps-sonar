@@ -460,11 +460,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
      * Why this exists: a Recompute runs in Model Builder and writes new Scores behind this
      * surface's back. Resource tabs stay mounted, so ngOnInit never fires again and the triage
      * list happily shows pre-recompute numbers until the browser is reloaded. This is the
-     * operator's pull. (`loadModel` is the wrong tool — it resets every filter, which throws
-     * away the cohort they were working.)
+     * operator's pull. (`loadModel` is the wrong tool — it resets every filter and forces the tab
+     * back to triage, which throws away the cohort they were working.)
      *
      * The selected band is RE-POINTED at the fresh slice with the same bandId rather than kept:
      * its member count just changed, and the tile renders from the held object.
+     *
+     * Mirrors this branch's loadModel, NOT next's: movers live in `moverSummary` behind the movers
+     * TAB here (next still had a showMovers toggle and a single `movers` signal), and the open
+     * intervention list is refreshed only when its tab is the one on screen.
      */
     public async refresh(): Promise<void> {
         const id = this.current.modelId();

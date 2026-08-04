@@ -4,7 +4,7 @@
 
 Make the intervention layer actually installable: fold its CodeGen metadata into a shipping migration.
 
-`V202607221000` created the four intervention tables (`ScoreSegment`, `Intervention`, `InterventionAssignment`, `InterventionOutcome`) but never registered them with MJ, and the later `Intervention.Kind` and `ScoreModel.OutcomeDefinitionJSON` columns were likewise unregistered. That registration — `Entity`/`EntityField` rows, `EntityPermission` grants, the `vw*` views and the `spCreate`/`spUpdate`/`spDelete` procedures — is produced by `mj codegen`, which writes to `migrations/codegen/`. That folder is gitignored, so none of it ever shipped.
+`V202608011000` created the four intervention tables (`ScoreSegment`, `Intervention`, `InterventionAssignment`, `InterventionOutcome`) but never registered them with MJ, and the later `Intervention.Kind` and `ScoreModel.OutcomeDefinitionJSON` columns were likewise unregistered. That registration — `Entity`/`EntityField` rows, `EntityPermission` grants, the `vw*` views and the `spCreate`/`spUpdate`/`spDelete` procedures — is produced by `mj codegen`, which writes to `migrations/codegen/`. That folder is gitignored, so none of it ever shipped.
 
 Since `mj app install` runs migrations only, a fresh install got the tables with no metadata, no views and no CRUD procedures: the entity layer had nothing to call. It worked on developer machines purely because each of us had run CodeGen locally against our own dev databases.
 
