@@ -13,6 +13,11 @@ import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.c
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
 import { AnchorNoun, anchorNounFor } from "../../core/anchor-noun";
+
+/** Sender used for the outreach DRY RUN. A preview never leaves the building, so this only has to be
+ *  well-formed; a real send needs an address verified with the provider, which is configuration rather
+ *  than something this surface should invent. */
+const SEND_FROM_ADDRESS = "sonar@example.invalid";
 import { FireableAction, InterventionService, PlayParam, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult, MemberTrendShape, PreviewMember, ProposalStatus, ProposalSummary, ReasonSlice } from "../../core/services/intervention.service";
 
 
@@ -56,6 +61,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly editBody = signal("");
     /** The proposal id being saved, or 'bulk' during approve-all / send-approved. */
     public readonly proposalBusy = signal<string | null>(null);
+    /** What the last dry run reported, shown under the header so the preview is not silent. */
+    public readonly sendOutcome = signal<string | null>(null);
     public readonly proposalError = signal<string | null>(null);
     public readonly visibleProposals = computed<ProposalSummary[]>(() => {
         const filter = this.proposalFilter();
@@ -1328,21 +1335,51 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         }
     }
 
-    /** The PoC's send: flip every Approved draft to Executed with a timestamp. Nothing leaves the
-     *  building — the UI labels this "simulated" everywhere it appears. */
+    /**
+     * Send the approved drafts through MJ Communications.
+     *
+     * DRY RUN, deliberately. The action renders every approved draft through the configured provider
+     * and sends nothing, which also means it leaves them Approved rather than marking them Executed —
+     * so the queue does NOT drain here. That is the point: a real send is the first thing in Sonar that
+     * can reach a person, so it has to be asked for explicitly rather than being one click away from a
+     * cohort. The button says "dry run" so the UI never claims more than it did.
+     *
+     * Drafts can span interventions (each launch makes its own), and the action takes one intervention,
+     * so this groups by intervention and reports the totals across them.
+     */
     public async sendApproved(): Promise<void> {
         if (this.proposalBusy()) return;
+        const approved = this.proposals().filter((p) => p.status === "Approved");
+        if (approved.length === 0) return;
         this.proposalBusy.set("bulk");
         this.proposalError.set(null);
+        this.sendOutcome.set(null);
         try {
-            for (const p of this.proposals().filter((x) => x.status === "Approved")) {
-                const res = await this.interventionService.saveProposalReview(p.id, "Executed");
-                if (!res.ok) {
-                    this.proposalError.set(res.error ?? "The send stopped partway — remaining drafts are still Approved.");
+            const byIntervention = new Map<string, number>();
+            for (const p of approved) byIntervention.set(p.interventionId, (byIntervention.get(p.interventionId) ?? 0) + 1);
+
+            let previewed = 0;
+            let failed = 0;
+            let provider = "";
+            for (const interventionId of byIntervention.keys()) {
+                const res = await this.interventionService.sendApprovedOutreach(
+                    interventionId,
+                    SEND_FROM_ADDRESS,
+                    { dryRun: true },
+                );
+                if (!res.ok || !res.result) {
+                    this.proposalError.set(res.error ?? "The send could not be previewed.");
                     return;
                 }
-                this.applyProposalChange(p.id, "Executed");
+                previewed += res.result.sent;
+                failed += res.result.failed + res.result.skippedNoEmail;
+                provider = res.result.provider;
             }
+            this.sendOutcome.set(
+                `Dry run: rendered ${previewed} of ${approved.length} approved draft${approved.length === 1 ? "" : "s"}` +
+                    ` via ${provider}${failed ? `, ${failed} could not be prepared` : ""}.` +
+                    ` Nothing was sent, so they are still approved.`,
+            );
         } finally {
             this.proposalBusy.set(null);
         }

@@ -9,6 +9,7 @@ import { sqlString } from "./sql.util";
 const RUN_INTERVENTION_ACTION = "Sonar: Run Intervention";
 const MEASURE_OUTCOMES_ACTION = "Sonar: Measure Intervention Outcomes";
 const PREVIEW_SEGMENT_ACTION = "Sonar: Preview Segment";
+const SEND_APPROVED_ACTION = "Sonar: Send Approved Outreach";
 const EXPLAIN_SCORES_ACTION = "Sonar: Explain Scores";
 
 /** Play params the engine can fill from fire-time tokens (InterventionRunner.fillTokens). When a
@@ -286,6 +287,18 @@ export interface ProposalGrounding {
 export type ProposalStatus = "Proposed" | "Approved" | "Rejected" | "Executed";
 
 /** One reviewable proposal — an Outreach queue row (payload/grounding pre-parsed for the UI). */
+/** What `Sonar: Send Approved Outreach` reports back. */
+export interface SendOutreachResult {
+    dryRun: boolean;
+    provider: string;
+    approved: number;
+    sent: number;
+    failed: number;
+    skippedNoEmail: number;
+    redirectedTo: string | null;
+    firstError: string | null;
+}
+
 export interface ProposalSummary {
     id: string;
     interventionId: string;
@@ -328,6 +341,39 @@ export class InterventionService {
         if (!res.Success) return { ok: false, error: res.Message || "The intervention run failed." };
         const result = extractActionResult<LaunchResult>(res);
         return result ? { ok: true, result } : { ok: false, error: "The run returned no result payload." };
+    }
+
+    /**
+     * Hand one intervention's APPROVED drafts to MJ Communications.
+     *
+     * `dryRun` defaults to true and the caller has to opt out deliberately: past this point the worst
+     * case stops being a wrong row and becomes real mail to real members. The action itself also
+     * defaults to a dry run, so a missing param cannot send by accident.
+     *
+     * Only Approved proposals are eligible, and a real send moves them to Executed — so a re-run
+     * cannot double-send, and a dry run deliberately leaves them Approved for the real one.
+     */
+    public async sendApprovedOutreach(
+        interventionId: string,
+        from: string,
+        opts: { dryRun?: boolean; provider?: string; testRecipient?: string } = {},
+    ): Promise<{ ok: boolean; result?: SendOutreachResult; error?: string }> {
+        const id = await this.resolveActionIdByName(SEND_APPROVED_ACTION);
+        if (!id) {
+            return { ok: false, error: "The send action isn't available in this environment. Restart the API after migrating." };
+        }
+        const params: Parameters<GraphQLActionClient["RunAction"]>[1] = [
+            { Name: "InterventionID", Value: interventionId, Type: "Input" },
+            { Name: "From", Value: from, Type: "Input" },
+            { Name: "DryRun", Value: String(opts.dryRun !== false), Type: "Input" },
+        ];
+        if (opts.provider) params.push({ Name: "Provider", Value: opts.provider, Type: "Input" });
+        if (opts.testRecipient) params.push({ Name: "TestRecipient", Value: opts.testRecipient, Type: "Input" });
+
+        const res = await this.actionClient().RunAction(id, params);
+        if (!res.Success) return { ok: false, error: res.Message || "The send failed." };
+        const result = extractActionResult<SendOutreachResult>(res);
+        return result ? { ok: true, result } : { ok: false, error: "The send returned no result payload." };
     }
 
     /**

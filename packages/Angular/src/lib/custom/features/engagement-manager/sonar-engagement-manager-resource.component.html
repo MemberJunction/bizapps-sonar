@@ -843,11 +843,14 @@
                                             Approve all ({{ proposedCount() }})
                                         </button>
                                         <button class="sonar-btn sonar-btn--primary" [disabled]="proposalBusy() !== null || approvedCount() === 0" (click)="sendApproved()"
-                                                title="Simulated: marks approved drafts as sent. No email leaves Sonar in this build.">
-                                            <i class="fa-solid fa-paper-plane"></i> Send approved ({{ approvedCount() }}) · simulated
+                                                title="Dry run: renders every approved draft through the configured MJ Communications provider and sends nothing. The drafts stay approved, so a real send still has them.">
+                                            <i class="fa-solid fa-paper-plane"></i> Preview send ({{ approvedCount() }}) · dry run
                                         </button>
                                     </div>
                                 </div>
+                                @if (sendOutcome(); as outcome) {
+                                    <p class="sonar-faint sonar-outreach__blurb" style="margin: 0 0 0.75rem;"><i class="fa-solid fa-circle-info"></i> {{ outcome }}</p>
+                                }
                                 @if (proposalError(); as err) {
                                     <p class="sonar-launch__error" style="margin: 0 0 0.75rem;"><i class="fa-solid fa-circle-exclamation"></i> {{ err }}</p>
                                 }

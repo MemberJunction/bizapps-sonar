@@ -42,3 +42,4 @@ export * from "./SonarDraftOutreachAction";
 export * from "./SonarPreviewSegmentAction";
 export * from "./SonarExplainScoresAction";
 export * from "./SonarEmailCohortAction";
+export * from "./SonarSendApprovedOutreachAction";
