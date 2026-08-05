@@ -359,6 +359,67 @@ export class RecomputeOrchestrator {
         );
     }
 
+    /**
+     * How many anchor records this model actually scores — the population filter applied, as a
+     * COUNT, without materializing a single key.
+     *
+     * Exists so the UI can show the true scored scope. The Model Builder header used to run a bare
+     * whole-entity count and print it as the scope ("2,000 in population" when the real scope was
+     * 66), because the filter compiler lives here, server-side: re-implementing it in the browser
+     * would duplicate a security-sensitive compiler and hand the client a SQL-building surface.
+     * So the count is answered where the compiler already is.
+     *
+     * Deliberately `count_only` rather than counting `resolvePopulation()`'s result: that reads every
+     * PK in the population (uncapped, `IgnoreMaxRows`) just to take `.length`, which on a large anchor
+     * entity is a lot of rows pulled to answer a scalar.
+     *
+     * `total` is the unfiltered entity count, so a caller can say "66 of 2,000" without a second
+     * round trip. When there is no filter, `scoped === total`.
+     */
+    public async countPopulation(
+        modelId: string,
+        contextUser: UserInfo,
+    ): Promise<{ scoped: number; total: number; filtered: boolean }> {
+        const model = await this.loadModel(modelId, contextUser);
+        const md = new Metadata();
+        const anchorEntity = md.EntityByID(model.AnchorEntityID);
+        if (!anchorEntity) {
+            throw new Error(
+                `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
+            );
+        }
+        const extraFilter = this.compilePopulationFilter(model, anchorEntity);
+        const total = await this.countAnchors(anchorEntity, null, contextUser);
+        // No filter → the scoped count IS the total; skip the redundant second query.
+        const scoped = extraFilter === null
+            ? total
+            : await this.countAnchors(anchorEntity, extraFilter, contextUser);
+        return { scoped, total, filtered: extraFilter !== null };
+    }
+
+    /** One count_only read over the anchor entity, optionally narrowed. Fails loud for the same
+     *  reason resolvePopulation does: a swallowed error would read as "nobody is in scope". */
+    private async countAnchors(
+        anchorEntity: EntityInfo,
+        extraFilter: string | null,
+        contextUser: UserInfo,
+    ): Promise<number> {
+        const result = await new RunView().RunView(
+            {
+                EntityName: anchorEntity.Name,
+                ResultType: "count_only",
+                ExtraFilter: extraFilter ?? undefined,
+            },
+            contextUser,
+        );
+        if (!result.Success) {
+            throw new Error(
+                `RecomputeOrchestrator: population count for '${anchorEntity.Name}' failed: ${result.ErrorMessage ?? "unknown error"}.`,
+            );
+        }
+        return result.TotalRowCount ?? 0;
+    }
+
     /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
      *  a RunView ExtraFilter. Reuses compileFilter for field validation + structure, then inlines
      *  the parameters as escaped literals because RunView's ExtraFilter has no parameter binding.

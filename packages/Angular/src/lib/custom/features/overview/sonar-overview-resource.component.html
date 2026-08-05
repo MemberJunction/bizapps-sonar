@@ -28,6 +28,14 @@
         </div>
         @if (model()) {
             <div class="sonar-page__actions">
+                <!-- Recompute runs in Model Builder and this surface can't see it; Refresh is the pull. -->
+                <button class="sonar-btn" [disabled]="refreshing()" (click)="refresh()" title="Re-read scores for this model (after a recompute)">
+                    @if (refreshing()) {
+                        <i class="fa-solid fa-arrows-rotate fa-spin"></i> Refreshing&hellip;
+                    } @else {
+                        <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                    }
+                </button>
                 <span class="sonar-chip" [ngClass]="statusClass(model()!.Status)">{{ model()!.Status }}</span>
             </div>
         }

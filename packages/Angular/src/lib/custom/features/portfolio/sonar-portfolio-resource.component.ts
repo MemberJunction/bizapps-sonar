@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from "@angular/core";
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -6,6 +6,7 @@ import { Metadata } from "@memberjunction/core";
 import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
+import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { BandKey, BandSlice, OverviewTrend, ScoreReadService } from "../../core/services/score-read.service";
 import type {
     ApexAxisChartSeries, ApexChart, ApexXAxis, ApexDataLabels,
@@ -91,6 +92,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     private readonly scoreRead = inject(ScoreReadService);
     /** Shared cross-surface model selection — set before opening triage so Engagement lands scoped. */
     private readonly current = inject(CurrentModelService);
+    private readonly bus = inject(SonarDataBusService);
 
     /** Tracks the MJ dark-mode flag so charts re-render with correct colors on theme switch. */
     private readonly darkMode = signal(
@@ -99,7 +101,34 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     private themeObserver: MutationObserver | null = null;
 
     public readonly loaded = signal(false);
+    /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
+    public readonly refreshing = signal(false);
     public readonly slots = signal<PortfolioSlot[]>([]);
+
+    // ── Cross-surface invalidation ─────────────────────────────────────────────
+    /** Summed bus revision this surface's contents already reflect; null before the first baseline. */
+    private seenRevision: number | null = null;
+
+    /**
+     * Re-read when a recompute or config change lands for ANY model on screen. Unlike the single-model
+     * surfaces this watches the whole set, so it reads `models` plus every displayed model's topics.
+     *
+     * Reading `slots()` here is intentional and safe despite `refresh()` writing it: revisions only
+     * ever increase, so after a refresh the sum is unchanged and the slot-driven re-run short-circuits
+     * on `seen === revision`. That's what stops refresh → slots → effect → refresh from looping.
+     */
+    private readonly watchInvalidations = effect(() => {
+        let revision = this.bus.revision({ topic: "models" });
+        for (const slot of this.slots()) {
+            revision +=
+                this.bus.revision({ topic: "scores", modelId: slot.model.ID }) +
+                this.bus.revision({ topic: "config", modelId: slot.model.ID });
+        }
+        const seen = this.seenRevision;
+        this.seenRevision = revision;
+        if (seen === null || seen === revision) return;
+        void this.refresh();
+    });
 
     /** Which Marimekko mode is active: proportional (width = member count) or normalized (equal widths). */
     public readonly chartView = signal<"proportional" | "normalized">("proportional");
@@ -305,9 +334,41 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     // ── Data loading ───────────────────────────────────────────────────────────
 
-    private async loadPortfolio(): Promise<void> {
+    /**
+     * Re-read every model's slot after a Recompute wrote new scores elsewhere. Resource tabs stay
+     * mounted, so ngOnInit never fires a second time and the portfolio would otherwise show
+     * pre-recompute distributions until a browser reload.
+     *
+     * Preserves the rendered slots while the new reads land, so a refresh doesn't blank every
+     * model to a skeleton and flash the whole Marimekko.
+     */
+    public async refresh(): Promise<void> {
+        if (this.refreshing()) return;
+        this.refreshing.set(true);
+        try {
+            await this.loadPortfolio(true);
+        } finally {
+            this.refreshing.set(false);
+        }
+    }
+
+    /**
+     * Load every model's slot. `preserveExisting` keeps the already-rendered slots on screen while
+     * the fresh reads land (loadSlot replaces each one in place by model ID) — without it a refresh
+     * would blank every slot to its skeleton and flash the whole Marimekko. Models that have no
+     * slot yet are still seeded empty so there's a row for loadSlot to fill.
+     */
+    private async loadPortfolio(preserveExisting = false): Promise<void> {
         const models = await this.modelService.list();
-        this.slots.set(models.map(emptySlot));
+        if (preserveExisting) {
+            const known = new Set(this.slots().map(s => s.model.ID));
+            const added = models.filter(m => !known.has(m.ID)).map(emptySlot);
+            // Drop slots for models that no longer exist, keep the rest, append any new ones.
+            const live = new Set(models.map(m => m.ID));
+            this.slots.update(all => [...all.filter(s => live.has(s.model.ID)), ...added]);
+        } else {
+            this.slots.set(models.map(emptySlot));
+        }
         this.loaded.set(true);
         await Promise.all(models.map(m => this.loadSlot(m)));
     }
