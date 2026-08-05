@@ -16,6 +16,9 @@ import { LinkDirectivesModule } from '@memberjunction/ng-link-directives';
 
 // Import Generated Components
 import { mjBizAppsSonarFactorFormComponent } from "./Entities/mjBizAppsSonarFactor/mjbizappssonarfactor.form.component";
+import { mjBizAppsSonarInterventionAssignmentFormComponent } from "./Entities/mjBizAppsSonarInterventionAssignment/mjbizappssonarinterventionassignment.form.component";
+import { mjBizAppsSonarInterventionOutcomeFormComponent } from "./Entities/mjBizAppsSonarInterventionOutcome/mjbizappssonarinterventionoutcome.form.component";
+import { mjBizAppsSonarInterventionFormComponent } from "./Entities/mjBizAppsSonarIntervention/mjbizappssonarintervention.form.component";
 import { mjBizAppsSonarModelFactorFormComponent } from "./Entities/mjBizAppsSonarModelFactor/mjbizappssonarmodelfactor.form.component";
 import { mjBizAppsSonarModelRelatedEntityFormComponent } from "./Entities/mjBizAppsSonarModelRelatedEntity/mjbizappssonarmodelrelatedentity.form.component";
 import { mjBizAppsSonarScoreBandSetFormComponent } from "./Entities/mjBizAppsSonarScoreBandSet/mjbizappssonarscorebandset.form.component";
@@ -27,6 +30,7 @@ import { mjBizAppsSonarScoreModelAuditEventFormComponent } from "./Entities/mjBi
 import { mjBizAppsSonarScoreModelVersionFormComponent } from "./Entities/mjBizAppsSonarScoreModelVersion/mjbizappssonarscoremodelversion.form.component";
 import { mjBizAppsSonarScoreModelFormComponent } from "./Entities/mjBizAppsSonarScoreModel/mjbizappssonarscoremodel.form.component";
 import { mjBizAppsSonarScoreRecomputeRunFormComponent } from "./Entities/mjBizAppsSonarScoreRecomputeRun/mjbizappssonarscorerecomputerun.form.component";
+import { mjBizAppsSonarScoreSegmentFormComponent } from "./Entities/mjBizAppsSonarScoreSegment/mjbizappssonarscoresegment.form.component";
 import { mjBizAppsSonarScoreFormComponent } from "./Entities/mjBizAppsSonarScore/mjbizappssonarscore.form.component";
 import { mjBizAppsSonarTimeWindowFormComponent } from "./Entities/mjBizAppsSonarTimeWindow/mjbizappssonartimewindow.form.component";
    
@@ -34,6 +38,9 @@ import { mjBizAppsSonarTimeWindowFormComponent } from "./Entities/mjBizAppsSonar
 @NgModule({
 declarations: [
     mjBizAppsSonarFactorFormComponent,
+    mjBizAppsSonarInterventionAssignmentFormComponent,
+    mjBizAppsSonarInterventionOutcomeFormComponent,
+    mjBizAppsSonarInterventionFormComponent,
     mjBizAppsSonarModelFactorFormComponent,
     mjBizAppsSonarModelRelatedEntityFormComponent,
     mjBizAppsSonarScoreBandSetFormComponent,
@@ -45,6 +52,7 @@ declarations: [
     mjBizAppsSonarScoreModelVersionFormComponent,
     mjBizAppsSonarScoreModelFormComponent,
     mjBizAppsSonarScoreRecomputeRunFormComponent,
+    mjBizAppsSonarScoreSegmentFormComponent,
     mjBizAppsSonarScoreFormComponent,
     mjBizAppsSonarTimeWindowFormComponent],
 imports: [

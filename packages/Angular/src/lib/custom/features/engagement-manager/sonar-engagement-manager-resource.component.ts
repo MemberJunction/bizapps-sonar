@@ -10,6 +10,7 @@ import { SonarDataBusService } from "../../core/services/sonar-data-bus.service"
 import { SonarToggleOption } from "../../shared/filter-bar/sonar-toggle-filter.component";
 import { SonarRange } from "../../shared/filter-bar/sonar-range-filter.component";
 import { toCsv, downloadCsv } from "../../core/services/csv.util";
+import { FireableAction, InterventionService, InterventionSummary, LaunchConfig, LaunchResult, LaunchSegmentFilter, MeasureResult } from "../../core/services/intervention.service";
 
 
 /**
@@ -19,8 +20,9 @@ import { toCsv, downloadCsv } from "../../core/services/csv.util";
  * factor contributions. DriverClass = 'SonarEngagementManagerResource'.
  *
  * Reads PERSISTED scores via {@link ScoreReadService} (written by Recompute). Triage + the
- * explainability drawer + cohort CSV export ship in v1; the action/intervention layer is Phase 2+
- * (un-shipped — its engine/action code stays dormant behind the dropped Action Layer migration).
+ * explainability drawer + cohort CSV export, plus the action layer (plan §5.6): launch an
+ * intervention on the filtered cohort (preview → commit with an automatic holdout via
+ * `Sonar: Run Intervention`) and track launched plays in the Interventions tab.
  */
 @RegisterClass(BaseResourceComponent, "SonarEngagementManagerResource")
 @Component({
@@ -34,10 +36,64 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly factorService = inject(FactorService);
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
+    private readonly interventionService = inject(InterventionService);
     private readonly bus = inject(SonarDataBusService);
 
     // --- active view tab ---
-    public readonly activeTab = signal<'triage' | 'movers'>('triage');
+    public readonly activeTab = signal<'triage' | 'movers' | 'interventions'>('triage');
+
+    // --- action layer: launch panel (in-context, over the triage cohort) + interventions tab ---
+    public readonly showLaunch = signal(false);
+    /** Where the launch cohort comes from: the triage filter (band/score) or a mover segment
+     *  (delta rule tuned in the Movers explorer). */
+    public readonly launchMode = signal<"cohort" | "movers">("cohort");
+    /** The segment filter a launch from Movers carries — set from the live explorer filter so the
+     *  cohort launched is EXACTLY the list on screen. */
+    private readonly launchMoverFilter = signal<LaunchSegmentFilter>({});
+    private launchMoverLabel = "Movers";
+
+    // --- Movers explorer: a live segment view (tune the filter → see the members → launch on them) ---
+    public readonly moverDirection = signal<"drops" | "gains">("drops");
+    /** Minimum absolute score move to qualify (points). */
+    public readonly moverMagnitude = signal(5);
+    /** Only members who changed band this run (the meaningful boundary crossing). */
+    public readonly moverCrossedOnly = signal(false);
+    public readonly moverSummary = signal<{ dropped: number; climbed: number; crossed: number }>({ dropped: 0, climbed: 0, crossed: 0 });
+    public readonly moverList = signal<ScoredMember[]>([]);
+    public readonly loadingMovers = signal(false);
+    /** Dominant "why they're low" per listed member (scoreId → cause label), from contributions. */
+    public readonly moverCauseById = signal<Map<string, string>>(new Map());
+
+    public readonly directionDrops: SonarToggleOption = { value: "drops", label: "↓ Dropping", title: "Members whose score fell" };
+    public readonly directionGains: SonarToggleOption = { value: "gains", label: "↑ Climbing", title: "Members whose score rose" };
+
+    /** The mover filter as an engine SegmentFilter — the ONE definition that drives the list AND a
+     *  launch, so what you see is exactly who you'd act on. Direction picks which delta bound. */
+    public readonly moverFilter = computed<LaunchSegmentFilter>(() => {
+        const mag = Math.abs(this.moverMagnitude());
+        const crossedBandOnly = this.moverCrossedOnly() ? true : null;
+        return this.moverDirection() === "drops"
+            ? { maxDelta: -mag, crossedBandOnly }
+            : { minDelta: mag, crossedBandOnly };
+    });
+    public readonly fireable = signal<FireableAction[]>([]);
+    public readonly launchName = signal("");
+    public readonly launchActionId = signal<string | null>(null);
+    public readonly launchHoldout = signal(20);
+    public readonly launchCap = signal(100);
+    public readonly launchPreview = signal<LaunchResult | null>(null);
+    public readonly launchBusy = signal<"preview" | "commit" | null>(null);
+    public readonly launchError = signal<string | null>(null);
+    public readonly launchDone = signal<LaunchResult | null>(null);
+    public readonly interventions = signal<InterventionSummary[]>([]);
+    public readonly loadingInterventions = signal(false);
+    /** Per-intervention lift readouts (filled by Measure) + the row currently measuring. */
+    public readonly liftById = signal<Map<string, MeasureResult>>(new Map());
+    public readonly measuringId = signal<string | null>(null);
+    public readonly measureError = signal<string | null>(null);
+    /** Launch kind: fire a play per member, sync the treated cohort somewhere once (BulkSync),
+     *  or just track a real-world treatment + measure. */
+    public readonly launchKind = signal<"Action" | "TrackOnly" | "BulkSync">("Action");
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
@@ -68,11 +124,10 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         return !!m && m.versionNumber != null && cur != null && m.versionNumber !== cur;
     });
 
-    // --- score history (sparkline) + movers since last run ---
+    // --- score history (sparkline) ---
     public readonly history = signal<ScoreHistoryPoint[]>([]);
-    public readonly movers = signal<{ risers: ScoredMember[]; fallers: ScoredMember[] }>({ risers: [], fallers: [] });
-    public readonly showMovers = signal(false);
-    public readonly hasMovers = computed(() => this.movers().risers.length > 0 || this.movers().fallers.length > 0);
+    /** Any movement at all this run — gates the Movers nav item + drives its count chip. */
+    public readonly hasMovers = computed(() => this.moverSummary().dropped + this.moverSummary().climbed > 0);
 
     /** SVG sparkline geometry from the selected member's history (null if < 2 points to draw). */
     public readonly spark = computed(() => this.buildSpark(this.history()));
@@ -190,15 +245,20 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.pinnedAnchorId.set(null);
         this.anchorEntityId.set(model?.AnchorEntityID ?? null);
         this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
-        this.showMovers.set(false);
-        const [dist, rubric, movers] = await Promise.all([
+        this.showLaunch.set(false);
+        this.launchPreview.set(null);
+        this.launchDone.set(null);
+        this.interventions.set([]);
+        this.moverList.set([]);
+        if (this.activeTab() === "interventions" || this.activeTab() === "movers") this.activeTab.set("triage");
+        const [dist, rubric, summary] = await Promise.all([
             this.scoreRead.distributionForModel(id),
             this.factorService.rubricForModel(id),
-            this.scoreRead.moversForModel(id),
+            this.scoreRead.moverSummary(id),
         ]);
         this.tiles.set(dist.slices);
         this.rubricNames.set(rubric.map((r) => r.name));
-        this.movers.set(movers);
+        this.moverSummary.set(summary);
         await this.loadMembers();
     }
 
@@ -209,11 +269,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
      * Why this exists: a Recompute runs in Model Builder and writes new Scores behind this
      * surface's back. Resource tabs stay mounted, so ngOnInit never fires again and the triage
      * list happily shows pre-recompute numbers until the browser is reloaded. This is the
-     * operator's pull. (`loadModel` is the wrong tool — it resets every filter, which throws
-     * away the cohort they were working.)
+     * operator's pull. (`loadModel` is the wrong tool — it resets every filter and forces the tab
+     * back to triage, which throws away the cohort they were working.)
      *
      * The selected band is RE-POINTED at the fresh slice with the same bandId rather than kept:
      * its member count just changed, and the tile renders from the held object.
+     *
+     * Mirrors this branch's loadModel, NOT next's: movers live in `moverSummary` behind the movers
+     * TAB here (next still had a showMovers toggle and a single `movers` signal), and the open
+     * intervention list is refreshed only when its tab is the one on screen.
      */
     public async refresh(): Promise<void> {
         const id = this.current.modelId();
@@ -226,14 +290,14 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             this.anchorEntityId.set(model?.AnchorEntityID ?? null);
             this.currentVersionNumber.set(await this.scoreRead.versionNumberFor(model?.CurrentVersionID ?? null));
 
-            const [dist, rubric, movers] = await Promise.all([
+            const [dist, rubric, summary] = await Promise.all([
                 this.scoreRead.distributionForModel(id),
                 this.factorService.rubricForModel(id),
-                this.scoreRead.moversForModel(id),
+                this.scoreRead.moverSummary(id),
             ]);
             this.tiles.set(dist.slices);
             this.rubricNames.set(rubric.map((r) => r.name));
-            this.movers.set(movers);
+            this.moverSummary.set(summary);
 
             const band = this.selectedBand();
             if (band) this.selectedBand.set(dist.slices.find((s) => s.bandId === band.bandId) ?? null);
@@ -245,9 +309,6 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             this.refreshing.set(false);
         }
     }
-
-    /** Show/hide the "movers since last run" panel. */
-    public toggleMovers(): void { this.showMovers.update((v) => !v); }
 
     /** (Re)load the current page of the triage list under the active band filter, then open the
      *  top row's drawer so the surface always lands on something useful. */
@@ -316,6 +377,222 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         } finally {
             this.exporting.set(false);
         }
+    }
+
+    // ---- action layer: launch an intervention on the filtered cohort (plan §5.6) ----
+
+    /** Open the in-context launch panel for the CURRENT triage filter; loads the play catalog once. */
+    public async openLaunch(): Promise<void> {
+        this.launchMode.set("cohort");
+        this.activeTab.set("triage");
+        await this.prepareLaunch();
+    }
+
+    /** Open the launch panel scoped to the CURRENT Movers explorer filter — the exact cohort on
+     *  screen. This is the unification: the segment you're viewing is the segment you act on. */
+    public async openLaunchFromMovers(): Promise<void> {
+        this.launchMode.set("movers");
+        this.launchMoverFilter.set(this.moverFilter());
+        const mag = Math.abs(this.moverMagnitude());
+        const verb = this.moverDirection() === "drops" ? "dropped" : "climbed";
+        this.launchMoverLabel = `${verb} ${mag}+${this.moverCrossedOnly() ? " (band cross)" : ""}`;
+        await this.prepareLaunch();
+    }
+
+    private async prepareLaunch(): Promise<void> {
+        this.launchError.set(null);
+        this.launchPreview.set(null);
+        this.launchDone.set(null);
+        this.launchName.set(this.defaultLaunchName());
+        this.showLaunch.set(true);
+        if (this.fireable().length === 0) {
+            this.fireable.set(await this.interventionService.fireableActions());
+        }
+    }
+
+    public closeLaunch(): void { this.showLaunch.set(false); }
+
+    /** Human scope label for a Movers-sourced launch (e.g. "dropped 5+ (band cross)"). */
+    public launchMoverScopeLabel(): string { return this.launchMoverLabel; }
+
+    /** A human name for the play, derived from what the operator is looking at. */
+    private defaultLaunchName(): string {
+        if (this.launchMode() === "movers") return `${this.launchMoverLabel} outreach`;
+        const band = this.selectedBand();
+        const range = this.minScore() != null || this.maxScore() != null
+            ? ` ${this.minScore() ?? 0}-${this.maxScore() ?? 100}`
+            : "";
+        return `${band ? band.label : "All bands"}${range} outreach`;
+    }
+
+    /** Build the ConfigJSON payload from the active cohort source (triage filter or mover segment).
+     *  Action and BulkSync need a play picked; TrackOnly fires nothing so needs no play. */
+    private launchConfig(preview: boolean): LaunchConfig | null {
+        const modelId = this.current.modelId();
+        if (!modelId) return null;
+        const kind = this.launchKind();
+        const actionId = this.launchActionId();
+        if (kind !== "TrackOnly" && !actionId) return null;
+        const band = this.selectedBand();
+        const filter = this.launchMode() === "movers"
+            ? this.launchMoverFilter()
+            : { bandId: band?.bandId ?? null, minScore: this.minScore(), maxScore: this.maxScore() };
+        return {
+            modelId,
+            kind,
+            segment: { name: this.launchName().trim() || this.defaultLaunchName(), filter },
+            intervention: { name: this.launchName().trim() || this.defaultLaunchName(), holdoutPercent: this.launchHoldout() },
+            action: kind !== "TrackOnly" && actionId ? { actionId, params: [] } : null,
+            cap: this.launchCap(),
+            preview,
+        };
+    }
+
+    /** Kind toggle: TrackOnly clears any picked play (it fires nothing); resets the preview. */
+    public setLaunchKind(kind: "Action" | "TrackOnly" | "BulkSync"): void {
+        this.launchKind.set(kind);
+        if (kind === "TrackOnly") this.launchActionId.set(null);
+        this.launchPreview.set(null);
+    }
+
+    /** Dry-run: resolve the cohort + treated/held split, write and fire NOTHING. */
+    public async previewLaunch(): Promise<void> {
+        const cfg = this.launchConfig(true);
+        if (!cfg || this.launchBusy()) return;
+        this.launchBusy.set("preview");
+        this.launchError.set(null);
+        this.launchDone.set(null);
+        try {
+            const res = await this.interventionService.run(cfg);
+            if (res.ok && res.result) this.launchPreview.set(res.result);
+            else this.launchError.set(res.error ?? "Preview failed.");
+        } finally {
+            this.launchBusy.set(null);
+        }
+    }
+
+    /** Commit: write one assignment per member (treatment/control) and fire the play for treated. */
+    public async commitLaunch(): Promise<void> {
+        const cfg = this.launchConfig(false);
+        if (!cfg || this.launchBusy() || !this.launchPreview()) return;
+        this.launchBusy.set("commit");
+        this.launchError.set(null);
+        try {
+            const res = await this.interventionService.run(cfg);
+            if (res.ok && res.result) {
+                this.launchDone.set(res.result);
+                this.launchPreview.set(null);
+                await this.loadInterventions();
+            } else {
+                this.launchError.set(res.error ?? "Launch failed.");
+            }
+        } finally {
+            this.launchBusy.set(null);
+        }
+    }
+
+    /** Numeric field setters ([value]+(input) style — this surface doesn't use ngModel). */
+    public setLaunchHoldout(v: string): void { const n = Number(v); this.launchHoldout.set(Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 20); this.launchPreview.set(null); }
+    public setLaunchCap(v: string): void { const n = Number(v); this.launchCap.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 100); this.launchPreview.set(null); }
+    public setLaunchAction(id: string): void { this.launchActionId.set(id || null); this.launchPreview.set(null); }
+    public setLaunchName(v: string): void { this.launchName.set(v); }
+
+    // ---- Movers explorer: tune the segment, see the members, launch on exactly them ----
+
+    /** Open the Movers tab and load its summary + list for the current filter. */
+    public async showMoversTab(): Promise<void> {
+        this.activeTab.set("movers");
+        await this.loadMovers();
+    }
+
+    public async setMoverDirection(dir: string): Promise<void> {
+        this.moverDirection.set(dir === "gains" ? "gains" : "drops");
+        await this.loadMovers();
+    }
+    public async setMoverMagnitude(v: string): Promise<void> {
+        const n = Number(v);
+        this.moverMagnitude.set(Number.isFinite(n) && n > 0 ? n : 1);
+        await this.loadMovers();
+    }
+    public async toggleMoverCrossed(): Promise<void> {
+        this.moverCrossedOnly.update((v) => !v);
+        await this.loadMovers();
+    }
+
+    /** Refresh the summary counts + the filtered member list from the current mover filter. */
+    private async loadMovers(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id) { this.moverList.set([]); this.moverSummary.set({ dropped: 0, climbed: 0, crossed: 0 }); return; }
+        this.loadingMovers.set(true);
+        try {
+            const [summary, list] = await Promise.all([
+                this.scoreRead.moverSummary(id),
+                this.scoreRead.moverMembers(id, this.moverFilter(), this.moverDirection()),
+            ]);
+            this.moverSummary.set(summary);
+            this.moverList.set(list);
+            // Cause-awareness (Rung 1): show WHY each listed member is low, from their contributions.
+            this.moverCauseById.set(await this.scoreRead.dominantCauseForScores(list.map((m) => m.scoreId)));
+        } finally {
+            this.loadingMovers.set(false);
+        }
+    }
+
+    /** The cause label for a listed member (from the dominant-drag factor), or "" if none. */
+    public causeFor(scoreId: string): string { return this.moverCauseById().get(scoreId) ?? ""; }
+
+    /** Top causes across the current cohort, most common first — the launch panel's "what's driving
+     *  this group" line, so the operator picks a play that fits the actual problem. */
+    public readonly moverCauseSummary = computed<{ cause: string; count: number }[]>(() => {
+        const causes = this.moverCauseById();
+        const tally = new Map<string, number>();
+        for (const m of this.moverList()) {
+            const c = causes.get(m.scoreId);
+            if (c) tally.set(c, (tally.get(c) ?? 0) + 1);
+        }
+        return [...tally.entries()].map(([cause, count]) => ({ cause, count })).sort((a, b) => b.count - a.count).slice(0, 3);
+    });
+
+    /** Open the Interventions tab (loads the summaries lazily). */
+    public async showInterventions(): Promise<void> {
+        this.activeTab.set("interventions");
+        await this.loadInterventions();
+    }
+
+    private async loadInterventions(): Promise<void> {
+        const id = this.current.modelId();
+        if (!id) { this.interventions.set([]); return; }
+        this.loadingInterventions.set(true);
+        try {
+            this.interventions.set(await this.interventionService.summaries(id));
+        } finally {
+            this.loadingInterventions.set(false);
+        }
+    }
+
+    /** Measure one intervention's outcomes (baseline vs now) and surface its lift readout. */
+    public async measureIntervention(interventionId: string): Promise<void> {
+        if (this.measuringId()) return;
+        this.measuringId.set(interventionId);
+        this.measureError.set(null);
+        try {
+            const res = await this.interventionService.measure(interventionId);
+            if (res.ok && res.result) {
+                this.liftById.update((m) => { const next = new Map(m); next.set(interventionId, res.result!); return next; });
+            } else {
+                this.measureError.set(res.error ?? "Measuring outcomes failed.");
+            }
+        } finally {
+            this.measuringId.set(null);
+        }
+    }
+
+    public liftFor(interventionId: string): MeasureResult | null { return this.liftById().get(interventionId) ?? null; }
+
+    /** Signed one-decimal label for lift numbers ("+3.2" / "-1.0"). */
+    public liftLabel(v: number | null): string {
+        if (v == null) return "n/a";
+        return `${v >= 0 ? "+" : ""}${v.toFixed(1)}`;
     }
 
     /**

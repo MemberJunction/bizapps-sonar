@@ -28,6 +28,7 @@ import {
     WeightedFactor,
 } from "../scoring/ScoringEngine";
 import { ScoreWriter, ScoreWriteProgress } from "./ScoreWriter";
+import { TransitionInterventionDispatcher } from "./TransitionInterventionDispatcher";
 
 /** Summary of a persisted recompute run. */
 export interface RecomputeRunResult {
@@ -201,6 +202,10 @@ export class RecomputeOrchestrator {
                 onProgress,
             );
             await this.finishRun(run, startedAt, "Succeeded", recordsScored);
+            // Action layer (plan §5.6): the run's band transitions are the OnEnterSegment trigger.
+            // Dispatch AFTER the run is marked Succeeded and NEVER let it fail the recompute — the
+            // dispatcher logs + leaves transitions unhandled on error so the next run retries them.
+            await new TransitionInterventionDispatcher().dispatch(model.ID, run.ID, contextUser);
             return { runId: run.ID, status: "Succeeded", recordsScored };
         } catch (e: unknown) {
             await this.finishRun(

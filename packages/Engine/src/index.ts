@@ -22,3 +22,8 @@ export * from "./scoring/contributionDetail";
 export * from "./scoring/scoreTrend";
 export * from "./orchestration/RecomputeOrchestrator";
 export * from "./orchestration/ScoreWriter";
+export * from "./orchestration/SegmentEvaluator";
+export * from "./orchestration/InterventionRunner";
+export * from "./orchestration/interventionInvoker";
+export * from "./orchestration/TransitionInterventionDispatcher";
+export * from "./orchestration/OutcomeMeasurer";

@@ -256,6 +256,221 @@ export const mjBizAppsSonarFactorSchema = z.object({
 export type mjBizAppsSonarFactorEntityType = z.infer<typeof mjBizAppsSonarFactorSchema>;
 
 /**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Intervention Assignments
+ */
+export const mjBizAppsSonarInterventionAssignmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    InterventionID: z.string().describe(`
+        * * Field Name: InterventionID
+        * * Display Name: Intervention ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)`),
+    AnchorRecordID: z.string().describe(`
+        * * Field Name: AnchorRecordID
+        * * Display Name: Anchor Record ID
+        * * SQL Data Type: nvarchar(450)
+        * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).`),
+    AnchorRecordKeyJSON: z.string().nullable().describe(`
+        * * Field Name: AnchorRecordKeyJSON
+        * * Display Name: Anchor Record Key
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.`),
+    Cohort: z.union([z.literal('Control'), z.literal('Treatment')]).describe(`
+        * * Field Name: Cohort
+        * * Display Name: Cohort
+        * * SQL Data Type: nvarchar(10)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Control
+    *   * Treatment
+        * * Description: Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).`),
+    AssignedAt: z.date().describe(`
+        * * Field Name: AssignedAt
+        * * Display Name: Assigned At
+        * * SQL Data Type: datetime2
+        * * Default Value: getutcdate()
+        * * Description: When the member was assigned to this intervention.`),
+    ActionDeliveryStatus: z.string().nullable().describe(`
+        * * Field Name: ActionDeliveryStatus
+        * * Display Name: Action Delivery Status
+        * * SQL Data Type: nvarchar(20)
+        * * Description: Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    Intervention: z.string().describe(`
+        * * Field Name: Intervention
+        * * Display Name: Intervention
+        * * SQL Data Type: nvarchar(200)`),
+});
+
+export type mjBizAppsSonarInterventionAssignmentEntityType = z.infer<typeof mjBizAppsSonarInterventionAssignmentSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Intervention Outcomes
+ */
+export const mjBizAppsSonarInterventionOutcomeSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    AssignmentID: z.string().describe(`
+        * * Field Name: AssignmentID
+        * * Display Name: Assignment ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)`),
+    OutcomeType: z.union([z.literal('Churned'), z.literal('NoChange'), z.literal('Reactivated'), z.literal('Renewed'), z.literal('Upgraded')]).describe(`
+        * * Field Name: OutcomeType
+        * * Display Name: Outcome Type
+        * * SQL Data Type: nvarchar(16)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Churned
+    *   * NoChange
+    *   * Reactivated
+    *   * Renewed
+    *   * Upgraded
+        * * Description: The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.`),
+    OutcomeAt: z.date().nullable().describe(`
+        * * Field Name: OutcomeAt
+        * * Display Name: Outcome At
+        * * SQL Data Type: datetime2
+        * * Description: When the business outcome occurred.`),
+    ScoreDeltaAfter: z.number().nullable().describe(`
+        * * Field Name: ScoreDeltaAfter
+        * * Display Name: Score Delta After
+        * * SQL Data Type: decimal(9, 4)
+        * * Description: Change in the member's normalized score from assignment to measurement (engagement movement after the play).`),
+    MeasuredAt: z.date().nullable().describe(`
+        * * Field Name: MeasuredAt
+        * * Display Name: Measured At
+        * * SQL Data Type: datetime2
+        * * Description: When the outcome was measured/recorded.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    Assignment: z.string().describe(`
+        * * Field Name: Assignment
+        * * Display Name: Assignment
+        * * SQL Data Type: nvarchar(450)`),
+});
+
+export type mjBizAppsSonarInterventionOutcomeEntityType = z.infer<typeof mjBizAppsSonarInterventionOutcomeSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Interventions
+ */
+export const mjBizAppsSonarInterventionSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    ScoreSegmentID: z.string().describe(`
+        * * Field Name: ScoreSegmentID
+        * * Display Name: Score Segment ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(200)
+        * * Description: Display name of the intervention.`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional description of the play and its intent.`),
+    TriggerType: z.union([z.literal('Manual'), z.literal('OnEnterSegment'), z.literal('Scheduled')]).describe(`
+        * * Field Name: TriggerType
+        * * Display Name: Trigger Type
+        * * SQL Data Type: nvarchar(20)
+        * * Default Value: Manual
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Manual
+    *   * OnEnterSegment
+    *   * Scheduled
+        * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.`),
+    ActionID: z.string().nullable().describe(`
+        * * Field Name: ActionID
+        * * Display Name: Action ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)`),
+    ControlGroupPercent: z.number().nullable().describe(`
+        * * Field Name: ControlGroupPercent
+        * * Display Name: Control Group Percent
+        * * SQL Data Type: decimal(5, 2)
+        * * Description: Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.`),
+    Status: z.union([z.literal('Active'), z.literal('Draft'), z.literal('Paused')]).describe(`
+        * * Field Name: Status
+        * * Display Name: Status
+        * * SQL Data Type: nvarchar(16)
+        * * Default Value: Draft
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Active
+    *   * Draft
+    *   * Paused
+        * * Description: Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.`),
+    ActionParamsJSON: z.string().nullable().describe(`
+        * * Field Name: ActionParamsJSON
+        * * Display Name: Action Parameters
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    Kind: z.union([z.literal('Action'), z.literal('BulkSync'), z.literal('TrackOnly')]).describe(`
+        * * Field Name: Kind
+        * * Display Name: Kind
+        * * SQL Data Type: nvarchar(20)
+        * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+        * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.`),
+    ScoreSegment: z.string().describe(`
+        * * Field Name: ScoreSegment
+        * * Display Name: Score Segment
+        * * SQL Data Type: nvarchar(200)`),
+    Action: z.string().nullable().describe(`
+        * * Field Name: Action
+        * * Display Name: Action
+        * * SQL Data Type: nvarchar(425)`),
+});
+
+export type mjBizAppsSonarInterventionEntityType = z.infer<typeof mjBizAppsSonarInterventionSchema>;
+
+/**
  * zod schema definition for the entity MJ_BizApps_Sonar: Model Factors
  */
 export const mjBizAppsSonarModelFactorSchema = z.object({
@@ -961,7 +1176,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Optional description of what the model scores and why.`),
     AnchorEntityID: z.string().describe(`
         * * Field Name: AnchorEntityID
-        * * Display Name: Anchor Entity ID
+        * * Display Name: Anchor Entity
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Entities (vwEntities.ID)`),
     Status: z.union([z.literal('Active'), z.literal('Archived'), z.literal('Draft'), z.literal('Paused')]).describe(`
@@ -978,7 +1193,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Lifecycle status of the model: Draft, Active, Paused, or Archived.`),
     CurrentVersionID: z.string().nullable().describe(`
         * * Field Name: CurrentVersionID
-        * * Display Name: Current Version ID
+        * * Display Name: Current Version
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)`),
     ScoreScaleMin: z.number().describe(`
@@ -1013,7 +1228,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: For ExpressionDriven models, the formula over factor slugs used to combine contributions.`),
     BandSetID: z.string().nullable().describe(`
         * * Field Name: BandSetID
-        * * Display Name: Band Set ID
+        * * Display Name: Band Set
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)`),
     PopulationFilter: z.string().nullable().describe(`
@@ -1062,7 +1277,7 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Description: Number of days used to compute the headline Delta and trend on each score.`),
     OwnerUserID: z.string().nullable().describe(`
         * * Field Name: OwnerUserID
-        * * Display Name: Owner User ID
+        * * Display Name: Owner
         * * SQL Data Type: uniqueidentifier
         * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)`),
     EffectiveFrom: z.date().nullable().describe(`
@@ -1090,17 +1305,22 @@ export const mjBizAppsSonarScoreModelSchema = z.object({
         * * Display Name: Updated At
         * * SQL Data Type: datetimeoffset
         * * Default Value: getutcdate()`),
+    OutcomeDefinitionJSON: z.string().nullable().describe(`
+        * * Field Name: OutcomeDefinitionJSON
+        * * Display Name: Outcome Definition
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.`),
     AnchorEntity: z.string().describe(`
         * * Field Name: AnchorEntity
-        * * Display Name: Anchor Entity
+        * * Display Name: Anchor Entity Name
         * * SQL Data Type: nvarchar(255)`),
     BandSet: z.string().nullable().describe(`
         * * Field Name: BandSet
-        * * Display Name: Band Set
+        * * Display Name: Band Set Name
         * * SQL Data Type: nvarchar(200)`),
     OwnerUser: z.string().nullable().describe(`
         * * Field Name: OwnerUser
-        * * Display Name: Owner User
+        * * Display Name: Owner Name
         * * SQL Data Type: nvarchar(100)`),
 });
 
@@ -1216,6 +1436,69 @@ export const mjBizAppsSonarScoreRecomputeRunSchema = z.object({
 });
 
 export type mjBizAppsSonarScoreRecomputeRunEntityType = z.infer<typeof mjBizAppsSonarScoreRecomputeRunSchema>;
+
+/**
+ * zod schema definition for the entity MJ_BizApps_Sonar: Score Segments
+ */
+export const mjBizAppsSonarScoreSegmentSchema = z.object({
+    ID: z.string().describe(`
+        * * Field Name: ID
+        * * Display Name: ID
+        * * SQL Data Type: uniqueidentifier
+        * * Default Value: newsequentialid()`),
+    ScoreModelID: z.string().describe(`
+        * * Field Name: ScoreModelID
+        * * Display Name: Score Model ID
+        * * SQL Data Type: uniqueidentifier
+        * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)`),
+    Name: z.string().describe(`
+        * * Field Name: Name
+        * * Display Name: Name
+        * * SQL Data Type: nvarchar(200)
+        * * Description: Display name of the segment.`),
+    Description: z.string().nullable().describe(`
+        * * Field Name: Description
+        * * Display Name: Description
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: Optional description of who the segment captures and why.`),
+    FilterExpression: z.string().nullable().describe(`
+        * * Field Name: FilterExpression
+        * * Display Name: Filter Expression
+        * * SQL Data Type: nvarchar(MAX)
+        * * Description: JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.`),
+    IsDynamic: z.boolean().describe(`
+        * * Field Name: IsDynamic
+        * * Display Name: Is Dynamic
+        * * SQL Data Type: bit
+        * * Default Value: 1
+        * * Description: When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.`),
+    MemberCountCached: z.number().nullable().describe(`
+        * * Field Name: MemberCountCached
+        * * Display Name: Member Count
+        * * SQL Data Type: int
+        * * Description: Cached count of members in the segment as of LastEvaluatedAt (display/perf only).`),
+    LastEvaluatedAt: z.date().nullable().describe(`
+        * * Field Name: LastEvaluatedAt
+        * * Display Name: Last Evaluated At
+        * * SQL Data Type: datetime2
+        * * Description: When the segment membership/count was last evaluated.`),
+    __mj_CreatedAt: z.date().describe(`
+        * * Field Name: __mj_CreatedAt
+        * * Display Name: Created At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    __mj_UpdatedAt: z.date().describe(`
+        * * Field Name: __mj_UpdatedAt
+        * * Display Name: Updated At
+        * * SQL Data Type: datetimeoffset
+        * * Default Value: getutcdate()`),
+    ScoreModel: z.string().describe(`
+        * * Field Name: ScoreModel
+        * * Display Name: Score Model
+        * * SQL Data Type: nvarchar(200)`),
+});
+
+export type mjBizAppsSonarScoreSegmentEntityType = z.infer<typeof mjBizAppsSonarScoreSegmentSchema>;
 
 /**
  * zod schema definition for the entity MJ_BizApps_Sonar: Scores
@@ -1985,6 +2268,559 @@ export class mjBizAppsSonarFactorEntity extends BaseEntity<mjBizAppsSonarFactorE
     */
     get SourceScoreModel(): string | null {
         return this.Get('SourceScoreModel');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Intervention Assignments - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: InterventionAssignment
+ * * Base View: vwInterventionAssignments
+ * * @description One member's enrollment in an intervention, split into treatment vs. control (the holdout) for lift measurement.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Intervention Assignments')
+export class mjBizAppsSonarInterventionAssignmentEntity extends BaseEntity<mjBizAppsSonarInterventionAssignmentEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Intervention Assignments record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Intervention Assignments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionAssignmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: InterventionID
+    * * Display Name: Intervention ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Interventions (vwInterventions.ID)
+    */
+    get InterventionID(): string {
+        return this.Get('InterventionID');
+    }
+    set InterventionID(value: string) {
+        this.Set('InterventionID', value);
+    }
+
+    /**
+    * * Field Name: AnchorRecordID
+    * * Display Name: Anchor Record ID
+    * * SQL Data Type: nvarchar(450)
+    * * Description: Canonical id of the assigned anchor record (matches Score.AnchorRecordID).
+    */
+    get AnchorRecordID(): string {
+        return this.Get('AnchorRecordID');
+    }
+    set AnchorRecordID(value: string) {
+        this.Set('AnchorRecordID', value);
+    }
+
+    /**
+    * * Field Name: AnchorRecordKeyJSON
+    * * Display Name: Anchor Record Key
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional JSON of a composite anchor key (matches Score.AnchorRecordKeyJSON) for multi-column-PK anchors.
+    */
+    get AnchorRecordKeyJSON(): string | null {
+        return this.Get('AnchorRecordKeyJSON');
+    }
+    set AnchorRecordKeyJSON(value: string | null) {
+        this.Set('AnchorRecordKeyJSON', value);
+    }
+
+    /**
+    * * Field Name: Cohort
+    * * Display Name: Cohort
+    * * SQL Data Type: nvarchar(10)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Control
+    *   * Treatment
+    * * Description: Whether this member is in the Treatment cohort (the Action fires) or the Control cohort (held out).
+    */
+    get Cohort(): 'Control' | 'Treatment' {
+        return this.Get('Cohort');
+    }
+    set Cohort(value: 'Control' | 'Treatment') {
+        this.Set('Cohort', value);
+    }
+
+    /**
+    * * Field Name: AssignedAt
+    * * Display Name: Assigned At
+    * * SQL Data Type: datetime2
+    * * Default Value: getutcdate()
+    * * Description: When the member was assigned to this intervention.
+    */
+    get AssignedAt(): Date {
+        return this.Get('AssignedAt');
+    }
+    set AssignedAt(value: Date) {
+        this.Set('AssignedAt', value);
+    }
+
+    /**
+    * * Field Name: ActionDeliveryStatus
+    * * Display Name: Action Delivery Status
+    * * SQL Data Type: nvarchar(20)
+    * * Description: Delivery state of the fired Action for a Treatment member (e.g. Pending, Delivered, Failed, Skipped); null for Control.
+    */
+    get ActionDeliveryStatus(): string | null {
+        return this.Get('ActionDeliveryStatus');
+    }
+    set ActionDeliveryStatus(value: string | null) {
+        this.Set('ActionDeliveryStatus', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Intervention
+    * * Display Name: Intervention
+    * * SQL Data Type: nvarchar(200)
+    */
+    get Intervention(): string {
+        return this.Get('Intervention');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Intervention Outcomes - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: InterventionOutcome
+ * * Base View: vwInterventionOutcomes
+ * * @description The measured result for one intervention assignment (business outcome + score change) — the basis for treatment-vs-control lift.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Intervention Outcomes')
+export class mjBizAppsSonarInterventionOutcomeEntity extends BaseEntity<mjBizAppsSonarInterventionOutcomeEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Intervention Outcomes record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Intervention Outcomes record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionOutcomeEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: AssignmentID
+    * * Display Name: Assignment ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Intervention Assignments (vwInterventionAssignments.ID)
+    */
+    get AssignmentID(): string {
+        return this.Get('AssignmentID');
+    }
+    set AssignmentID(value: string) {
+        this.Set('AssignmentID', value);
+    }
+
+    /**
+    * * Field Name: OutcomeType
+    * * Display Name: Outcome Type
+    * * SQL Data Type: nvarchar(16)
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Churned
+    *   * NoChange
+    *   * Reactivated
+    *   * Renewed
+    *   * Upgraded
+    * * Description: The business outcome observed: Renewed, Reactivated, Churned, Upgraded, or NoChange.
+    */
+    get OutcomeType(): 'Churned' | 'NoChange' | 'Reactivated' | 'Renewed' | 'Upgraded' {
+        return this.Get('OutcomeType');
+    }
+    set OutcomeType(value: 'Churned' | 'NoChange' | 'Reactivated' | 'Renewed' | 'Upgraded') {
+        this.Set('OutcomeType', value);
+    }
+
+    /**
+    * * Field Name: OutcomeAt
+    * * Display Name: Outcome At
+    * * SQL Data Type: datetime2
+    * * Description: When the business outcome occurred.
+    */
+    get OutcomeAt(): Date | null {
+        return this.Get('OutcomeAt');
+    }
+    set OutcomeAt(value: Date | null) {
+        this.Set('OutcomeAt', value);
+    }
+
+    /**
+    * * Field Name: ScoreDeltaAfter
+    * * Display Name: Score Delta After
+    * * SQL Data Type: decimal(9, 4)
+    * * Description: Change in the member's normalized score from assignment to measurement (engagement movement after the play).
+    */
+    get ScoreDeltaAfter(): number | null {
+        return this.Get('ScoreDeltaAfter');
+    }
+    set ScoreDeltaAfter(value: number | null) {
+        this.Set('ScoreDeltaAfter', value);
+    }
+
+    /**
+    * * Field Name: MeasuredAt
+    * * Display Name: Measured At
+    * * SQL Data Type: datetime2
+    * * Description: When the outcome was measured/recorded.
+    */
+    get MeasuredAt(): Date | null {
+        return this.Get('MeasuredAt');
+    }
+    set MeasuredAt(value: Date | null) {
+        this.Set('MeasuredAt', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Assignment
+    * * Display Name: Assignment
+    * * SQL Data Type: nvarchar(450)
+    */
+    get Assignment(): string {
+        return this.Get('Assignment');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Interventions - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: Intervention
+ * * Base View: vwInterventions
+ * * @description What to do for a segment: fire an MJ Action against its members, with an automatic holdout for lift measurement.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Interventions')
+export class mjBizAppsSonarInterventionEntity extends BaseEntity<mjBizAppsSonarInterventionEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Interventions record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Interventions record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarInterventionEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * Validate() method override for MJ_BizApps_Sonar: Interventions entity. This is an auto-generated method that invokes the generated validators for this entity for the following fields:
+    * * ControlGroupPercent: The control group percentage, if specified, must be a value between 0 and 100 percent.
+    * @public
+    * @method
+    * @override
+    */
+    public override Validate(): ValidationResult {
+        const result = super.Validate();
+        this.ValidateControlGroupPercentRange(result);
+        result.Success = result.Success && (result.Errors.length === 0);
+
+        return result;
+    }
+
+    /**
+    * The control group percentage, if specified, must be a value between 0 and 100 percent.
+    * @param result - the ValidationResult object to add any errors or warnings to
+    * @public
+    * @method
+    */
+    public ValidateControlGroupPercentRange(result: ValidationResult) {
+    	if (this.ControlGroupPercent != null && (this.ControlGroupPercent < 0 || this.ControlGroupPercent > 100)) {
+    		result.Errors.push(new ValidationErrorInfo(
+    			"ControlGroupPercent",
+    			"Control Group Percent must be between 0 and 100.",
+    			this.ControlGroupPercent,
+    			ValidationErrorType.Failure
+    		));
+    	}
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ScoreSegmentID
+    * * Display Name: Score Segment ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Segments (vwScoreSegments.ID)
+    */
+    get ScoreSegmentID(): string {
+        return this.Get('ScoreSegmentID');
+    }
+    set ScoreSegmentID(value: string) {
+        this.Set('ScoreSegmentID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(200)
+    * * Description: Display name of the intervention.
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional description of the play and its intent.
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: TriggerType
+    * * Display Name: Trigger Type
+    * * SQL Data Type: nvarchar(20)
+    * * Default Value: Manual
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Manual
+    *   * OnEnterSegment
+    *   * Scheduled
+    * * Description: When the intervention fires: OnEnterSegment (member newly matches), Scheduled, or Manual.
+    */
+    get TriggerType(): 'Manual' | 'OnEnterSegment' | 'Scheduled' {
+        return this.Get('TriggerType');
+    }
+    set TriggerType(value: 'Manual' | 'OnEnterSegment' | 'Scheduled') {
+        this.Set('TriggerType', value);
+    }
+
+    /**
+    * * Field Name: ActionID
+    * * Display Name: Action ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ: Actions (vwActions.ID)
+    */
+    get ActionID(): string | null {
+        return this.Get('ActionID');
+    }
+    set ActionID(value: string | null) {
+        this.Set('ActionID', value);
+    }
+
+    /**
+    * * Field Name: ControlGroupPercent
+    * * Display Name: Control Group Percent
+    * * SQL Data Type: decimal(5, 2)
+    * * Description: Percent of matched members withheld as a control group (holdout) so treatment-vs-control lift can be measured; null = no holdout.
+    */
+    get ControlGroupPercent(): number | null {
+        return this.Get('ControlGroupPercent');
+    }
+    set ControlGroupPercent(value: number | null) {
+        this.Set('ControlGroupPercent', value);
+    }
+
+    /**
+    * * Field Name: Status
+    * * Display Name: Status
+    * * SQL Data Type: nvarchar(16)
+    * * Default Value: Draft
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Active
+    *   * Draft
+    *   * Paused
+    * * Description: Lifecycle state: Draft (not firing), Active (firing per its trigger), or Paused.
+    */
+    get Status(): 'Active' | 'Draft' | 'Paused' {
+        return this.Get('Status');
+    }
+    set Status(value: 'Active' | 'Draft' | 'Paused') {
+        this.Set('Status', value);
+    }
+
+    /**
+    * * Field Name: ActionParamsJSON
+    * * Display Name: Action Parameters
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: JSON [{name,value}] params handed to the intervention's Action on every fire; a {{member}} token in a value is replaced with the member's anchor id. Null = fire with no params.
+    */
+    get ActionParamsJSON(): string | null {
+        return this.Get('ActionParamsJSON');
+    }
+    set ActionParamsJSON(value: string | null) {
+        this.Set('ActionParamsJSON', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: Kind
+    * * Display Name: Kind
+    * * SQL Data Type: nvarchar(20)
+    * * Default Value: Action
+    * * Value List Type: List
+    * * Possible Values 
+    *   * Action
+    *   * BulkSync
+    *   * TrackOnly
+    * * Description: Execution kind: Action (fires a play — the MJ Action in ActionID — per treated member), TrackOnly (no action; Sonar only splits treatment/control and measures a real-world treatment), or BulkSync (reserved — push the set to another platform). ActionID is required only for Action.
+    */
+    get Kind(): 'Action' | 'BulkSync' | 'TrackOnly' {
+        return this.Get('Kind');
+    }
+    set Kind(value: 'Action' | 'BulkSync' | 'TrackOnly') {
+        this.Set('Kind', value);
+    }
+
+    /**
+    * * Field Name: ScoreSegment
+    * * Display Name: Score Segment
+    * * SQL Data Type: nvarchar(200)
+    */
+    get ScoreSegment(): string {
+        return this.Get('ScoreSegment');
+    }
+
+    /**
+    * * Field Name: Action
+    * * Display Name: Action
+    * * SQL Data Type: nvarchar(425)
+    */
+    get Action(): string | null {
+        return this.Get('Action');
     }
 }
 
@@ -3801,7 +4637,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: AnchorEntityID
-    * * Display Name: Anchor Entity ID
+    * * Display Name: Anchor Entity
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Entities (vwEntities.ID)
     */
@@ -3834,7 +4670,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: CurrentVersionID
-    * * Display Name: Current Version ID
+    * * Display Name: Current Version
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Model Versions (vwScoreModelVersions.ID)
     */
@@ -3909,7 +4745,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: BandSetID
-    * * Display Name: Band Set ID
+    * * Display Name: Band Set
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Band Sets (vwScoreBandSets.ID)
     */
@@ -4014,7 +4850,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUserID
-    * * Display Name: Owner User ID
+    * * Display Name: Owner
     * * SQL Data Type: uniqueidentifier
     * * Related Entity/Foreign Key: MJ: Users (vwUsers.ID)
     */
@@ -4085,8 +4921,21 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
     }
 
     /**
+    * * Field Name: OutcomeDefinitionJSON
+    * * Display Name: Outcome Definition
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Declarative rule defining what "success" means when measuring an intervention's lift on this model's members (BandRecovery | ReachScore | AnchorField). NULL = default band recovery. Keeps outcomes org-defined, not hardcoded.
+    */
+    get OutcomeDefinitionJSON(): string | null {
+        return this.Get('OutcomeDefinitionJSON');
+    }
+    set OutcomeDefinitionJSON(value: string | null) {
+        this.Set('OutcomeDefinitionJSON', value);
+    }
+
+    /**
     * * Field Name: AnchorEntity
-    * * Display Name: Anchor Entity
+    * * Display Name: Anchor Entity Name
     * * SQL Data Type: nvarchar(255)
     */
     get AnchorEntity(): string {
@@ -4095,7 +4944,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: BandSet
-    * * Display Name: Band Set
+    * * Display Name: Band Set Name
     * * SQL Data Type: nvarchar(200)
     */
     get BandSet(): string | null {
@@ -4104,7 +4953,7 @@ export class mjBizAppsSonarScoreModelEntity extends BaseEntity<mjBizAppsSonarSco
 
     /**
     * * Field Name: OwnerUser
-    * * Display Name: Owner User
+    * * Display Name: Owner Name
     * * SQL Data Type: nvarchar(100)
     */
     get OwnerUser(): string | null {
@@ -4342,6 +5191,172 @@ export class mjBizAppsSonarScoreRecomputeRunEntity extends BaseEntity<mjBizAppsS
     }
     set ErrorsJSON(value: string | null) {
         this.Set('ErrorsJSON', value);
+    }
+
+    /**
+    * * Field Name: __mj_CreatedAt
+    * * Display Name: Created At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_CreatedAt(): Date {
+        return this.Get('__mj_CreatedAt');
+    }
+
+    /**
+    * * Field Name: __mj_UpdatedAt
+    * * Display Name: Updated At
+    * * SQL Data Type: datetimeoffset
+    * * Default Value: getutcdate()
+    */
+    get __mj_UpdatedAt(): Date {
+        return this.Get('__mj_UpdatedAt');
+    }
+
+    /**
+    * * Field Name: ScoreModel
+    * * Display Name: Score Model
+    * * SQL Data Type: nvarchar(200)
+    */
+    get ScoreModel(): string {
+        return this.Get('ScoreModel');
+    }
+}
+
+
+/**
+ * MJ_BizApps_Sonar: Score Segments - strongly typed entity sub-class
+ * * Schema: __mj_BizAppsSonar
+ * * Base Table: ScoreSegment
+ * * Base View: vwScoreSegments
+ * * @description A saved cohort over a model's scored records (e.g. "At-Risk in the renewal window") that interventions key off.
+ * * Primary Key: ID
+ * @extends {BaseEntity}
+ * @class
+ * @public
+ */
+@RegisterClass(BaseEntity, 'MJ_BizApps_Sonar: Score Segments')
+export class mjBizAppsSonarScoreSegmentEntity extends BaseEntity<mjBizAppsSonarScoreSegmentEntityType> {
+    /**
+    * Loads the MJ_BizApps_Sonar: Score Segments record from the database
+    * @param ID: string - primary key value to load the MJ_BizApps_Sonar: Score Segments record.
+    * @param EntityRelationshipsToLoad - (optional) the relationships to load
+    * @returns {Promise<boolean>} - true if successful, false otherwise
+    * @public
+    * @async
+    * @memberof mjBizAppsSonarScoreSegmentEntity
+    * @method
+    * @override
+    */
+    public async Load(ID: string, EntityRelationshipsToLoad?: string[]) : Promise<boolean> {
+        const compositeKey: CompositeKey = new CompositeKey();
+        compositeKey.KeyValuePairs.push({ FieldName: 'ID', Value: ID });
+        return await super.InnerLoad(compositeKey, EntityRelationshipsToLoad);
+    }
+
+    /**
+    * * Field Name: ID
+    * * Display Name: ID
+    * * SQL Data Type: uniqueidentifier
+    * * Default Value: newsequentialid()
+    */
+    get ID(): string {
+        return this.Get('ID');
+    }
+    set ID(value: string) {
+        this.Set('ID', value);
+    }
+
+    /**
+    * * Field Name: ScoreModelID
+    * * Display Name: Score Model ID
+    * * SQL Data Type: uniqueidentifier
+    * * Related Entity/Foreign Key: MJ_BizApps_Sonar: Score Models (vwScoreModels.ID)
+    */
+    get ScoreModelID(): string {
+        return this.Get('ScoreModelID');
+    }
+    set ScoreModelID(value: string) {
+        this.Set('ScoreModelID', value);
+    }
+
+    /**
+    * * Field Name: Name
+    * * Display Name: Name
+    * * SQL Data Type: nvarchar(200)
+    * * Description: Display name of the segment.
+    */
+    get Name(): string {
+        return this.Get('Name');
+    }
+    set Name(value: string) {
+        this.Set('Name', value);
+    }
+
+    /**
+    * * Field Name: Description
+    * * Display Name: Description
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: Optional description of who the segment captures and why.
+    */
+    get Description(): string | null {
+        return this.Get('Description');
+    }
+    set Description(value: string | null) {
+        this.Set('Description', value);
+    }
+
+    /**
+    * * Field Name: FilterExpression
+    * * Display Name: Filter Expression
+    * * SQL Data Type: nvarchar(MAX)
+    * * Description: JSON filter (Kendo-compatible) over band/score/delta/trend/window + any anchor field — defines membership.
+    */
+    get FilterExpression(): string | null {
+        return this.Get('FilterExpression');
+    }
+    set FilterExpression(value: string | null) {
+        this.Set('FilterExpression', value);
+    }
+
+    /**
+    * * Field Name: IsDynamic
+    * * Display Name: Is Dynamic
+    * * SQL Data Type: bit
+    * * Default Value: 1
+    * * Description: When 1, membership is recomputed each run from the filter; when 0, the cohort is a fixed snapshot.
+    */
+    get IsDynamic(): boolean {
+        return this.Get('IsDynamic');
+    }
+    set IsDynamic(value: boolean) {
+        this.Set('IsDynamic', value);
+    }
+
+    /**
+    * * Field Name: MemberCountCached
+    * * Display Name: Member Count
+    * * SQL Data Type: int
+    * * Description: Cached count of members in the segment as of LastEvaluatedAt (display/perf only).
+    */
+    get MemberCountCached(): number | null {
+        return this.Get('MemberCountCached');
+    }
+    set MemberCountCached(value: number | null) {
+        this.Set('MemberCountCached', value);
+    }
+
+    /**
+    * * Field Name: LastEvaluatedAt
+    * * Display Name: Last Evaluated At
+    * * SQL Data Type: datetime2
+    * * Description: When the segment membership/count was last evaluated.
+    */
+    get LastEvaluatedAt(): Date | null {
+        return this.Get('LastEvaluatedAt');
+    }
+    set LastEvaluatedAt(value: Date | null) {
+        this.Set('LastEvaluatedAt', value);
     }
 
     /**

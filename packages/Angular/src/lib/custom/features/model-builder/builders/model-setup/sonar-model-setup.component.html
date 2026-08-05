@@ -32,7 +32,7 @@
             [Filterable]="true"
             Placeholder="Search entities…"
             [ngModel]="anchorEntityID()"
-            (ngModelChange)="anchorEntityID.set($event)">
+            (ngModelChange)="anchorEntityID.set($event ?? '')">
         </mj-combobox>
     </section>
 

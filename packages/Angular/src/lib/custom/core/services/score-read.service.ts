@@ -365,6 +365,49 @@ export class ScoreReadService {
         return { risers, fallers };
     }
 
+    /** Headline counts for the Movers view: how many dropped, climbed, and crossed a band on the
+     *  last run. Three cheap counts (Delta is scannable). */
+    public async moverSummary(modelId: string): Promise<{ dropped: number; climbed: number; crossed: number }> {
+        const m = `ScoreModelID='${sqlString(modelId)}'`;
+        const count = async (extra: string): Promise<number> => {
+            const r = await new RunView().RunView({ EntityName: SCORE, ExtraFilter: `${m} AND ${extra}`, Fields: ["ID"], IgnoreMaxRows: true, ResultType: "simple" });
+            return r.Success ? (r.Results?.length ?? 0) : 0;
+        };
+        const [dropped, climbed, crossed] = await Promise.all([
+            count("Delta < 0"),
+            count("Delta > 0"),
+            count("PreviousBandID IS NOT NULL AND PreviousBandID <> BandID"),
+        ]);
+        return { dropped, climbed, crossed };
+    }
+
+    /** Members matching a mover SEGMENT FILTER (delta bounds / band / crossed-a-band). Mirrors the
+     *  engine's SegmentEvaluator conditions EXACTLY, so the list a user sees == who a launch on the
+     *  same filter targets. `direction` only sets the sort; the delta bound does the selecting. */
+    public async moverMembers(
+        modelId: string,
+        filter: { bandId?: string | null; minScore?: number | null; maxScore?: number | null; minDelta?: number | null; maxDelta?: number | null; crossedBandOnly?: boolean | null },
+        direction: "drops" | "gains",
+        limit = 50,
+    ): Promise<ScoredMember[]> {
+        const conds = [`ScoreModelID='${sqlString(modelId)}'`];
+        if (filter.bandId) conds.push(`BandID='${sqlString(filter.bandId)}'`);
+        if (filter.minScore != null && Number.isFinite(filter.minScore)) conds.push(`NormalizedScore >= ${Number(filter.minScore)}`);
+        if (filter.maxScore != null && Number.isFinite(filter.maxScore)) conds.push(`NormalizedScore <= ${Number(filter.maxScore)}`);
+        if (filter.minDelta != null && Number.isFinite(filter.minDelta)) conds.push(`Delta >= ${Number(filter.minDelta)}`);
+        if (filter.maxDelta != null && Number.isFinite(filter.maxDelta)) conds.push(`Delta <= ${Number(filter.maxDelta)}`);
+        if (filter.crossedBandOnly) conds.push(`PreviousBandID IS NOT NULL AND PreviousBandID <> BandID`);
+        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+            EntityName: SCORE,
+            ExtraFilter: conds.join(" AND "),
+            OrderBy: `Delta ${direction === "gains" ? "DESC" : "ASC"}`,
+            MaxRows: limit,
+            ResultType: "entity_object",
+        });
+        const scores = result.Success ? result.Results ?? [] : [];
+        return this.toScoredMembers(scores);
+    }
+
     /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
     private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
@@ -511,6 +554,32 @@ export class ScoreReadService {
             list.sort((a, b) => Math.abs(b.weightedValue) - Math.abs(a.weightedValue));
         }
         return byScore;
+    }
+
+    /**
+     * The dominant "why is this member low" per score — the rubric factor dragging them down most.
+     * Ranks each contribution by its weight-adjusted SHORTFALL: percentOfTotal × (1 − normalizedValue),
+     * i.e. "how much of the score this factor should carry × how far short the member falls on it." A
+     * factor with no data (hadData=false) is a full shortfall (the member has zero of that signal),
+     * so those surface as "No <factor>". Returns a short cause label per scoreId (empty if none).
+     */
+    public async dominantCauseForScores(scoreIds: string[]): Promise<Map<string, string>> {
+        const byScore = await this.contributionsForScores(scoreIds);
+        const causes = new Map<string, string>();
+        for (const [scoreId, list] of byScore) {
+            let worst: ScoreContribution | null = null;
+            let worstDrag = -1;
+            for (const c of list) {
+                const share = c.percentOfTotal > 0 ? c.percentOfTotal : 0;
+                const shortfall = c.hadData ? 1 - Math.max(0, Math.min(1, c.normalizedValue)) : 1;
+                const drag = share * shortfall;
+                if (drag > worstDrag) { worstDrag = drag; worst = c; }
+            }
+            if (worst && worstDrag > 0) {
+                causes.set(scoreId, worst.hadData ? `Low ${worst.label}` : `No ${worst.label}`);
+            }
+        }
+        return causes;
     }
 
     /** Pull the human "why" out of a contribution's DetailJSON ({"explanation":"…"}); null if absent/malformed. */

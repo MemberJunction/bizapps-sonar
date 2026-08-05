@@ -16,7 +16,11 @@ export class mjBizAppsSonarScoreModelFormComponent extends BaseFormComponent {
     override async ngOnInit() {
         await super.ngOnInit();
         this.initSections([
-            { sectionKey: 'details', sectionName: 'Details', isExpanded: true },
+            { sectionKey: 'modelConfiguration', sectionName: 'Model Configuration', isExpanded: true },
+            { sectionKey: 'scoringLogic', sectionName: 'Scoring Logic', isExpanded: true },
+            { sectionKey: 'executionPolicy', sectionName: 'Execution Policy', isExpanded: true },
+            { sectionKey: 'ownershipAndValidity', sectionName: 'Ownership and Validity', isExpanded: true },
+            { sectionKey: 'systemMetadata', sectionName: 'System Metadata', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreHistories', sectionName: 'Score Histories', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreBandTransitions', sectionName: 'Score Band Transitions', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreRecomputeRuns', sectionName: 'Score Recompute Runs', isExpanded: false },
@@ -26,7 +30,8 @@ export class mjBizAppsSonarScoreModelFormComponent extends BaseFormComponent {
             { sectionKey: 'mJBizAppsSonarFactorsSourceScoreModelID', sectionName: 'Factors (Source Score Model ID)', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarModelFactors', sectionName: 'Model Factors', isExpanded: false },
             { sectionKey: 'mJBizAppsSonarScoreModelVersions', sectionName: 'Score Model Versions', isExpanded: false },
-            { sectionKey: 'mJBizAppsSonarModelRelatedEntities', sectionName: 'Model Related Entities', isExpanded: false }
+            { sectionKey: 'mJBizAppsSonarModelRelatedEntities', sectionName: 'Model Related Entities', isExpanded: false },
+            { sectionKey: 'mJBizAppsSonarScoreSegments', sectionName: 'Score Segments', isExpanded: false }
         ]);
     }
 }
