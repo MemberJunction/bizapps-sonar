@@ -1,5 +1,72 @@
 # @mj-biz-apps/sonar-engine
 
+## 0.5.0
+
+### Minor Changes
+
+- b401fb2: Show the real scored population in the Model Builder header, instead of the anchor entity's total.
+
+  The header ran a bare whole-entity `count_only` and printed it as the scope, so a model narrowed to 66 members still read "**2,000** in population". A previous pass reworded it to "filtered subset of 2,000" so it stopped being actively wrong, but the actual number was still unavailable to the UI.
+
+  The reason it was unavailable is that the population filter is compiled to SQL by the engine (`RecomputeOrchestrator.compilePopulationFilter`). Counting it in the browser would mean re-implementing a security-sensitive compiler client-side and handing the client a SQL-building surface, so the count is now answered where the compiler already lives:
+
+  - **`RecomputeOrchestrator.countPopulation()`** returns `{ scoped, total, filtered }`. Two `count_only` reads — deliberately not `resolvePopulation().length`, which pulls every primary key in the population (uncapped, `IgnoreMaxRows`) just to take a length. When there is no filter the second query is skipped and `scoped === total`.
+  - **`Sonar: Count Population`** Action (`DriverClass` `SonarCountPopulation`) exposes it. Read-only, nothing scored, nothing persisted, safe on a draft. Also linked to the Sonar Authoring Agent, since "how many members does this model score?" is a question it gets asked.
+  - The header now reads "**66 of 2,000** in population" when a filter narrows the scope, and plain "2,000 in population" when it doesn't. `populationIsFiltered` derives from the engine's own answer rather than the UI toggle, so it reflects what is actually persisted rather than what is on screen. The count refreshes on model load and after every filter save (cheap enough to run on each).
+
+  Registered via a forward migration plus its PostgreSQL twin, not by editing the frozen v0.2.0 seed. The `ActionCategory` and `AIAgent` are resolved **by name** rather than by hardcoded ID, because the PostgreSQL baseline registers core metadata under different IDs than SQL Server. Every insert is guarded on its natural key, so the migration is idempotent on a fresh install, an upgrade, or a re-run (verified by applying it twice).
+
+  Also fixes the `validate-seed-agent-tools` CI check, which this change exposed. It compared "the first `AIAgentAction` link anywhere in the stream" against "the last `Action` anywhere in the stream", so **any** Action added by a later forward migration failed it — the sanctioned way to add installed config — even when that migration seeded its own link correctly after its own Action. Dropping the agent link wouldn't have satisfied it either; the rule didn't depend on whether a new link was added. The check is now per-ActionID: an Action must appear earlier in the stream than any link referencing it, with UUIDs that only ever appear inside link statements (the link's own PK, the AgentID, Actions seeded outside these migrations) skipped as unorderable. Both original failure modes still fail as they should, verified against synthetic fixtures. The SQL Server Action pattern also now matches a plain `INSERT INTO [__mj].[Action]`, not just `spCreateAction` — hand-written forward migrations use the former, so a new Action registered that way was previously invisible to the check entirely.
+
+### Patch Changes
+
+- 13741c9: Fix the PostgreSQL baseline failing on every PostgreSQL 16.x server.
+
+  `migrations-pg/B202607171700__v0.2.x_Schema_and_Tables.pg.sql` was produced by `pg_dump` 17, whose header emits `SET transaction_timeout = 0`. That GUC is new in PostgreSQL 17, and an unrecognized configuration parameter is an `ERROR` rather than a warning, so the baseline aborted at its own header on every 16.x server. Sonar's PostgreSQL install was completely broken there: first migration, first statement block. Nothing in the schema needed the setting (0 is the default), so it is removed rather than guarded.
+
+  The README claimed "PostgreSQL 17+", which described what had been tested rather than what is supported. It now says 16.x or later, verified on 16.11.
+
+  Adds `migrations-pg/docs/PG_INSTALL_VERIFICATION.md`, a fresh-install runbook that pins the **oldest** supported major and explains why. A version-pinned test on the newest major cannot see this class of bug: dump headers are exactly the thing that varies by server version, and they fail closed.
+
+  Ships in #52; this changeset only adds the release note, which the original PR did not include.
+
+- 7dfbd4e: Stop members who left a model's population from lingering in the triage list with an old version's score.
+
+  `ScoreWriter`'s Score MERGE had `WHEN MATCHED` and `WHEN NOT MATCHED` arms but nothing for rows whose anchor is no longer in the population. Narrowing a model's `PopulationFilter` therefore left the dropped-out members' `Score` rows completely untouched — old value, old `ScoreModelVersionID` — and every read path filters on `ScoreModelID` alone, so they kept appearing in the Engagement list looking scored. The population filter itself was working; the leftovers just made it look like it wasn't.
+
+  The MERGE now reconciles rather than only upserting: `WHEN NOT MATCHED BY SOURCE AND t.ScoreModelID = @modelId THEN DELETE`, so `Score` means "the current scored population". Chosen over a retire-flag column because it needs no read-path changes at all — a flag would have to be filtered in every read, and missing one would silently reintroduce this exact bug.
+
+  Deleting loses nothing. `ScoreHistory` is a separate append-only table holding every snapshot with the explainability breakdown in `ContributionsJSON`, so an exited member's full trail survives. `ScoreFactorContribution` is the only FK onto `Score` (`NO_ACTION`) and the model's contributions are already cleared earlier in the same transaction, so the delete cannot violate it.
+
+  Two things worth knowing for review:
+
+  - The `AND t.ScoreModelID = @modelId` predicate on the delete arm is load-bearing. `WHEN NOT MATCHED BY SOURCE` matches every row of the target table, so without it this would delete every _other_ model's scores on every recompute.
+  - The empty-population case is handled separately: `write()` returns early when there is nothing to stage, so the MERGE never runs. It now clears the model's scores instead of returning a no-op, otherwise a filter matching nobody would leave the whole previous population on screen. Safe to read as "nobody in scope" because a failed population query throws in `resolvePopulation` rather than returning empty.
+
+  Verified against the demo model (2,000 members): filtering to 66 dropped `Score` from 2000 to 66 while `ScoreHistory` grew 30000 → 30066 and other models stayed at 2000; clearing the filter brought all 2,000 back; a filter matching nobody left 0 scores, 0 contributions and 0 orphans, again with other models untouched.
+
+- 324cbe5: Uninstall now removes Sonar's rows from MemberJunction's shared core schema, instead of orphaning them.
+
+  Sonar's migrations seed ~225 rows into `__mj` (24 Actions, the authoring Agent with its Prompt and Template, the 3 Overview Queries and their fields/params). Those rows have no foreign-key path back to Sonar's own entities, so the engine's FK-graph walk cannot reach them and `mj app remove` left every one of them in the customer's database. A later reinstall then collided with them under the same hardcoded GUIDs. Fixes #51.
+
+  The fix is a `migrations.teardownDirectory` in `mj-app.json`, which `@memberjunction/open-app-engine` runs on remove and on the compensation path when an install fails partway.
+
+  **Three things turned out to be bigger than the issue described**, all of them found by running the teardown against a real database rather than reading the migrations:
+
+  - **Seed-only deletion is not enough.** Sonar's Actions and Agent accumulate runtime rows the moment they are _used_ — `ActionExecutionLog`, `AIAgentRun` and its steps, `AIPromptRun`, `AIResultCache`, `AIAgentSession`, `QuerySQL`. `ActionExecutionLog.ActionID` is `NOT NULL`, so one Action run is enough to make `DELETE FROM Action` fail with FK 547, and since the engine runs the whole teardown in one transaction, that means nothing is cleaned up at all. An install that was never exercised tears down fine, which is why an install-then-remove test cannot see this. The verified run removes 3,996 `ActionExecutionLog` rows and 508 `AIAgentRunStep` rows alongside the 225 seeded ones.
+
+  - **PostgreSQL needs its own directory.** The engine prefers `<teardownDirectory>-pg/` and falls back to the SQL Server one if it is absent. These scripts use `[bracket]` quoting, so the fallback would abort a PostgreSQL uninstall on its first statement. `migrations-teardown-pg/` ships alongside. It is also genuinely a different script, not a transliteration: the `QueryEntity` / `QueryField` / `QueryParameter` rows carry **different GUIDs** on the two platforms.
+
+  - **Child rows must be scoped by parent, not by literal ID.** Deleting `ActionParam` by the 63 IDs the seed wrote breaks as soon as any later migration adds a param to an existing Action, leaving a row that blocks the parent DELETE. Open PR #40 does exactly that, which is why the verified run deletes 64. Scoping by `ActionID IN (<Sonar's Actions>)` is still bounded by Sonar's hardcoded GUIDs, and it makes the `Query` children immune to the cross-platform GUID divergence.
+
+  **Safety.** The scripts split on FK nullability. A `NULL`-able reference into a Sonar row means the referencing row is valid without Sonar and is usually the customer's own — a `Conversation` whose default agent was Sonar's, a `Task` assigned to it — so phase 1 nulls the pointer and leaves the row standing. Only `NOT NULL` dependants, which cannot exist without Sonar, are deleted. Nothing matches on name or prefix; every predicate resolves to Sonar's hardcoded seed GUIDs directly or through a subquery chain.
+
+  Verified on SQL Server 2022 by running the full teardown inside a transaction and rolling back, diffing row counts for **every** table in `__mj`: 84 statements, 4,826 rows removed, no FK error, and no change to `Conversation`, `Task` or `EntityDocument`. The PostgreSQL twin was executed against a real PostgreSQL 16 instance to confirm its syntax and identifier quoting.
+
+  The scripts are generated, not hand-written — `ci/generate_teardown.mjs` reads the FK graph from a live `__mj` and topologically sorts it, and `ci/extract_ids*.py` pull the seeded GUIDs out of the migrations. Regeneration instructions are in `migrations-teardown/README.md`.
+
+  - @mj-biz-apps/sonar-entities@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

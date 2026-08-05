@@ -1,5 +1,14 @@
 # @mj-biz-apps/sonar-server
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [b401fb2]
+  - @mj-biz-apps/sonar-actions@0.5.0
+  - @mj-biz-apps/sonar-core-entities-server@0.5.0
+  - @mj-biz-apps/sonar-entities@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes
