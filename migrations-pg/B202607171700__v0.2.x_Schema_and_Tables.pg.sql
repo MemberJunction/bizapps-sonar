@@ -31,7 +31,11 @@ SET standard_conforming_strings = on;
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
+-- `SET transaction_timeout = 0` removed: that GUC is new in PostgreSQL 17, and an
+-- unrecognized configuration parameter is an ERROR, not a warning — so pg_dump 17's
+-- header made this entire baseline fail on 16.x at line 1. 0 is the default, so
+-- setting it bought nothing. Regenerate this file with a pg_dump matching the
+-- OLDEST PostgreSQL we support, not the newest.
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
