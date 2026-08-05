@@ -1,4 +1,4 @@
-import { Metadata, UserInfo, EntityInfo, EntityFieldInfo } from "@memberjunction/core";
+import { LogStatus, Metadata, UserInfo, EntityInfo, EntityFieldInfo } from "@memberjunction/core";
 import {
     mjBizAppsSonarFactorEntity,
     mjBizAppsSonarModelRelatedEntityEntity,
@@ -13,6 +13,26 @@ import {
     CompositeFilterDescriptor,
     compileFilter,
 } from "./filter";
+import { RunViewFactorEvaluator, RunViewFactorSpec } from "./RunViewFactorEvaluator";
+import {
+    SupportedAggregation,
+    runViewIneligibilityReason,
+    toPopulationWindow,
+} from "./runViewFactor";
+
+/**
+ * Which read path a declarative factor evaluates through.
+ *
+ * - `compiled` (default) — one set-based SELECT via `provider.ExecuteSQL`. Fastest; applies neither
+ *   entity permissions nor Row-Level Security.
+ * - `runview` — `RunView` + in-memory folding, so permissions and RLS DO apply. Moves the measure
+ *   rows into the app tier instead of collapsing them in the database.
+ *
+ * Both satisfy `IFactorEvaluator`, so nothing downstream branches on the choice. It is a setting
+ * rather than a migration because the point is to measure the two against realistic data volume
+ * before committing to one.
+ */
+export type FactorReadPath = "compiled" | "runview";
 
 /**
  * Factory. Turns a factor's stored configuration into a ready-to-run evaluator (config in →
@@ -182,7 +202,11 @@ export class FactorCompiler {
     /** The runner that executes Action-backed factors (injected so this module needn't import the
      *  heavy MJ Actions engine — the orchestrator supplies the real one). Absent → Action factors
      *  can't compile. */
-    constructor(private readonly actionRunner?: ActionRunner) {}
+    constructor(
+        private readonly actionRunner?: ActionRunner,
+        /** Preferred read path for declarative factors. Ineligible factors fall back to `compiled`. */
+        private readonly readPath: FactorReadPath = "compiled",
+    ) {}
 
     public async compile(
         factor: mjBizAppsSonarFactorEntity,
@@ -244,7 +268,55 @@ export class FactorCompiler {
             filterClause: filter.clause,
             filterParams: filter.params,
         };
+        // Both evaluators satisfy IFactorEvaluator, so this is the only place the choice is made.
+        // Ineligible factors fall back rather than fail — and say why, because a silent fallback
+        // would make a measurement of the two paths meaningless.
+        if (this.readPath === "runview") {
+            const ineligible = runViewIneligibilityReason({
+                aggregation: factor.Aggregation,
+                joinCount: joins.length,
+                anchorKeyColumnCount: anchorKeyColumns.length,
+                windowKind: window?.kind ?? null,
+                hasFilterExpression: !!factor.FilterExpression,
+            });
+            if (!ineligible) {
+                return new RunViewFactorEvaluator(
+                    this.buildRunViewSpec(factor, leafEntity, anchorKeyColumns, window),
+                );
+            }
+            LogStatus(
+                `FactorCompiler: factor '${factor.Name}' (${factor.ID}) falls back to the compiled ` +
+                    `read path — ${ineligible}.`,
+            );
+        }
         return new CompiledFactorEvaluator(spec);
+    }
+
+    /**
+     * Re-express an already-resolved declarative factor in entity/field terms for the RunView path.
+     *
+     * Only called after {@link runViewIneligibilityReason} returns null, which is what makes the single-FK and
+     * window-kind assumptions here safe.
+     */
+    private buildRunViewSpec(
+        factor: mjBizAppsSonarFactorEntity,
+        leafEntity: EntityInfo,
+        anchorKeyColumns: AnchorKeyColumn[],
+        window: CompiledWindow | null,
+    ): RunViewFactorSpec {
+        return {
+            factorId: factor.ID,
+            factorName: factor.Name,
+            sourceEntityName: leafEntity.Name,
+            // Eligibility guarantees exactly one. The compiled path's `fkColumn` is an EntityField
+            // name (validColumns comes from leafEntity.Fields), so it is already RunView vocabulary.
+            anchorFkFields: [anchorKeyColumns[0].fkColumn],
+            aggregation: factor.Aggregation as SupportedAggregation,
+            aggregateFieldName: factor.AggregateFieldName,
+            window: toPopulationWindow(window),
+            // Eligibility excludes factors with a FilterExpression, so there is nothing to carry.
+            extraFilter: null,
+        };
     }
 
     /** The anchor entity's table (bracket-quoted) + PK column, for per-anchor window joins. */
