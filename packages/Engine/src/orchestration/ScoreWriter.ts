@@ -31,7 +31,11 @@ export function sqlLiteral(v: SqlValue): string {
     if (v === null || v === undefined) return "NULL";
     if (typeof v === "number") return Number.isFinite(v) ? String(v) : "NULL";
     if (typeof v === "boolean") return v ? "1" : "0";
-    if (v instanceof Date) return `'${v.toISOString().slice(0, 23)}'`; // 'YYYY-MM-DDTHH:mm:ss.SSS' datetime2, no tz suffix
+    // Offset-aware ISO8601: '2026-07-27T18:49:07.530+00:00'. The timestamp columns are
+    // datetimeoffset(7), so the literal MUST carry its offset — this previously chopped the 'Z' off
+    // (`slice(0, 23)`) to suit datetime2, which left SQL Server inferring the zone for a UTC instant.
+    // That inference is the whole class of bug the datetimeoffset conversion exists to remove.
+    if (v instanceof Date) return `'${v.toISOString().replace("Z", "+00:00")}'`;
     return `N'${v.replace(/'/g, "''")}'`;
 }
 
