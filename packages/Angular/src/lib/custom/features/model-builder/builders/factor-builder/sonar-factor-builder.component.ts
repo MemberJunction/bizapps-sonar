@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal, WritableSignal } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
 import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
-import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
+import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, MissingDataPolicy, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSpec } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
@@ -245,6 +245,9 @@ export class SonarFactorBuilderComponent {
     /** Weight as a 0–100 percentage; stored as a 0–1 fraction. */
     public readonly weight = signal(20);
     public readonly weightMode = signal<WeightMode>("Additive");
+    /** What a member with NO data for this signal scores on it. Defaults to Zero, matching the
+     *  engine's resolution of the schema default, so an untouched signal behaves as it always has. */
+    public readonly missingDataPolicy = signal<MissingDataPolicy>("Zero");
 
     /** True once an edit VM has been hydrated into the composer signals (one-shot guard). */
     private hydrated = false;
@@ -543,6 +546,7 @@ export class SonarFactorBuilderComponent {
             this.higherIsBetter.set(vm.higherIsBetter);
             this.weight.set(vm.weightPct);
             this.weightMode.set(vm.weightMode);
+            this.missingDataPolicy.set(vm.missingDataPolicy);
             if (vm.filterExpression) {
                 try { this.filter.set(JSON.parse(vm.filterExpression) as CompositeFilterDescriptor); } catch { /* keep empty */ }
             }
@@ -685,6 +689,26 @@ export class SonarFactorBuilderComponent {
         { value: "Penalty", label: "Subtracts (penalty)" },
     ];
 
+    /** The three real missing-data behaviours, in order of how harshly they treat a gap. */
+    public readonly missingDataOptions: { value: MissingDataPolicy; label: string }[] = [
+        { value: "Zero", label: "Counts as zero" },
+        { value: "NeutralMidpoint", label: "Counts as average" },
+        { value: "Exclude", label: "Skipped" },
+    ];
+
+    /** Plain-language consequence of the selected missing-data policy. Selection-aware because the
+     *  three options differ in a way that is easy to get backwards. */
+    public readonly missingDataHint = computed(() => {
+        switch (this.missingDataPolicy()) {
+            case "NeutralMidpoint":
+                return "A member with no data here lands mid-range on this signal, so it neither helps nor hurts them. Use this when a gap just means you have not measured them yet.";
+            case "Exclude":
+                return "This signal is dropped from that member's total, so their other signals carry more weight. Use this when a gap tells you nothing either way.";
+            default:
+                return "A member with no data here scores zero on this signal, and it still counts against their total. Use this when a gap is genuinely bad news, like no logins at all.";
+        }
+    });
+
     /** Step 1 (Signal) is configured: data needs a resolved source (+ a field when measuring one);
      *  action needs a chosen action with its required params filled. */
     public readonly signalStepValid = computed(() =>
@@ -714,9 +738,10 @@ export class SonarFactorBuilderComponent {
         const direction = this.higherIsBetter() ? "Higher is better" : "Lower is better";
         const scale = NORMALIZATION_LABELS[this.normalization()];
         const weight = `${this.weight()}% · ${this.weightMode() === "Penalty" ? "penalty" : "additive"}`;
+        const noData = this.missingDataOptions.find((o) => o.value === this.missingDataPolicy())?.label ?? "Counts as zero";
         if (this.mode() === "action") {
             const act = this.selectedAction();
-            return { measure: act?.name ?? "Pick a custom signal", detail: act?.contract.measures ?? "", filter: null as string | null, scale, weight, direction };
+            return { measure: act?.name ?? "Pick a custom signal", detail: act?.contract.measures ?? "", filter: null as string | null, scale, weight, noData, direction };
         }
         const src = this.selectedSource();
         const agg = this.aggregationLabels[this.aggregation()];
@@ -731,6 +756,7 @@ export class SonarFactorBuilderComponent {
             filter: n > 0 ? `${n} condition${n === 1 ? "" : "s"}` : "all records",
             scale,
             weight,
+            noData,
             direction,
         };
     });
@@ -872,9 +898,10 @@ export class SonarFactorBuilderComponent {
         this.saving.set(true);
         try {
             const vm = this.edit();
+            const binding = { weight: this.weight() / 100, weightMode: this.weightMode(), missingDataPolicy: this.missingDataPolicy() };
             const ok = vm
-                ? await this.factorService.updateFactor(vm.modelFactorId, vm.factorId, input, this.weight() / 100, this.weightMode())
-                : await this.factorService.createAndBind(input, this.weight() / 100, this.weightMode());
+                ? await this.factorService.updateFactor(vm.modelFactorId, vm.factorId, input, binding)
+                : await this.factorService.createAndBind(input, binding);
             if (ok) this.saved.emit();
         } finally {
             this.saving.set(false);

@@ -15,6 +15,9 @@ const MODEL_RELATED_ENTITY = "MJ_BizApps_Sonar: Model Related Entities";
 const AGGREGATIONS = ["Count", "Sum", "Avg", "Min", "Max", "DistinctCount"] as const;
 const NORMALIZATIONS = ["MinMax", "Percentile", "ZScore", "None", "Logistic", "Banded", "Lookup"] as const;
 const WEIGHT_MODES = ["Additive", "Penalty"] as const;
+/** The three real missing-data behaviours. The column also allows 'ModelDefault', which the engine
+ *  resolves to Zero — we don't offer that alias, so a caller's choice always means what it says. */
+const MISSING_DATA_POLICIES = ["Zero", "NeutralMidpoint", "Exclude"] as const;
 
 /**
  * The declarative-factor spec the agent (or UI) sends in the `Spec` param. Action-backed factors go
@@ -40,6 +43,12 @@ interface CreateFactorSpec {
     /** Rubric weight, 0..1 (default 0.25). */
     weight?: number;
     weightMode?: string;
+    /** How an anchor with NO data for this factor scores on it: 'Zero' (counts as zero, still in the
+     *  total), 'NeutralMidpoint' (fills the factor's own range midpoint, neither helps nor hurts) or
+     *  'Exclude' (dropped from that anchor's total). Omitted → the schema default, which the engine
+     *  resolves to Zero. Choosing this deliberately matters: on a sparse source, Zero silently scores
+     *  every anchor with no rows as the worst possible on that factor. */
+    missingDataPolicy?: string;
 }
 
 /**
@@ -167,6 +176,10 @@ export class SonarCreateFactorAction extends SonarActionBase {
         mf.FactorID = factorId;
         mf.Weight = this.clampWeight(spec.weight);
         mf.WeightMode = this.asEnum(spec.weightMode, WEIGHT_MODES) ?? "Additive";
+        // Only set when the caller chose one — leaving the column at its schema default keeps the
+        // stored value honest about the fact that nobody decided (the engine resolves it to Zero).
+        const missing = this.asEnum(spec.missingDataPolicy, MISSING_DATA_POLICIES);
+        if (missing) mf.MissingDataPolicy = missing;
         if (await mf.Save()) return mf;
         this.saveError = mf.LatestResult?.Message || JSON.stringify(mf.LatestResult?.Errors ?? []) || "unknown";
         return null;

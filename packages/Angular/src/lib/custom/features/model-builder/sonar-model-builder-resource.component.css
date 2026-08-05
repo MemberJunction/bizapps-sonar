@@ -1005,3 +1005,96 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
+
+/* ── Trend ("change") window: inline edit inside the header's model-info line ──────────────────
+   Model-level scoring config that used to be write-once in the New-model wizard, so it was
+   invisible and unchangeable afterwards. It lives in the info line because that's where you go to
+   ask "what is this model doing?" — clicking the value swaps it for an input in place (§3), which
+   beats a modal or a sixth tab for editing one number. */
+.sonar-trendwin__trigger {
+    padding: 0 0.25rem;
+    border: 0;
+    border-radius: var(--sonar-radius-sm);
+    /* Permanent dashed underline: the only affordance a touch user gets, since they have no hover. */
+    border-bottom: 1px dashed var(--sonar-border-strong);
+    background: none;
+    color: var(--sonar-muted);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.sonar-trendwin__trigger:hover {
+    background: color-mix(in srgb, var(--sonar-accent) 5%, transparent);
+    border-bottom-color: var(--sonar-accent);
+    color: var(--sonar-ink);
+}
+/* Keyboard discovery matched to hover weight — the shared ring doesn't target bare buttons. */
+.sonar-trendwin__trigger:focus-visible {
+    outline: 2px solid var(--sonar-accent);
+    outline-offset: 2px;
+}
+
+/* Locked (published/paused): still READABLE, just not editable. The value is the point — the lock
+   glyph explains why clicking does nothing, with the full reason on the title. */
+.sonar-trendwin__locked {
+    padding: 0 0.25rem;
+    color: var(--sonar-muted);
+    cursor: not-allowed;
+}
+.sonar-trendwin__locked i {
+    margin-left: 0.25rem;
+    font-size: 0.7em;
+    color: var(--sonar-faint);
+}
+
+.sonar-trendwin { display: inline-flex; align-items: center; gap: 0.25rem; vertical-align: baseline; }
+.sonar-trendwin__input {
+    width: 4.5rem;
+    padding: 0.125rem 0.25rem;
+    border: 1px solid var(--sonar-accent);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    font: inherit;
+    /* Digits line up while typing. */
+    font-variant-numeric: tabular-nums;
+}
+.sonar-trendwin__unit { color: var(--sonar-faint); }
+.sonar-trendwin__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    padding: 0;
+    border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface);
+    color: var(--sonar-ink);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}
+.sonar-trendwin__btn:hover:not(:disabled) { border-color: var(--sonar-accent); background: color-mix(in srgb, var(--sonar-accent) 8%, transparent); }
+.sonar-trendwin__btn:focus-visible { outline: 2px solid var(--sonar-accent); outline-offset: 2px; }
+.sonar-trendwin__btn:disabled { opacity: 0.55; cursor: default; }
+.sonar-trendwin__btn--ghost { color: var(--sonar-faint); }
+
+/* Add-band form: the "Up to" edge is DERIVED (the host band's top), so it renders as a value rather
+   than an input — a band set tiles the scale, so that number isn't a free choice. */
+.sonar-bandadd__derived {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border: 1px dashed var(--sonar-border-strong);
+    border-radius: var(--sonar-radius-sm);
+    background: var(--sonar-surface-sunken);
+    color: var(--sonar-muted);
+    font-variant-numeric: tabular-nums;
+}
+.sonar-bandadd__hint {
+    margin: 0.5rem 0 0;
+    color: var(--sonar-faint);
+    font-size: var(--sonar-font-xs);
+    line-height: 1.4;
+}
+.sonar-bandadd__hint--warn { color: var(--sonar-atrisk); }
