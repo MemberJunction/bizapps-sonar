@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Score-Band Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(45,212,191,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .field{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:.5rem;padding:.35rem .55rem;color:#e2e8f0;font-size:.85rem}
+  .field.mono{font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Score-Band Builder</div></div>
+    </a>
+    <div class="glass rounded-xl p-3">
+      <div class="text-xs text-slate-400">Editing band set</div>
+      <div class="font-semibold text-sm mt-0.5">Default Health Bands</div>
+      <div class="text-xs text-emerald-300 mt-0.5">used by 3 models</div>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm">
+      <div class="text-xs uppercase tracking-wider text-slate-500 px-3 mb-1">Builder spikes</div>
+      <a href="model.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Model Builder</a>
+      <a href="factor.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Factor Builder</a>
+      <a href="scoreband.html" class="flex px-3 py-2 rounded-lg bg-white/5 text-white">Score-Band Builder</a>
+      <a href="snapshot.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Publish &amp; Snapshot</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">A reusable set of bands · maps a 0–100 score to a qualitative label</div>
+        <h1 class="text-xl font-semibold">Default Health Bands</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-3 py-2 rounded-lg border border-white/10 text-sm">Clone set</button>
+        <button class="px-3 py-2 rounded-lg bg-cyan-400 text-black font-medium text-sm">Save band set</button>
+      </div>
+    </div>
+
+    <div class="p-8 space-y-6 max-w-5xl">
+      <!-- set name + description -->
+      <section class="glass rounded-2xl p-6 grid sm:grid-cols-[1fr,2fr] gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Set name</div>
+          <input class="field w-full" value="Default Health Bands"/>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Description</div>
+          <input class="field w-full" value="Generic 0–100 health scale for member engagement models."/>
+        </div>
+      </section>
+
+      <!-- live number-line preview -->
+      <section class="glass rounded-2xl p-6">
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">Live preview · 0–100 scale</div>
+        <div class="relative h-12 rounded-lg overflow-hidden flex">
+          <div class="h-full flex items-center justify-center text-xs font-semibold text-black" style="width:40%;background:#f87171">Critical</div>
+          <div class="h-full flex items-center justify-center text-xs font-semibold text-black" style="width:30%;background:#fbbf24">At-Risk</div>
+          <div class="h-full flex items-center justify-center text-xs font-semibold text-black" style="width:30%;background:#2dd4bf">Healthy</div>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-500 mono mt-1"><span>0</span><span>40</span><span>70</span><span>100</span></div>
+        <!-- a sample score marker -->
+        <div class="relative mt-3 h-0">
+          <div class="absolute -top-9 text-xs" style="left:73%;transform:translateX(-50%)">
+            <div class="chip bg-amber-500/20 text-amber-200 border border-amber-500/30">73 → At-Risk</div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 mt-6">Bands must cover the scale without gaps or overlaps; the builder warns if they don't.</p>
+      </section>
+
+      <!-- band rows -->
+      <section class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-xs uppercase tracking-wider text-slate-500">Bands</div>
+          <button class="chip bg-white/5 text-slate-200 border border-white/10">+ Add band</button>
+        </div>
+
+        <!-- column headers -->
+        <div class="grid grid-cols-[1.4fr,1fr,1fr,.8fr,.8fr,2rem] gap-3 text-[11px] uppercase tracking-wider text-slate-500 px-1 mb-2">
+          <div>Label</div><div>Min</div><div>Max</div><div>Severity</div><div>Color</div><div></div>
+        </div>
+
+        <div class="space-y-2">
+          <!-- band: Critical -->
+          <div class="grid grid-cols-[1.4fr,1fr,1fr,.8fr,.8fr,2rem] gap-3 items-center rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+            <input class="field" value="Critical"/>
+            <input class="field mono" value="0"/>
+            <input class="field mono" value="40"/>
+            <input class="field mono" value="3"/>
+            <div class="flex items-center gap-2"><span class="w-5 h-5 rounded" style="background:#f87171"></span><span class="mono text-xs text-slate-400">#F87171</span></div>
+            <button class="text-slate-600 hover:text-red-300">✕</button>
+          </div>
+          <!-- band: At-Risk -->
+          <div class="grid grid-cols-[1.4fr,1fr,1fr,.8fr,.8fr,2rem] gap-3 items-center rounded-xl border border-white/10 p-3">
+            <input class="field" value="At-Risk"/>
+            <input class="field mono" value="40"/>
+            <input class="field mono" value="70"/>
+            <input class="field mono" value="2"/>
+            <div class="flex items-center gap-2"><span class="w-5 h-5 rounded" style="background:#fbbf24"></span><span class="mono text-xs text-slate-400">#FBBF24</span></div>
+            <button class="text-slate-600 hover:text-red-300">✕</button>
+          </div>
+          <!-- band: Healthy -->
+          <div class="grid grid-cols-[1.4fr,1fr,1fr,.8fr,.8fr,2rem] gap-3 items-center rounded-xl border border-white/10 p-3">
+            <input class="field" value="Healthy"/>
+            <input class="field mono" value="70"/>
+            <input class="field mono" value="100"/>
+            <input class="field mono" value="1"/>
+            <div class="flex items-center gap-2"><span class="w-5 h-5 rounded" style="background:#2dd4bf"></span><span class="mono text-xs text-slate-400">#2DD4BF</span></div>
+            <button class="text-slate-600 hover:text-red-300">✕</button>
+          </div>
+        </div>
+
+        <!-- per-band extras -->
+        <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-400">
+          <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-cyan-400"/> "Critical" is a <span class="mono">terminal</span> band (no auto-recovery)</label>
+          <span class="text-slate-600">·</span>
+          <span><span class="text-slate-300">Severity</span> orders bands worst→best for sorting + alerts.</span>
+        </div>
+      </section>
+
+      <!-- mapping note -->
+      <section class="glass rounded-2xl p-5 text-xs text-slate-400 max-w-3xl">
+        <div class="text-slate-300 font-medium mb-1">How this connects.</div>
+        Each row is one <span class="mono text-cyan-300">ScoreBand</span> (<span class="mono">Label, MinScore, MaxScore, Severity, ColorHex, IsTerminal</span>) under this <span class="mono text-cyan-300">ScoreBandSet</span>. A model references the set via <span class="mono">ScoreModel.BandSetID</span>; at recompute the engine assigns each score the band whose <span class="mono">[MinScore, MaxScore]</span> contains it. A model <strong>can't publish</strong> until its band set has at least one band.
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>
