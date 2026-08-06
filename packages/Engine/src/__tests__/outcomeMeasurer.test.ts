@@ -68,9 +68,56 @@ describe("compareOp", () => {
         expect(compareOp("=", "Active", "Active")).toBe(true);
         expect(compareOp("!=", "Lapsed", "Active")).toBe(true);
     });
-    it("null field value never spuriously succeeds", () => {
+    it("null field value never spuriously succeeds, under ANY operator", () => {
         expect(compareOp("=", null, "Active")).toBe(false);
         expect(compareOp(">=", null, "70")).toBe(false);
+        // `!=` is the one that used to leak: "no status at all" is not the same as "status is not Active",
+        // and counting it as a win reports success for every member nothing is known about.
+        expect(compareOp("!=", null, "Active")).toBe(false);
+        expect(compareOp("!=", undefined, "Active")).toBe(false);
+        expect(compareOp("<", undefined, "2026-08-01")).toBe(false);
+    });
+
+    describe("dates", () => {
+        // The regression this whole block exists for: a Date stringifies as "Sat Aug 01 2026 ...", so the
+        // old string fallback compared "S" against "2" and said yes to every date in history.
+        it("compares a Date field against an ISO literal on the actual instant", () => {
+            expect(compareOp(">=", new Date("2026-08-03T00:00:00Z"), "2026-08-01")).toBe(true);
+            expect(compareOp(">=", new Date("2026-07-30T00:00:00Z"), "2026-08-01")).toBe(false);
+            expect(compareOp("<", new Date("2026-07-30T00:00:00Z"), "2026-08-01")).toBe(true);
+            expect(compareOp("<", new Date("2026-08-03T00:00:00Z"), "2026-08-01")).toBe(false);
+        });
+        it("a date BEFORE the bar is not a success (the old code said it was)", () => {
+            // Every one of these returned true before the fix.
+            for (const iso of ["1999-01-01", "2020-06-28", "2026-07-31T23:59:59Z"]) {
+                expect(compareOp(">=", new Date(iso), "2026-08-01")).toBe(false);
+            }
+        });
+        it("ISO strings work too, since a 'simple' RunView returns them unparsed", () => {
+            expect(compareOp(">", "2026-08-03T12:00:00Z", "2026-08-01")).toBe(true);
+            expect(compareOp(">", "2026-07-01", "2026-08-01")).toBe(false);
+        });
+        it("equality ignores the time-of-day difference between equal instants", () => {
+            expect(compareOp("=", new Date("2026-08-01T00:00:00Z"), "2026-08-01T00:00:00Z")).toBe(true);
+            expect(compareOp("!=", new Date("2026-08-02T00:00:00Z"), "2026-08-01T00:00:00Z")).toBe(true);
+        });
+        it("a date against a NON-date literal is unanswerable, not a guess", () => {
+            expect(compareOp(">=", new Date("2026-08-03"), "Active")).toBe(false);
+            expect(compareOp(">=", new Date("2026-08-03"), "70")).toBe(false);
+            expect(compareOp("!=", new Date("2026-08-03"), "Active")).toBe(false);
+        });
+        it("an invalid Date matches nothing", () => {
+            expect(compareOp(">=", new Date("not a date"), "2026-08-01")).toBe(false);
+            expect(compareOp("!=", new Date("not a date"), "2026-08-01")).toBe(false);
+        });
+        it("bare numbers stay numeric — `new Date('70')` would be the year 2070", () => {
+            expect(compareOp(">=", 72, "70")).toBe(true);
+            expect(compareOp("=", "70", "70")).toBe(true);
+        });
+        it("text that merely contains digits stays a string", () => {
+            expect(compareOp("=", "Tier 2026", "Tier 2026")).toBe(true);
+            expect(compareOp("=", "Tier 2026", "2026-08-01")).toBe(false);
+        });
     });
 });
 

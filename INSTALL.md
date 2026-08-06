@@ -103,11 +103,32 @@ Open **http://localhost:4302**, log in via your auth provider, and open the **So
 
 ## Verifying the install
 
-A healthy install has:
+**Run this one first.** Every Sonar entity's registered field count must equal its base view's column
+count, and if it doesn't, every write to that entity fails *silently* (`BaseEntity.Save()` returns `false`
+rather than throwing). Two entities once shipped that way. Anything this returns is a broken write path:
+
+```sql
+SELECT e.Name,
+       (SELECT COUNT(*) FROM __mj.EntityField f WHERE f.EntityID = e.ID) AS Fields,
+       (SELECT COUNT(*) FROM sys.columns c
+         WHERE c.object_id = OBJECT_ID(e.SchemaName + '.' + e.BaseView)) AS ViewCols
+FROM __mj.Entity e
+WHERE e.SchemaName = '__mj_BizAppsSonar'
+  AND (SELECT COUNT(*) FROM __mj.EntityField f WHERE f.EntityID = e.ID)
+   <> (SELECT COUNT(*) FROM sys.columns c
+        WHERE c.object_id = OBJECT_ID(e.SchemaName + '.' + e.BaseView));
+```
+
+Re-run it after any `mj codegen` that touched a Sonar entity: CodeGen widens views with denormalized FK
+display columns but does not register them in metadata, so each view-shape change can re-open the gap.
+
+Beyond that, a healthy install has:
 
 - MemberJunction core provisioned (`__mj` schema present).
-- The 14 Sonar entities registered (`SELECT COUNT(*) FROM __mj.Entity WHERE SchemaName = '__mj_BizAppsSonar'` → 14).
-- Seed metadata present (score bands, time windows, 23 actions, queries, the authoring agent).
+- **19** Sonar entities registered (`SELECT COUNT(*) FROM __mj.Entity WHERE SchemaName = '__mj_BizAppsSonar'`).
+- **33** Sonar actions seeded (`SELECT COUNT(*) FROM __mj.Action WHERE ID LIKE '5044A100-%'`), 5 of them in
+  the `Sonar Plays` category.
+- Seed metadata present: 3 score bands, 5 time windows, queries, the authoring agent.
 - The Sonar app visible in MJExplorer after login.
 
 ---

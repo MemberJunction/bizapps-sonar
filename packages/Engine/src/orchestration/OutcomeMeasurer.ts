@@ -1,4 +1,4 @@
-import { LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { LogError, LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
 import {
     mjBizAppsSonarInterventionOutcomeEntity,
     mjBizAppsSonarScoreBandEntity,
@@ -86,23 +86,90 @@ export function outcomeLabel(def: OutcomeDefinition): string {
     }
 }
 
-/** Compare two values under a definition operator (numeric when both parse as numbers, else string). */
-export function compareOp(op: "=" | "!=" | ">" | ">=" | "<" | "<=", left: unknown, right: string): boolean {
+type ComparisonOp = "=" | "!=" | ">" | ">=" | "<" | "<=";
+
+/** Leading `YYYY-MM-DD`, optionally followed by a time. Deliberately strict: it must NOT match a bare
+ *  number, because `new Date("70")` parses as the year 2070 in V8 and would turn a numeric comparison
+ *  into a date one. */
+const ISO_DATE_START = /^\d{4}-\d{2}-\d{2}([T ]|$)/;
+
+/** Epoch millis if this value is unambiguously a date, else null. */
+function dateMillis(v: unknown): number | null {
+    if (v instanceof Date) {
+        const t = v.getTime();
+        return Number.isFinite(t) ? t : null;
+    }
+    if (typeof v === "string" && ISO_DATE_START.test(v)) {
+        const t = Date.parse(v);
+        return Number.isFinite(t) ? t : null;
+    }
+    return null;
+}
+
+function applyOp(op: ComparisonOp, l: number, r: number): boolean;
+function applyOp(op: ComparisonOp, l: string, r: string): boolean;
+function applyOp(op: ComparisonOp, l: number | string, r: number | string): boolean {
+    switch (op) {
+        case "=": return l === r;
+        case "!=": return l !== r;
+        case ">": return l > r;
+        case ">=": return l >= r;
+        case "<": return l < r;
+        case "<=": return l <= r;
+    }
+}
+
+/**
+ * Compare a member's field value against a definition's literal, under one operator.
+ *
+ * Three modes, in this order, and the order is the whole point:
+ *
+ *  1. **Date**, when both sides are unambiguously dates. This case USED TO FALL THROUGH TO STRING and was
+ *     silently, catastrophically wrong: a `Date` from the entity layer stringifies as
+ *     `"Sat Aug 01 2026 00:00:00 GMT+0000"`, so `LastActivityDate >= "2026-08-01"` compared `"S"` against
+ *     `"2"` and returned **true for every date that has ever existed**. In the code that decides whether
+ *     an intervention worked, that reports success for the entire population.
+ *  2. **Numeric**, when both sides parse as finite numbers.
+ *  3. **String**, otherwise.
+ *
+ * Two cases are treated as UNANSWERABLE and return false for every operator, rather than guessing:
+ *
+ *  · **A missing value.** `null`/`undefined` means the member has no row or no value for that field, and
+ *    the old code let it through the string branch — so `Status != 'Active'` counted every member with
+ *    NO status as a success. Same family as the `PercentOfTotal` trap: absent data flattered the member
+ *    exactly when the truth was that nothing is known about them. An empty string is NOT included here;
+ *    that is a value the field actually holds.
+ *  · **A date on one side only.** Guessing is what produced the bug above, and a date against a
+ *    non-date literal is the shape that produced it.
+ *
+ * Both follow the layer's standing rule that unknown never matches: an operator nobody can evaluate must
+ * not be allowed to count as a win.
+ */
+export function compareOp(op: ComparisonOp, left: unknown, right: string): boolean {
+    if (left === null || left === undefined) return false;
+
+    const lms = dateMillis(left);
+    const rms = dateMillis(right);
+    if (lms !== null || rms !== null) {
+        return lms !== null && rms !== null ? applyOp(op, lms, rms) : false;
+    }
+
     const ln = Number(left);
     const rn = Number(right);
-    const numeric = left != null && left !== "" && Number.isFinite(ln) && Number.isFinite(rn);
-    if (numeric) {
-        switch (op) { case "=": return ln === rn; case "!=": return ln !== rn; case ">": return ln > rn; case ">=": return ln >= rn; case "<": return ln < rn; case "<=": return ln <= rn; }
+    if (left !== "" && Number.isFinite(ln) && Number.isFinite(rn)) {
+        return applyOp(op, ln, rn);
     }
-    const ls = String(left ?? "");
-    switch (op) { case "=": return ls === right; case "!=": return ls !== right; case ">": return ls > right; case ">=": return ls >= right; case "<": return ls < right; case "<=": return ls <= right; }
-    return false;
+
+    return applyOp(op, String(left), right);
 }
 
 export interface MeasureResult {
     measured: number; // outcomes written this call
     alreadyMeasured: number; // skipped — outcome already recorded
     unmeasurable: number; // skipped — no baseline score history before assignment
+    /** Rows that could NOT be persisted. Non-zero means the reported lift is incomplete, and the
+     *  caller should treat the run as partially failed rather than as a measurement. */
+    writeFailures: number;
     lift: LiftSummary; // over ALL measured assignments (prior + new)
 }
 
@@ -179,6 +246,7 @@ export class OutcomeMeasurer {
         const movements: MeasuredMovement[] = [];
         let measured = 0;
         let unmeasurable = 0;
+        let writeFailures = 0;
         for (const a of assignments) {
             const existing = measuredByAssignment.get(a.ID);
             if (existing) {
@@ -196,17 +264,29 @@ export class OutcomeMeasurer {
             const success = this.evalSuccess(definition, move, now.NormalizedScore, fieldValues.get(a.AnchorRecordID));
             // Persist the win as 'Reactivated', a band drop as 'Churned', else 'NoChange'.
             const outcomeType = success ? "Reactivated" : move < 0 ? "Churned" : "NoChange";
-            await this.writeOutcome(a.ID, outcomeType, scoreDelta, contextUser);
+            // A failed write is NOT a measurement: counting it produced a report of work that did not
+            // exist. It is also excluded from the lift movements, so lift is only ever computed from
+            // outcomes that are actually on record.
+            if (!(await this.writeOutcome(a.ID, outcomeType, scoreDelta, contextUser))) {
+                writeFailures++;
+                continue;
+            }
             movements.push({ cohort: a.Cohort, scoreDelta, bandMove: move, success });
             measured++;
         }
         const lift = computeLift(movements, outcomeLabel(definition));
+        if (writeFailures > 0) {
+            LogError(
+                `Sonar: ${writeFailures} outcome row(s) could not be written for intervention ` +
+                    `${interventionId}. Lift covers only the ${measured} that persisted.`,
+            );
+        }
         LogStatus(
             `Sonar: measured ${measured} outcome(s) for intervention ${interventionId} ` +
                 `(already ${measuredByAssignment.size}, unmeasurable ${unmeasurable}); outcome "${lift.outcomeLabel}" ` +
                 `success lift ${lift.successLiftPct?.toFixed(1) ?? "n/a"}pp, score lift ${lift.scoreLift?.toFixed(2) ?? "n/a"}.`,
         );
-        return { measured, alreadyMeasured: measuredByAssignment.size, unmeasurable, lift };
+        return { measured, alreadyMeasured: measuredByAssignment.size, unmeasurable, writeFailures, lift };
     }
 
     /** Did the member meet the org's success definition? BandRecovery = climbed; ReachScore = current
@@ -370,12 +450,13 @@ export class OutcomeMeasurer {
         return null;
     }
 
+    /** @returns true only when the row actually persisted. */
     private async writeOutcome(
         assignmentId: string,
         outcomeType: "Reactivated" | "Churned" | "NoChange",
         scoreDelta: number,
         contextUser: UserInfo,
-    ): Promise<void> {
+    ): Promise<boolean> {
         const md = new Metadata();
         const row = await md.GetEntityObject<mjBizAppsSonarInterventionOutcomeEntity>(OUTCOME_ENTITY, contextUser);
         row.NewRecord();
@@ -384,6 +465,13 @@ export class OutcomeMeasurer {
         row.OutcomeAt = new Date();
         row.ScoreDeltaAfter = Math.round(scoreDelta * 10000) / 10000; // decimal(9,4)
         row.MeasuredAt = new Date();
-        await row.Save();
+        // The boolean MATTERS. Ignoring it is how "Measured 100 outcome(s)" was reported against a table
+        // holding zero rows: every save was failing on an entity-metadata mismatch and nothing noticed.
+        if (await row.Save()) return true;
+        LogError(
+            `Sonar: failed to write outcome for assignment ${assignmentId}: ` +
+                `${row.LatestResult?.Message ?? "unknown"}`,
+        );
+        return false;
     }
 }
