@@ -47,7 +47,7 @@ export class SonarRecomputeModelServerOperation extends BaseRemotableOperation<S
             throw new Error("Sonar.RecomputeModel: modelID is required.");
         }
         // Same orchestrator the Action path uses; the extra arg is the progress sink threaded down
-        // to ScoreWriter's per-member persist loop (throttled there — see PROGRESS_EVERY).
+        // to ScorePersister, which fires it once per Record Set Processing batch (not per member).
         const run = await new RecomputeOrchestrator().recompute(
             input.modelID,
             new Date(),
