@@ -176,25 +176,43 @@
                                     @if (playParams().length > 0) {
                                         <div class="sonar-launch__params">
                                             @for (p of playParams(); track p.name) {
-                                                <label class="sonar-launch__field">
-                                                    <span class="sonar-launch__label">
-                                                        {{ p.name }}@if (p.isRequired) { <span class="sonar-launch__req" aria-hidden="true">*</span> }
-                                                    </span>
-                                                    @if (p.multiline) {
-                                                        <textarea class="sonar-input sonar-launch__textarea" rows="4"
-                                                                  [value]="playParamValues()[p.name] || ''"
-                                                                  (input)="setPlayParam(p.name, $any($event.target).value)"
-                                                                  [attr.aria-label]="p.name" [title]="p.description || ''"></textarea>
-                                                    } @else {
-                                                        <input class="sonar-input" type="text"
-                                                               [value]="playParamValues()[p.name] || ''"
-                                                               (input)="setPlayParam(p.name, $any($event.target).value)"
-                                                               [attr.aria-label]="p.name" [title]="p.description || ''" />
-                                                    }
-                                                    @if (p.description) {
-                                                        <span class="sonar-launch__hint">{{ p.description }}</span>
-                                                    }
-                                                </label>
+                                                @if (p.boolean) {
+                                                    <!-- A flag is a decision, not prose: the shared switch, not a text
+                                                         box someone types "true" into. Untouched = the action's own
+                                                         default, so the initial state mirrors effectiveDefault. -->
+                                                    <div class="sonar-launch__field sonar-launch__field--switch">
+                                                        <button type="button" class="sonar-switch"
+                                                                [class.sonar-switch--on]="playParamBool(p)"
+                                                                (click)="togglePlayParam(p)"
+                                                                [attr.aria-pressed]="playParamBool(p)"
+                                                                [title]="p.description || ''">
+                                                            {{ p.label }} <span class="sonar-switch__track"></span></button>
+                                                        @if (p.description) {
+                                                            <span class="sonar-launch__hint">{{ p.description }}</span>
+                                                        }
+                                                    </div>
+                                                } @else {
+                                                    <label class="sonar-launch__field">
+                                                        <span class="sonar-launch__label">
+                                                            {{ p.label }}@if (p.isRequired) { <span class="sonar-launch__req" aria-hidden="true">*</span> }
+                                                        </span>
+                                                        @if (p.multiline) {
+                                                            <textarea class="sonar-input sonar-launch__textarea" rows="4"
+                                                                      [value]="playParamValues()[p.name] || ''"
+                                                                      (input)="setPlayParam(p.name, $any($event.target).value)"
+                                                                      [attr.aria-label]="p.label" [title]="p.description || ''"></textarea>
+                                                        } @else {
+                                                            <input class="sonar-input" type="text"
+                                                                   [value]="playParamValues()[p.name] || ''"
+                                                                   [placeholder]="p.effectiveDefault ?? ''"
+                                                                   (input)="setPlayParam(p.name, $any($event.target).value)"
+                                                                   [attr.aria-label]="p.label" [title]="p.description || ''" />
+                                                        }
+                                                        @if (p.description) {
+                                                            <span class="sonar-launch__hint">{{ p.description }}</span>
+                                                        }
+                                                    </label>
+                                                }
                                             }
                                         </div>
                                     }
@@ -771,15 +789,18 @@
                                          ending at lift vs. the holdout. The loop, made visible. -->
                                     <div class="sonar-stack">
                                         @for (iv of interventions(); track iv.id) {
-                                            <div class="sonar-play">
+                                            <div class="sonar-play" [class.sonar-play--idle]="iv.treated + iv.held === 0">
                                                 <div class="sonar-play__top">
                                                     <span class="sonar-play__name">{{ iv.name }}</span>
                                                     <span class="sonar-chip sonar-chip--small" [title]="iv.kind === 'BulkSync' ? 'The treated cohort was handed to the play in one batch' : iv.kind === 'TrackOnly' ? 'No play fires — Sonar measures a real-world treatment' : 'The play fired once per treated ' + noun().one">
                                                         {{ iv.kind === 'BulkSync' ? 'bulk sync' : iv.kind === 'TrackOnly' ? 'track only' : 'per ' + noun().one }}
                                                     </span>
                                                     <span class="sonar-chip sonar-chip--small">{{ iv.triggerType }}</span>
+                                                    @if (iv.treated + iv.held === 0) {
+                                                        <span class="sonar-chip sonar-chip--small" title="Defined but never committed — no one was ever assigned. Usually a preview that was not launched.">never ran</span>
+                                                    }
                                                     <span class="sonar-play__spacer"></span>
-                                                    <span class="sonar-chip sonar-chip--small" [class.sonar-chip--healthy]="iv.status === 'Active'">{{ iv.status }}</span>
+                                                    <span class="sonar-chip sonar-chip--small" [class.sonar-chip--healthy]="iv.status === 'Active' && iv.treated + iv.held > 0">{{ iv.status }}</span>
                                                 </div>
                                                 <div class="sonar-play__funnel">
                                                     @for (s of funnelFor(iv); track s.label) {
@@ -797,8 +818,8 @@
                                                             </div>
                                                             <div class="sonar-play__sk">lift · {{ m.lift.outcomeLabel }}</div>
                                                         } @else {
-                                                            <button class="sonar-btn sonar-btn--ghost sonar-play__measure" [disabled]="measuringId() !== null" (click)="measureIntervention(iv.id)"
-                                                                    [title]="'Measure outcomes: each ' + noun().one + '\'s score/band now vs at assignment, treatment vs control'">
+                                                            <button class="sonar-btn sonar-btn--ghost sonar-play__measure" [disabled]="measuringId() !== null || iv.treated + iv.held === 0" (click)="measureIntervention(iv.id)"
+                                                                    [title]="iv.treated + iv.held === 0 ? 'Nothing to measure — no one was ever assigned' : 'Measure outcomes: each ' + noun().one + '\'s score/band now vs at assignment, treatment vs control'">
                                                                 @if (measuringId() === iv.id) { <i class="fa-solid fa-circle-notch fa-spin"></i> } @else { <i class="fa-solid fa-scale-balanced"></i> Measure }
                                                             </button>
                                                             <div class="sonar-play__sk">lift vs holdout</div>
@@ -807,7 +828,8 @@
                                                 </div>
                                                 <div class="sonar-play__meta">
                                                     <span>holdout <b class="sonar-mono">{{ iv.held }}</b> ({{ iv.holdoutPercent ?? 0 }}%) · never contacted</span>
-                                                    <span>{{ iv.segmentName }}</span>
+                                                    <!-- The segment usually shares the intervention's name; repeating it reads as a glitch. -->
+                                                    @if (iv.segmentName !== iv.name) { <span>{{ iv.segmentName }}</span> }
                                                     @if (iv.lastAssignedAt) { <span>last fired {{ iv.lastAssignedAt | date:'MMM d, h:mm a' }}</span> }
                                                     <span class="sonar-play__spacer"></span>
                                                     @if (proposalStatsFor(iv.id).toReview > 0) {
@@ -874,9 +896,21 @@
                                                  never lose the control that decides what you're looking at. -->
                                             <div class="sonar-outreach__items">
                                             @if (visibleProposals().length === 0) {
-                                                <div class="sonar-empty sonar-empty--inline">
-                                                    <p>Nothing in this view.</p>
-                                                </div>
+                                                @if (proposals().length === 0) {
+                                                    <!-- No drafts exist at all: say how drafts come to exist, since the
+                                                         only way in is a play most first-time viewers haven't run. -->
+                                                    <div class="sonar-empty">
+                                                        <i class="fa-solid fa-envelope-open-text"></i>
+                                                        <h2>No drafts yet</h2>
+                                                        <p><strong>Launch intervention</strong> with the <strong>Draft Outreach</strong> play and Sonar writes one email per treated {{ noun().one }}, grounded in their own score story. Drafts land here for your approval — nothing sends without it.</p>
+                                                    </div>
+                                                } @else {
+                                                    <!-- Drafts exist, just not in this status bucket — point at the filter, not the play. -->
+                                                    <div class="sonar-empty sonar-empty--inline">
+                                                        <i class="fa-solid fa-filter-circle-xmark"></i>
+                                                        <p>No {{ proposalFilter() === 'Proposed' ? 'drafts waiting for review' : 'approved drafts' }} right now. <strong>All</strong> shows every draft, whatever its status.</p>
+                                                    </div>
+                                                }
                                             }
                                             @for (p of visibleProposals(); track p.id) {
                                                 <button type="button" class="sonar-outreach__item"

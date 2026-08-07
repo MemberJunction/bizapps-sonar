@@ -455,6 +455,11 @@
 
 /* ── Play cards: each intervention wears its funnel (treated → … → lift). ─────────────────── */
 .sonar-play { background: var(--sonar-surface); border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius); padding: 0.9rem 1.1rem; }
+/* Never-ran interventions (0 assigned — preview leftovers, aborted launches) recede rather than compete
+   with live experiments. Opacity on the DECORATION only (sunken surface, muted name); the text itself
+   keeps full contrast so the row stays legible, just visibly not-the-story. */
+.sonar-play--idle { background: var(--sonar-surface-sunken); border-style: dashed; }
+.sonar-play--idle .sonar-play__name { font-weight: 600; color: var(--sonar-muted); }
 .sonar-play__top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
 .sonar-play__name { font-weight: 700; font-size: var(--sonar-font-lg); color: var(--sonar-ink); }
 .sonar-play__spacer { flex: 1 1 auto; }
@@ -862,6 +867,9 @@
     background: var(--sonar-surface-sunken);
 }
 .sonar-launch__params .sonar-launch__field { display: flex; flex-direction: column; gap: 0.25rem; }
+/* Boolean params: the shared switch carries its own label, so the field just stacks switch + hint. The
+   switch button hugs content instead of stretching full-width like the inputs. */
+.sonar-launch__field--switch .sonar-switch { align-self: flex-start; }
 .sonar-launch__textarea { height: auto; padding: 0.5rem 0.75rem; line-height: 1.5; resize: vertical; font: inherit; }
 /* The required marker earns the accent because skipping it is what blocks the launch. */
 .sonar-launch__req { color: var(--sonar-accent); font-weight: 700; margin-left: 0.125rem; }

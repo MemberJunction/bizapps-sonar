@@ -756,6 +756,18 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         this.playParamValues.update((v) => ({ ...v, [name]: value }));
         this.launchPreview.set(null);
     }
+
+    /** A boolean param's current state: the typed value, else the action's own default. Untouched
+     *  means the action applies its default, so the switch must show that, not "off". */
+    public playParamBool(p: PlayParam): boolean {
+        const v = this.playParamValues()[p.name] ?? p.effectiveDefault ?? "false";
+        return v.toLowerCase() === "true";
+    }
+
+    /** Flip a boolean param. Writes the explicit value, so what the switch shows is what is sent. */
+    public togglePlayParam(p: PlayParam): void {
+        this.setPlayParam(p.name, this.playParamBool(p) ? "false" : "true");
+    }
     public setLaunchName(v: string): void { this.launchName.set(v); }
 
     // ---- Movers explorer: tune the segment, see the members, launch on exactly them ----

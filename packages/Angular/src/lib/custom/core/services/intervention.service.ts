@@ -30,12 +30,41 @@ const RUNNER_SUPPLIED_PARAMS: ReadonlySet<string> = new Set([...Object.keys(TOKE
 /** One param a play declares that the OPERATOR has to fill (Subject, Body, From, …). */
 export interface PlayParam {
     name: string;
+    /** Human form of the name for the field label — "TestRecipient" reads as "Test recipient". */
+    label: string;
     isRequired: boolean;
     /** The seed description — the only guidance an operator gets, so it is shown as help text. */
     description: string | null;
     defaultValue: string | null;
     /** Long-form values (a message body) want a textarea rather than a single-line input. */
     multiline: boolean;
+    /** True/false params render as a switch, not a text box someone types "true" into. */
+    boolean: boolean;
+    /** What the action falls back to when the param is left blank — declared DefaultValue, or parsed
+     *  from the description's "default 'X'" / "Defaults to TRUE" phrasing. Shown as a placeholder so
+     *  an untouched field is visibly "the default", not "empty". */
+    effectiveDefault: string | null;
+}
+
+/** Params whose natural reading order everyone knows (an email is Subject → Body → From). Params not
+ *  listed sort after these: required before optional, then A→Z. Without this the fields land in
+ *  alphabetical-accident order — Body, From, Subject — because ActionParam has no sequence column. */
+const PARAM_DISPLAY_ORDER = ["To", "Subject", "Body", "From"];
+
+/** "TestRecipient" → "Test recipient": split camelCase, keep the leading capital, lowercase the rest. */
+function humanizeParamName(name: string): string {
+    const spaced = name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
+/** The default an action applies when the param is omitted. Declared DefaultValue wins; otherwise the
+ *  seed descriptions consistently phrase it as "default 'SendGrid'" or "Defaults to TRUE". */
+function effectiveDefaultFor(defaultValue: string | null, description: string | null): string | null {
+    if (defaultValue != null && defaultValue !== "") return defaultValue;
+    // A "." ends the capture only as sentence punctuation (followed by whitespace/end), so a dotted
+    // value like an address or hostname survives while "Defaults to TRUE." drops its period.
+    const m = description?.match(/defaults? (?:to )?'?([A-Za-z0-9@.\-]+?)'?(?=[,;)\s]|\.(?:\s|$)|$)/i);
+    return m ? m[1] : null;
 }
 
 /** The score-evaluable segment filter the launch panel builds from the current triage state
@@ -530,7 +559,7 @@ export class InterventionService {
         if (!interventions.length) return [];
 
         const tallies = await this.assignmentTallies(interventions.map((i) => i.ID));
-        return interventions.map((i) => ({
+        const rows = interventions.map((i) => ({
             id: i.ID,
             name: i.Name,
             kind: i.Kind,
@@ -540,6 +569,15 @@ export class InterventionService {
             status: i.Status,
             ...(tallies.get(i.ID) ?? { treated: 0, held: 0, sent: 0, failed: 0, lastAssignedAt: null }),
         }));
+        // Real runs first, most recent activity on top; never-ran rows (preview leftovers, aborted
+        // launches) sink below them in creation order. Mixing the two by creation date buried live
+        // experiments under ghosts that all read "0 treated".
+        return rows.sort((a, b) => {
+            const aRan = a.treated + a.held > 0 ? 1 : 0;
+            const bRan = b.treated + b.held > 0 ? 1 : 0;
+            if (aRan !== bRan) return bRan - aRan;
+            return (b.lastAssignedAt ?? "").localeCompare(a.lastAssignedAt ?? "");
+        });
     }
 
     /** Aggregate assignment counts per intervention (client-side — assignment volumes are capped). */
@@ -680,17 +718,33 @@ export class InterventionService {
         const rows = res.Success ? res.Results ?? [] : [];
         const params = rows
             .filter((r) => !RUNNER_SUPPLIED_PARAMS.has(r.Name))
-            .map((r) => ({
-                name: r.Name,
-                isRequired: !!r.IsRequired,
-                description: r.Description ?? null,
-                defaultValue: r.DefaultValue ?? null,
-                // Heuristic on the name, not the type: MJ has no "long text" param flag, and Body is
-                // the one that reliably holds prose.
-                multiline: /body|message|content/i.test(r.Name),
-            }));
+            .map((r) => {
+                const effectiveDefault = effectiveDefaultFor(r.DefaultValue ?? null, r.Description ?? null);
+                return {
+                    name: r.Name,
+                    label: humanizeParamName(r.Name),
+                    isRequired: !!r.IsRequired,
+                    description: r.Description ?? null,
+                    defaultValue: r.DefaultValue ?? null,
+                    // Heuristics on name/default, not type: ActionParam's ValueType is 'Scalar' for
+                    // everything, so it can't tell prose from a flag. Body is the name that reliably
+                    // holds prose, and a true/false default is what marks a flag.
+                    multiline: /body|message|content/i.test(r.Name),
+                    boolean: /^(true|false)$/i.test(effectiveDefault ?? ""),
+                    effectiveDefault,
+                };
+            })
+            .sort((a, b) => this.paramDisplayRank(a) - this.paramDisplayRank(b) || a.name.localeCompare(b.name));
         this.editableParamCache.set(actionId, params);
         return params;
+    }
+
+    /** Sort key for the launch panel's param fields: the well-known names in reading order, then
+     *  remaining required ones, then optional. */
+    private paramDisplayRank(p: PlayParam): number {
+        const known = PARAM_DISPLAY_ORDER.indexOf(p.name);
+        if (known >= 0) return known;
+        return p.isRequired ? PARAM_DISPLAY_ORDER.length : PARAM_DISPLAY_ORDER.length + 1;
     }
 
     /** The play's declared Input param names (cached — the catalog is static per session). */
