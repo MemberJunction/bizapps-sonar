@@ -27,9 +27,35 @@ The through-line: Sonar's selection went from "sort by score" to "shape + reason
 
 **Pointers:** `OutcomeMeasurer` in the engine; `Intervention`/`InterventionAssignment` carry the segment's FilterJSON snapshot, so rules are attributable after the fact.
 
+### 2b. Authoring agent learns the intervention layer — **designed, built once, deliberately backed out**
+
+The agent's tool surface and system prompt are 100% authoring-side; it knows nothing about interventions.
+A measurement-only version (tool #24 + a prompt section) was built and live-verified on 7 Aug 2026, then
+removed the same day: the UI's Measure button already answers "did it work?" in one click, so agent
+measurement is redundant *until this item (#2) exists* — the agent correlating measured lift with the
+config it authors is when the capability earns its keep. The work is deliberately NOT in git history, so
+this note is the record.
+
+**The recipe, when it's time (all verified working once):**
+- `AIAgentAction` link follows the `AAC70000-<action-slot>` id convention; the Measure action is slot
+  `001C`. Seed via forward migration + PG twin + the `metadata/agents/.sonar-agent.json` mirror.
+- Give the Measure action an `InterventionName` input resolved Find-Models-style (exact match first, then
+  substring; an exact TIE among duplicate names stays ambiguous — never coin-flip a cohort). Ambiguous and
+  unknown names should fail **with the candidates as structured data in `Result`**, and a bare call should
+  SUCCEED with the intervention list, so discovery costs one round trip and no separate list tool.
+- The success message must lead with **success lift + the outcome definition** (the product's headline),
+  not score lift; "0 newly measured" on a re-run is an answer, not a failure; surface `writeFailures`.
+- Prompt update = guarded `REPLACE` on the seeded `TemplateContent` (`094E9B12-…`), the
+  `V202607211300` pattern, inserting above `## Rules`. Teach: measurement only; launching/drafting/
+  sending are human-only, point at the Engagement page; how to read lift honestly. Both behaviours
+  verified live through the copilot (measured by partial name in 12s; refused a send and redirected).
+- **Trap, hit twice in two days:** the agent/prompt mirrors drift from the DB (Count Population's link
+  was missing from the mirror; the dev DB was missing the July prompt patch). Diff mirror against DB
+  before AND after; nothing checks this automatically.
+
 ## 3. Dormancy derived from source data — **designed**
 
-**The gap:** `Member.LastActivityDate` is NULL for 100% of the demo population, so dormancy conditions correctly match nobody. The truth is in the factor source tables (6,851 event registrations, 6,683 payments).
+**The gap:** `Member.LastActivityDate` is NULL for 1,949 of the 2,000 demo members (the other 51 are stamped by `demo-data/` for its cohort only), so dormancy conditions still match nobody real. The truth is in the factor source tables (6,851 event registrations, 6,806 payments, 123 of them demo-seeded).
 
 **Shape:** a recompute-time write of max(activity dates across a model's factor sources) — either onto the Score row (new column, e.g. `LastSignalAt`) or a dedicated per-anchor rollup. Doing it in the engine keeps it consistent with what the score already reads and makes it portable to any host whose anchors have the same gap (likely many). NULL must keep meaning "unknown", never "never active".
 
@@ -47,9 +73,12 @@ The through-line: Sonar's selection went from "sort by score" to "shape + reason
 
 **Shape:** `rankFactorDrag` already returns the full ranking — the data exists. Options: secondary-cause label on the member ("Low events, also low email"), or overlap counts on the breakdown ("136 · 41 also weak on email"). Resist multi-membership in slices: the breakdown's virtue is that slices partition (counts sum to the total, verified); overlapping slices break the mental model. Keep partition, add annotation.
 
-## 6. Launch panel: play-declared params — **designed** (also listed as gap #2 in HANDOFF)
+## 6. Launch panel: play-declared params — **DONE** (shipped, verified)
 
-`Sonar: Email Cohort` declares Subject/Body/From and the launch panel can't render inputs for them. Generic fix: read the chosen play's ActionParams, auto-fill the token-mapped ones (already done: `TOKEN_PARAM_VALUES` in `intervention.service.ts`), render inputs for the rest. Unlocks any parameterised play with zero client changes each.
+Built exactly as designed and verified end to end (`ActionExecutionLog` shows operator-typed params reaching
+the action): the panel renders whatever the chosen play declares — booleans as a switch, defaults as
+placeholders, required params blocking launch. Any parameterised play works with zero client changes.
+Kept here so nobody re-designs it.
 
 ## 7. Saved segments / named rules — **idea**
 
@@ -67,7 +96,7 @@ Raised once, then deliberately shelved by the owner: "the rule thing is just an 
 
 ## Smaller, worthwhile
 
-- **Cross-surface control-language rollout** — the shared control primitives exist in `sonar-shell.css` but only Movers' rule pane uses them; five surfaces still hand-roll pills. Write the pill-vs-optlist-vs-switch rule into `packages/Angular/CLAUDE.md` first, then convert all surfaces in one pass. (HANDOFF gap #5.)
+- **Cross-surface control-language rollout** — the shared control primitives exist in `sonar-shell.css` but only engagement-manager uses them, and even it hand-rolls the launch panel's kind selector a few lines from the `.sonar-optlist` it should be. Other surfaces have bespoke domain widgets with their own active states. Write the pill-vs-optlist-vs-switch rule into `packages/Angular/CLAUDE.md` first, then convert in one pass. (See the HANDOFF fix-me list.)
 - **`datetimeoffset` migration** for timestamp columns — **built in PR #45** (`feat(engine): convert Sonar timestamps to datetimeoffset`), green and mergeable at handoff. This supersedes the old in-code workaround (`finishRun` re-stamping from an in-memory Date); review and merge #45 rather than re-solving it.
 - **Entity-picker scoping** — anchor/source pickers should offer business entities only, excluding `__mj*` schemas (deferred once already).
 - **Changeset for the UI craft pass** — the control-language work has no changeset entry, so it's invisible to release notes.
