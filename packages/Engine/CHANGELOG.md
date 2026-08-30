@@ -1,5 +1,141 @@
 # @mj-biz-apps/sonar-engine
 
+## 0.6.0
+
+### Minor Changes
+
+- 5ab10ae: Make Sonar compatible with MemberJunction 6.1.0-edge.4.
+
+  Every `@memberjunction/*` dependency, peer dependency and root override moves
+  from `5.45.0` / `^5.45.0` to `^6.1.0-edge.4` (74 references across all
+  package.json files), and `mj-app.json` `mjVersionRange` widens from
+  `>=5.45.0 <6.0.0` to `>=6.1.0-edge.4 <7.0.0`.
+
+  This unblocks tenants on MJ 6.x, where the previous pins caused `npm ci` to
+  fail with ERESOLVE against the 5.x peers and `mj app install` to hard-reject
+  the manifest on its version range.
+
+  No Sonar source changes were required — the MJ 5.45 to 6.1 delta was
+  additive across every API this app consumes (`Metadata`, `BaseEntity`,
+  `RunView`, `actions-base`, `ng-base-forms` and the other Angular surfaces).
+  All 189 unit tests and the full Turborepo build pass against 6.1.0-edge.4.
+
+  The caret pin (`^6.1.0-edge.4`) rather than an exact pin lets tenants pick up
+  6.x patch and minor releases without a Sonar republish.
+
+- eb34386: Persist recompute runs through Record Set Processing instead of hand-written SQL.
+
+  `ScoreWriter` flushed an entire run in a handful of raw `INSERT`/`MERGE` statements via
+  `provider.ExecuteSQL`. That was fast — measured 2.4s for a 2,000-member model — and it bypassed the
+  save pipeline completely. Hand-written DML against MJ entity tables silently skips field validation,
+  Entity Actions (including `Validate`, a real blocking gate), Record Changes, and cache invalidation.
+  Nothing fails loudly, so the gap surfaces later as missing audit history or a configured workflow
+  that never ran. `ScoreWriter` and its `sqlLiteral` injection guard are deleted; `ScorePersister`
+  replaces them with a signature-compatible `write()`, so `RecomputeOrchestrator` and the
+  `Sonar.RecomputeModel` remote operation are unchanged apart from the type import.
+
+  **Measured cost, on the 2,000-member demo model (4 row-writes per member).** Set-based 2.4s; this
+  path 78s at RSP's default `maxConcurrency` of 1, and 17-20s at 10. The persister sets concurrency
+  explicitly for that reason — inheriting the default would quietly cost a minute a run with no
+  benefit. Verified against the live DB: all 2,000 Score rows match the old writer field for field
+  (`RawScore`, `NormalizedScore`, `BandID`, `Previous*`, `Delta`, `TrendDirection`,
+  `DataCompleteness`, `IsStale`) with zero mismatches, contribution count unchanged at 4,000, and the
+  run now produces what the set-based path could not: a `MJ: Process Runs` row (Completed, 2000/2000,
+  batch 200), 2,000 per-record detail rows, and 6,000 Record Changes for the Scores it touched.
+
+  **Run-level atomicity is gone, deliberately.** The old writer wrapped the whole run in one
+  transaction specifically so its "DELETE every contribution for the model, then re-insert" could not
+  leave the population stripped of explainability if the run died midway. RSP isolates per record with
+  no run-spanning transaction, so that shape is no longer safe — a crash between delete and re-insert
+  would blow away every member's breakdown with nothing to roll back. Contributions are therefore
+  reconciled **in place** per member (existing rows updated, missing inserted, surplus deleted), so a
+  member's breakdown is never absent, only old or new. The trade is that a failed run now leaves some
+  members on new scores and some on old, which is what RSP's run tracking and resume exist to handle.
+  The surplus-delete arm matters: republishing a model with fewer factors would otherwise leave stale
+  rows showing a factor the current version no longer scores.
+
+  The reconcile decisions are extracted into `scoring/contributionPlan.ts` (`planContributions`,
+  `percentOfTotal`) so they're unit-testable without a database — 12 new tests. The 8 `sqlLiteral`
+  tests are removed along with the inline-literal path they guarded.
+
+  Note that the compiled-factor **read** path (`CompiledFactorEvaluator`, `factors/filter.ts`) still
+  issues set-based `SELECT`s. That is by design — `FactorCompiler` exists to turn declarative factor
+  definitions into one query per population — and is out of scope here, which concerns writes.
+
+- 9248a13: Add a RunView-backed read path for declarative factors, behind the existing `IFactorEvaluator` seam.
+
+  Declarative factors compile to one set-based `SELECT` run through `provider.ExecuteSQL`. Raw reads
+  apply neither entity permissions nor Row-Level Security — the one thing a raw read genuinely bypasses,
+  unlike raw writes which also skip Entity Actions, Record Changes and cache invalidation. `RunView`
+  applies both, so `RunViewFactorEvaluator` reads the measure rows and folds them in memory instead.
+
+  Both evaluators satisfy `IFactorEvaluator`, so nothing downstream branches on the choice.
+  `FactorCompiler` takes a `FactorReadPath` (`'compiled'` default, or `'runview'`), threaded from
+  `RecomputeOrchestrator`. It is a setting rather than a migration deliberately: the cost is entirely a
+  function of data volume, and the point is to measure the two against realistic volume before
+  committing. Ineligible factors fall back to the compiled path and LOG why, so a measurement of the two
+  can't be quietly meaningless.
+
+  **Scope:** single-hop factors, seven aggregations (Count, Exists, DistinctCount, Sum, Avg, Min, Max),
+  AllTime / Rolling / Calendar windows. Falls back for multi-hop (`RunView` cannot join, so it would need
+  one read per hop plus an in-memory join), composite anchor keys, per-anchor windows (`SinceEvent` /
+  `RenewalRelative` read a boundary date off the anchor), and factors with a `FilterExpression` (the
+  compiled path parameterizes it and `ExtraFilter` takes no parameters — inlining the values would
+  reintroduce the interpolation surface this path exists to reduce).
+
+  **Verified on live data:** 2,000 anchors on a model whose Event Registrations factor routes through the
+  new path, zero mismatches on raw values, `hadData` and normalized scores.
+
+  **Two findings worth recording, both caught by measurement rather than review.**
+
+  `Recency` stays on the compiled path. It is `DATEDIFF(day, MAX(date), asOf)` over naive datetimes, and
+  the driver materializes `datetime` columns in LOCAL time while `datetime2` comes back as UTC — so
+  computing the day difference here means replicating that per-column-type conversion. It measured off by
+  the local UTC offset on boundary rows.
+
+  The window is applied by the DATABASE, via a predicate in `ExtraFilter`, not in JavaScript after the
+  read. The first version compared in JS and disagreed with the compiled path on 1,359 of 2,000 anchors:
+  a row sitting exactly on a Rolling window's exclusive lower bound is excluded by SQL but was five hours
+  past the bound once the driver had materialized it in local time, so every boundary row flipped in.
+  Bounds are still computed (and unit-tested) in JS, then emitted as naive SQL literals from UTC
+  components so both paths bound the window identically. Related: a naive `setMonth` for Rolling-month
+  windows overflows 31 July − 1 month to 1 July, where `DATEADD` clamps to 30 June; now clamped.
+
+  24 new unit tests cover the aggregation semantics where SQL and JavaScript disagree by default (AVG of
+  an empty set is NULL not 0, NULLs excluded from SUM/AVG/MIN/MAX/DistinctCount, an anchor with no rows
+  omitted rather than scored zero), the window predicate's exclusive-vs-inclusive bounds, and every
+  eligibility exclusion.
+
+- 2ab67b9: Convert every Sonar business timestamp column from `datetime2(7)` to `datetimeoffset(7)`, so a stored instant carries its own UTC offset.
+
+  `datetime2` is a bare clock reading with no zone. A save → reload → save cycle through the MJ entity layer reinterpreted `ScoreRecomputeRun.StartedAt` as _local_ time and rewrote it ~5h shifted, which drove `CompletedAt − StartedAt` negative and displayed negative run durations. MJ's own `__mj_CreatedAt` / `__mj_UpdatedAt` survived the identical cycle untouched precisely because they are already `datetimeoffset` — Sonar's own columns were the odd ones out. PostgreSQL was never affected: its baseline already declares all 13 columns `timestamptz`, so this brings SQL Server to parity rather than introducing something new (hence no PG twin).
+
+  This is a robustness upgrade, not a repair. The symptom was already worked around in code — `RecomputeOrchestrator.finishRun` computes the duration from an in-memory `Date` and never trusts the reloaded column. The value here is removing the trap instead of stepping around it, so no future writer can reintroduce the shift.
+
+  **13 columns across 7 tables:** `Score.ComputedAt/AsOfDate/NextRecomputeAt`, `ScoreHistory.ComputedAt/AsOfDate`, `ScoreBandTransition.OccurredAt`, `ScoreRecomputeRun.StartedAt/CompletedAt`, `ScoreModelAuditEvent.ChangedAt`, `ScoreModelVersion.PublishedAt`, `ScoreModel.EffectiveFrom/EffectiveTo`, `Factor.LastValidatedAt`.
+
+  **No value moves.** Converting `datetime2` → `datetimeoffset` reads each existing value as `+00:00`, which is correct because the stored values already _are_ UTC: the engine writes them via `toISOString()` and the old column defaults were `getutcdate()`.
+
+  Three dependency classes had to be cleared and restored, and two of them were not obvious:
+
+  - **6 DEFAULT constraints**, all `getutcdate()`, all **auto-named** (`DF__Score__ComputedA__2C201BE5`) and therefore different in every database — so they are dropped by lookup, never by hardcoded name. They come back with explicit names and `TODATETIMEOFFSET(SYSUTCDATETIME(), 0)`: same instant, now self-describing, and no longer auto-named for the next migration that touches them.
+  - **2 non-unique indexes** keyed on a converted column (SQL Server will not retype an indexed column in place). Recreated with identical keys; key sizes stay well under the 1700-byte nonclustered limit.
+  - Nothing else — no check constraints reference these columns and no view in the schema is `SCHEMABINDING`.
+
+  The whole thing runs in one transaction. An earlier non-transactional attempt left the indexes dropped and the columns unconverted when the first `ALTER` hit an undeclared default — precisely the half-applied state a migration must not be able to produce.
+
+  `ScoreWriter.sqlLiteral` now emits offset-aware date literals (`…T18:49:07.530+00:00`). It previously chopped the `Z` to suit `datetime2`, which left SQL Server inferring the zone for what was already a UTC instant — the exact inference this conversion exists to eliminate. Its unit test was updated to match.
+
+  The migration carries its CodeGen output (regenerated views, CRUD procs, FK indexes, entity-field metadata) per the migration convention. That half is not optional: without it the CRUD procs keep declaring `datetime2` parameters and `__mj.EntityField.Type` stays `datetime2`, so MJ's runtime would still apply `datetime2` conversion semantics to `datetimeoffset` columns and the bug would survive its own fix.
+
+  Verified end to end: after applying, zero `datetime2` remains anywhere in the schema — columns, stored-procedure parameters, or MJ entity-field metadata. Existing values are unshifted and run durations stay positive. A full 2,000-member recompute succeeds. And the cycle that caused the original bug — load through the entity layer, touch an unrelated field, save, twice — now leaves `StartedAt` and `CompletedAt` byte-identical. Re-applying the migration is a clean no-op.
+
+### Patch Changes
+
+- 7f1933a: Re-port the population-exit fix (dc7ce074) onto the RSP persister: anchors whose Score rows exist but who were absent from this run's resolved population have their Score + contributions deleted (FK order preserved), so a narrowed PopulationFilter or a genuine departure no longer leaves stale rows on the triage list. ScoreHistory keeps the trail.
+- Updated dependencies [5ab10ae]
+  - @mj-biz-apps/sonar-entities@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

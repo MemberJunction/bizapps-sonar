@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-ng",
   "type": "module",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Sonar Angular bootstrap - form components and module for the Sonar engagement scoring Open App",
   "main": "dist/public-api.js",
   "types": "dist/public-api.d.ts",
@@ -18,7 +18,7 @@
   "author": "MemberJunction.com",
   "license": "BUSL-1.1",
   "dependencies": {
-    "@mj-biz-apps/sonar-entities": "0.5.0",
+    "@mj-biz-apps/sonar-entities": "0.6.0",
     "apexcharts": "^5.16.0",
     "ng-apexcharts": "^2.4.0"
   },
