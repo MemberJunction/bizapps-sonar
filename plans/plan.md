@@ -6,6 +6,8 @@
 **Working title:** "Sonar" (trademark/focus-test pending, same as Bob)
 **Last updated:** 2026-06-09
 
+> **⚠️ REFACTOR DIRECTIVE (2026-07):** This plan predates three shipped MJ platform capabilities — **Predictive Studio**, the hardened **Record Set Processing** substrate, and **Remote Operations** — that together provide most of the §6 engine. **Read [`platform-alignment-refactor.md`](./platform-alignment-refactor.md) before building anything in §6–§8**: declarative factors ride PS feature assembly, recompute rides RSP (including the batching/concurrency/budget semantics §6.1 specifies by hand), holdout/lift and re-weighting ride PS Experiments, and the scoring/control APIs are Remote Operations. §1–§5 (product thesis, commercial model, data model) and §7's rubric/authoring design remain authoritative, with the schema deltas listed in the refactor doc.
+>
 > **For the engineer picking this up:** §4 (Architecture) and §5–§7 (Data Model + Engine + Authoring) are the build spine. Everything else is context and prioritization. The single most important design idea in this document is **configuration-as-data**: models, factors, rubrics, windows, bands, write-back rules, and even the action playbooks are all rows in the database, not code. Code is the *engine that interprets that data* plus the *escape-hatch Actions* for arbitrary logic. Read §4.3 before §5.
 
 ---
@@ -625,6 +627,8 @@ FactorArchetype ──1─N BenchmarkDistribution / BenchmarkContribution       
 ---
 
 ## 6. The Scoring Engine
+
+> **Superseded in part — see [`platform-alignment-refactor.md`](./platform-alignment-refactor.md).** The pipeline below remains the correct *logical* specification, but steps 2–3 (factor evaluation) are implemented on Predictive Studio feature assembly + a Record Set Processing work type, steps 7–8 ride the RSP tracker (`ProcessRunID`), §6.2's orchestration rides RSP + MJ Scheduling, and the on-demand API is a Remote Operation. Do not hand-build the batching/concurrency/rate-limit/budget machinery described in step 3.
 
 `sonar-engine`. Stateless services over the `__mj_BizAppsSonar` data, invoked by the recompute orchestrator and the on-demand API.
 

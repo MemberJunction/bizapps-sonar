@@ -165,4 +165,4 @@ If experiencing build problems:
 
 ## License
 
-ISC - See LICENSE file in the repository root for details. 
+Business Source License 1.1 — see [LICENSE](../../LICENSE) for details.

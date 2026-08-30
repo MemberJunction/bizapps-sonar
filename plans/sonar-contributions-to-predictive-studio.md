@@ -132,7 +132,7 @@ Context for the PS dev: here is why Sonar wants PS at all, i.e. the PS capabilit
 The three sibling capabilities and how Sonar concepts map onto them. Only the first is Predictive Studio proper.
 
 - **PS:** declarative factors → PS features (via #1 above); a rubric → the glass-box model type (#2); lift/re-weight → `ExperimentOrchestrator`.
-- **RSP (Record Set Processing):** the Action-backed factor fan-out → a custom `SonarFactor` work type registered via `RecordProcessorRegistry.Instance.Register`. **Caveat:** RSP's write path is per-record `BaseEntity.Save()` and rejects composite-PK write-back, it is an orchestration substrate, not a bulk-write engine. Keep Sonar's set-based `ScoreWriter` (already built, see §D) for persistence.
+- **RSP (Record Set Processing):** the Action-backed factor fan-out → a custom `SonarFactor` work type registered via `RecordProcessorRegistry.Instance.Register`. **Caveat:** RSP's write path is per-record `BaseEntity.Save()` and rejects composite-PK write-back, it is an orchestration substrate, not a bulk-write engine. *(Superseded 2026-08-30: #48 retired the set-based `ScoreWriter`; Sonar persists through `BaseEntity.Save()`/RSP like PS scoring does, so Entity Actions, Record Changes and cache invalidation all fire. If volume ever forces it, the fix is an upstream RSP bulk path, not a private DML writer.)*
 - **Remote Operations:** `BaseRemotableOperation` (Sync / LongRunning with streamed progress) for the scoring/run-control surface. Sonar already ships one (`Sonar.RecomputeModel`, §D).
 
 **No version bump required:** all three exist and are callable at 5.45.0 (latest 5.47.0). A bump only buys PS hardening.
@@ -142,7 +142,7 @@ The three sibling capabilities and how Sonar concepts map onto them. Only the fi
 ## §D. Already built on the Sonar side (relevant to a PS dev)
 
 - **`Sonar.RecomputeModel`**, a LongRunning `BaseRemotableOperation` with streamed progress (`packages/Actions/src/custom/SonarRecomputeModelOperation.ts`). A working reference for the Remote Operations pattern.
-- **Set-based `ScoreWriter`**, MERGE + bulk insert for persistence (`packages/Engine/src/orchestration/ScoreWriter.ts`). This is the write-speed fix RSP does *not* provide; keep it regardless of RSP adoption.
+- **Set-based `ScoreWriter`**, MERGE + bulk insert for persistence (`packages/Engine/src/orchestration/ScoreWriter.ts`). *(Superseded 2026-08-30 — see the note in §C: retired by #48 in favor of the RSP path; population-exit re-ported in #65.)*
 
 ---
 

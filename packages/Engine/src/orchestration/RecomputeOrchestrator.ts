@@ -11,7 +11,7 @@ import {
     mjBizAppsSonarScoreRecomputeRunEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
-import { FactorCompiler } from "../factors/FactorCompiler";
+import { FactorCompiler, FactorReadPath } from "../factors/FactorCompiler";
 import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
 import { createActionRunner } from "../factors/actionRunner";
 import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
@@ -27,7 +27,7 @@ import {
     ScoringSpec,
     WeightedFactor,
 } from "../scoring/ScoringEngine";
-import { ScoreWriter, ScoreWriteProgress } from "./ScoreWriter";
+import { ScorePersister, ScoreWriteProgress } from "./ScorePersister";
 
 /** Summary of a persisted recompute run. */
 export interface RecomputeRunResult {
@@ -72,10 +72,20 @@ export interface FactorPreviewResult {
  * PopulationFilter yet); WeightedSum models only. Unsupported config fails loud.
  */
 export class RecomputeOrchestrator {
-    private readonly compiler = new FactorCompiler(createActionRunner());
+    private readonly compiler: FactorCompiler;
+    /**
+     * @param readPath Which read path declarative factors evaluate through. Defaults to `compiled`
+     *                 (one set-based SELECT). `runview` routes eligible factors through RunView so
+     *                 entity permissions and Row-Level Security apply; ineligible factors fall back.
+     *                 Threaded here rather than read from config so a caller can run both and compare.
+     */
+    constructor(readPath: FactorReadPath = "compiled") {
+        this.compiler = new FactorCompiler(createActionRunner(), readPath);
+    }
+
     private readonly normalizer = new NormalizationEngine();
     private readonly scorer = new ScoringEngine();
-    private readonly writer = new ScoreWriter();
+    private readonly writer = new ScorePersister();
 
     /** Compute scores for a model and RETURN them (no persistence). */
     public async computeScores(
@@ -215,7 +225,7 @@ export class RecomputeOrchestrator {
     }
 
     /** The shared pipeline: population → evaluate + normalize each factor → combine. Returns the
-     *  scores AND the resolved AnchorKeys (so the writer can persist AnchorRecordKeyJSON). */
+     *  scores AND the resolved AnchorKeys (so the persister can write AnchorRecordKeyJSON). */
     private async computeForModel(
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,
