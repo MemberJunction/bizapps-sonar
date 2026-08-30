@@ -1,6 +1,7 @@
 /**
- * The trend math behind the ScoreHistory / ScoreBandTransition surface — pulled out of ScoreWriter
- * so it's pure (no I/O) and unit-testable. ScoreWriter does the entity plumbing; these decide the
+ * The trend math behind the ScoreHistory / ScoreBandTransition surface — kept separate from the
+ * persist path so it's pure (no I/O) and unit-testable. ScorePersister does the entity plumbing;
+ * these decide the
  * numbers: how far a score moved, which way, how complete the data was, which pre-cutoff snapshot is
  * the baseline, and whether a band crossing happened. Powers the Overview trend, per-anchor
  * sparklines, and the "movers" feed.
