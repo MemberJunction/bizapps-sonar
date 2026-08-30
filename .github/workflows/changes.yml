@@ -34,6 +34,9 @@ jobs:
             echo "No migration files changed"
           fi
 
+      - name: Self-test the CI validator scripts
+        run: ./.github/scripts/selftest.sh
+
       - name: Validate migration filenames
         if: steps.migration_check.outputs.has_migrations == 'true'
         run: ./.github/scripts/validate-migration-filenames.sh

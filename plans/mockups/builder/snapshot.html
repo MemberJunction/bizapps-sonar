@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sonar — Publish &amp; Snapshot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  html,body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .chip{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:999px;font-size:.75rem;font-weight:500}
+  .grad-bg{background:radial-gradient(1000px 500px at 10% 0%,rgba(129,140,248,0.08),transparent 60%),#060914}
+  .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07)}
+  .ai-halo{background:linear-gradient(135deg,#818cf8,#22d3ee,#2dd4bf);padding:1px;border-radius:1rem}
+  .ai-halo-inner{background:#0b0f1a;border-radius:.95rem}
+</style>
+</head>
+<body class="grad-bg text-slate-100 min-h-screen">
+<div class="flex min-h-screen">
+  <aside class="w-64 border-r border-white/5 p-5 hidden lg:flex flex-col gap-6">
+    <a href="../../mockup.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-cyan-400 flex items-center justify-center font-bold text-black">S</div>
+      <div><div class="font-semibold tracking-tight">Sonar</div><div class="text-[10px] uppercase tracking-widest text-slate-500">Publish &amp; Snapshot</div></div>
+    </a>
+    <div class="glass rounded-xl p-3">
+      <div class="text-xs text-slate-400">Model</div>
+      <div class="font-semibold text-sm mt-0.5">Renewal Risk</div>
+      <div class="text-xs text-indigo-300 mt-0.5">Draft v3 · unpublished changes</div>
+    </div>
+    <nav class="flex-1 space-y-1 text-sm">
+      <div class="text-xs uppercase tracking-wider text-slate-500 px-3 mb-1">Builder spikes</div>
+      <a href="model.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Model Builder</a>
+      <a href="factor.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Factor Builder</a>
+      <a href="scoreband.html" class="flex px-3 py-2 rounded-lg hover:bg-white/5 text-slate-300">Score-Band Builder</a>
+      <a href="snapshot.html" class="flex px-3 py-2 rounded-lg bg-white/5 text-white">Publish &amp; Snapshot</a>
+    </nav>
+    <a href="../../mockup.html" class="text-xs text-slate-500 hover:text-slate-300">← Product overview</a>
+  </aside>
+
+  <main class="flex-1 min-w-0">
+    <div class="sticky top-0 z-20 bg-slate-950/80 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-slate-500">Publishing freezes the config into an immutable version every score can be traced to</div>
+        <h1 class="text-xl font-semibold">Publish Renewal Risk</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="px-4 py-2 rounded-lg bg-cyan-400 text-black font-medium text-sm">Publish version 4</button>
+      </div>
+    </div>
+
+    <div class="p-8 grid xl:grid-cols-[1fr,380px] gap-6">
+      <div class="space-y-6">
+        <!-- validation gate -->
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-4">Publish gate <span class="text-slate-600">· all checks must pass to go Active</span></div>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs flex-shrink-0">✓</span>
+              <div><div class="text-sm">Rubric has at least one factor</div><div class="text-xs text-slate-500 mono">5 ModelFactor rows bound</div></div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs flex-shrink-0">✓</span>
+              <div><div class="text-sm">A score band set is selected</div><div class="text-xs text-slate-500 mono">BandSetID → Default Health Bands</div></div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs flex-shrink-0">✓</span>
+              <div><div class="text-sm">The band set contains at least one band</div><div class="text-xs text-slate-500 mono">3 bands · Critical / At-Risk / Healthy</div></div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="w-5 h-5 rounded-full bg-white/10 text-slate-400 flex items-center justify-center text-xs flex-shrink-0">—</span>
+              <div><div class="text-sm text-slate-400">Combine expression present <span class="text-slate-600">(only if CombineStrategy = ExpressionDriven)</span></div><div class="text-xs text-slate-500 mono">N/A · strategy = WeightedSum</div></div>
+            </div>
+          </div>
+          <div class="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">
+            <span class="chip bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">Ready to publish</span>
+            <span class="text-xs text-slate-500">The server gate (ScoreModelEntityServer.ValidateAsync) re-checks these before snapshotting.</span>
+          </div>
+
+          <div class="mt-5">
+            <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Change summary <span class="text-slate-600">(optional)</span></div>
+            <input class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm" value="Added renewal-window silence factor; reweighted toward recency."/>
+          </div>
+        </section>
+
+        <!-- what gets snapshotted -->
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-3">What the snapshot freezes <span class="text-slate-600">→ ConfigSnapshotJSON</span></div>
+          <div class="grid sm:grid-cols-2 gap-2 text-sm">
+            <div class="rounded-lg border border-white/10 p-3"><div class="text-slate-300">Model config</div><div class="text-xs text-slate-500">anchor, scale, combine strategy</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="text-slate-300">Related entities</div><div class="text-xs text-slate-500">5 wired-in entities + join paths</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="text-slate-300">Rubric</div><div class="text-xs text-slate-500">5 factors + weights + modes</div></div>
+            <div class="rounded-lg border border-white/10 p-3"><div class="text-slate-300">Band set</div><div class="text-xs text-slate-500">3 bands + thresholds + colors</div></div>
+          </div>
+          <p class="text-xs text-slate-500 mt-3">Atomic on publish: demote the prior current version → insert the new version (<span class="mono">IsCurrent = true</span>, <span class="mono">VersionNumber++</span>) → point <span class="mono">ScoreModel.CurrentVersionID</span> at it. All-or-nothing.</p>
+        </section>
+      </div>
+
+      <!-- version history -->
+      <div class="space-y-6">
+        <section class="glass rounded-2xl p-6">
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-4">Version history</div>
+          <div class="space-y-3">
+            <div class="rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-semibold text-sm">v3 — renewal-window decay</div>
+                <span class="chip bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">current</span>
+              </div>
+              <div class="text-xs text-slate-500 mono mt-1">S. Patel · Jun 9, 2026</div>
+              <div class="text-xs text-slate-400 mt-1">Added event attendance weight; tuned penalty.</div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm">v2 — added event attendance</div>
+                <button class="text-xs text-slate-500 hover:text-slate-300">view diff</button>
+              </div>
+              <div class="text-xs text-slate-500 mono mt-1">S. Patel · May 2, 2026</div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <div class="flex items-center justify-between">
+                <div class="font-medium text-sm">v1 — initial rubric</div>
+                <button class="text-xs text-slate-500 hover:text-slate-300">view diff</button>
+              </div>
+              <div class="text-xs text-slate-500 mono mt-1">D. Cho · Apr 14, 2026</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass rounded-2xl p-5 text-xs text-slate-400">
+          <div class="text-slate-300 font-medium mb-1">Why immutable versions?</div>
+          Every <span class="mono text-cyan-300">Score</span> records the <span class="mono">ScoreModelVersion</span> that produced it. Frozen config = reproducible scores, and you can explain "why everyone shifted on publish day" by diffing versions.
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
