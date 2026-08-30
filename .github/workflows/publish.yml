@@ -80,20 +80,26 @@ jobs:
           NEXT_MINOR_VERSION="${VERSION_PARTS[0]}.$(( ${VERSION_PARTS[1]} + 1 )).0"
           NEXT_PATCH_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$(( ${VERSION_PARTS[2]} + 1 ))"
 
-          # Check if any changeset requests a major bump
+          # Check if any changeset requests an explicit major or minor bump
           HAS_MAJOR=false
+          HAS_MINOR=false
           for f in .changeset/*.md; do
             [ "$f" = ".changeset/README.md" ] && continue
             [ ! -f "$f" ] && continue
             if grep -qE '^"@mj-biz-apps/.*":\s*major' "$f"; then
               HAS_MAJOR=true
-              break
+            fi
+            if grep -qE '^"@mj-biz-apps/.*":\s*minor' "$f"; then
+              HAS_MINOR=true
             fi
           done
 
           if [ "$HAS_MAJOR" = true ]; then
             echo "Major changeset found — bumping major version"
             echo "EXPECTED_NEXT_VERSION=$NEXT_MAJOR_VERSION" >> "$GITHUB_OUTPUT"
+          elif [ "$HAS_MINOR" = true ]; then
+            echo "Minor changeset found — bumping minor version"
+            echo "EXPECTED_NEXT_VERSION=$NEXT_MINOR_VERSION" >> "$GITHUB_OUTPUT"
           else
             # Check for new migration files since last tag
             if git rev-parse "v${CURRENT_VERSION}" >/dev/null 2>&1; then

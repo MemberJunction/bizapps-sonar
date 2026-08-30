@@ -1,5 +1,85 @@
 # @mj-biz-apps/sonar-ng
 
+## 0.5.0
+
+### Minor Changes
+
+- c6f1599: Stop the Sonar Authoring Agent silently running on a weak model, and make sure "strongest" means strongest **LLM**.
+
+  The agent's prompt shipped with `SelectionStrategy='Specific'` but zero `AIPromptModel` links and `RequireSpecificModels=false`. In `AIPromptRunner` that builds an empty "specific" candidate set, and because specific models aren't required it computes a fallback target power rank from the configured list — which `computeTargetPowerRank` returns as `0` for an empty list — then sorts every active model by _proximity to 0_. That is weakest-first, so it picked Llama 3.1 8b (PowerRank 2) while frontier models sat Active and keyed. `PowerPreference: 'Highest'` was dead config, because it's only read on the `ByPower` path.
+
+  Switching to `SelectionStrategy='Default'` with `MinPowerRank=15` filters out everything below the floor and sorts PowerRank **descending**, so the strongest keyed model at or above the floor wins and a weak model can never be selected (if nothing at/above the floor has a usable key it errors loudly instead of downgrading). `Default` rather than `ByPower`+`Highest` because `MinPowerRank` is enforced only on the `Default` branch — `ByPower` routes to `sortByPowerPreference`, which never applies the floor and would re-open the same trap whenever top models lack keys.
+
+  The floor alone isn't enough, which is the second half of this change. `PowerRank` is stamped on **every** model in the registry, not just chat models, and the candidate pool is type-filtered only when the prompt sets `AIModelTypeID` (`getModelPoolForStrategy` short-circuits on `!prompt.AIModelTypeID`). This prompt left it NULL, so sorting descending put Rerankers at the top — `rerank-v4-pro` (110), `rerank-v3.5` (100) and `rerank-v4-fast` (90) all outrank every LLM, where the strongest sits near 30 and Gemini 3.1 Pro at 26. A reranker only reorders search results; it cannot answer a prompt at all. Left unscoped, the fix would have traded a silent _downgrade_ for a silent wrong-**model-class** selection, and raising the floor couldn't help because it only trims from the bottom. Setting `AIModelTypeID` to MJ core's `LLM` type keeps rerankers, embedders, TTS and image models out of the pool entirely.
+
+  Ships as a forward migration plus PostgreSQL twin (the v0.2.0 seed is frozen), guarded on the target values so a re-run or a prior manual hotfix is a no-op.
+
+- b401fb2: Show the real scored population in the Model Builder header, instead of the anchor entity's total.
+
+  The header ran a bare whole-entity `count_only` and printed it as the scope, so a model narrowed to 66 members still read "**2,000** in population". A previous pass reworded it to "filtered subset of 2,000" so it stopped being actively wrong, but the actual number was still unavailable to the UI.
+
+  The reason it was unavailable is that the population filter is compiled to SQL by the engine (`RecomputeOrchestrator.compilePopulationFilter`). Counting it in the browser would mean re-implementing a security-sensitive compiler client-side and handing the client a SQL-building surface, so the count is now answered where the compiler already lives:
+
+  - **`RecomputeOrchestrator.countPopulation()`** returns `{ scoped, total, filtered }`. Two `count_only` reads — deliberately not `resolvePopulation().length`, which pulls every primary key in the population (uncapped, `IgnoreMaxRows`) just to take a length. When there is no filter the second query is skipped and `scoped === total`.
+  - **`Sonar: Count Population`** Action (`DriverClass` `SonarCountPopulation`) exposes it. Read-only, nothing scored, nothing persisted, safe on a draft. Also linked to the Sonar Authoring Agent, since "how many members does this model score?" is a question it gets asked.
+  - The header now reads "**66 of 2,000** in population" when a filter narrows the scope, and plain "2,000 in population" when it doesn't. `populationIsFiltered` derives from the engine's own answer rather than the UI toggle, so it reflects what is actually persisted rather than what is on screen. The count refreshes on model load and after every filter save (cheap enough to run on each).
+
+  Registered via a forward migration plus its PostgreSQL twin, not by editing the frozen v0.2.0 seed. The `ActionCategory` and `AIAgent` are resolved **by name** rather than by hardcoded ID, because the PostgreSQL baseline registers core metadata under different IDs than SQL Server. Every insert is guarded on its natural key, so the migration is idempotent on a fresh install, an upgrade, or a re-run (verified by applying it twice).
+
+  Also fixes the `validate-seed-agent-tools` CI check, which this change exposed. It compared "the first `AIAgentAction` link anywhere in the stream" against "the last `Action` anywhere in the stream", so **any** Action added by a later forward migration failed it — the sanctioned way to add installed config — even when that migration seeded its own link correctly after its own Action. Dropping the agent link wouldn't have satisfied it either; the rule didn't depend on whether a new link was added. The check is now per-ActionID: an Action must appear earlier in the stream than any link referencing it, with UUIDs that only ever appear inside link statements (the link's own PK, the AgentID, Actions seeded outside these migrations) skipped as unorderable. Both original failure modes still fail as they should, verified against synthetic fixtures. The SQL Server Action pattern also now matches a plain `INSERT INTO [__mj].[Action]`, not just `spCreateAction` — hand-written forward migrations use the former, so a new Action registered that way was previously invisible to the check entirely.
+
+- b6ec626: Fix the population filter losing the user's edits, and stop every surface serving stale data after a backend write.
+
+  ## Population filter
+
+  The engine was never at fault. With `City eq Seattle` set directly on the row, `computeScores` returns exactly the 66 anchors that `WHERE City='Seattle'` matches. Every defect was in the authoring UI.
+
+  **The save raced itself.** `onPopulationFilterChange` was `async` and awaited a full `GetEntityObject` → mutate → `Save()` on every emit, and the builder emits per keystroke. Typing `gmail.com` fired nine independent read-modify-write round trips with no ordering guarantee; the row ended up holding `gmail.co` while the screen showed `gmail.com`. Intermittent, which is why it read as "not working" rather than plainly broken. Writes are now debounced (500ms) and appended to a single-flight chain, so a burst collapses to one write and two writes can never overlap. Verified: nine keystrokes now produce one mutation and the stored value matches the screen.
+
+  **Clearing a numeric value poisoned the model.** An empty `<input type="number">` reports `valueAsNumber` as `NaN`, which is neither `undefined`, `null`, nor `""`, so it passed the completeness check and `JSON.stringify` persisted `"value": null`. The engine's `requireValue` then threw `compileFilter: operator 'eq' on 'YearsInProfession' requires a value.` and the model could not recompute at all until someone repaired the filter by hand. One backspace was enough. The completeness check now rejects non-finite numbers.
+
+  **Opening the builder threw and ate the first condition row.** Writing the child's just-emitted tree straight back into its own `[filter]` input re-entered it mid-change-detection and threw `NG0100: ExpressionChangedAfterItHasBeenCheckedError`. Angular aborted the pass, so the row `mj-filter-group.ngOnInit` auto-adds never rendered: the panel claimed "No filters applied" with an "Add your first condition" empty state while its expression badge read 1, and there was no condition row to edit. `[filter]` is now a one-way seed, written only on a genuine reset (model load, or clearing to Everyone).
+
+  **Failures were silent.** `setPopulationFilter` returns a boolean that the caller discarded, so a publish-lock rejection or a permissions failure was indistinguishable from success. It now surfaces a toast.
+
+  **Two ways the screen could disagree with the stored filter.** Switching a rule's field left the previous filter live (correctly — the new one is incomplete) with nothing saying so; an inline hint now does. And switching to "Filtered subset" unconditionally reset the tree, blanking the builder on a model that already had a saved filter; it now keeps what is there.
+
+  **The header lied.** It read a flat "2,000 in population" while the real scope was 66, because the count is a bare `count_only` over the whole anchor entity. The filter is compiled to SQL server-side and duplicating that compiler in the browser would break DRY and add an injection surface, so the header now says "filtered subset of 2,000" rather than printing the entity total as if it were the scope. An exact scoped count needs a cheap server-side count entry point — deliberately left as follow-up.
+
+  **The lock had no explanation.** `PopulationFilter`, `AnchorEntityID` and `BandSetID` are all frozen while a model is published (`publishLock.EDITABLE_WHILE_PUBLISHED_SCORE_MODEL_FIELDS`), but the "Published & locked · Unpublish to edit" banner lived inside the Factors tab. Population, Data Sources and Score Bands each disabled their controls with no reason given and no way to unpublish — the Population tab in particular rendered as two dead buttons under a heading, which reads exactly like a broken feature. The banner now sits above the tab bodies and covers all of them.
+
+  ## Cross-surface invalidation
+
+  Every surface loaded its data in `ngOnInit` and on model select, and nothing else. Worse than a long-lived tab: the shell **retains** surface instances, so navigating away and back does not re-run `ngOnInit` either. Measured directly — with the row at 320 Neutral / 231 Healthy, Engagement showed 520 / 31 across a full Engagement → Models → Engagement round trip.
+
+  `SonarDataBusService` carries no data, only a revision counter per topic (`scores:<modelId>`, `config:<modelId>`, `models`). Writers publish; readers subscribe by reading a revision inside an `effect()` and re-run their own load. Reads were never cached (`ScoreReadService` has no cache), so there was nothing to invalidate — the gap was that nobody re-read. Keeping the bus data-free leaves each surface in charge of _how_ it reloads, so filters, page and place survive.
+
+  Publishers: recompute (`scores`), publish / unpublish / rollback / band change / factor change (`config`), create / archive (`models`). A `config` publish also bumps `models`, because a Status flip changes the chip every surface's rail renders — which is why those chips used to stay stale everywhere except the Model Builder that made the change.
+
+  Subscribers: Portfolio, Engagement Manager, the model dashboard, and the shared model rail. Each suppresses the first sighting of a model so the bus never duplicates the surface's own initial load, and Portfolio's baseline comparison is what stops refresh → slots → effect → refresh from looping.
+
+  Verified end to end: authoring a filter in Model Builder (a `config` publish) then returning to Engagement showed the new distribution with no manual step, where the same round trip previously stayed stale.
+
+- 1075d61: Add an explicit **Refresh** to the Portfolio, Engagement Manager, and model-detail surfaces so a recompute's results can be pulled in without reloading the browser.
+
+  Every Sonar surface loads its data exactly twice: once in `ngOnInit`, and again when the model rail emits `select`. `CurrentModelService` carries the current _selection_ and nothing else — there is no "scores changed" event, and no surface watches for one. MJ Explorer keeps open resource tabs mounted and `BaseResourceComponent` has no activation hook, so switching back to a tab does not re-run `ngOnInit`.
+
+  The result: you hit Recompute in Model Builder, it writes Scores / ScoreHistory / ScoreBandTransitions, and every other open tab keeps showing pre-recompute numbers indefinitely. Band tiles, the triage list, movers, the stale-version warning, the sparkline — all frozen. Model Builder's own post-recompute `simulate()` only refreshes its right rail, and that's the _unpersisted preview_, not the run that was just written. The only escapes were re-clicking your own model in the rail (`pick()` doesn't guard same-id, so it re-emits) or a browser reload — neither of which reads as a refresh gesture.
+
+  Refresh re-reads from the API, which was always the fresh source: `ScoreReadService` has no caching, so there is nothing to invalidate. Each surface preserves the operator's place rather than reusing its full load path:
+
+  - **Engagement Manager** keeps the band tile, score range, name search, sort, and page. `loadModel` is deliberately not reused — it resets every filter, throwing away the cohort being worked. The selected band is re-pointed at the fresh slice with the same `bandId`, because its member count just changed and the tile renders from the held object.
+  - **Portfolio** keeps the rendered slots on screen while the new reads land (`loadSlot` replaces each in place by model ID), so a refresh doesn't blank every model to a skeleton and flash the whole Marimekko. Slots for models that disappeared are dropped and new ones seeded.
+  - **Model detail** keeps the operator's chosen action-card timeframe, which `loadModel` would otherwise re-derive from the model's `TrendWindowDays` and silently yank.
+
+  This is the narrow, operator-driven fix. It does not add automatic invalidation, so the stale model-status chips in each surface's rail (every surface holds its own sidebar instance, and only Model Builder refreshes its own) are still stale until refreshed. A shared invalidation bus that removes the manual step is tracked separately.
+
+  No new CSS — reuses the existing `.sonar-btn` primitive and `.sonar-page__actions` container, so light/dark theming is inherited by construction.
+
+### Patch Changes
+
+- @mj-biz-apps/sonar-entities@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

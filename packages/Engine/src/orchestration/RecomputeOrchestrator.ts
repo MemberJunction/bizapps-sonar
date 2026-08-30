@@ -27,7 +27,7 @@ import {
     ScoringSpec,
     WeightedFactor,
 } from "../scoring/ScoringEngine";
-import { ScoreWriter, ScoreWriteProgress } from "./ScoreWriter";
+import { ScorePersister, ScoreWriteProgress } from "./ScorePersister";
 
 /** Summary of a persisted recompute run. */
 export interface RecomputeRunResult {
@@ -85,7 +85,7 @@ export class RecomputeOrchestrator {
 
     private readonly normalizer = new NormalizationEngine();
     private readonly scorer = new ScoringEngine();
-    private readonly writer = new ScoreWriter();
+    private readonly writer = new ScorePersister();
 
     /** Compute scores for a model and RETURN them (no persistence). */
     public async computeScores(
@@ -225,7 +225,7 @@ export class RecomputeOrchestrator {
     }
 
     /** The shared pipeline: population → evaluate + normalize each factor → combine. Returns the
-     *  scores AND the resolved AnchorKeys (so the writer can persist AnchorRecordKeyJSON). */
+     *  scores AND the resolved AnchorKeys (so the persister can write AnchorRecordKeyJSON). */
     private async computeForModel(
         model: mjBizAppsSonarScoreModelEntity,
         asOf: Date,

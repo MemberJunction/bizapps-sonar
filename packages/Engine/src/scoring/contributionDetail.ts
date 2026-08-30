@@ -1,6 +1,6 @@
 /**
  * The typed shape persisted in ScoreFactorContribution.DetailJSON, with the single (de)serializer
- * for it. Previously the explanation was JSON.stringify'd inline in ScoreWriter and re-parsed by
+ * for it. Previously the explanation was JSON.stringify'd inline on the persist path and re-parsed by
  * free-hand code in the UI — a format drift between those two ends silently broke explainability.
  * Both ends should go through these so the on-disk contract has ONE definition.
  */

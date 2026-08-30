@@ -141,7 +141,7 @@ export interface MemberSuggestion {
 }
 
 /**
- * Read access to PERSISTED scores (written by the Recompute Action via ScoreWriter). Distinct
+ * Read access to PERSISTED scores (written by the Recompute Action via ScorePersister). Distinct
  * from {@link SonarEngineService}'s live preview, which computes without persisting. Powers the
  * Overview distribution, the Engagement Manager triage list, and the per-member explainability
  * drawer. Resolves band labels + anchor display names so callers get presentation-ready rows.
@@ -354,7 +354,7 @@ export class ScoreReadService {
 
     /**
      * The biggest movers since the previous recompute, split into risers (score went up) and
-     * fallers (down). Reads `Score.Delta` (set by ScoreWriter), so it's two small top-N queries —
+     * fallers (down). Reads `Score.Delta` (set by ScorePersister), so it's two small top-N queries —
      * no full-population scan. Members scored only once (Delta null) are excluded by `Delta <>/> 0`.
      */
     public async moversForModel(modelId: string, limit = 5): Promise<{ risers: ScoredMember[]; fallers: ScoredMember[] }> {

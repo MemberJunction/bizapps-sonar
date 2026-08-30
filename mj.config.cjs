@@ -125,15 +125,10 @@ module.exports = {
     ]
   },
 
-  // ---------------------------------------------------------------------------
-  // Schema/Table Exclusions
-  // ---------------------------------------------------------------------------
-  // Default: excludeSchemas: ['sys', 'staging', '__mj']
-  // Default: excludeTables: [{ schema: '%', table: 'sys%' }, { schema: '%', table: 'flyway_schema_history' }]
-  //
-  // Using defaults - Core entities (__mj schema) should not be modified by distributions.
-  // Uncomment only if you need different exclusions than the defaults.
-  excludeSchemas: ['sys', 'staging', 'dbo', '__mj'],
+  // Allow-list: CodeGen this app's schema only (MJ >= 5.50 includeSchemas).
+  // Unnamed schemas — core, siblings, never-seen client schemas — are excluded.
+  includeSchemas: ['__mj_BizAppsSonar'],
+  excludeSchemas: [],
   // excludeTables: [
   //   { schema: '%', table: 'sys%' },
   //   { schema: '%', table: 'flyway_schema_history' }
