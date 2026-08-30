@@ -23,6 +23,11 @@ interface ModelDescription {
     status: string;
     anchorEntityID: string;
     anchorEntityName: string | null;
+    /** Days the headline Delta/trend looks back; null = "since the previous recompute". Reported so the
+     *  agent can explain (and reason about) how "change" is measured for this model. */
+    trendWindowDays: number | null;
+    /** The score range the model's bands have to tile. */
+    scoreScale: { min: number | null; max: number | null };
     bandSet: { id: string; name: string | null } | null;
     sources: { id: string; alias: string; relatedEntityID: string; relatedEntityName: string | null }[];
     factors: {
@@ -34,6 +39,10 @@ interface ModelDescription {
         normalizationMethod: string | null;
         higherIsBetter: boolean | null;
         weight: number | null;
+        /** What an anchor with no data for this factor scores on it. 'ModelDefault' means nobody chose,
+         *  and the engine treats it as Zero — worth surfacing, because on a sparse source that silently
+         *  scores every anchor with no rows as the worst possible. */
+        missingDataPolicy: string | null;
     }[];
 }
 
@@ -87,6 +96,7 @@ export class SonarDescribeModelAction extends SonarActionBase {
         const [sources, factors, modelFactors] = await this.loadChildren(model.ID, user);
         const aliasBySourceId = new Map(sources.map((s) => [s.ID, s.Alias]));
         const weightByFactorId = new Map(modelFactors.map((mf) => [mf.FactorID, mf.Weight]));
+        const missingByFactorId = new Map(modelFactors.map((mf) => [mf.FactorID, mf.MissingDataPolicy]));
 
         return {
             modelID: model.ID,
@@ -94,6 +104,8 @@ export class SonarDescribeModelAction extends SonarActionBase {
             status: model.Status,
             anchorEntityID: model.AnchorEntityID,
             anchorEntityName: this.entityName(model.AnchorEntityID),
+            trendWindowDays: model.TrendWindowDays ?? null,
+            scoreScale: { min: model.ScoreScaleMin ?? null, max: model.ScoreScaleMax ?? null },
             bandSet: model.BandSetID ? { id: model.BandSetID, name: await this.bandSetName(model.BandSetID, user) } : null,
             sources: sources.map((s) => ({
                 id: s.ID,
@@ -110,6 +122,7 @@ export class SonarDescribeModelAction extends SonarActionBase {
                 normalizationMethod: f.NormalizationMethod,
                 higherIsBetter: f.HigherIsBetter,
                 weight: weightByFactorId.get(f.ID) ?? null,
+                missingDataPolicy: missingByFactorId.get(f.ID) ?? null,
             })),
         };
     }
