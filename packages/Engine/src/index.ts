@@ -12,6 +12,8 @@ export * from "./metadata/entityScope";
 export * from "./factors/filter";
 export * from "./factors/factorSql";
 export * from "./factors/CompiledFactorEvaluator";
+export * from "./factors/RunViewFactorEvaluator";
+export * from "./factors/runViewFactor";
 export * from "./factors/ActionFactorEvaluator";
 export * from "./factors/actionRunner";
 export * from "./factors/FactorCompiler";

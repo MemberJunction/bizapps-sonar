@@ -11,7 +11,7 @@ import {
     mjBizAppsSonarScoreRecomputeRunEntity,
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
-import { FactorCompiler } from "../factors/FactorCompiler";
+import { FactorCompiler, FactorReadPath } from "../factors/FactorCompiler";
 import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
 import { createActionRunner } from "../factors/actionRunner";
 import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
@@ -72,7 +72,17 @@ export interface FactorPreviewResult {
  * PopulationFilter yet); WeightedSum models only. Unsupported config fails loud.
  */
 export class RecomputeOrchestrator {
-    private readonly compiler = new FactorCompiler(createActionRunner());
+    private readonly compiler: FactorCompiler;
+    /**
+     * @param readPath Which read path declarative factors evaluate through. Defaults to `compiled`
+     *                 (one set-based SELECT). `runview` routes eligible factors through RunView so
+     *                 entity permissions and Row-Level Security apply; ineligible factors fall back.
+     *                 Threaded here rather than read from config so a caller can run both and compare.
+     */
+    constructor(readPath: FactorReadPath = "compiled") {
+        this.compiler = new FactorCompiler(createActionRunner(), readPath);
+    }
+
     private readonly normalizer = new NormalizationEngine();
     private readonly scorer = new ScoringEngine();
     private readonly writer = new ScorePersister();
