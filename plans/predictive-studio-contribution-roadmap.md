@@ -67,6 +67,13 @@ code-as-feature) have real correctness/extensibility value to PS and may be wort
 
 ---
 
+> **Decision (2026-08-30, owner):** the Group B call is made. Items 1–8 are donated to Predictive
+> Studio as typed components inside MJ core (`@memberjunction/predictive-studio*`), sequenced per
+> MJ `plans/predictive-studio.md` and the typed-component program; items 9 (plain-English authoring
+> loop) and 10 (score trajectory) remain Sonar's. Sonar consumes the donated components now that its
+> MJ pin is on the 6.1 Edge stream (#62). §3 step 2 (the pin bump) is DONE; item 1 is prototyped in
+> MJ directly.
+
 ## 3. Sequencing
 
 1. **Land or close PR #11.** It has been open since 4 July, is docs-only (`+67/-0`), and blocks
