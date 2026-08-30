@@ -16,6 +16,7 @@ import {
 import { ScoreResult } from "../scoring/ScoringEngine";
 import { encodeContributionDetail } from "../scoring/contributionDetail";
 import { planContributions, percentOfTotal } from "../scoring/contributionPlan";
+import { selectDepartedAnchors } from "./populationExit";
 import {
     TrendBaseline,
     computeDelta,
@@ -131,6 +132,12 @@ export class ScorePersister {
                     (result.ErrorMessage ? ` Run error: ${result.ErrorMessage}` : ""),
             );
         }
+
+        // Population exit (re-port of dc7ce074 from the retired set-based writer): anchors with a
+        // Score row that this run did not score have left the population — delete their rows or the
+        // triage list keeps serving them. ScoreHistory is append-only and keeps the trail.
+        const departed = await this.reconcileDepartures(scores, context);
+        if (departed > 0) LogStatus(`ScorePersister: removed ${departed} departed member(s) from the scored population`);
 
         LogStatus(`ScorePersister: persisted ${scores.size} members · ProcessRunID=${result.ProcessRunID ?? "none"}`);
         onProgress?.(scores.size, scores.size);
@@ -326,6 +333,34 @@ export class ScorePersister {
 
     private failed(what: string, message: string | undefined): RecordResult {
         return { Status: "Failed", ErrorMessage: `${what}: ${message ?? "unknown error"}` };
+    }
+
+    /**
+     * The partial-exit case: delete the Score (and its contributions) of every anchor that has a
+     * row but was not in this run's population. Same FK order as clearModel — contributions first.
+     * Uses the context's already-loaded maps, so it costs no extra reads.
+     */
+    private async reconcileDepartures(scores: Map<string, ScoreResult>, ctx: PersistContext): Promise<number> {
+        const departed = selectDepartedAnchors(ctx.existing.keys(), new Set(scores.keys()));
+        for (const anchorRecordId of departed) {
+            const score = ctx.existing.get(anchorRecordId);
+            if (!score) continue;
+            for (const row of ctx.contributions.get(score.ID) ?? []) {
+                if (!(await row.Delete())) {
+                    throw new Error(
+                        `ScorePersister: departed-member contribution delete failed (score ${score.ID}): ` +
+                            `${row.LatestResult?.CompleteMessage ?? "unknown error"}`,
+                    );
+                }
+            }
+            if (!(await score.Delete())) {
+                throw new Error(
+                    `ScorePersister: departed-member score delete failed (anchor ${anchorRecordId}): ` +
+                        `${score.LatestResult?.CompleteMessage ?? "unknown error"}`,
+                );
+            }
+        }
+        return departed.length;
     }
 
     /**
