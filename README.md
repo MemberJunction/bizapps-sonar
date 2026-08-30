@@ -21,7 +21,7 @@ Write-back to source systems, an intervention / action layer with holdout-measur
 
 ## Requirements
 
-- A running MemberJunction deployment in the range `>=5.45.0 <6.0.0`.
+- A running MemberJunction deployment in the range `>=6.1.0-edge.4 <7.0.0`.
 - SQL Server, or PostgreSQL 16.x or later (Sonar's schema is `__mj_BizAppsSonar`). Verified on 16.11.
 - For the authoring agent and any LLM-backed factors: an AI provider configured in the host MJ, using a model capable of reliable **structured-JSON** output. Sonar ships model-agnostic (the agent uses your deployment's selected model), so a weak/low-cost model tier can fail the agent's JSON contract and its runs will abort. The model is chosen by your MJ deployment's model configuration (its default/fallback selection and, for the agent, the agent prompt's model settings) — so make sure that resolves to a capable model, not the cheapest available tier.
 

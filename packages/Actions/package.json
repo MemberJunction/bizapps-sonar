@@ -29,16 +29,16 @@
     "zod": "~3.24.4"
   },
   "peerDependencies": {
-    "@memberjunction/actions-base": "^5.45.0",
-    "@memberjunction/actions": "^5.45.0",
-    "@memberjunction/global": "^5.45.0",
-    "@memberjunction/core": "^5.45.0",
-    "@memberjunction/core-entities": "^5.45.0",
-    "@memberjunction/core-entities-server": "^5.45.0",
-    "@memberjunction/ai": "^5.45.0",
-    "@memberjunction/aiengine": "^5.45.0",
-    "@memberjunction/ai-agents": "^5.45.0",
-    "@memberjunction/ai-core-plus": "^5.45.0"
+    "@memberjunction/actions-base": "^6.1.0-edge.4",
+    "@memberjunction/actions": "^6.1.0-edge.4",
+    "@memberjunction/global": "^6.1.0-edge.4",
+    "@memberjunction/core": "^6.1.0-edge.4",
+    "@memberjunction/core-entities": "^6.1.0-edge.4",
+    "@memberjunction/core-entities-server": "^6.1.0-edge.4",
+    "@memberjunction/ai": "^6.1.0-edge.4",
+    "@memberjunction/aiengine": "^6.1.0-edge.4",
+    "@memberjunction/ai-agents": "^6.1.0-edge.4",
+    "@memberjunction/ai-core-plus": "^6.1.0-edge.4"
   },
   "repository": {
     "type": "git",
