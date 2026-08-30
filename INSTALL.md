@@ -17,7 +17,7 @@ Use the standalone path when you want to run Sonar on its own before the Open Ap
 - **An auth provider** app registration, Microsoft Entra (MSAL) or Auth0, for MJExplorer login. Sonar does not ship its own auth; it uses MemberJunction's.
 - **An AI provider key** (e.g. Google Gemini) if you want the authoring agent or LLM-backed factors to run. The engine and all declarative scoring work without it.
 
-Sonar was built and verified against **MemberJunction 5.45**. Any host in the range `>=5.45.0 <6.0.0` should work.
+Sonar was built and verified against **MemberJunction 6.1.0-edge.4**. Any host in the range `>=6.1.0-edge.4 <7.0.0` should work.
 
 ---
 
@@ -63,7 +63,7 @@ npm install        # run at the repo root (npm workspace)
 Sonar's own migrations only lay down the `__mj_BizAppsSonar` schema, they assume MemberJunction core already exists. On an empty database, provision core first:
 
 ```bash
-npx mj migrate --tag v5.45.0
+npx mj migrate --tag v6.1.0-edge.4
 ```
 
 This creates the `__mj` core schema and its ~300 tables. It is the one step the "Development" quick-start assumes you already have.

@@ -1,0 +1,56 @@
+name: Distribution Gate
+
+# Catches the two ways this app can ship something that works here and nowhere else:
+# metadata that never made it into a delivering migration (MJ never reads mj-app.json's
+# metadata.directory at install), and SQL carrying a placeholder `mj app install` cannot resolve
+# (Skyway leaves unknown ones untouched, so they ship as literal strings rather than erroring).
+# The reasoning lives in scripts/check-distribution-seed.mjs. Ported from bizapps-sales
+# (originally bizapps-forms), adapted for Sonar's frozen-seed + forward-migration model and its
+# dual-dialect migration sets.
+
+on:
+  workflow_dispatch:
+  # `push` as well as `pull_request`: the PR trigger alone would let a direct commit to next/main
+  # land unshipped metadata without the gate ever running.
+  push:
+    branches: [next, main]
+    paths:
+      - 'metadata/**'
+      - 'migrations/**'
+      - 'migrations-pg/**'
+      - 'migrations-teardown/**'
+      - 'migrations-teardown-pg/**'
+      - 'mj-app.json'
+      - 'scripts/check-distribution-seed.mjs'
+      - 'scripts/write-seed-manifest.mjs'
+      - '.github/workflows/distribution-gate.yml'
+  pull_request:
+    branches: [next, main]
+    paths:
+      - 'metadata/**'
+      - 'migrations/**'
+      - 'migrations-pg/**'
+      - 'migrations-teardown/**'
+      - 'migrations-teardown-pg/**'
+      - 'mj-app.json'
+      - 'scripts/check-distribution-seed.mjs'
+      - 'scripts/write-seed-manifest.mjs'
+      - '.github/workflows/distribution-gate.yml'
+
+jobs:
+  distribution-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No `npm ci`: the gate is Node stdlib only, deliberately, so a dependency problem can never
+      # be the reason nobody finds out the app does not install.
+      - name: Check delivered metadata and shipped placeholders
+        run: npm run lint:distribution
+
+      - name: Check the gate itself still fires
+        run: node scripts/check-distribution-seed.spec.mjs
