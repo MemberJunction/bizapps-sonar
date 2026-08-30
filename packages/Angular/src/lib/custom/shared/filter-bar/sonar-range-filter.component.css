@@ -1,0 +1,33 @@
+/* Inline TOKEN PILL: the label + both bounds collapse into one rounded chip that sits on the
+   filter track like a tag, not two boxy inputs. The bounds are chrome-less inputs inside the pill;
+   the pill itself carries the border/fill/focus. All theme tokens. */
+.sonar-range {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    height: 2.25rem; box-sizing: border-box;
+    padding: 0 0.6rem;
+    border: 1px solid var(--sonar-border); border-radius: 999px;
+    background: var(--sonar-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sonar-range:hover { border-color: color-mix(in srgb, var(--sonar-accent) 40%, var(--sonar-border)); }
+/* Lift the whole pill when either bound has focus (the inputs themselves are ring-less). */
+.sonar-range:focus-within {
+    border-color: var(--sonar-accent);
+    box-shadow: 0 0 0 1px var(--sonar-accent), 0 0 0 4px color-mix(in srgb, var(--sonar-accent) 15%, transparent);
+}
+.sonar-range__lbl { font-size: var(--sonar-font-xs); color: var(--sonar-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+/* Chrome-less bound input — no border/fill/ring of its own (the pill owns all of that). */
+.sonar-range__num {
+    width: 2.4rem; height: 1.6rem; padding: 0; text-align: center;
+    border: 0; border-radius: 999px; background: transparent; box-shadow: none;
+    font-variant-numeric: tabular-nums; color: var(--sonar-ink);
+}
+.sonar-range__num:hover { border: 0; box-shadow: none; background: var(--sonar-surface-sunken); }
+.sonar-range__num:focus { outline: none; border: 0; box-shadow: none; background: var(--sonar-surface-sunken); }
+/* Hide the native number-spinner arrows: they eat the input's right edge and clip the centered
+   "min"/"max" placeholder (→ "mir"/"ma"), and look clunky in a filter. */
+.sonar-range__num::-webkit-outer-spin-button,
+.sonar-range__num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sonar-range__num { -moz-appearance: textfield; appearance: textfield; }
+.sonar-range__dash { color: var(--sonar-faint); }

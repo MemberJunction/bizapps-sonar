@@ -67,7 +67,11 @@ export class SonarTestSignalAction extends SonarActionBase {
             // Ephemeral path: pass Code + Configuration (NOT the ActionID) so Test Runtime Action builds a
             // throwaway Approved copy — a Pending signal runs without being approved.
             const config = action.RuntimeActionConfigurationObject ?? {};
-            const cases: RuntimeTestCase[] = anchorIds.map((id) => ({ name: id, input: { AnchorRecordID: id, AsOf: asOf } }));
+            const anchorEntityId = this.getInput(params, "AnchorEntityID") ?? undefined;
+            const cases: RuntimeTestCase[] = anchorIds.map((id) => ({
+                name: id,
+                input: { AnchorRecordID: id, AsOf: asOf, ...(anchorEntityId ? { AnchorEntityID: anchorEntityId } : {}) },
+            }));
             const result = await engine.RunAction({
                 Action: testRuntime,
                 ContextUser: params.ContextUser,

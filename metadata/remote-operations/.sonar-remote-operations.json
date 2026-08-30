@@ -1,0 +1,28 @@
+[
+  {
+    "fields": {
+      "Name": "Recompute Score Model",
+      "OperationKey": "Sonar.RecomputeModel",
+      "Description": "Recompute AND persist a full run for a published Score Model (RecomputeOrchestrator.recompute): records a ScoreRecomputeRun, upserts every Score + contributions + history, and streams member-scored progress. LongRunning. Implemented by SonarRecomputeModelServerOperation in @mj-biz-apps/sonar-server (registered via @RegisterClass).",
+      "InputTypeName": "SonarRecomputeModelInput",
+      "InputTypeDefinition": "/** Input for `Sonar.RecomputeModel`. */\nexport interface SonarRecomputeModelInput {\n    /** The `MJ_BizApps_Sonar: Score Models` model to recompute + persist. Must be published (have a current version). */\n    modelID: string;\n}\n",
+      "InputTypeIsArray": false,
+      "OutputTypeName": "SonarRecomputeModelOutput",
+      "OutputTypeDefinition": "/** Output of `Sonar.RecomputeModel` — the run summary. */\nexport interface SonarRecomputeModelOutput {\n    /** ID of the persisted `MJ_BizApps_Sonar: Score Recompute Runs` row. */\n    runID: string;\n    /** Run-level status (`Succeeded` / `Failed`). */\n    status: string;\n    /** Number of members scored + persisted. */\n    recordsScored: number;\n    /** Run-level error detail when `status` is not `Succeeded`. */\n    errorMessage?: string;\n}\n",
+      "OutputTypeIsArray": false,
+      "ExecutionMode": "LongRunning",
+      "RequiredScope": "sonar:recompute",
+      "RequiresSystemUser": false,
+      "GenerationType": "Manual",
+      "CodeApprovalStatus": "Approved",
+      "Status": "Active"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0030-4000-8000-000000000001"
+    },
+    "sync": {
+      "lastModified": "2026-07-13T15:57:48.982Z",
+      "checksum": "65a5ddd5feadeeeb3d476e7beebae8d4178424c463ce09f70eb88a70111ef3c1"
+    }
+  }
+]

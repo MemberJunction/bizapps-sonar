@@ -1,0 +1,16 @@
+/* Multi-select with chips. Shared primitives (chip) live in sonar-shell.css. */
+
+.sonar-ms2 { display: flex; flex-direction: column; gap: 0.6rem; }
+.sonar-ms2__chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sonar-ms2__chip { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sonar-ms2__x {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0;
+    line-height: 1;
+}
+.sonar-ms2__x:hover { opacity: 1; }

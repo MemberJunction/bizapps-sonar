@@ -1,0 +1,9 @@
+/* Layout shell for filter atoms — the consistent toolbar look. Atoms bring their own field
+   styling (they reference .sonar-input from the shell). All theme tokens. */
+:host { display: block; margin: 0.25rem 0 0.75rem; }
+.sonar-filters {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--sonar-surface-sunken);
+    border: 1px solid var(--sonar-border); border-radius: var(--sonar-radius-sm);
+}

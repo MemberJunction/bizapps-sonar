@@ -212,6 +212,21 @@ export async function isBandSetConfigWriteBlocked(bandSetId: string | null, cont
     return (await bandSetConfigLockState(bandSetId, contextUser)) !== "unlocked";
 }
 
+/**
+ * Pure decision for the archive transition gate: is this save an invalid attempt to archive
+ * a non-Draft model? Only Draft → Archived is allowed; Active/Paused → Archived must route
+ * through Draft first (Active/Paused config is still referenced by live Scores).
+ * Extracted as a pure function (no entity / no DB) so the rule is unit-testable in isolation.
+ */
+export function isInvalidArchiveTransition(opts: {
+    newStatus: string;
+    previousStatus: string;
+    statusDirty: boolean;
+}): boolean {
+    if (!opts.statusDirty || opts.newStatus !== "Archived") return false;
+    return opts.previousStatus !== "Draft";
+}
+
 /** Mark a validation result failed with the standard publish-lock error on the given field. */
 export function appendPublishLockFailure(
     result: ValidationResult,

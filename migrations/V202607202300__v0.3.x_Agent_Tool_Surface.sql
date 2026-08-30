@@ -1,0 +1,52 @@
+-- =============================================================================
+-- V202607202300__v0.3.x_Agent_Tool_Surface.sql
+-- =============================================================================
+-- Binds the Sonar Authoring Agent to its 22 authoring actions (AIAgentAction).
+-- Without these links the Loop-agent runtime builds an empty toolbox and every
+-- action call reports "unavailable" — the NL authoring agent is dead.
+--
+-- WHY A SEPARATE FORWARD MIGRATION (not folded into the seed):
+--   The seed V202607142340 shipped in v0.2.0. Editing it would change its Flyway
+--   checksum and break v0.2.0 -> v0.3.0 upgrades (validation abort; and Flyway
+--   never re-runs an applied version, so the links would never reach an upgraded
+--   install). A new forward migration reaches BOTH fresh installs and v0.2.0
+--   upgraders, and — running after the seed — the Actions it FK-references
+--   (AIAgentAction.ActionID -> Action) already exist, so there is no ordering
+--   hazard.
+--
+-- Idempotent: guarded on (AgentID, ActionID) via WHERE NOT EXISTS, so it is safe
+-- on a fresh install, a v0.2.0 upgrade, or a re-run.
+-- =============================================================================
+
+INSERT INTO [__mj].[AIAgentAction] (ID, AgentID, ActionID, Status, ResultExpirationMode)
+SELECT v.ID, v.AgentID, v.ActionID, N'Active', N'None'
+FROM (VALUES
+  ('AAC70000-0009-4000-8000-000000000009', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0009-4000-8000-000000000009'),  -- Sonar: Add Data Source
+  ('AAC70000-0012-4000-8000-000000000012', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0012-4000-8000-000000000012'),  -- Sonar: Author Factor Action
+  ('AAC70000-001A-4000-8000-00000000001A', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-001A-4000-8000-00000000001A'),  -- Sonar: Bind Signal To Model
+  ('AAC70000-000F-4000-8000-00000000000F', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-000F-4000-8000-00000000000F'),  -- Sonar: Build Model
+  ('AAC70000-0019-4000-8000-000000000019', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0019-4000-8000-000000000019'),  -- Sonar: Cancel Factor Job
+  ('AAC70000-0008-4000-8000-000000000008', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0008-4000-8000-000000000008'),  -- Sonar: Create Factor
+  ('AAC70000-000A-4000-8000-00000000000A', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-000A-4000-8000-00000000000A'),  -- Sonar: Create Model
+  ('AAC70000-0010-4000-8000-000000000010', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0010-4000-8000-000000000010'),  -- Sonar: Describe Model
+  ('AAC70000-0016-4000-8000-000000000016', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0016-4000-8000-000000000016'),  -- Sonar: Find Entities
+  ('AAC70000-0017-4000-8000-000000000017', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0017-4000-8000-000000000017'),  -- Sonar: Find Models
+  ('AAC70000-000C-4000-8000-000000000008', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-000C-4000-8000-000000000008'),  -- Sonar: Get Prompt
+  ('AAC70000-0005-4000-8000-000000000005', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0005-4000-8000-000000000005'),  -- Sonar: List Factor Actions
+  ('AAC70000-0011-4000-8000-000000000011', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0011-4000-8000-000000000011'),  -- Sonar: List Related Entities
+  ('AAC70000-0001-4000-8000-000000000001', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0001-4000-8000-000000000001'),  -- Sonar: Preview Model
+  ('AAC70000-0002-4000-8000-000000000002', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0002-4000-8000-000000000002'),  -- Sonar: Recompute Model
+  ('AAC70000-0014-4000-8000-000000000014', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0014-4000-8000-000000000014'),  -- Sonar: Refine Factor Action
+  ('AAC70000-000B-4000-8000-00000000000B', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-000B-4000-8000-00000000000B'),  -- Sonar: Set Band Set
+  ('AAC70000-0013-4000-8000-000000000013', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0013-4000-8000-000000000013'),  -- Sonar: Start Factor Job
+  ('AAC70000-0018-4000-8000-000000000018', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0018-4000-8000-000000000018'),  -- Sonar: Test Signal
+  ('AAC70000-0015-4000-8000-000000000015', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0015-4000-8000-000000000015'),  -- Sonar: Unpublish Model
+  ('AAC70000-000D-4000-8000-000000000009', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-000D-4000-8000-000000000009'),  -- Sonar: Update Prompt
+  ('AAC70000-0003-4000-8000-000000000003', 'CF1D58BA-451E-4515-89BD-AC3F16A19534', '5044A100-0003-4000-8000-000000000003')   -- Sonar: Validate Factor
+) AS v(ID, AgentID, ActionID)
+WHERE NOT EXISTS (
+  SELECT 1 FROM [__mj].[AIAgentAction] e
+  WHERE e.AgentID = v.AgentID AND e.ActionID = v.ActionID
+);
+
+GO

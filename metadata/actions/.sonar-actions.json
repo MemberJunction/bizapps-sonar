@@ -2818,5 +2818,51 @@
       "lastModified": "2026-06-30T15:45:42.445Z",
       "checksum": "8ea36b7b21dd28f1e383730184682463e0b024e7b3f3cef86afaf06a1cbff70c"
     }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Count Population",
+      "Description": "Counts the anchor records a scoring model actually scores, with its population filter applied. Returns the scoped count, the unfiltered entity total, and whether a filter narrowed it. Two count_only reads; nothing is scored or persisted. Read-only; safe on a draft model.",
+      "DriverClass": "SonarCountPopulation",
+      "Type": "Custom",
+      "Status": "Active",
+      "IconClass": "fa-solid fa-users",
+      "CategoryID": "@lookup:MJ: Action Categories.Name=Business Apps"
+    },
+    "primaryKey": {
+      "ID": "5044A100-001B-4000-8000-00000000001B"
+    },
+    "relatedEntities": {
+      "MJ: Action Params": [
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "ModelID",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": true,
+            "Description": "ID of the Score Model whose population to count."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000B1"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "Result",
+            "Type": "Both",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "JSON: { scoped, total, filtered }."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001B-4000-8000-0000000000B2"
+          }
+        }
+      ]
+    }
   }
 ]

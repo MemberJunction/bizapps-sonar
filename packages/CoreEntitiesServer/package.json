@@ -1,7 +1,7 @@
 {
   "name": "@mj-biz-apps/sonar-core-entities-server",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Server-side entity subclasses for Sonar — server-only lifecycle hooks (model version snapshots, validation, FK cleanup)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,19 +16,19 @@
     "test": "vitest run"
   },
   "author": "MemberJunction.com",
-  "license": "ISC",
+  "license": "BUSL-1.1",
   "devDependencies": {
     "typescript": "^5.9.3",
     "vitest": "^3.1.1"
   },
   "dependencies": {
-    "@mj-biz-apps/sonar-entities": "0.1.0"
+    "@mj-biz-apps/sonar-entities": "0.5.0"
   },
   "peerDependencies": {
-    "@memberjunction/core": "^5.40.2",
-    "@memberjunction/core-entities": "^5.40.2",
-    "@memberjunction/global": "^5.40.2",
-    "@memberjunction/sqlserver-dataprovider": "^5.40.2"
+    "@memberjunction/core": "^5.45.0",
+    "@memberjunction/core-entities": "^5.45.0",
+    "@memberjunction/global": "^5.45.0",
+    "@memberjunction/sqlserver-dataprovider": "^5.45.0"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,14 @@
+{
+  "entity": "MJ: Remote Operations",
+  "filePattern": "**/.*.json",
+  "pull": {
+    "createNewFileIfNotFound": true,
+    "newFileName": ".sonar-remote-operations.json",
+    "appendRecordsToExistingFile": true,
+    "updateExistingRecords": true,
+    "mergeStrategy": "merge",
+    "ignoreNullFields": true,
+    "ignoreVirtualFields": true,
+    "filter": "OperationKey LIKE 'Sonar.%'"
+  }
+}

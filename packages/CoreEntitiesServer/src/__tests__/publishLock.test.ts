@@ -24,6 +24,7 @@ import {
     isBandSetConfigLocked,
     isBandSetConfigWriteBlocked,
     isScoringEditBlocked,
+    isInvalidArchiveTransition,
 } from "../publishLock";
 
 beforeEach(() => {
@@ -180,5 +181,31 @@ describe("isScoringEditBlocked", () => {
 
     it("ignores system-managed dirty fields (timestamps, version pointer)", () => {
         expect(isScoringEditBlocked({ status: "Active", publishing: false, dirtyFields: ["__mj_UpdatedAt", "CurrentVersionID"] })).toBe(false);
+    });
+});
+
+/**
+ * Pure gate: only Draft → Archived is permitted. Active/Paused → Archived is rejected
+ * (config is still referenced by live Scores and snapshotted versions).
+ */
+describe("isInvalidArchiveTransition", () => {
+    it("blocks Active → Archived", () => {
+        expect(isInvalidArchiveTransition({ newStatus: "Archived", previousStatus: "Active", statusDirty: true })).toBe(true);
+    });
+
+    it("blocks Paused → Archived", () => {
+        expect(isInvalidArchiveTransition({ newStatus: "Archived", previousStatus: "Paused", statusDirty: true })).toBe(true);
+    });
+
+    it("allows Draft → Archived", () => {
+        expect(isInvalidArchiveTransition({ newStatus: "Archived", previousStatus: "Draft", statusDirty: true })).toBe(false);
+    });
+
+    it("does not affect non-archive status changes (statusDirty=true, target not Archived)", () => {
+        expect(isInvalidArchiveTransition({ newStatus: "Active", previousStatus: "Draft", statusDirty: true })).toBe(false);
+    });
+
+    it("does not trigger when Status is not dirty (same-save non-transition)", () => {
+        expect(isInvalidArchiveTransition({ newStatus: "Archived", previousStatus: "Active", statusDirty: false })).toBe(false);
     });
 });

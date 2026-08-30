@@ -16,6 +16,15 @@ INPUT params (exactly these two): AnchorRecordID (string GUID — the record bei
 OUTPUT params (exactly these two): Value (number — the raw signal for that one record; null = no data)
 and Explanation (string — a short human "why" for the score waterfall).
 
+ANCHOR CONTRACT (read this before you write a single Load): AnchorRecordID is the PRIMARY KEY of the
+ANCHOR ENTITY named in the Context below — nothing else. Your code MUST start from that anchor entity
+(load it by AnchorRecordID). To reach any related data, follow a foreign key FROM the anchor: query the
+child entity with RunView where its link field equals AnchorRecordID. NEVER Load a different entity by
+AnchorRecordID — only the anchor entity is keyed by it; every other entity has its own key and links back
+via an FK (e.g. a PersonID column), so loading it by AnchorRecordID silently misses and returns null for
+every record. The Context lists the anchor and each related entity's link field + columns — use those
+exact names; do not invent an entity or assume how it joins.
+
 The code computes the signal for the given AnchorRecordID as of AsOf — per record, never population-wide.
 DECLARATIVE-FIRST: only build custom code for signals plain SQL can't express (streaks, decay, sentiment,
 cross-source ratios); a simple count/sum/avg should be a declarative factor instead.

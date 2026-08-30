@@ -1,0 +1,20 @@
+{
+  "entity": "MJ: Queries",
+  "filePattern": "**/.*.json",
+  "pull": {
+    "createNewFileIfNotFound": true,
+    "newFileName": ".sonar-queries.json",
+    "appendRecordsToExistingFile": true,
+    "updateExistingRecords": true,
+    "mergeStrategy": "merge",
+    "ignoreNullFields": true,
+    "ignoreVirtualFields": true,
+    "filter": "Name LIKE 'Sonar:%'",
+    "relatedEntities": {
+      "MJ: Query Parameters": {
+        "entity": "MJ: Query Parameters",
+        "foreignKey": "QueryID"
+      }
+    }
+  }
+}

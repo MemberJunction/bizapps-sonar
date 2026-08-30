@@ -1,0 +1,294 @@
+/* Sonar Home surface-specific styles. Shared primitives (page, card, chip, segmented, movers,
+   empty-state, skeleton) live in sonar-shell.css; this file holds only the overview's hero
+   lenses (insight table / migration flow / band mix) and the action card. */
+
+/* ── Hero: the screen's single anchor ───────────────────────────────────────
+   Uses standard surface tokens — no colored background, just a neutral card. */
+:host {
+    --sonar-hero-ink: var(--sonar-ink);
+    --sonar-hero-faint: var(--sonar-muted);
+    --sonar-hero-line: var(--sonar-border);
+}
+.sonar-home__hero {
+    color: var(--sonar-hero-ink);
+    border-radius: var(--sonar-radius);
+    padding: 1.5rem 2rem 1.5rem;
+}
+
+/* Head row: eyebrow caption (left) + the view toggle (right); wraps cleanly when squeezed. */
+.sonar-home__hero-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.sonar-home__hero-eyebrow {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--sonar-hero-faint);
+}
+.sonar-home__hero-eyebrow i { margin-right: 0.5rem; }
+/* Compact variant of the shared segmented control — it's a lens switch, not a form field.
+   Used for the hero view tabs AND the action card's timeframe picker. */
+.sonar-home__hero-tabs .sonar-segmented__opt,
+.sonar-home__seg-compact .sonar-segmented__opt { padding: 0.25rem 0.75rem; font-size: 0.75rem; }
+.sonar-home__hero-tabs .sonar-segmented__opt i { font-size: 0.7rem; }
+
+/* Plain-language headline: the first thing a user reads. Band colors only on the two
+   numbers that matter (declines / recoveries) — real status, not decoration. */
+.sonar-home__headline {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--sonar-hero-ink);
+    margin: 0 0 0.25rem;
+}
+.sonar-home__headline-bad  { color: var(--sonar-critical); font-weight: 700; }
+.sonar-home__headline-good { color: var(--sonar-healthy); font-weight: 700; }
+.sonar-home__headline-sub {
+    font-size: 0.8rem;
+    color: var(--sonar-hero-faint);
+    margin-bottom: 1rem;
+}
+/* How-to-read caption under each lens. */
+.sonar-home__hero-caption {
+    font-size: 0.72rem;
+    color: var(--sonar-hero-faint);
+    margin-top: 0.75rem;
+}
+.sonar-home__hero-empty { font-size: 0.9rem; color: var(--sonar-hero-faint); margin: 0; }
+.sonar-home__hero-empty strong { color: var(--sonar-hero-ink); font-weight: 600; }
+/* While loading, the hero keeps the neutral card surface (no brand fill on shimmer). */
+.sonar-home__hero--skeleton { background: var(--sonar-surface); border: 1px solid var(--sonar-border); color: inherit; padding: 2rem; border-radius: var(--sonar-radius); }
+
+/* ── Lens 1: insight table ──────────────────────────────────────────────────
+   One row per band: identity · share bar · share sparkline · prev→curr · delta.
+   Numbers right-aligned in tabular figures so digits stack. Rows are translucent
+   ink-mix surfaces so they read on both the light tint and the dark violet panel. */
+.sonar-home__itable { display: flex; flex-direction: column; gap: 0.5rem; }
+.sonar-home__irow {
+    display: grid;
+    grid-template-columns: 9rem 1fr 8rem 7.5rem 3.5rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--sonar-radius-sm);
+    background: color-mix(in srgb, var(--sonar-hero-ink) 5%, transparent);
+    border: 1px solid var(--sonar-hero-line);
+}
+.sonar-home__irow-id { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.sonar-home__irow-label {
+    font-size: 0.85rem; font-weight: 700; color: var(--sonar-hero-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sonar-home__irow-share { display: flex; align-items: center; gap: 0.75rem; }
+.sonar-home__irow-track {
+    flex: 1; height: 1rem; border-radius: var(--sonar-radius-sm); overflow: hidden;
+    background: color-mix(in srgb, var(--sonar-hero-ink) 10%, transparent);
+}
+.sonar-home__irow-fill { height: 100%; border-radius: var(--sonar-radius-sm); opacity: 0.85; }
+.sonar-home__irow-fill--healthy  { background: var(--sonar-healthy); }
+.sonar-home__irow-fill--watch    { background: var(--sonar-watch); }
+.sonar-home__irow-fill--atrisk   { background: var(--sonar-atrisk); }
+.sonar-home__irow-fill--critical { background: var(--sonar-critical); }
+.sonar-home__irow-pct { font-size: 0.8rem; font-weight: 600; color: var(--sonar-hero-faint); width: 2.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.sonar-home__irow-spark { display: block; width: 100%; height: 28px; overflow: visible; }
+.sonar-home__irow-nospark { color: var(--sonar-hero-faint); text-align: center; }
+.sonar-home__irow-counts { font-size: 0.85rem; color: var(--sonar-hero-faint); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sonar-home__irow-counts b { color: var(--sonar-hero-ink); }
+.sonar-home__irow-arrow { color: var(--sonar-hero-faint); opacity: 0.7; margin: 0 0.25rem; }
+.sonar-home__irow-delta {
+    justify-self: end;
+    font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums;
+    padding: 0.25rem 0.5rem; border-radius: 999px; white-space: nowrap;
+}
+.sonar-home__irow-delta--worse  { color: var(--sonar-critical); background: color-mix(in srgb, var(--sonar-critical) 12%, transparent); }
+.sonar-home__irow-delta--better { color: var(--sonar-healthy); background: color-mix(in srgb, var(--sonar-healthy) 12%, transparent); }
+.sonar-home__irow-delta--flat   { color: var(--sonar-hero-faint); background: color-mix(in srgb, var(--sonar-hero-ink) 8%, transparent); }
+
+/* Sparkline strokes/fills use the band's own color. */
+.sonar-home__spark-line { fill: none; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.sonar-home__spark-area { stroke: none; fill-opacity: 0.12; }
+.sonar-home__spark-line--healthy,  .sonar-home__spark-dot--healthy  { stroke: var(--sonar-healthy); }
+.sonar-home__spark-line--watch,    .sonar-home__spark-dot--watch    { stroke: var(--sonar-watch); }
+.sonar-home__spark-line--atrisk,   .sonar-home__spark-dot--atrisk   { stroke: var(--sonar-atrisk); }
+.sonar-home__spark-line--critical, .sonar-home__spark-dot--critical { stroke: var(--sonar-critical); }
+.sonar-home__spark-area--healthy,  .sonar-home__spark-dot--healthy  { fill: var(--sonar-healthy); }
+.sonar-home__spark-area--watch,    .sonar-home__spark-dot--watch    { fill: var(--sonar-watch); }
+.sonar-home__spark-area--atrisk,   .sonar-home__spark-dot--atrisk   { fill: var(--sonar-atrisk); }
+.sonar-home__spark-area--critical, .sonar-home__spark-dot--critical { fill: var(--sonar-critical); }
+
+/* Squeezed rail: drop the sparkline column (the delta chip carries the honest change signal). */
+@media (max-width: 1200px) {
+    .sonar-home__irow { grid-template-columns: 7rem 1fr 6.5rem 3.5rem; }
+    .sonar-home__irow-spark, .sonar-home__irow-nospark { display: none; }
+}
+
+/* ── Lens 2: migration flow ─────────────────────────────────────────────────
+   Band nodes on both sides, ribbons for the REAL movement cohorts between the last
+   two recomputes. Ribbons color by direction (decline vs recovery), not by band. */
+.sonar-home__hero-sankey { display: flex; flex-direction: column; gap: 0.5rem; }
+.sonar-sankey__header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sonar-hero-faint);
+    margin-bottom: 0.25rem;
+}
+.sonar-sankey__container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 240px;
+}
+/* space-around centers each node in its 1/n slot — matching the SVG's ribbon endpoints,
+   which are computed at the same slot centers. */
+.sonar-sankey__nodes {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100%;
+    width: 6.5rem;
+    flex-shrink: 0;
+}
+.sonar-sankey__node {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 0.4rem 0.25rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--sonar-hero-ink) 8%, transparent);
+    border: 1px solid var(--sonar-hero-line);
+    color: var(--sonar-hero-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.sonar-sankey__node-count { font-size: 0.75rem; font-weight: 600; color: var(--sonar-hero-faint); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.sonar-sankey__node--healthy { border-left: 3px solid var(--sonar-healthy); }
+.sonar-sankey__node--watch { border-left: 3px solid var(--sonar-watch); }
+.sonar-sankey__node--atrisk { border-left: 3px solid var(--sonar-atrisk); }
+.sonar-sankey__node--critical { border-left: 3px solid var(--sonar-critical); }
+
+.sonar-sankey__canvas {
+    flex: 1;
+    height: 100%;
+    position: relative;
+}
+.sonar-sankey__canvas svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+.sonar-sankey__link {
+    fill: none;
+    transition: opacity 0.2s ease;
+    stroke-linecap: round;
+    opacity: 0.35;
+}
+.sonar-sankey__link--worse  { stroke: var(--sonar-atrisk); }
+.sonar-sankey__link--better { stroke: var(--sonar-healthy); }
+.sonar-sankey__link:hover { opacity: 0.8; }
+.sonar-sankey__link-label {
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    fill: var(--sonar-healthy);
+    pointer-events: none;
+    /* Halo in the hero's own surface color so counts stay legible over crossing ribbons. */
+    paint-order: stroke;
+    stroke: color-mix(in srgb, var(--sonar-accent) 8%, var(--sonar-surface));
+    stroke-width: 3px;
+}
+:host-context([data-theme="dark"]) .sonar-sankey__link-label {
+    stroke: color-mix(in srgb, var(--sonar-accent) 40%, #15122b);
+}
+.sonar-sankey__link-label--worse { fill: var(--sonar-atrisk); }
+/* Centered message when there's nothing to draw (steady population or first recompute). */
+.sonar-home__flow-steady {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--sonar-hero-faint);
+    padding: 0 1rem;
+}
+
+/* ── Lens 3: band mix ───────────────────────────────────────────────────────
+   One DISCRETE stacked column per recompute (scores step at recomputes; a continuous
+   area would imply drift that never happened). Current counts read off the legend. */
+.sonar-home__mix { display: flex; align-items: stretch; gap: 2rem; }
+.sonar-home__mix-cols { flex: 1; display: flex; align-items: flex-end; justify-content: space-around; gap: 1rem; }
+.sonar-home__mix-colwrap { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; flex: 1; max-width: 4.5rem; }
+.sonar-home__mix-col {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 11rem;
+    border-radius: var(--sonar-radius-sm);
+    overflow: hidden;
+}
+.sonar-home__mix-seg { width: 100%; opacity: 0.85; }
+.sonar-home__mix-seg--healthy  { background: var(--sonar-healthy); }
+.sonar-home__mix-seg--watch    { background: var(--sonar-watch); }
+.sonar-home__mix-seg--atrisk   { background: var(--sonar-atrisk); }
+.sonar-home__mix-seg--critical { background: var(--sonar-critical); }
+.sonar-home__mix-date { font-size: 0.7rem; color: var(--sonar-hero-faint); white-space: nowrap; }
+.sonar-home__mix-legend { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 13rem; }
+@media (max-width: 1200px) {
+    .sonar-home__mix { flex-direction: column; gap: 1rem; }
+    .sonar-home__mix-legend { flex-direction: row; flex-wrap: wrap; gap: 0.75rem 1.5rem; min-width: 0; }
+}
+.sonar-home__hero-legrow { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.sonar-home__hero-legname { flex: 1; color: var(--sonar-hero-ink); }
+.sonar-home__hero-legval { color: var(--sonar-hero-faint); font-variant-numeric: tabular-nums; }
+
+/* ── Who needs action: full-width, room for the cohort list to grow ─────────── */
+/* Head row: label (left) + timeframe picker (right); wraps cleanly when squeezed. */
+.sonar-home__action-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+/* "Asked for 1y but history only goes back to X" — quiet but visible honesty marker. */
+.sonar-home__action-clamp { color: var(--sonar-atrisk); text-transform: none; letter-spacing: 0; }
+.sonar-home__cohorts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.sonar-home__action-steady {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--sonar-muted);
+}
+.sonar-home__action-movers {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sonar-border);
+}
+.sonar-home__action .sonar-mover--static { cursor: default; }
+.sonar-home__action .sonar-mover--static:hover { border-color: var(--sonar-border); }
+
+/* Coverage below 100% is an operational warning — it gets band color, not a whisper. */
+.sonar-home__coverage-low { color: var(--sonar-atrisk); font-weight: 700; }
+
+/* "Needs attention" nudge. */
+.sonar-home__attention {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--sonar-muted);
+    border-color: color-mix(in srgb, var(--sonar-atrisk) 30%, var(--sonar-border));
+}
+.sonar-home__attention i { color: var(--sonar-atrisk); }

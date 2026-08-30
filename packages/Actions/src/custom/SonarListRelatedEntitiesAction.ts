@@ -5,12 +5,22 @@ import { RegisterClass } from "@memberjunction/global";
 import { EntityInfo, Metadata } from "@memberjunction/core";
 import { isBusinessEntity } from "@mj-biz-apps/sonar-engine";
 
-/** One entity joinable to the anchor, with the field that links them. */
+/** A column on a related entity the agent can reference when authoring a factor. */
+interface RelatedColumn {
+    name: string;
+    type: string;
+    /** True for numeric types — usable as aggregateFieldName for Sum/Avg/Min/Max. */
+    numeric: boolean;
+}
+
+/** One entity joinable to the anchor, with the field that links them and its columns. */
 interface RelatedEntityOption {
     entityID: string;
     entityName: string;
     schemaName: string | null;
     viaField: string;
+    /** The entity's columns — so the agent picks a REAL aggregateFieldName instead of guessing. */
+    columns: RelatedColumn[];
 }
 
 /**
@@ -19,7 +29,9 @@ interface RelatedEntityOption {
  * one-to-many sources Sonar factors aggregate over — e.g. Members ← Event Registrations). Scoping comes
  * from the shared `isBusinessEntity` helper in sonar-engine, the SAME predicate the UI anchor/source
  * picker uses, so the agent and the picker never disagree on what's offered. Pure metadata read — no DB
- * query (walks MJ's cached entity graph).
+ * query (walks MJ's cached entity graph). Each related entity now includes its `columns`
+ * (name + type + numeric flag) so the agent references a REAL aggregateFieldName from a
+ * source instead of guessing one (weak models hallucinate column names otherwise).
  *
  * Input param:  AnchorEntityID
  * Output param: Result (JSON: { anchorEntityID, anchorEntityName, related: RelatedEntityOption[] })
@@ -61,8 +73,20 @@ export class SonarListRelatedEntitiesAction extends SonarActionBase {
                 entityName: entity.Name,
                 schemaName: entity.SchemaName,
                 viaField: linkField.Name,
+                columns: this.columnsOf(entity),
             });
         }
         return options.sort((a, b) => a.entityName.localeCompare(b.entityName));
+    }
+
+    /** Non-system columns on a source entity, with a numeric flag so the agent knows which are
+     *  valid as an aggregateFieldName (Sum/Avg/Min/Max). Excludes the __mj_ audit columns. */
+    private columnsOf(entity: EntityInfo): RelatedColumn[] {
+        const NUMERIC = /^(int|bigint|smallint|tinyint|decimal|numeric|money|smallmoney|float|real)/i;
+        return entity.Fields.filter((f) => !f.Name.startsWith("__mj_")).map((f) => ({
+            name: f.Name,
+            type: f.Type,
+            numeric: NUMERIC.test(f.Type ?? ""),
+        }));
     }
 }

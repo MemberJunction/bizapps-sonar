@@ -1,0 +1,15 @@
+/* Search combobox + typeahead menu chrome. The field uses .sonar-input (shell); the host styles
+   the projected suggestion-row content in its own CSS. All theme tokens. */
+.sonar-combo { position: relative; min-width: 160px; }
+.sonar-combo--flex { flex: 1 1 200px; }
+.sonar-combo__icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--sonar-muted); pointer-events: none; }
+.sonar-combo__input { width: 100%; padding-left: 1.9rem; }
+.sonar-combo__menu {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+    margin: 0; padding: 0.25rem; list-style: none; max-height: 16rem; overflow-y: auto;
+    background: var(--sonar-surface); border: 1px solid var(--sonar-border);
+    border-radius: var(--sonar-radius-sm); box-shadow: var(--mj-shadow-md, 0 8px 24px -8px rgba(15, 23, 42, 0.35));
+}
+.sonar-combo__opt { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: var(--sonar-radius-sm); cursor: pointer; font-size: 0.85rem; color: var(--sonar-ink); }
+.sonar-combo__opt:hover, .sonar-combo__opt--active { background: var(--sonar-surface-sunken); }
+.sonar-combo__opt--active { box-shadow: inset 2px 0 0 var(--sonar-accent); }

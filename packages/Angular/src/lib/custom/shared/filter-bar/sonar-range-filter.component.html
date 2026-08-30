@@ -1,0 +1,8 @@
+<div class="sonar-range">
+    @if (label()) { <span class="sonar-range__lbl">{{ label() }}</span> }
+    <input type="number" #lo class="sonar-input sonar-range__num" [min]="min()" [max]="max()" placeholder="min"
+           [value]="value().min ?? ''" (change)="onBound('min', lo.value)" />
+    <span class="sonar-range__dash">–</span>
+    <input type="number" #hi class="sonar-input sonar-range__num" [min]="min()" [max]="max()" placeholder="max"
+           [value]="value().max ?? ''" (change)="onBound('max', hi.value)" />
+</div>

@@ -342,8 +342,15 @@ export class FactorCompiler {
         contextUser: UserInfo,
     ): Promise<{ leafEntity: EntityInfo; relationshipPath: string | null }> {
         if (!factor.SourceRelatedEntityID) {
+            // A declarative factor reads through a model data source (SourceRelatedEntityID ->
+            // ModelRelatedEntity). Distinguish the two null cases so the message is actionable:
+            // a model-owned factor with no source is a misconfigured/orphaned factor (created
+            // without a data source), NOT a shared "library" factor (those are ScoreModelID = NULL,
+            // a deferred feature).
             throw new Error(
-                `FactorCompiler: factor ${factor.ID} has no SourceRelatedEntityID (library factors not supported yet).`,
+                factor.ScoreModelID
+                    ? `FactorCompiler: factor '${factor.Name}' (${factor.ID}) has no data source — its SourceRelatedEntityID is not set. Link it to one of the model's related entities (ModelRelatedEntity); it was likely created without a source.`
+                    : `FactorCompiler: factor ${factor.ID} has no ScoreModelID (shared/library factor); library factors are not supported yet.`,
             );
         }
         const md = new Metadata();

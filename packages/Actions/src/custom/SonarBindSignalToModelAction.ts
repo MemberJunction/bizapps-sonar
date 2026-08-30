@@ -98,6 +98,11 @@ export class SonarBindSignalToModelAction extends SonarActionBase {
         factor.ScoreModelID = modelId;
         factor.ActionID = actionId;
         factor.ExecutionMode = "PerRecord";
+        // We only reach here after the approval gate above (a Runtime signal's code must be Approved;
+        // codebase actions are inherently trusted). That approval IS the factor's promotion gate, so the
+        // bound factor is born Approved — otherwise the model can't publish (the publishability check
+        // rejects any un-Approved action factor) even though the signal was fully approved in the Studio.
+        factor.PromotionState = "Approved";
         factor.NormalizationMethod = this.asEnum(this.getInput(params, "NormalizationMethod"), NORMALIZATIONS) ?? "MinMax";
         factor.HigherIsBetter = this.getInput(params, "HigherIsBetter") !== "false";
         if (await factor.Save()) return factor;

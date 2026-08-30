@@ -1,0 +1,26 @@
+<div class="sonar-ms2">
+    <!-- Keyed on epoch so each pick recreates the combobox with an empty search box. -->
+    @for (e of [epoch()]; track e) {
+        <mj-combobox
+            [Data]="available()"
+            TextField="name"
+            ValueField="id"
+            [ValuePrimitive]="true"
+            [Filterable]="true"
+            [Placeholder]="placeholder()"
+            [ngModel]="pick()"
+            (ngModelChange)="onPick($event)">
+        </mj-combobox>
+    }
+
+    @if (chips().length) {
+        <div class="sonar-ms2__chips">
+            @for (c of chips(); track c.id) {
+                <span class="sonar-chip sonar-ms2__chip">
+                    {{ c.name }}
+                    <button class="sonar-ms2__x" (click)="remove(c.id)" title="Remove">✕</button>
+                </span>
+            }
+        </div>
+    }
+</div>

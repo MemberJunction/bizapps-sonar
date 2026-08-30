@@ -1,0 +1,20 @@
+<div class="sonar-combo" [class.sonar-combo--flex]="flex()">
+    <i class="fa-solid fa-magnifying-glass sonar-combo__icon"></i>
+    <input type="search" #si class="sonar-input sonar-combo__input" autocomplete="off"
+           role="combobox" [attr.aria-expanded]="showSuggest()"
+           [placeholder]="placeholder()" [value]="value()"
+           (input)="onInput(si.value)" (keydown)="onKeydown($event)"
+           (focus)="onFocus()" (blur)="hideSoon()" />
+    @if (showSuggest() && hasSuggestions() && suggestionTpl) {
+        <ul class="sonar-combo__menu" role="listbox">
+            @for (s of suggestions(); track $index; let i = $index) {
+                <li class="sonar-combo__opt" role="option"
+                    [class.sonar-combo__opt--active]="i === activeIndex()"
+                    (mousedown)="choose(s)">
+                    <ng-container [ngTemplateOutlet]="suggestionTpl"
+                                  [ngTemplateOutletContext]="{ $implicit: s, active: i === activeIndex() }"></ng-container>
+                </li>
+            }
+        </ul>
+    }
+</div>

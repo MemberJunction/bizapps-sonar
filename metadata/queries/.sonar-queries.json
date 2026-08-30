@@ -1,0 +1,47 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar: Band Trend",
+      "Description": "Per-recompute band mix for a model: one row per (snapshot day, band) with the member count. Deduped per member per day (a same-day re-run writes two history rows; the later one wins). Powers the Overview trend chart and its list of comparable snapshot days.",
+      "Status": "Approved",
+      "SQL": "WITH snap AS (\n    SELECT h.AnchorRecordID, h.BandID,\n        CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) AS SnapshotDay,\n        ROW_NUMBER() OVER (PARTITION BY h.AnchorRecordID, CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) ORDER BY h.AsOfDate DESC, h.ComputedAt DESC) AS rn\n    FROM [__mj_BizAppsSonar].[ScoreHistory] h\n    WHERE h.ScoreModelID = {{ ModelID | sqlString }}\n)\nSELECT CONVERT(varchar(10), s.SnapshotDay, 23) AS SnapshotDay,\n       CONVERT(varchar(36), s.BandID) AS BandID,\n       ISNULL(b.Label, 'Unbanded') AS BandLabel,\n       COUNT(*) AS MemberCount\nFROM snap s\nLEFT JOIN [__mj_BizAppsSonar].[ScoreBand] b ON b.ID = s.BandID\nWHERE s.rn = 1\nGROUP BY s.SnapshotDay, s.BandID, ISNULL(b.Label, 'Unbanded')\nORDER BY s.SnapshotDay ASC"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0020-4000-8000-000000000001"
+    },
+    "sync": {
+      "lastModified": "2026-07-09T20:36:46.932Z",
+      "checksum": "f3f5093b4c49c7fae55942f1a064dcd7ae2272cf944c6827b7be3b15c4ffd7aa"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Band Flows",
+      "Description": "Band-change cohorts between two snapshot days for a model: one row per (from band, to band) with the member count, biggest first. Members present at only one of the two days are skipped (not a band CHANGE). Powers the Overview migration ribbons and the 'who needs action' cohort chips at any look-back window.",
+      "Status": "Approved",
+      "SQL": "WITH snap AS (\n    SELECT h.AnchorRecordID, h.BandID,\n        CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) AS SnapshotDay,\n        ROW_NUMBER() OVER (PARTITION BY h.AnchorRecordID, CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) ORDER BY h.AsOfDate DESC, h.ComputedAt DESC) AS rn\n    FROM [__mj_BizAppsSonar].[ScoreHistory] h\n    WHERE h.ScoreModelID = {{ ModelID | sqlString }}\n      AND CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) IN ({{ FromDay | sqlString }}, {{ ToDay | sqlString }})\n)\nSELECT CONVERT(varchar(36), f.BandID) AS FromBandID,\n       ISNULL(fb.Label, 'Unbanded') AS FromBand,\n       CONVERT(varchar(36), t.BandID) AS ToBandID,\n       ISNULL(tb.Label, 'Unbanded') AS ToBand,\n       COUNT(*) AS MemberCount\nFROM snap f\nJOIN snap t ON t.AnchorRecordID = f.AnchorRecordID AND t.SnapshotDay = {{ ToDay | sqlString }} AND t.rn = 1\nLEFT JOIN [__mj_BizAppsSonar].[ScoreBand] fb ON fb.ID = f.BandID\nLEFT JOIN [__mj_BizAppsSonar].[ScoreBand] tb ON tb.ID = t.BandID\nWHERE f.SnapshotDay = {{ FromDay | sqlString }} AND f.rn = 1\n  AND ISNULL(CONVERT(varchar(36), f.BandID), '') <> ISNULL(CONVERT(varchar(36), t.BandID), '')\nGROUP BY f.BandID, ISNULL(fb.Label, 'Unbanded'), t.BandID, ISNULL(tb.Label, 'Unbanded')\nORDER BY COUNT(*) DESC"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0020-4000-8000-000000000002"
+    },
+    "sync": {
+      "lastModified": "2026-07-09T20:36:52.938Z",
+      "checksum": "914008d3317d82cde2148182a49f57be54c2bc1c54ae361ec89d67ab469625f7"
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar: Score Movers",
+      "Description": "Biggest individual score movers between two snapshot days for a model: the top N risers and top N fallers by signed score change, with each member's current score and band. Derived from history snapshots (not the stored Score.Delta, which a no-op re-run resets to zero). Powers the Overview 'biggest drops / gains' lists at any look-back window.",
+      "Status": "Approved",
+      "SQL": "WITH snap AS (\n    SELECT h.AnchorRecordID, h.BandID, h.NormalizedScore,\n        CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) AS SnapshotDay,\n        ROW_NUMBER() OVER (PARTITION BY h.AnchorRecordID, CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) ORDER BY h.AsOfDate DESC, h.ComputedAt DESC) AS rn\n    FROM [__mj_BizAppsSonar].[ScoreHistory] h\n    WHERE h.ScoreModelID = {{ ModelID | sqlString }}\n      AND CONVERT(date, COALESCE(h.AsOfDate, h.ComputedAt)) IN ({{ FromDay | sqlString }}, {{ ToDay | sqlString }})\n), diff AS (\n    SELECT f.AnchorRecordID,\n        ROUND(t.NormalizedScore, 0) - ROUND(f.NormalizedScore, 0) AS Delta,\n        ROUND(t.NormalizedScore, 0) AS CurrentScore,\n        t.BandID\n    FROM snap f\n    JOIN snap t ON t.AnchorRecordID = f.AnchorRecordID AND t.SnapshotDay = {{ ToDay | sqlString }} AND t.rn = 1\n    WHERE f.SnapshotDay = {{ FromDay | sqlString }} AND f.rn = 1\n      AND ROUND(t.NormalizedScore, 0) <> ROUND(f.NormalizedScore, 0)\n), ranked AS (\n    SELECT AnchorRecordID, Delta, CurrentScore, BandID,\n        CASE WHEN Delta > 0 THEN 'riser' ELSE 'faller' END AS Direction,\n        ROW_NUMBER() OVER (PARTITION BY CASE WHEN Delta > 0 THEN 1 ELSE 0 END ORDER BY ABS(Delta) DESC) AS rk\n    FROM diff\n)\nSELECT r.AnchorRecordID, r.Delta, r.CurrentScore,\n       CONVERT(varchar(36), r.BandID) AS BandID,\n       ISNULL(b.Label, 'Unbanded') AS BandLabel, r.Direction\nFROM ranked r\nLEFT JOIN [__mj_BizAppsSonar].[ScoreBand] b ON b.ID = r.BandID\nWHERE r.rk <= {{ MaxEach | sqlNumber }}\nORDER BY r.Delta DESC"
+    },
+    "primaryKey": {
+      "ID": "5044A100-0020-4000-8000-000000000003"
+    },
+    "sync": {
+      "lastModified": "2026-07-09T20:37:33.792Z",
+      "checksum": "26d5b24f8cbedf69ed6a1b898bf27d800fd2b53d8d384c501f32d5b3367d33fe"
+    }
+  }
+]
