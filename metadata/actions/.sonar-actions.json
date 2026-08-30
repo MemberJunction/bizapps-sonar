@@ -445,7 +445,7 @@
             "ValueType": "Scalar",
             "IsArray": false,
             "IsRequired": true,
-            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode."
+            "Description": "JSON CreateFactorSpec: name, sourceRelatedEntityID, aggregation, aggregateFieldName, filterExpression, timeWindowID, normalizationMethod, normalizationParamsJSON, higherIsBetter, weight, weightMode, missingDataPolicy. missingDataPolicy is Zero|NeutralMidpoint|Exclude and decides what an anchor with NO data for this factor scores on it: Zero counts as zero and still weighs against them, NeutralMidpoint fills the factor's own midpoint so it neither helps nor hurts, Exclude drops it from that anchor's total. Omit it only when you have no view; the default behaves as Zero, which on a sparse source scores every anchor with no rows as the worst possible."
           },
           "primaryKey": {
             "ID": "5044A100-0008-4000-8000-0000000000A2"
@@ -2708,6 +2708,24 @@
           },
           "primaryKey": {
             "ID": "5044A100-001A-4000-8000-0000000000A3"
+          },
+          "sync": {
+            "lastModified": "2026-06-30T15:45:42.626Z",
+            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+          }
+        },
+        {
+          "fields": {
+            "ActionID": "@parent:ID",
+            "Name": "MissingDataPolicy",
+            "Type": "Input",
+            "ValueType": "Scalar",
+            "IsArray": false,
+            "IsRequired": false,
+            "Description": "Zero|NeutralMidpoint|Exclude — what an anchor with NO data for this signal scores on it. Zero counts as zero and still weighs against them; NeutralMidpoint fills the midpoint so it neither helps nor hurts; Exclude drops it from that anchor's total. Omit to leave the default, which behaves as Zero."
+          },
+          "primaryKey": {
+            "ID": "5044A100-001A-4000-8000-0000000000A6"
           },
           "sync": {
             "lastModified": "2026-06-30T15:45:42.626Z",
