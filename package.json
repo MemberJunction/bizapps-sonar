@@ -32,7 +32,8 @@
     "mergemain:update-lock": "node ci/merge_main_and_update_lock.mjs",
     "test": "npm run test --workspaces --if-present",
     "lint:distribution": "node scripts/check-distribution-seed.mjs",
-    "seed:manifest": "node scripts/write-seed-manifest.mjs"
+    "seed:manifest": "node scripts/write-seed-manifest.mjs",
+    "check:pg-parity": "node scripts/check-pg-parity.mjs"
   },
   "repository": {
     "type": "git",
