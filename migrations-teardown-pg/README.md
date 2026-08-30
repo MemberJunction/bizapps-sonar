@@ -90,7 +90,7 @@ node ci/generate_teardown.mjs .
 
 The generator reads the FK graph from a live SQL Server `__mj`, so the order it
 produces reflects the MJ version you point it at. Sonar supports
-`>=5.45.0 <6.0.0`; regenerate against the low end of that range when in doubt.
+`>=6.1.0-edge.4 <7.0.0`; regenerate against the low end of that range when in doubt.
 
 ## Verifying
 
