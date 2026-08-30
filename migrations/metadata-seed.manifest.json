@@ -1,0 +1,16 @@
+{
+  "generatedFrom": "metadata/",
+  "files": {
+    "metadata/actions/.sonar-actions.json": "e9d069393f695d5a611217d40b58d504f0ef15d5b22a8deda5b765a24e4368be",
+    "metadata/agents/.sonar-agent.json": "f3c8a57ddf0ea0e1c9e4138e6c3577c24c7a69c2cdf920de064e23b71dfe49ca",
+    "metadata/applications/.sonar-application.json": "ddaca3ebac9c29925c2dd41d4b30606cb0cd429a5f488022c4315f0662ab272a",
+    "metadata/entities/.entities.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "metadata/prompts/.sonar-prompts.json": "a7731f9533dcc490250b3065df75f2219d024360e1b4b26df243e6b087ecbb08",
+    "metadata/queries/.sonar-queries.json": "b6c8aa7f198e50ca5f3c77a233ec0a5ed0c45bf6e8e5fff5d869abef9b2e8406",
+    "metadata/remote-operations/.sonar-remote-operations.json": "a18d426c1b648caedd5f84072ad7514228f7a4186334960cdd80fcd0889ca312",
+    "metadata/score-band-sets/.score-band-sets.json": "f43e6925e552c85f373806833fa79155e74df138f1f0cf2ff9c8b9c5732caa6b",
+    "metadata/score-bands/.score-bands.json": "664bea0c4669131ba39ecddc10889cf8d7a0e93fd547369ba0f562c697dbfbe3",
+    "metadata/templates/.sonar-templates.json": "9ef6636720be28e00c1b01e214fd8411676cf0d5825b0da40f77509d90dbb5d9",
+    "metadata/time-windows/.time-windows.json": "078b4c984bac839509001cca857681eb86dfd7b2872fb502bb3c03601a00ae49"
+  }
+}

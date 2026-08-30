@@ -4,14 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [next]
-    paths:
-      - 'package-lock.json'
-      - 'packages/**'
   pull_request:
     branches: [next]
-    paths:
-      - 'package-lock.json'
-      - 'packages/**'
 
 concurrency:
   group: build-${{ github.ref }}
@@ -38,3 +32,17 @@ jobs:
 
       - name: Build all packages
         run: npm run build:packages
+
+      # Three packages carry real vitest suites (Engine, CoreEntitiesServer, Actions) that CI
+      # never ran before this step existed. --if-present keeps the echo-stub workspaces harmless.
+      - name: Unit tests
+        run: npm test
+
+      # Guarded until PR #60 lands the parity checker; then the guard is dead weight to remove.
+      - name: PostgreSQL parity gate
+        run: |
+          if [ -f scripts/check-pg-parity.mjs ]; then
+            node scripts/check-pg-parity.mjs
+          else
+            echo "scripts/check-pg-parity.mjs not present yet (PR #60) — skipping"
+          fi
