@@ -12,7 +12,7 @@
     "url": "https://memberjunction.com"
   },
   "repository": "https://github.com/MemberJunction/bizapps-sonar",
-  "mjVersionRange": ">=5.45.0 <6.0.0",
+  "mjVersionRange": ">=6.1.0-edge.4 <7.0.0",
   "schema": {
     "name": "__mj_BizAppsSonar",
     "createIfNotExists": true
