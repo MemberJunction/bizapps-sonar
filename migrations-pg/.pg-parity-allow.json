@@ -1,0 +1,12 @@
+{
+  "reason": "NOT unported — RE-BASELINED. The PostgreSQL set was collapsed into B202607171700__v0.2.x_Schema_and_Tables.pg.sql, which supersedes the four pre-0.2.x SQL Server migrations listed below. They have no counterpart because they are folded into that baseline, not because anyone skipped them. Filename pairing cannot express this, so they are recorded here. V202607272000 (datetime2→datetimeoffset) is different: PostgreSQL was never affected — its baseline already declares all 13 columns timestamptz — so this is SQL Server reaching parity, not a change PostgreSQL lacks (see #45).",
+  "note": "Two lineage hazards are visible in this repo and are NOT resolved by this file. (1) V202607202300__v0.3.x_Agent_Tool_Surface.sql (SQL Server) and V202607202301__v0.3.x_Agent_Tool_Surface.pg.sql (PostgreSQL) are the same logical migration under version numbers that differ by one second — the pairing misses, and a host applying both dialects would disagree about which version it is on. (2) migrations-pg/V202607201200__v0.3.x_Overview_Queries.pg.sql has NO SQL Server counterpart at all: this is reverse drift, a change PostgreSQL has and SQL Server does not. Both want a deliberate decision, not an allowlist entry.",
+  "unported": [
+    "V202606121005__v0.1.x_Initial_Schema.sql",
+    "V202606241200__v0.1.x_Factor_DateField.sql",
+    "V202606241205__v0.1.x_Widen_AnchorRecordID.sql",
+    "V202607142340__v0.1.x_Seed_App_Metadata.sql",
+    "V202607202300__v0.3.x_Agent_Tool_Surface.sql",
+    "V202607272000__v0.5.x_Timestamps_To_DateTimeOffset.sql"
+  ]
+}
