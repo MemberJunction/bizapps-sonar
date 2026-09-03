@@ -12,8 +12,8 @@ Use the standalone path when you want to run Sonar on its own before the Open Ap
 ## Prerequisites
 
 - **SQL Server** reachable from your machine (local or remote), and a login that can create/alter objects in the target database.
-- **Node.js 20+** and npm.
-- **The MemberJunction CLI**, invoked here as `npx mj` (installed transitively) or a global `@memberjunction/cli`.
+- **Node.js 20+** and **pnpm 10** (`corepack enable` picks up the pinned version).
+- **The MemberJunction CLI**, invoked here as `pnpm mj` (a workspace devDependency) or a global `@memberjunction/cli`.
 - **An auth provider** app registration, Microsoft Entra (MSAL) or Auth0, for MJExplorer login. Sonar does not ship its own auth; it uses MemberJunction's.
 - **An AI provider key** (e.g. Google Gemini) if you want the authoring agent or LLM-backed factors to run. The engine and all declarative scoring work without it.
 
@@ -37,7 +37,7 @@ ALTER ROLE db_owner ADD MEMBER MJ_Connect;
 
 ### 2. Configure the environment
 
-Copy the repo-root `.env` template and fill it in. `apps/MJAPI/.env` is a symlink to the repo-root `.env`, do not create a separate one. Key variables:
+Copy the repo-root `.env` template and fill it in. Key variables:
 
 | Variable | Purpose |
 |---|---|
@@ -46,16 +46,13 @@ Copy the repo-root `.env` template and fill it in. `apps/MJAPI/.env` is a symlin
 | `DB_TRUST_SERVER_CERTIFICATE` | `Y` for local/self-signed |
 | `MJ_CORE_SCHEMA` | MemberJunction core schema, `__mj` |
 | `CODEGEN_DB_USERNAME`, `CODEGEN_DB_PASSWORD` | Elevated login used for provisioning + CodeGen (needs DDL rights) |
-| `GRAPHQL_PORT` | API port (`4102`) |
 | `WEB_CLIENT_ID`, `TENANT_ID` | Auth (MSAL / Entra) app registration |
 | `AI_VENDOR_API_KEY__GeminiLLM` | AI provider key (for the authoring agent / LLM factors) |
-
-MJExplorer auth mirrors these in `apps/MJExplorer/src/environments/environment.ts` (`CLIENT_ID`, `TENANT_ID`, `CLIENT_AUTHORITY`, `AUTH_TYPE`, and `REDIRECT_URI` = `http://localhost:4302/`). Make sure the redirect URI is registered with your auth provider.
 
 ### 3. Install dependencies
 
 ```bash
-npm install        # run at the repo root (npm workspace)
+pnpm install       # run at the repo root (pnpm workspace)
 ```
 
 ### 4. Provision MemberJunction core
@@ -63,7 +60,7 @@ npm install        # run at the repo root (npm workspace)
 Sonar's own migrations only lay down the `__mj_BizAppsSonar` schema, they assume MemberJunction core already exists. On an empty database, provision core first:
 
 ```bash
-npx mj migrate --tag v6.1.0-edge.4
+pnpm mj migrate --tag v6.1.0-edge.4
 ```
 
 This creates the `__mj` core schema and its ~300 tables. It is the one step the "Development" quick-start assumes you already have.
@@ -71,7 +68,7 @@ This creates the `__mj` core schema and its ~300 tables. It is the one step the 
 ### 5. Apply Sonar's migrations
 
 ```bash
-npm run mj:migrate
+pnpm run mj:migrate
 ```
 
 This applies the `__mj_BizAppsSonar` schema migrations **and the seed migration** (`V…__Seed_App_Metadata.sql`), which loads Sonar's app metadata: score bands, time windows, actions, queries, the remote operation, and the authoring agent. On a clean core this is what makes the app usable without a separate metadata push.
@@ -79,25 +76,22 @@ This applies the `__mj_BizAppsSonar` schema migrations **and the seed migration*
 ### 6. Generate entity code
 
 ```bash
-npm run mj:codegen
+pnpm run mj:codegen
 ```
 
 ### 7. Build
 
 ```bash
-npm run build      # builds all packages (Turborepo)
+pnpm run build     # builds all packages (Turborepo)
 ```
 
-### 8. Start the app
+### 8. Run the app on a host
 
-```bash
-npm run start:api        # GraphQL API on http://localhost:4102
-npm run start:explorer   # MJExplorer on http://localhost:4302
-```
+This repo has no in-repo API or Explorer. Install the built packages onto a MemberJunction host with `mj app install` (see the reference below), or link this workspace into an `mj dev workspace` alongside an MJ checkout, then start that host's API and Explorer.
 
 ### 9. Log in and open Sonar
 
-Open **http://localhost:4302**, log in via your auth provider, and open the **Sonar** app. You should land on **Portfolio**; **Model Builder** lets you define a model (or ask the authoring agent), and **Engagement** shows members ranked worst-first once a model is published and recomputed.
+Open the host's Explorer, log in via your auth provider, and open the **Sonar** app. You should land on **Portfolio**; **Model Builder** lets you define a model (or ask the authoring agent), and **Engagement** shows members ranked worst-first once a model is published and recomputed.
 
 ---
 
@@ -127,7 +121,7 @@ A common setup is running Sonar against another app's data, for example the **Mo
 2. **Register the entities, without generating the other app's code.** Run CodeGen with `--skipfiles`:
 
    ```bash
-   npx mj codegen --skipfiles
+   pnpm mj codegen --skipfiles
    ```
 
    `--skipfiles` runs **database-side operations only**: it registers the entities in `__mj.Entity` and creates the SQL views/procs Sonar needs, but skips generating the TypeScript entities, Angular forms, and GraphQL resolvers for that app. That is exactly what you want here, Sonar reads those entities generically via `RunView` (by entity name), so it never needs their generated classes. Running a full `mj codegen` instead would scaffold the association app's code into your tree (and trip its build hooks) for no benefit.
@@ -141,9 +135,9 @@ A common setup is running Sonar against another app's data, for example the **Mo
 ## Troubleshooting
 
 - **Migrations fail on an empty database** → you skipped step 4. Sonar's migrations need MemberJunction core to exist first.
-- **Login redirects then fails** → the `REDIRECT_URI` (`http://localhost:4302/`) is not registered with your auth provider, or `WEB_CLIENT_ID` / `TENANT_ID` are wrong.
+- **Login redirects then fails** → the host's `REDIRECT_URI` is not registered with your auth provider, or `WEB_CLIENT_ID` / `TENANT_ID` are wrong.
 - **The authoring agent errors at runtime** → no AI provider is configured. Declarative scoring still works; set `AI_VENDOR_API_KEY__*` to enable the agent.
-- **Restarting the API points at the wrong database** → the API reads `DB_DATABASE` from `.env`. To run against a different database temporarily, set `DB_DATABASE` inline (`DB_DATABASE=OtherDb npm run start:api`); an inline value overrides `.env`.
+- **`mj migrate` or `mj codegen` points at the wrong database** → both read `DB_DATABASE` from `.env`. To run against a different database temporarily, set `DB_DATABASE` inline (`DB_DATABASE=OtherDb pnpm run mj:migrate`); an inline value overrides `.env`.
 
 ---
 
