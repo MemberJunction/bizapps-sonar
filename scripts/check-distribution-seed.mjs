@@ -12,7 +12,7 @@
  *   (`V202607142340__v0.1.x_Seed_App_Metadata.sql`) plus forward migrations for every later
  *   metadata change (see migrations/README.md — the seed is never regenerated). The manifest of
  *   content hashes therefore means "metadata state as of the last DELIVERING migration": when a
- *   metadata file changes without a matching forward migration + `npm run seed:manifest`, the
+ *   metadata file changes without a matching forward migration + `pnpm run seed:manifest`, the
  *   change ships nowhere and this gate fires.
  *
  *   A hash manifest answers the question that matters ("is the shipped state current with the
@@ -137,7 +137,7 @@ function checkSeedMigration(repoRoot, violations) {
     if (!existsSync(MANIFEST_PATH)) {
         violations.push(
             `Delivering migration(s) present (${seeds.join(', ')}) but ${relative(repoRoot, MANIFEST_PATH)} is ` +
-                'missing, so nothing can tell whether the shipped state is current. Run `npm run seed:manifest`.',
+                'missing, so nothing can tell whether the shipped state is current. Run `pnpm run seed:manifest`.',
         );
         return;
     }
@@ -147,7 +147,7 @@ function checkSeedMigration(repoRoot, violations) {
 
     const FIX =
         'Write a NEW forward migration for both dialects (the v0.1 seed is frozen — never regenerate it; ' +
-        'see migrations/README.md), then `npm run seed:manifest`.';
+        'see migrations/README.md), then `pnpm run seed:manifest`.';
     for (const [file, hash] of Object.entries(current)) {
         if (!(file in recorded)) {
             violations.push(`${file} is new metadata that no migration delivers. ${FIX}`);

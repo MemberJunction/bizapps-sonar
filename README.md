@@ -48,15 +48,13 @@ After install: configure an AI provider so the authoring agent and LLM-backed fa
 ## Development
 
 ```bash
-npm install                # install workspace dependencies (run at repo root)
-npm run mj:migrate         # apply __mj_BizAppsSonar schema migrations
-npm run mj:codegen         # generate entities, resolvers, and forms
-npm run build              # build all packages (Turborepo)
-npm run start:api          # MJAPI on port 4102
-npm run start:explorer     # MJExplorer on port 4302
+pnpm install               # install workspace dependencies (run at repo root)
+pnpm run mj:migrate        # apply __mj_BizAppsSonar schema migrations
+pnpm run mj:codegen        # generate entities, resolvers, and forms
+pnpm run build             # build all packages (Turborepo)
 ```
 
-Configuration comes from a repo-root `.env` (database, auth, AI keys); `apps/MJAPI/.env` is a symlink to it. See [`CLAUDE.md`](./CLAUDE.md) for the full development guide and the `next` -> `main` release flow.
+Configuration comes from a repo-root `.env` (database, auth, AI keys). To run the app against a live MJ instance, install it onto a host with `mj app install` or link this workspace into an `mj dev workspace`. See [`CLAUDE.md`](./CLAUDE.md) for the full development guide and the `next` -> `main` release flow.
 
 ### Repository structure
 
@@ -67,9 +65,6 @@ bizapps-sonar/
   migrations/          - Skyway (Flyway-compatible) SQL migrations for __mj_BizAppsSonar
   metadata/            - mj-sync metadata (bands, windows, actions, queries, remote operations, agent)
   plans/               - Product plan, data model design, and migration analyses
-  apps/
-    MJAPI/             - GraphQL API server (port 4102)
-    MJExplorer/        - Angular UI application (port 4302)
   packages/
     Entities/          - @mj-biz-apps/sonar-entities (CodeGen entity subclasses)
     Engine/            - @mj-biz-apps/sonar-engine (factor compiler, scoring, normalization, recompute)

@@ -3,7 +3,7 @@
  * Records the metadata content hashes that the current seed migration was generated from.
  *
  * Run this — and ONLY this — immediately after regenerating `migrations/*Metadata_Sync*.sql`.
- * Running it to silence `npm run lint:distribution` without regenerating the seed defeats the
+ * Running it to silence `pnpm run lint:distribution` without regenerating the seed defeats the
  * gate entirely: it would assert that metadata ships which does not.
  */
 import { writeFileSync } from 'node:fs';

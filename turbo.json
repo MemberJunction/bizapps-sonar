@@ -6,10 +6,6 @@
       "cache": true,
       "dependsOn": ["^build"],
       "persistent": false
-    },
-    "start": {
-      "cache": false,
-      "persistent": true
     }
   }
 }

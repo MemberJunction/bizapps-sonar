@@ -46,10 +46,10 @@ with those credentials.
 ## 2. Platform install
 
 ```bash
-npx mj migrate --tag v5.51.0        # expect: 25 applied on a virgin DB
+pnpm mj migrate --tag v5.51.0        # expect: 25 applied on a virgin DB
 ```
 
-Do **not** run plain `npx mj migrate` — without `--tag` it uses this repo's local
+Do **not** run plain `pnpm mj migrate` — without `--tag` it uses this repo's local
 migrations directory, not MJ core's.
 
 ## 3. Simulate `mj app install`
@@ -58,7 +58,7 @@ migrations directory, not MJ core's.
 psql -h localhost -p 5436 -U mj_admin -d SONAR_Test \
   -c 'CREATE SCHEMA IF NOT EXISTS __mj_bizappssonar;'
 
-npx mj migrate --schema __mj_BizAppsSonar --dir ./migrations-pg   # expect: 7 applied
+pnpm mj migrate --schema __mj_BizAppsSonar --dir ./migrations-pg   # expect: 7 applied
 ```
 
 **Do not run codegen. That is the point of the test.**
@@ -94,7 +94,7 @@ Expected on a fresh install (measured on PostgreSQL 16.11, MJ 5.51.0, CLI 5.51.0
 ## 5. Prove codegen is a no-op
 
 ```bash
-npx mj codegen
+pnpm mj codegen
 ```
 
 Then diff a snapshot of Sonar's entity / field / relationship / permission
@@ -111,7 +111,7 @@ rm -rf temp_sql_scripts
 
 ## Things that look wrong but aren't
 
-- **`npx mj codegen` exits 1 with "No suitable model found for prompt CodeGen:
+- **`pnpm mj codegen` exits 1 with "No suitable model found for prompt CodeGen:
   Check Constraint Parser"** if the environment has no AI provider credentials.
   That is CodeGen's LLM-backed constraint parser, not a database problem — the
   metadata diff is still empty.

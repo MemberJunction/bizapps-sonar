@@ -44,33 +44,26 @@ module.exports = {
   commands: [
     {
       workingDirectory: './packages/Entities',
-      command: 'npm',
+      command: 'pnpm',
       args: ['run', 'build'],
       when: 'after',
     },
     {
       workingDirectory: './packages/Actions',
-      command: 'npm',
+      command: 'pnpm',
       args: ['run', 'build'],
       when: 'after',
     },
     {
       workingDirectory: './packages/Server',
-      command: 'npm',
+      command: 'pnpm',
       args: ['run', 'build'],
       when: 'after',
     },
     {
       workingDirectory: './packages/Angular',
-      command: 'npm',
+      command: 'pnpm',
       args: ['run', 'build'],
-      when: 'after',
-    },
-    {
-      workingDirectory: './apps/MJAPI',
-      command: 'npm',
-      args: ['start'],
-      timeout: 30000,
       when: 'after',
     },
   ],

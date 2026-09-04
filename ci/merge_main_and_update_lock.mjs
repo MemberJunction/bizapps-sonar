@@ -9,37 +9,39 @@ console.log('Fetching and merging main branch...');
 await git.fetch('origin', 'main');
 await git.merge(['-X', 'theirs', 'origin/main']);
 
-// Step 2: Update package-lock.json with new versions
-console.log('\nUpdating package-lock.json with new package versions...');
+// Step 2: Update pnpm-lock.yaml with new versions
+console.log('\nUpdating pnpm-lock.yaml with new package versions...');
 try {
-  execSync('npm install --package-lock-only', { stdio: 'inherit' });
+  // --lockfile-only resolves and rewrites the lockfile without touching
+  // node_modules — the pnpm equivalent of npm's --package-lock-only.
+  execSync('pnpm install --lockfile-only', { stdio: 'inherit' });
 
   const status = await git.status();
-  const lockFileModified = status.modified.includes('package-lock.json') ||
-                          status.not_added.includes('package-lock.json');
+  const lockFileModified = status.modified.includes('pnpm-lock.yaml') ||
+                          status.not_added.includes('pnpm-lock.yaml');
 
   if (lockFileModified) {
-    console.log('package-lock.json has been updated with new versions');
+    console.log('pnpm-lock.yaml has been updated with new versions');
 
     const entitiesPkg = JSON.parse(fs.readFileSync('packages/Entities/package.json', 'utf8'));
     const version = entitiesPkg.version;
 
-    await git.add('package-lock.json');
+    await git.add('pnpm-lock.yaml');
     await git.commit(
-      `chore: Update package-lock.json with v${version} dependencies\n\n` +
+      `chore: Update pnpm-lock.yaml with v${version} dependencies\n\n` +
       `Updates @mj-biz-apps/* package versions in lock file after publishing v${version}`
     );
-    console.log('Committed package-lock.json updates');
+    console.log('Committed pnpm-lock.yaml updates');
   } else {
-    console.log('No changes to package-lock.json needed');
+    console.log('No changes to pnpm-lock.yaml needed');
   }
 } catch (error) {
-  console.error('Error updating package-lock.json:', error);
-  console.log('Continuing despite package-lock.json update error...');
+  console.error('Error updating pnpm-lock.yaml:', error);
+  console.log('Continuing despite pnpm-lock.yaml update error...');
 }
 
 // Step 3: Push to next
 console.log('\nPushing to origin/next...');
 await git.push('origin', 'HEAD:next');
 
-console.log('Successfully merged main and updated package-lock.json in next branch');
+console.log('Successfully merged main and updated pnpm-lock.yaml in next branch');

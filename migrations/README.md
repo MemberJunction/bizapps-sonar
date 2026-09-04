@@ -13,7 +13,7 @@ Skyway (Flyway-compatible) SQL migrations for the **`__mj_BizAppsSonar`** schema
 - Add `sp_addextendedproperty` descriptions for every new column (except PKs/FKs)
 - CodeGen output migrations land in `migrations/codegen/` (see `mj.config.cjs` `SQLOutput`)
 
-Run with `npm run mj:migrate` from the repo root.
+Run with `pnpm run mj:migrate` from the repo root.
 
 ## Generated seed metadata (`V…__Seed_App_Metadata.sql`)
 

@@ -69,18 +69,17 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 - **Feature branches MUST track a remote branch of the SAME name** — never `main`. `git checkout -b <name> && git push -u origin <name>`. Verify with `git branch -vv` before every push; a branch cut from `main` tracks `origin/main` by default, which is dangerous.
 - **Flow**: feature → PR into `next` (`changes.yml` + `build.yml` validate) → merge. Release is a single coordinating PR `next` → `main`; pushing `main` triggers `publish.yml` (version, publish to npm, tag, then auto-merge back into `next` with an updated lockfile).
 - **Never commit directly to `main`.** Hotfixes still go through a PR to `main`; the publish workflow's merge-back handles reconciliation.
-- **Never hand-author the `chore: Update package-lock.json with vX.Y.Z dependencies` commit on `next`** — the publish workflow creates it. Wanting to write one by hand means something upstream is wrong.
+- **Never hand-author the `chore: Update pnpm-lock.yaml with vX.Y.Z dependencies` commit on `next`** — the publish workflow creates it. Wanting to write one by hand means something upstream is wrong.
 - Repo: https://github.com/MemberJunction/bizapps-sonar
 
 ---
 
 ## Build & Environment
 
-- **Build one package**: `npm run build` **in that package's directory**. Root builds run through Turborepo.
+- **Build one package**: `pnpm run build` **in that package's directory**. Root builds run through Turborepo.
 - **After any code change, build the affected package** and fix all TypeScript errors before moving on.
-- **Adding a dependency**: declare it in the individual package's `package.json`, then run `npm install` **at the repo root**. Never `npm install` inside a package.
-- **Ports**: MJAPI GraphQL **4102**, MJExplorer **4302** (chosen to avoid clashing with other MJ dev environments).
-- **Config**: the repo-root `.env` holds everything (DB, auth, AI keys). `apps/MJAPI/.env` is a **symlink** to it — don't create a separate file. Angular env files live in `apps/MJExplorer/src/environments/`.
+- **Adding a dependency**: declare it in the individual package's `package.json`, then run `pnpm install` **at the repo root**. Never `pnpm install` inside a package. pnpm is strict: an import a package does not declare fails to resolve instead of falling through to a hoisted copy, so declare every import.
+- **Config**: the repo-root `.env` holds everything (DB, auth, AI keys) for `mj migrate` and `mj codegen`. There is no in-repo API or Explorer; run the app on a host via `mj app install`, or link this workspace into an `mj dev workspace`.
 - **UI dev loop**: a change under `packages/Angular` needs that package rebuilt *and* the Explorer dev server restarted. Seeds/CodeGen need the API restarted.
 - Launch configs (MJAPI, MJExplorer, attach, Full Stack compound) are in `.vscode/launch.json`. Source maps are scoped to local packages only.
 
@@ -105,13 +104,13 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 Generated output lives in `packages/Entities/`, `packages/Actions/`, `packages/Server/src/generated/`, and `packages/Angular/src/lib/generated/`.
 
 - **Never manually edit files in generated directories** — CodeGen overwrites them.
-- **Always run CodeGen after schema changes**: `npm run mj:codegen` from the repo root.
+- **Always run CodeGen after schema changes**: `pnpm run mj:codegen` from the repo root.
 
 ---
 
 ## Database Migrations
 
-Run `npm run mj:migrate` from the repo root. Migrations live in `/migrations` and target `__mj_BizAppsSonar` via `${flyway:defaultSchema}`.
+Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` and target `__mj_BizAppsSonar` via `${flyway:defaultSchema}`.
 
 - **Never include `__mj_CreatedAt`/`__mj_UpdatedAt` in CREATE TABLE** — CodeGen handles them.
 - **Never create indexes for foreign key columns** — CodeGen creates them automatically.

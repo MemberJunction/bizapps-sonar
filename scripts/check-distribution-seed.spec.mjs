@@ -5,7 +5,7 @@
  * character is that everything looks fine from inside.
  *
  * Plain Node rather than Vitest on purpose: the gate is stdlib-only so it can run in CI without
- * `npm ci`, and its test should not reintroduce the dependency it was designed to avoid.
+ * a dependency install, and its test should not reintroduce the dependency it was designed to avoid.
  */
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
