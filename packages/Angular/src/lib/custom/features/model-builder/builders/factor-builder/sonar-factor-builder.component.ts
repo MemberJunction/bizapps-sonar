@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, input, output, signal, WritableSignal } from "@angular/core";
 import { Metadata } from "@memberjunction/core";
-import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
+import { CompositeFilterDescriptor, FilterDescriptor, FilterFieldInfo, CreateEmptyFilter, IsCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { FactorService, Aggregation, CreateFactorInput, EditFactorVM, NormalizationMethod, PARAMETERIZED_NORMALIZATION, WeightMode, PromotionState } from "../../../../core/services/factor.service";
 import { ActionCatalogService, FactorAction, FactorActionContract, FactorParamSpec } from "../../../../core/services/action-catalog.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
@@ -644,7 +644,7 @@ export class SonarFactorBuilderComponent {
             .filter((f) => !f.IsPrimaryKey && !f.Name.startsWith("__mj_"))
             .map((f) => ({ name: f.Name, displayName: f.DisplayName || f.Name, type: this.filterFieldType(f.Type) }));
     });
-    public readonly filter = signal<CompositeFilterDescriptor>(createEmptyFilter());
+    public readonly filter = signal<CompositeFilterDescriptor>(CreateEmptyFilter());
 
     /** Map an MJ/SQL column type to the filter builder's coarse type. */
     private filterFieldType(sqlType: string | null): "string" | "number" | "date" | "boolean" {
@@ -739,7 +739,7 @@ export class SonarFactorBuilderComponent {
     private countConditions(filter: CompositeFilterDescriptor): number {
         let n = 0;
         for (const item of filter.filters ?? []) {
-            if (isCompositeFilter(item)) n += this.countConditions(item);
+            if (IsCompositeFilter(item)) n += this.countConditions(item);
             else if (item.field && item.value !== null && item.value !== undefined && item.value !== "") n += 1;
         }
         return n;
@@ -749,7 +749,7 @@ export class SonarFactorBuilderComponent {
      *  avoid conditions/fields that reference the previous entity. */
     public onSourceChange(id: string | null): void {
         this.sourceId.set(id);
-        this.filter.set(createEmptyFilter());
+        this.filter.set(CreateEmptyFilter());
         this.aggregateField.set("");
     }
 
@@ -806,7 +806,7 @@ export class SonarFactorBuilderComponent {
     private pruneFilter(filter: CompositeFilterDescriptor): CompositeFilterDescriptor {
         const kept: (FilterDescriptor | CompositeFilterDescriptor)[] = [];
         for (const item of filter.filters ?? []) {
-            if (isCompositeFilter(item)) {
+            if (IsCompositeFilter(item)) {
                 const sub = this.pruneFilter(item);
                 if (sub.filters.length > 0) kept.push(sub);
             } else if (item.field && item.value !== null && item.value !== undefined && item.value !== "") {

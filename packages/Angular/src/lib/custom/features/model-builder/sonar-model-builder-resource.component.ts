@@ -3,7 +3,7 @@ import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { Metadata, RunView } from "@memberjunction/core";
-import { CompositeFilterDescriptor, FilterFieldInfo, createEmptyFilter, isCompositeFilter } from "@memberjunction/ng-filter-builder";
+import { CompositeFilterDescriptor, FilterFieldInfo, CreateEmptyFilter, IsCompositeFilter } from "@memberjunction/ng-filter-builder";
 import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService, RubricRow, EditFactorVM } from "../../core/services/factor.service";
@@ -304,11 +304,11 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      * expression badge read 1, and no condition row to edit. The child owns its own working copy;
      * this only gets written when we genuinely need to RESET it (model load, or clearing to Everyone).
      */
-    public populationFilter: CompositeFilterDescriptor = createEmptyFilter();
+    public populationFilter: CompositeFilterDescriptor = CreateEmptyFilter();
 
     /** The tree the user has actually authored (mirrors the builder's own state). Read this, never
      *  `populationFilter`, when you want "what's on screen right now". */
-    private authoredPopulationFilter: CompositeFilterDescriptor = createEmptyFilter();
+    private authoredPopulationFilter: CompositeFilterDescriptor = CreateEmptyFilter();
 
     /** True when the on-screen filter has a condition that isn't usable yet (no value, or a cleared
      *  number box). Drives the inline "not saved yet" hint — without it, switching a rule's field
@@ -461,7 +461,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.scoreEveryone.set(on);
         if (!on) return; // keep whatever is authored/persisted; the builder takes over
         this.populationIncomplete.set(false);
-        this.populationFilter = createEmptyFilter(); // reset the child: this IS a genuine clear
+        this.populationFilter = CreateEmptyFilter(); // reset the child: this IS a genuine clear
         this.authoredPopulationFilter = this.populationFilter;
         const model = this.selectedModel();
         if (!model) return;
@@ -481,7 +481,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
      */
     private isFilterComplete(node: CompositeFilterDescriptor): boolean {
         return node.filters.every((child) => {
-            if (isCompositeFilter(child)) return this.isFilterComplete(child);
+            if (IsCompositeFilter(child)) return this.isFilterComplete(child);
             if (NULL_FILTER_OPERATORS.has(child.operator)) return true;
             const value = child.value;
             if (value === undefined || value === null || value === "") return false;
@@ -500,12 +500,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
 
     /** Parse a persisted PopulationFilter JSON back into a filter tree (empty when absent/invalid). */
     private parsePopulationFilter(raw: string | null): CompositeFilterDescriptor {
-        if (!raw) return createEmptyFilter();
+        if (!raw) return CreateEmptyFilter();
         try {
             const parsed = JSON.parse(raw) as CompositeFilterDescriptor;
-            return parsed && Array.isArray(parsed.filters) ? parsed : createEmptyFilter();
+            return parsed && Array.isArray(parsed.filters) ? parsed : CreateEmptyFilter();
         } catch {
-            return createEmptyFilter();
+            return CreateEmptyFilter();
         }
     }
 
@@ -1134,7 +1134,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
             this.population.set(null);
             this.populationTotal.set(null);
             this.populationFilterFields = [];
-            this.populationFilter = createEmptyFilter();
+            this.populationFilter = CreateEmptyFilter();
             this.authoredPopulationFilter = this.populationFilter;
             this.persistedPopulationFilter = null;
             this.populationIncomplete.set(false);
