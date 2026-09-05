@@ -26,6 +26,7 @@ import {
     trendDirection,
 } from "../scoring/scoreTrend";
 import type { AnchorKey } from "../factors/anchorKey";
+import { escapeSqlString } from "../factors/RunViewFactorEvaluator";
 
 /** Progress sink for a persist pass: called with (members persisted so far, total to persist).
  *  Fired once per RSP batch, so its granularity is {@link ScorePersister} batch size. Optional. */
@@ -387,7 +388,7 @@ export class ScorePersister {
         const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Scores",
-                ExtraFilter: `ScoreModelID='${model.ID}'`,
+                ExtraFilter: `ScoreModelID='${escapeSqlString(model.ID)}'`,
                 ResultType: "entity_object",
                 // MUST be IgnoreMaxRows. RunView's default cap would silently return a subset, every
                 // missed anchor would be treated as new, and the insert would collide with the
@@ -417,7 +418,7 @@ export class ScorePersister {
                 EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
                 ExtraFilter:
                     `ScoreID IN (SELECT ID FROM [${score.SchemaName}].[${score.BaseTable}] ` +
-                    `WHERE ScoreModelID='${model.ID}')`,
+                    `WHERE ScoreModelID='${escapeSqlString(model.ID)}')`,
                 ResultType: "entity_object",
                 IgnoreMaxRows: true,
             },
@@ -445,7 +446,7 @@ export class ScorePersister {
         const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Histories",
-                ExtraFilter: `ScoreModelID='${model.ID}' AND AsOfDate <= '${cutoff.toISOString()}'`,
+                ExtraFilter: `ScoreModelID='${escapeSqlString(model.ID)}' AND AsOfDate <= '${cutoff.toISOString()}'`,
                 OrderBy: "AsOfDate DESC",
                 ResultType: "entity_object",
                 IgnoreMaxRows: true,

@@ -4,10 +4,22 @@
 const sql = require('mssql');
 const STRAY = '9A7C3E10-4B2D-4F6A-8C1E-5D0FAB12C3D4';
 
+// Credentials come from the environment — never hardcode them (even a local dev SA password in
+// git is a leaked credential). Host/db keep their local-dev defaults; the password is required.
+const password = process.env.MSSQL_SA_PASSWORD || process.env.DB_PASSWORD;
+if (!password) {
+  console.error('Set MSSQL_SA_PASSWORD (or DB_PASSWORD) in the environment before running this script.');
+  process.exit(1);
+}
+
 (async () => {
   await sql.connect({
-    user: 'sa', password: 'Securepassword!23', server: 'localhost', port: 1433,
-    database: 'Sonar_Dev', options: { trustServerCertificate: true, encrypt: false },
+    user: process.env.DB_USERNAME || 'sa',
+    password,
+    server: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 1433),
+    database: process.env.DB_DATABASE || 'Sonar_Dev',
+    options: { trustServerCertificate: true, encrypt: false },
   });
 
   // Count dependents across the tables that FK to Application.

@@ -13,6 +13,7 @@ import {
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler, FactorReadPath } from "../factors/FactorCompiler";
 import { AnchorKey, compositeKeyForRow, toAnchorKey } from "../factors/anchorKey";
+import { escapeSqlString } from "../factors/RunViewFactorEvaluator";
 import { createActionRunner } from "../factors/actionRunner";
 import { ACTION_FACTOR_POPULATION_SOFT_CAP } from "../factors/ActionFactorEvaluator";
 import {
@@ -87,17 +88,23 @@ export class RecomputeOrchestrator {
     private readonly scorer = new ScoringEngine();
     private readonly writer = new ScorePersister();
 
-    /** Compute scores for a model and RETURN them (no persistence). */
+    /**
+     * Compute scores for a model and RETURN them (no persistence).
+     *
+     * @param allowUnapprovedActions Defaults to FALSE: even a read-only compute executes an
+     *        Action-backed factor's code, so the Approved promotion gate applies unless a caller
+     *        that has separately authorized running draft code opts out explicitly. Caller-facing
+     *        surfaces (e.g. `Sonar: Preview Model`) must pass false.
+     */
     public async computeScores(
         modelId: string,
         asOf: Date,
         contextUser: UserInfo,
+        allowUnapprovedActions: boolean = false,
     ): Promise<Map<string, ScoreResult>> {
         const model = await this.loadModel(modelId, contextUser);
         this.assertSupported(model);
-        // Preview is read-only, so a not-yet-Approved Action-backed factor is allowed to run here —
-        // that's the whole point of "Simulate" for a draft factor. The Approved gate still applies on persist.
-        return (await this.computeForModel(model, asOf, contextUser, true)).scores;
+        return (await this.computeForModel(model, asOf, contextUser, allowUnapprovedActions)).scores;
     }
 
     /**
@@ -531,7 +538,7 @@ export class RecomputeOrchestrator {
         const result = await rv.RunView<mjBizAppsSonarModelFactorEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Model Factors",
-                ExtraFilter: `ScoreModelID='${model.ID}'`,
+                ExtraFilter: `ScoreModelID='${escapeSqlString(model.ID)}'`,
                 ResultType: "entity_object",
             },
             contextUser,
@@ -544,7 +551,7 @@ export class RecomputeOrchestrator {
         modelFactors: mjBizAppsSonarModelFactorEntity[],
         contextUser: UserInfo,
     ): Promise<Map<string, mjBizAppsSonarFactorEntity>> {
-        const idList = modelFactors.map((mf) => `'${mf.FactorID}'`).join(",");
+        const idList = modelFactors.map((mf) => `'${escapeSqlString(mf.FactorID)}'`).join(",");
         const rv = new RunView();
         const result = await rv.RunView<mjBizAppsSonarFactorEntity>(
             {
@@ -596,7 +603,7 @@ export class RecomputeOrchestrator {
         const result = await rv.RunView<mjBizAppsSonarScoreBandEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Bands",
-                ExtraFilter: `BandSetID='${model.BandSetID}'`,
+                ExtraFilter: `BandSetID='${escapeSqlString(model.BandSetID)}'`,
                 OrderBy: "MinScore ASC",
                 ResultType: "entity_object",
             },

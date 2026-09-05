@@ -37,6 +37,10 @@ export class SonarCreateModelAction extends SonarActionBase {
         if (!spec.anchorEntityID) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.anchorEntityID is required.");
         }
+        // Scope gate: an anchor is what gets scored (and read), so it must be a business entity —
+        // never `__mj` or other framework/internal schemas (see entityScope).
+        const outOfScope = this.businessEntityError(params, spec.anchorEntityID, "a model's anchor entity");
+        if (outOfScope) return outOfScope;
 
         try {
             const model = await this.createModel(spec, params.ContextUser);

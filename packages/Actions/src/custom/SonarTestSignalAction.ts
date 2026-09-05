@@ -45,6 +45,15 @@ export class SonarTestSignalAction extends SonarActionBase {
         }
         const asOf = this.getInput(params, "AsOf") ?? new Date().toISOString();
 
+        // Authorization: this action runs the target signal's CODE via Test Runtime Action's
+        // ephemeral Approved copy — i.e. it deliberately bypasses the executor's approval gate for
+        // a Pending signal. Gate that on the caller holding Update on 'MJ: Actions': signal
+        // authors/testers hold it, ordinary callers don't, so an unprivileged caller cannot use
+        // "test" to execute un-approved code. A dedicated approver/tester role is the long-term
+        // fix; Update-on-Actions is the closest existing server-side gate.
+        const denied = this.requireEntityUpdate(params, "MJ: Actions", "actions (testing a signal executes its un-approved code)");
+        if (denied) return denied;
+
         try {
             const md = new Metadata();
             const action = await md.GetEntityObject<MJActionEntity>("MJ: Actions", params.ContextUser);
