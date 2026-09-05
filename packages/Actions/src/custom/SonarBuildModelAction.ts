@@ -67,6 +67,16 @@ export class SonarBuildModelAction extends SonarActionBase {
         if (!spec.name?.trim() || !spec.anchorEntityID) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.name and Spec.anchorEntityID are required.");
         }
+        // Scope gate, checked for EVERYTHING up front (before any row is created, so a rejection
+        // never leaves a half-built model): the anchor and every data source must be business
+        // entities — never `__mj` or other framework/internal schemas (see entityScope).
+        const anchorScope = this.businessEntityError(params, spec.anchorEntityID, "a model's anchor entity");
+        if (anchorScope) return anchorScope;
+        for (const s of spec.sources ?? []) {
+            if (!s.relatedEntityID) continue; // addSources rejects the missing id with its own error
+            const sourceScope = this.businessEntityError(params, s.relatedEntityID, `a data source (alias '${s.alias}')`);
+            if (sourceScope) return sourceScope;
+        }
 
         try {
             const model = await this.createModel(spec, params.ContextUser);

@@ -185,13 +185,15 @@ export class RunViewFactorEvaluator implements IFactorEvaluator {
 }
 
 /**
- * Escape a value for inclusion in the `IN (...)` list.
+ * Escape a value for safe interpolation into a single-quoted SQL literal (e.g. an `IN (...)` list
+ * or a RunView ExtraFilter).
  *
- * These are anchor primary-key values that came from the population query, not user input, but they
+ * Values like anchor primary keys and model ids came from our own queries, not user input, but they
  * are still interpolated into a filter string — so they are escaped rather than trusted. Doubling the
- * quote is the SQL Server escape; a stray quote in a string PK would otherwise break the filter or
- * worse.
+ * quote is the SQL Server escape; a stray quote in a string value would otherwise break the filter or
+ * worse. Exported so every id the Engine splices into a filter goes through the SAME helper
+ * (RecomputeOrchestrator and ScorePersister import it) instead of ad-hoc interpolation.
  */
-function escapeSqlString(value: string): string {
+export function escapeSqlString(value: string): string {
     return value.split("'").join("''");
 }

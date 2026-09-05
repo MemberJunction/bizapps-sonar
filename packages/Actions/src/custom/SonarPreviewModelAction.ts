@@ -2,7 +2,9 @@ import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-bas
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
+import { Metadata, RunView } from "@memberjunction/core";
 import { RecomputeOrchestrator, ScoreResult } from "@mj-biz-apps/sonar-engine";
+import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 
 /** One bar of the band distribution returned to the UI. */
 interface BandSlice { label: string; count: number; pct: number; }
@@ -30,8 +32,17 @@ export class SonarPreviewModelAction extends SonarActionBase {
         if (!modelId) {
             return { Success: false, ResultCode: "VALIDATION_ERROR", Message: "ModelID is required.", Params: params.Params };
         }
+        // Caller-facing preview: verify the caller can READ the anchor entity and every data source
+        // wired into the model BEFORE computing anything — the compiled factor read path applies no
+        // entity permissions on its own, so this preview must not become a cross-entity read oracle.
+        const denied = await this.readPermissionError(params, modelId);
+        if (denied) return denied;
         try {
-            const scores = await new RecomputeOrchestrator().computeScores(modelId, new Date(), params.ContextUser);
+            // 'runview' forces the permission-applying read path for eligible declarative factors
+            // (ineligible ones fall back to compiled — which is why the read checks above exist too).
+            // allowUnapprovedActions=false: a caller-facing preview must NOT execute un-approved
+            // Action-backed factor code — the Approved promotion gate applies here as on persist.
+            const scores = await new RecomputeOrchestrator("runview").computeScores(modelId, new Date(), params.ContextUser, false);
             const payload = this.summarize(scores);
             return {
                 Success: true,
@@ -44,6 +55,45 @@ export class SonarPreviewModelAction extends SonarActionBase {
         } catch (e: unknown) {
             return { Success: false, ResultCode: "ERROR", Message: e instanceof Error ? e.message : String(e), Params: params.Params };
         }
+    }
+
+    /** Read-permission gate for the preview: the caller must be able to read the model's anchor
+     *  entity AND every data source wired into the model (each factor reads through one of them).
+     *  Returns a teaching failure, or null when the caller may proceed. */
+    private async readPermissionError(params: RunActionParams, modelId: string): Promise<ActionResultSimple | null> {
+        const md = new Metadata();
+        const model = await md.GetEntityObject<mjBizAppsSonarScoreModelEntity>("MJ_BizApps_Sonar: Score Models", params.ContextUser);
+        if (!(await model.Load(modelId))) {
+            return this.fail(params, "VALIDATION_ERROR", `No model found for ID '${modelId}'.`);
+        }
+        const anchor = md.EntityByID(model.AnchorEntityID);
+        if (!anchor) {
+            return this.fail(params, "ERROR", `Anchor entity ${model.AnchorEntityID} not found in metadata.`);
+        }
+        const anchorDenied = this.requireEntityRead(params, anchor.Name, `the model's anchor entity ('${anchor.Name}')`);
+        if (anchorDenied) return anchorDenied;
+
+        const res = await new RunView().RunView<{ RelatedEntityID: string }>(
+            {
+                EntityName: "MJ_BizApps_Sonar: Model Related Entities",
+                ExtraFilter: `ScoreModelID='${this.sqlString(modelId)}'`,
+                ResultType: "simple",
+                Fields: ["RelatedEntityID"],
+            },
+            params.ContextUser,
+        );
+        if (!res.Success) {
+            return this.fail(params, "ERROR", `Could not load the model's data sources: ${res.ErrorMessage ?? "unknown error"}`);
+        }
+        for (const row of res.Results ?? []) {
+            const source = md.EntityByID(row.RelatedEntityID);
+            if (!source) {
+                return this.fail(params, "ERROR", `Source entity ${row.RelatedEntityID} not found in metadata.`);
+            }
+            const sourceDenied = this.requireEntityRead(params, source.Name, `a data source of this model ('${source.Name}')`);
+            if (sourceDenied) return sourceDenied;
+        }
+        return null;
     }
 
     /** Roll a score map up into a band distribution + one sample member breakdown. */
