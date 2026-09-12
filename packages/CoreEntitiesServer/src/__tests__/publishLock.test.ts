@@ -32,6 +32,12 @@ beforeEach(() => {
     mock.rows = [];
 });
 
+// Ids must be canonical GUIDs — the guards now reject anything else BEFORE querying (SQLi guard).
+const MODEL_ID = "a1b2c3d4-e5f6-7890-ab12-cd34ef567890";
+const BAND_SET_ID = "b1b2c3d4-e5f6-7890-ab12-cd34ef567890";
+const MISSING_ID = "00000000-0000-0000-0000-000000000000";
+const INJECTION_ID = "x' OR '1'='1";
+
 describe("isModelConfigLocked", () => {
     it("returns false for a null id without querying (library factor)", async () => {
         expect(await isModelConfigLocked(null)).toBe(false);
@@ -39,32 +45,37 @@ describe("isModelConfigLocked", () => {
 
     it("locks an Active model", async () => {
         mock.rows = [{ Status: "Active" }];
-        expect(await isModelConfigLocked("m1")).toBe(true);
+        expect(await isModelConfigLocked(MODEL_ID)).toBe(true);
     });
 
     it("locks a Paused model", async () => {
         mock.rows = [{ Status: "Paused" }];
-        expect(await isModelConfigLocked("m1")).toBe(true);
+        expect(await isModelConfigLocked(MODEL_ID)).toBe(true);
     });
 
     it("does not lock a Draft model", async () => {
         mock.rows = [{ Status: "Draft" }];
-        expect(await isModelConfigLocked("m1")).toBe(false);
+        expect(await isModelConfigLocked(MODEL_ID)).toBe(false);
     });
 
     it("does not lock an Archived model", async () => {
         mock.rows = [{ Status: "Archived" }];
-        expect(await isModelConfigLocked("m1")).toBe(false);
+        expect(await isModelConfigLocked(MODEL_ID)).toBe(false);
     });
 
     it("returns false when the model isn't found", async () => {
         mock.rows = [];
-        expect(await isModelConfigLocked("missing")).toBe(false);
+        expect(await isModelConfigLocked(MISSING_ID)).toBe(false);
     });
 
     it("fails OPEN (false) when the query fails — cosmetic message path stays quiet on a blip", async () => {
         mock.success = false;
-        expect(await isModelConfigLocked("m1")).toBe(false);
+        expect(await isModelConfigLocked(MODEL_ID)).toBe(false);
+    });
+
+    it("rejects a non-GUID id before querying (SQLi guard) — locked rows in the mock prove no query ran", async () => {
+        mock.rows = [{ Status: "Active" }];
+        expect(await isModelConfigLocked(INJECTION_ID)).toBe(false);
     });
 });
 
@@ -80,22 +91,27 @@ describe("isModelConfigWriteBlocked", () => {
 
     it("blocks an Active model", async () => {
         mock.rows = [{ Status: "Active" }];
-        expect(await isModelConfigWriteBlocked("m1")).toBe(true);
+        expect(await isModelConfigWriteBlocked(MODEL_ID)).toBe(true);
     });
 
     it("does not block a confirmed Draft model", async () => {
         mock.rows = [{ Status: "Draft" }];
-        expect(await isModelConfigWriteBlocked("m1")).toBe(false);
+        expect(await isModelConfigWriteBlocked(MODEL_ID)).toBe(false);
     });
 
     it("does not block a confirmed not-found model", async () => {
         mock.rows = [];
-        expect(await isModelConfigWriteBlocked("missing")).toBe(false);
+        expect(await isModelConfigWriteBlocked(MISSING_ID)).toBe(false);
     });
 
     it("fails CLOSED (true) when the query fails — can't confirm unlocked, so refuse the write", async () => {
         mock.success = false;
-        expect(await isModelConfigWriteBlocked("m1")).toBe(true);
+        expect(await isModelConfigWriteBlocked(MODEL_ID)).toBe(true);
+    });
+
+    it("treats a non-GUID id as unlocked WITHOUT querying (no SQL runs; the save fails on the FK)", async () => {
+        mock.rows = [{ Status: "Active" }];
+        expect(await isModelConfigWriteBlocked(INJECTION_ID)).toBe(false);
     });
 });
 
@@ -105,18 +121,18 @@ describe("isBandSetConfigLocked", () => {
     });
 
     it("locks when a published model uses the band set", async () => {
-        mock.rows = [{ ID: "m1" }];
-        expect(await isBandSetConfigLocked("b1")).toBe(true);
+        mock.rows = [{ ID: MODEL_ID }];
+        expect(await isBandSetConfigLocked(BAND_SET_ID)).toBe(true);
     });
 
     it("does not lock when no published model uses the band set", async () => {
         mock.rows = [];
-        expect(await isBandSetConfigLocked("b1")).toBe(false);
+        expect(await isBandSetConfigLocked(BAND_SET_ID)).toBe(false);
     });
 
     it("fails OPEN (false) when the query fails — cosmetic message path", async () => {
         mock.success = false;
-        expect(await isBandSetConfigLocked("b1")).toBe(false);
+        expect(await isBandSetConfigLocked(BAND_SET_ID)).toBe(false);
     });
 });
 
@@ -126,18 +142,23 @@ describe("isBandSetConfigWriteBlocked", () => {
     });
 
     it("blocks when a published model uses the band set", async () => {
-        mock.rows = [{ ID: "m1" }];
-        expect(await isBandSetConfigWriteBlocked("b1")).toBe(true);
+        mock.rows = [{ ID: MODEL_ID }];
+        expect(await isBandSetConfigWriteBlocked(BAND_SET_ID)).toBe(true);
     });
 
     it("does not block when no published model uses the band set", async () => {
         mock.rows = [];
-        expect(await isBandSetConfigWriteBlocked("b1")).toBe(false);
+        expect(await isBandSetConfigWriteBlocked(BAND_SET_ID)).toBe(false);
     });
 
     it("fails CLOSED (true) when the query fails — hard path refuses on uncertainty", async () => {
         mock.success = false;
-        expect(await isBandSetConfigWriteBlocked("b1")).toBe(true);
+        expect(await isBandSetConfigWriteBlocked(BAND_SET_ID)).toBe(true);
+    });
+
+    it("treats a non-GUID id as unlocked WITHOUT querying (no SQL runs; the save fails on the FK)", async () => {
+        mock.rows = [{ ID: MODEL_ID }];
+        expect(await isBandSetConfigWriteBlocked(INJECTION_ID)).toBe(false);
     });
 });
 

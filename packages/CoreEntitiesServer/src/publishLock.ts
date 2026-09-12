@@ -4,6 +4,7 @@ import {
     ValidationErrorInfo,
     ValidationErrorType,
 } from "@memberjunction/global";
+import { IsGuid } from "./sqlGuid";
 
 /**
  * Publish-lock helpers shared by the Sonar config-entity server guards.
@@ -125,6 +126,13 @@ async function modelConfigLockState(
         // no shared live row to drift a published model. Reasoning: plans/library-factors.md.
         return "unlocked";
     }
+    if (!IsGuid(modelId)) {
+        // A non-GUID can't reference any model (the FK is a uniqueidentifier) — and it must NEVER reach
+        // the ExtraFilter below, where MJ would interpolate it unparameterized (SQL injection). Run no
+        // SQL and report unlocked: the save then fails on the FK constraint with a proper error.
+        LogError(`publishLock: non-GUID ScoreModelID '${modelId}' — skipping lock query.`);
+        return "unlocked";
+    }
     const rv = new RunView();
     const result = await rv.RunView<{ Status: string }>(
         {
@@ -156,6 +164,12 @@ async function bandSetConfigLockState(
     contextUser?: UserInfo,
 ): Promise<ModelLockState> {
     if (!bandSetId) {
+        return "unlocked";
+    }
+    if (!IsGuid(bandSetId)) {
+        // Same injection posture as modelConfigLockState: a non-GUID references nothing, so it is
+        // unlocked — and it never reaches the interpolated filter. The save fails on the FK instead.
+        LogError(`publishLock: non-GUID BandSetID '${bandSetId}' — skipping lock query.`);
         return "unlocked";
     }
     const statusList = LOCKED_STATUSES.map((s) => `'${s}'`).join(",");
