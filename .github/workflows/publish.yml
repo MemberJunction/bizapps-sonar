@@ -122,8 +122,13 @@ jobs:
 
       - name: Update version
         if: steps.changeset_check.outputs.pending != '0'
+        env:
+          # Route untrusted workflow_dispatch input through env (never interpolate `${{ }}` into bash).
+          TARGET_VERSION: ${{ github.event.inputs.targetVersion }}
+          COMPUTED_VERSION: ${{ steps.version_check.outputs.EXPECTED_NEXT_VERSION }}
         run: |
-          EXPECTED_NEXT_VERSION="${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}"
+          # `:-` matches the old `||` expression semantics: fall back when TARGET_VERSION is unset OR empty.
+          EXPECTED_NEXT_VERSION="${TARGET_VERSION:-$COMPUTED_VERSION}"
           echo "Expected next version: $EXPECTED_NEXT_VERSION"
 
           pnpm run version

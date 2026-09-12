@@ -25,6 +25,7 @@ import {
     isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
 } from "./publishLock";
 import { describeCoverageProblem } from "./bandCoverage";
+import { IsGuid } from "./sqlGuid";
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -146,8 +147,10 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 {
                     // All bands (not just one): publishing also checks the set TILES the model's
                     // scale, which needs every row's range, not merely proof that a band exists.
+                    // GUID-gated: a non-GUID BandSetID must never reach the interpolated filter
+                    // (SQL injection — MJ does not parameterize ExtraFilter); it fails validation below.
                     EntityName: "MJ_BizApps_Sonar: Score Bands",
-                    ExtraFilter: this.BandSetID
+                    ExtraFilter: IsGuid(this.BandSetID)
                         ? `BandSetID='${this.BandSetID}'`
                         : "1=0",
                     ResultType: "simple",
@@ -169,6 +172,12 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 result,
                 "BandSetID",
                 "A model needs a score band set before it can be published.",
+            );
+        } else if (!IsGuid(this.BandSetID)) {
+            this.addFailure(
+                result,
+                "BandSetID",
+                `BandSetID '${this.BandSetID}' is not a valid GUID.`,
             );
         } else if (!this.hasRows(bandCheck)) {
             this.addFailure(
@@ -229,7 +238,9 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             },
             this.ContextCurrentUser,
         );
-        const ids = (rubric.Results ?? []).map((r) => r.FactorID).filter(Boolean);
+        // GUID-filter before interpolating into the IN (...) list — the values come from the DB, but
+        // the filter is unparameterized, so only proven GUIDs may be spliced in.
+        const ids = (rubric.Results ?? []).map((r) => r.FactorID).filter((id) => IsGuid(id));
         if (ids.length === 0) {
             return; // no rubric → the factor-count check above already blocks the publish
         }
@@ -420,8 +431,10 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                     ResultType: "entity_object",
                 },
                 {
+                    // GUID-gated like validatePublishable's band query: a non-GUID BandSetID never
+                    // reaches the interpolated filter (and would already have failed the publish gate).
                     EntityName: "MJ_BizApps_Sonar: Score Bands",
-                    ExtraFilter: this.BandSetID
+                    ExtraFilter: IsGuid(this.BandSetID)
                         ? `BandSetID='${this.BandSetID}'`
                         : "1=0",
                     ResultType: "entity_object",
