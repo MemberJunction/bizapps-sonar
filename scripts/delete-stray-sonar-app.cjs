@@ -6,7 +6,7 @@ const STRAY = '9A7C3E10-4B2D-4F6A-8C1E-5D0FAB12C3D4';
 
 (async () => {
   await sql.connect({
-    user: 'sa', password: 'Securepassword!23', server: 'localhost', port: 1433,
+    user: 'sa', password: process.env.DB_PASSWORD ?? '', server: 'localhost', port: 1433,
     database: 'Sonar_Dev', options: { trustServerCertificate: true, encrypt: false },
   });
 

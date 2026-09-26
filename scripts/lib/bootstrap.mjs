@@ -18,7 +18,7 @@ import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@m
 export async function bootstrap(opts = {}) {
     const cfg = {
         user: opts.user ?? process.env.DB_USERNAME ?? "sa",
-        password: opts.password ?? process.env.DB_PASSWORD ?? "Securepassword!23",
+        password: opts.password ?? process.env.DB_PASSWORD,
         server: opts.server ?? process.env.DB_HOST ?? "localhost",
         port: opts.port ?? parseInt(process.env.DB_PORT ?? "1433", 10),
         database: opts.database ?? "Sonar_Demo",
