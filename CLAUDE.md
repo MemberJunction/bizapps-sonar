@@ -167,12 +167,8 @@ Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` a
 
 See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.
 
-## Metadata ships as release migrations
+## How Sonar's metadata ships
 
-`mj app install` and upgrades run migrations only. There is no metadata phase, by design. A record that exists only as JSON under `metadata/` reaches no host until a release ships it inside a migration.
+Sonar does **not** use the per-release `Metadata_Sync` seed. Its seed migration is frozen, and metadata changes ship as hand-written forward migrations (see Database Migrations above and [`migrations/README.md`](migrations/README.md)). Do not regenerate a seed from `metadata/`: it would re-add the agent's `AIAgentAction` links and break upgrades again (#29).
 
-- **PRs carry metadata JSON only.** Never hand-write or generate a `*__Metadata_Sync.sql` in a feature PR.
-- **The build engineer** generates one differential `Metadata_Sync` migration per release, from a fresh database.
-- **Rows missing after a fresh install** usually mean a release shipped without its metadata migration. Hand that to the build engineer. Do not change the installer or add a post-install push.
-
-Full process: [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md).
+For background only, the MJ-wide model is in the [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md). It applies to Sonar only if Sonar moves to the release-seed model, which first needs the agent links reconciled.
