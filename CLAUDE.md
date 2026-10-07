@@ -166,3 +166,9 @@ Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` a
 ## Purpose
 
 See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.
+
+## How Sonar's metadata ships
+
+Sonar does **not** use the per-release `Metadata_Sync` seed. Its seed migration is frozen, and metadata changes ship as hand-written forward migrations (see Database Migrations above and [`migrations/README.md`](migrations/README.md)). Do not regenerate a seed from `metadata/`: it would re-add the agent's `AIAgentAction` links and break upgrades again (#29).
+
+For background only, the MJ-wide model is in the [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md). It applies to Sonar only if Sonar moves to the release-seed model, which first needs the agent links reconciled.
