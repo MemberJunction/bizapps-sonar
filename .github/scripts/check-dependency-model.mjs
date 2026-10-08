@@ -23,10 +23,10 @@
 // Usage:  node .github/scripts/check-dependency-model.mjs [repo-root]
 //         node .github/scripts/check-dependency-model.mjs --self-test
 // ==============================================================================
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const MJ_SCOPE = '@memberjunction/';
 const APP_SCOPE = '@mj-biz-apps/';
@@ -167,7 +167,25 @@ function selfTest() {
   return failed === 0 ? 0 : 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/**
+ * True only when this file was run directly, not imported. Both sides go through realpathSync, so a
+ * script reached through a symlink (macOS `/tmp` is one) still runs `main`. An `argv[1]` that cannot
+ * be resolved does not name this file, so `false` is the answer, not a swallowed error.
+ */
+function isDirectlyExecuted() {
+  if (process.argv[1] === undefined) {
+    return false;
+  }
+  let invokedPath;
+  try {
+    invokedPath = realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+  return invokedPath === realpathSync(fileURLToPath(import.meta.url));
+}
+
+if (isDirectlyExecuted()) {
   const arg = process.argv[2];
   process.exit(arg === '--self-test' ? selfTest() : report(arg ?? process.cwd()));
 }
