@@ -30,6 +30,17 @@ jobs:
       - name: Validate repository.url in packages
         run: ./.github/scripts/validate-package-repository.sh
 
+      # A host installs one copy of MemberJunction and one copy of each Open App. A published package
+      # that brings its own (MJ or another app's @mj-biz-apps/* in `dependencies`, or a `~`/exact peer
+      # that rejects the host's next minor — `~6.1.5` refuses every 6.2 host) splits MJ's class-factory
+      # registry, and registrations miss silently. Shared verbatim across the BizApps family; Node
+      # only, so it runs before the install. Self-test first: a validator nobody has seen fail proves
+      # nothing.
+      - name: Validate the one-copy dependency model
+        run: |
+          node .github/scripts/check-dependency-model.mjs --self-test
+          node .github/scripts/check-dependency-model.mjs
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
