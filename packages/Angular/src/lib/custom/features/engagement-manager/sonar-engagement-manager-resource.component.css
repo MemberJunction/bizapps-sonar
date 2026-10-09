@@ -151,6 +151,8 @@
 /* "scored by vN" badge + stale note in the drill-down. */
 .sonar-drill__version { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .sonar-drill__stale { font-size: 0.72rem; }
+/* "Open record" action under the drill-down header (record name + version). */
+.sonar-drill__open { margin-top: 0.5rem; }
 
 /* --- Trend indicator (delta since last recompute) --- */
 .sonar-trend { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }

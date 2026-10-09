@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from "@angular/core";
-import { RegisterClass } from "@memberjunction/global";
-import { BaseResourceComponent } from "@memberjunction/ng-shared";
+import { CompositeKey, EntityInfo, Metadata } from "@memberjunction/core";
+import { RegisterClass, UUIDsEqual } from "@memberjunction/global";
+import { BaseResourceComponent, NavigationService } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService } from "../../core/services/factor.service";
@@ -35,6 +36,7 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     private readonly scoreRead = inject(ScoreReadService);
     public readonly current = inject(CurrentModelService);
     private readonly bus = inject(SonarDataBusService);
+    private readonly navigation = inject(NavigationService);
 
     // --- active view tab ---
     public readonly activeTab = signal<'triage' | 'movers'>('triage');
@@ -97,6 +99,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
     public readonly maxScore = signal<number | null>(null);
     public readonly sortDir = signal<"asc" | "desc">("asc");
     private readonly anchorEntityId = signal<string | null>(null);
+    /** The model's anchor entity (People, Organizations, …) — what every scored row's
+     *  `anchorRecordId` points at. Null until the model is loaded or if the entity is unknown. */
+    private readonly anchorEntity = computed<EntityInfo | null>(() => {
+        const id = this.anchorEntityId();
+        return id ? new Metadata().Entities.find((e) => UUIDsEqual(e.ID, id)) ?? null : null;
+    });
+    /** The scored record can be opened: the anchor entity is known and keyed by a single field
+     *  (a scored row carries one anchor id, so a composite key could not be rebuilt from it). */
+    public readonly canOpenRecord = computed(() => this.anchorEntity()?.PrimaryKeys.length === 1);
     /** When a suggestion is picked, pin to that exact anchor record (overrides the name substring). */
     private readonly pinnedAnchorId = signal<string | null>(null);
 
@@ -443,6 +454,15 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         } finally {
             this.loadingDrawer.set(false);
         }
+    }
+
+    /** Open the selected scored record — whatever the model's anchor entity is — in Explorer. */
+    public openSelectedRecord(): void {
+        const sel = this.selected();
+        const entity = this.anchorEntity();
+        if (!sel || !entity || !this.canOpenRecord()) return;
+        const key = CompositeKey.FromKeyValuePair(entity.PrimaryKeys[0].Name, sel.anchorRecordId);
+        this.navigation.OpenEntityRecord(entity.Name, key);
     }
 
     /** Initials for a member's avatar. */
