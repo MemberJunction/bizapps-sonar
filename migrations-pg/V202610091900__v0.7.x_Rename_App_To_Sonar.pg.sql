@@ -9,10 +9,10 @@
 -- named 'BizAppSonar' is renamed, and only when no application is already named 'Sonar'.
 -- =============================================================================
 
-UPDATE __mj."Application"
+UPDATE ${mjSchema}."Application"
 SET "Name" = 'Sonar',
     "Path" = COALESCE(NULLIF("Path", ''), 'bizappsonar'),
     "AutoUpdatePath" = FALSE
 WHERE "ID" = '4f9477fb-bc8b-4ca9-a4fe-c0fb45496285'
   AND "Name" = 'BizAppSonar'
-  AND NOT EXISTS (SELECT 1 FROM __mj."Application" WHERE "Name" = 'Sonar');
+  AND NOT EXISTS (SELECT 1 FROM ${mjSchema}."Application" WHERE "Name" = 'Sonar');

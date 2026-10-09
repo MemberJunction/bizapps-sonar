@@ -17,10 +17,10 @@
 -- PG twin: migrations-pg/V202610091900__v0.7.x_Rename_App_To_Sonar.pg.sql
 -- =============================================================================
 
-UPDATE [__mj].[Application]
+UPDATE [${mjSchema}].[Application]
 SET Name = N'Sonar',
     Path = COALESCE(NULLIF(Path, N''), N'bizappsonar'),
     AutoUpdatePath = 0
 WHERE ID = '4F9477FB-BC8B-4CA9-A4FE-C0FB45496285'
   AND Name = N'BizAppSonar'
-  AND NOT EXISTS (SELECT 1 FROM [__mj].[Application] WHERE Name = N'Sonar');
+  AND NOT EXISTS (SELECT 1 FROM [${mjSchema}].[Application] WHERE Name = N'Sonar');
