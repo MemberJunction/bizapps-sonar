@@ -37,7 +37,49 @@ export interface FilterDescriptor {
 /** A group of conditions combined with and/or; nestable to any depth. */
 export interface CompositeFilterDescriptor {
     logic: FilterLogic;
-    filters: Array<FilterDescriptor | CompositeFilterDescriptor>;
+    filters: Array<FilterDescriptor | CompositeFilterDescriptor | RelatedExistsDescriptor>;
+}
+
+/** The two related-record operators: the anchor has (or has no) matching related row. */
+export type RelatedExistsOperator = "exists" | "notexists";
+
+/**
+ * "The anchor has a related record" — a leaf that tests ANOTHER entity, not one of the filtered
+ * entity's own columns. E.g. People that have a Member Profile:
+ *   `{ "relatedEntity": "MoreCheese: Member Profiles", "operator": "exists" }`
+ * The related entity must reach the anchor through ONE foreign key (the same single-FK rule a
+ * factor's leaf follows); `foreignKey` names it when the related entity has several. `filter`
+ * narrows the related rows by their own columns ("has an ACTIVE membership").
+ *
+ * Only meaningful where the caller can resolve entity metadata — the population filter. A factor's
+ * FilterExpression has no resolver, so a related leaf there fails loud rather than being ignored.
+ */
+export interface RelatedExistsDescriptor {
+    relatedEntity: string;
+    operator: RelatedExistsOperator;
+    foreignKey?: string;
+    filter?: CompositeFilterDescriptor;
+}
+
+/** A related-exists leaf resolved against metadata: where the related rows live and how they join. */
+export interface ResolvedRelatedSource {
+    /** Bracket-quoted related base table, e.g. "[morecheese_members].[MemberProfile]". */
+    table: string;
+    /** FK column on the related table that points at the anchor. */
+    fkColumn: string;
+    /** The filtered (anchor) entity's primary-key column the FK references. */
+    anchorKeyColumn: string;
+    /** The related table's real base-table columns, for validating the nested filter. */
+    validColumns: string[];
+}
+
+/** Resolves a related-exists leaf to SQL-ready pieces (metadata I/O lives with the caller). */
+export type RelatedExistsResolver = (node: RelatedExistsDescriptor) => ResolvedRelatedSource;
+
+/** Optional compile settings. */
+export interface CompileFilterOptions {
+    /** Enables related-exists leaves. Absent → such a leaf throws. */
+    relatedResolver?: RelatedExistsResolver;
 }
 
 /** The output of compiling a filter: a WHERE fragment plus the parameters it references. */
@@ -73,6 +115,10 @@ interface BuildContext {
      *  Set for the set-based join query (where a bare column can be ambiguous); empty for the
      *  single-entity RunView/inline path. */
     columnQualifier: string;
+    /** Resolves related-exists leaves; absent where they aren't allowed. */
+    relatedResolver?: RelatedExistsResolver;
+    /** Counter for related-subquery aliases (sx0, sx1, …), shared across the whole tree. */
+    aliasCounter: { next: number };
 }
 
 /**
@@ -88,6 +134,7 @@ export function compileFilter(
     filter: CompositeFilterDescriptor | null,
     validColumns: string[],
     columnQualifier: string = "",
+    options: CompileFilterOptions = {},
 ): CompiledFilter {
     if (!filter) {
         return { clause: null, params: {} };
@@ -100,7 +147,14 @@ export function compileFilter(
     if (filter.filters.length === 0) {
         return { clause: null, params: {} };
     }
-    const ctx: BuildContext = { validColumns, params: {}, counter: { next: 0 }, columnQualifier };
+    const ctx: BuildContext = {
+        validColumns,
+        params: {},
+        counter: { next: 0 },
+        columnQualifier,
+        relatedResolver: options.relatedResolver,
+        aliasCounter: { next: 0 },
+    };
     return { clause: buildGroup(filter, ctx), params: ctx.params };
 }
 
@@ -114,8 +168,9 @@ export function compileFilter(
 export function compileFilterInline(
     filter: CompositeFilterDescriptor | null,
     validColumns: string[],
+    options: CompileFilterOptions = {},
 ): string | null {
-    const { clause, params } = compileFilter(filter, validColumns);
+    const { clause, params } = compileFilter(filter, validColumns, "", options);
     if (!clause) {
         return null;
     }
@@ -141,10 +196,22 @@ function sqlLiteral(value: FilterValue | undefined): string {
     return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function isComposite(
-    node: FilterDescriptor | CompositeFilterDescriptor,
-): node is CompositeFilterDescriptor {
+type FilterNode = FilterDescriptor | CompositeFilterDescriptor | RelatedExistsDescriptor;
+
+function isComposite(node: FilterNode): node is CompositeFilterDescriptor {
     return "logic" in node && "filters" in node;
+}
+
+/** True for a related-exists leaf (it names another entity instead of a field). */
+export function isRelatedExists(node: FilterNode): node is RelatedExistsDescriptor {
+    return "relatedEntity" in node;
+}
+
+/** True when any node in the tree is a related-exists leaf (e.g. so a UI that can't author one
+ *  knows not to overwrite it). */
+export function filterHasRelatedExists(filter: CompositeFilterDescriptor | null): boolean {
+    if (!filter || !Array.isArray(filter.filters)) return false;
+    return filter.filters.some((n) => isRelatedExists(n) || (isComposite(n) && filterHasRelatedExists(n)));
 }
 
 /** Combine a group's children with AND/OR, wrapped in parentheses to preserve precedence. */
@@ -152,11 +219,44 @@ function buildGroup(group: CompositeFilterDescriptor, ctx: BuildContext): string
     if (group.filters.length === 0) {
         throw new Error("compileFilter: empty filter group.");
     }
-    const parts = group.filters.map((node) =>
-        isComposite(node) ? buildGroup(node, ctx) : buildLeaf(node, ctx),
-    );
+    const parts = group.filters.map((node) => {
+        if (isComposite(node)) return buildGroup(node, ctx);
+        if (isRelatedExists(node)) return buildRelatedExists(node, ctx);
+        return buildLeaf(node, ctx);
+    });
     const joiner = group.logic === "or" ? " OR " : " AND ";
     return `(${parts.join(joiner)})`;
+}
+
+/**
+ * Translate a related-exists leaf into an uncorrelated semi-join:
+ *   `[AnchorPK] IN (SELECT sx0.[FK] FROM [schema].[Related] sx0 WHERE sx0.[FK] IS NOT NULL AND (...))`
+ * Uncorrelated on purpose: the fragment lands in a RunView ExtraFilter whose FROM is unaliased (and
+ * may be a layered view rather than the entity's BaseView), so it cannot name the outer row. The
+ * `IS NOT NULL` makes `NOT IN` safe — one NULL FK would otherwise empty the whole population.
+ * Nested conditions are qualified by the subquery alias and share this tree's parameter counter.
+ */
+function buildRelatedExists(node: RelatedExistsDescriptor, ctx: BuildContext): string {
+    if (!ctx.relatedResolver) {
+        throw new Error(
+            `compileFilter: a related-record condition ('${node.relatedEntity}') is only supported in a model's population filter.`,
+        );
+    }
+    if (node.operator !== "exists" && node.operator !== "notexists") {
+        throw new Error(`compileFilter: related-record operator must be 'exists' or 'notexists' (got '${node.operator}').`);
+    }
+    const source = ctx.relatedResolver(node);
+    const alias = `sx${ctx.aliasCounter.next++}`;
+    const fk = `${alias}.[${source.fkColumn}]`;
+    const where = [`${fk} IS NOT NULL`];
+    if (node.filter && Array.isArray(node.filter.filters) && node.filter.filters.length > 0) {
+        // Related columns only, and no further nesting: the inner context has no resolver.
+        const inner: BuildContext = { ...ctx, validColumns: source.validColumns, columnQualifier: alias, relatedResolver: undefined };
+        where.push(buildGroup(node.filter, inner));
+    }
+    const key = ctx.columnQualifier ? `${ctx.columnQualifier}.[${source.anchorKeyColumn}]` : `[${source.anchorKeyColumn}]`;
+    const not = node.operator === "notexists" ? "NOT " : "";
+    return `${key} ${not}IN (SELECT ${fk} FROM ${source.table} ${alias} WHERE ${where.join(" AND ")})`;
 }
 
 /** Translate one leaf condition into a SQL predicate, registering any parameter it needs. */
