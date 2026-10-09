@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Proves the distribution gate FIRES. A gate nobody has seen fail is indistinguishable from a
- * gate that returns "pass" unconditionally — and this one guards a defect class whose whole
- * character is that everything looks fine from inside.
+ * Proves the distribution gate FIRES on what it guards (unresolvable placeholders, both dialects and
+ * teardown) and does NOT fire on what it no longer guards (metadata ahead of the last seed — that is
+ * the release gates' question, asked in publish.yml). A gate nobody has seen fail is
+ * indistinguishable from a gate that returns "pass" unconditionally.
  *
  * Plain Node rather than Vitest on purpose: the gate is stdlib-only so it can run in CI without
  * a dependency install, and its test should not reintroduce the dependency it was designed to avoid.
@@ -11,10 +12,10 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, cpSync } f
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { runChecks, buildManifest } from './check-distribution-seed.mjs';
+import { runChecks } from './check-distribution-seed.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-/** A real record file with `fields` + a `sync` block, used to plant drift in fixtures. */
+/** A real record file with `fields` + a `sync` block, used to plant a metadata-only edit in fixtures. */
 const RECORD_FILE = join('metadata', 'score-band-sets', '.score-band-sets.json');
 
 let failures = 0;
@@ -48,83 +49,53 @@ function withFixture(build, assert) {
     }
 }
 
-/** The standard delivered-and-current base most cases start from. */
-function seedAndManifest(root) {
-    writeFileSync(join(root, 'migrations', 'V1__Seed_App_Metadata.sql'), '-- seed\n');
-    writeFileSync(
-        join(root, 'migrations', 'metadata-seed.manifest.json'),
-        JSON.stringify(buildManifest(root), null, 2),
-    );
+/** A shipped seed most cases start from, so each case differs from a valid repo by one thing. */
+function seed(root) {
+    writeFileSync(join(root, 'migrations', 'V1__v0.1.x_Seed_App_Metadata.sql'), '-- seed\n');
 }
 
 console.log('distribution gate:');
 
-// 1. Metadata directories with no delivering migration anywhere.
-withFixture(
-    () => {},
-    (violations) => {
-        check(
-            'flags metadata that ships nowhere (no delivering migration)',
-            violations.some((v) => v.includes('ships') && v.includes('NOWHERE')),
-            JSON.stringify(violations),
-        );
-    },
-);
-
-// 2. A seed exists but nothing records what state it delivered.
-withFixture(
-    (root) => writeFileSync(join(root, 'migrations', 'V1__Seed_App_Metadata.sql'), '-- seed\n'),
-    (violations) => {
-        check(
-            'flags a delivering migration with no manifest to date it',
-            violations.some((v) => v.includes('metadata-seed.manifest.json')),
-            JSON.stringify(violations),
-        );
-    },
-);
-
-// 3. The common case this exists for: someone edits metadata and writes no forward migration.
+// 1. THE REASON THIS GATE WAS REWRITTEN. A metadata-only PR — a record edited, no migration — is the
+//    normal shape of a PR under the release-time model, and the build engineer's release seed carries
+//    it. The retired CHECK 1 failed exactly this, which kept every metadata-only PR red (#76, #84).
+//    If this case goes red, the PR gate has started demanding hand-written metadata SQL again.
 withFixture(
     (root) => {
-        seedAndManifest(root);
-        // Edit a record AFTER the manifest was written — exactly the drift being guarded against.
+        seed(root);
         const seedPath = join(root, RECORD_FILE);
         const records = JSON.parse(readFileSync(seedPath, 'utf-8'));
-        records[0].fields.Description = 'edited after the last delivering migration';
+        records[0].fields.Description = 'edited in a metadata-only PR';
         writeFileSync(seedPath, JSON.stringify(records, null, 2));
+        writeFileSync(join(root, 'metadata', 'score-band-sets', '.new-records.json'), JSON.stringify([
+            { fields: { Name: 'Brand new in this PR' }, primaryKey: { ID: 'ABCDEF01-2345-4678-9ABC-DEF012345678' } },
+        ], null, 2));
     },
     (violations) => {
         check(
-            'flags metadata edited after the last delivering migration',
-            violations.some((v) => v.includes('.score-band-sets.json') && v.includes('changed since')),
+            'a metadata-only change with no migration PASSES the PR gate (the release seed carries it)',
+            violations.length === 0,
             JSON.stringify(violations),
         );
     },
 );
 
-// 4. A `sync` block rewritten by a push is bookkeeping, not content — it must NOT fire, or the
-//    gate cries wolf on the very push that delivered the change.
+// 2. …and the retired manifest is not resurrected: no manifest file, no complaint about one.
 withFixture(
-    (root) => {
-        seedAndManifest(root);
-        const seedPath = join(root, RECORD_FILE);
-        const records = JSON.parse(readFileSync(seedPath, 'utf-8'));
-        records[0].sync = { lastModified: '2099-01-01T00:00:00.000Z', checksum: 'deadbeef' };
-        writeFileSync(seedPath, JSON.stringify(records, null, 2));
-    },
+    (root) => seed(root),
     (violations) => {
         check(
-            'ignores a rewritten sync block (bookkeeping, not content)',
-            !violations.some((v) => v.includes('.score-band-sets.json')),
+            'does not demand the retired metadata-seed.manifest.json',
+            !violations.some((v) => v.includes('manifest')),
             JSON.stringify(violations),
         );
     },
 );
 
-// 5. The placeholder leak, in the form it actually shipped in elsewhere in the family.
+// 3. The placeholder leak, in the form it actually shipped in elsewhere in the family.
 withFixture(
     (root) => {
-        seedAndManifest(root);
+        seed(root);
         writeFileSync(
             join(root, 'migrations', 'V2__Leak.sql'),
             "EXEC [${mjSchema}].[spUpdateExistingEntitiesFromSchema] @ExcludedSchemaNames='sys,${commonSchema}';\n",
@@ -139,10 +110,10 @@ withFixture(
     },
 );
 
-// 6. The PostgreSQL migration set is scanned too — Sonar ships both dialects.
+// 4. The PostgreSQL migration set is scanned too — Sonar ships both dialects.
 withFixture(
     (root) => {
-        seedAndManifest(root);
+        seed(root);
         mkdirSync(join(root, 'migrations-pg'), { recursive: true });
         writeFileSync(
             join(root, 'migrations-pg', 'V2__Leak.pg.sql'),
@@ -158,10 +129,10 @@ withFixture(
     },
 );
 
-// 7. Teardown scripts get a stricter map — only ${mjSchema} is substituted there (both dialects).
+// 5. Teardown scripts get a stricter map — only ${mjSchema} is substituted there (both dialects).
 withFixture(
     (root) => {
-        seedAndManifest(root);
+        seed(root);
         mkdirSync(join(root, 'migrations-teardown-pg'), { recursive: true });
         writeFileSync(
             join(root, 'migrations-teardown-pg', '01__Teardown.sql'),
@@ -177,7 +148,7 @@ withFixture(
     },
 );
 
-// 8. The real repository must pass, or the gate is not describing this codebase.
+// 6. The real repository must pass, or the gate is not describing this codebase.
 check('the repository itself passes', runChecks(REPO_ROOT).length === 0, JSON.stringify(runChecks(REPO_ROOT)));
 
 if (failures > 0) {
