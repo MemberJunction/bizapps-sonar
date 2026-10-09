@@ -94,6 +94,13 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     /** Tracks whether we score the entire population (no population filter applied). */
     public readonly scoreEveryone = signal(true);
 
+    /**
+     * True when the saved population filter holds a related-record condition ("People that have a
+     * Member Profile") — authored as config, which the visual filter builder can't represent. The
+     * builder is then shown read-only so an edit can't silently drop the condition.
+     */
+    public readonly populationHasRelatedCondition = signal(false);
+
     private readonly modelService = inject(ScoreModelService);
     private readonly factorService = inject(FactorService);
     private readonly bandService = inject(ScoreBandService);
@@ -355,7 +362,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
     public onPopulationFilterChange(filter: CompositeFilterDescriptor): void {
         this.authoredPopulationFilter = filter;
         const model = this.selectedModel();
-        if (!model || this.isPublished()) return;
+        if (!model || this.isPublished() || this.populationHasRelatedCondition()) return;
 
         if (filter.filters.length === 0) {
             this.populationIncomplete.set(false);
@@ -496,6 +503,14 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         if (t === "bit") return "boolean";
         if (t.includes("date") || t.includes("time")) return "date";
         return "string";
+    }
+
+    /** Presentation-only shape check: does any node name a related entity instead of a field? The
+     *  engine owns what such a node MEANS (RelatedExistsDescriptor); this only decides read-only. */
+    private hasRelatedCondition(node: object): boolean {
+        if ("relatedEntity" in node) return true;
+        const children = (node as { filters?: object[] }).filters;
+        return Array.isArray(children) && children.some((c) => this.hasRelatedCondition(c));
     }
 
     /** Parse a persisted PopulationFilter JSON back into a filter tree (empty when absent/invalid). */
@@ -1159,6 +1174,7 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         this.persistedPopulationFilter = model.PopulationFilter ?? null;
         this.populationIncomplete.set(false);
         this.scoreEveryone.set(this.populationFilter.filters.length === 0);
+        this.populationHasRelatedCondition.set(this.hasRelatedCondition(this.populationFilter));
 
         // The REAL scored scope, with the population filter applied, from the engine (which owns the
         // filter→SQL compiler). This used to be a bare whole-entity count_only printed as the scope,
