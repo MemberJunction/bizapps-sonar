@@ -1,8 +1,10 @@
 ---
-"@mj-biz-apps/sonar-engine": patch
-"@mj-biz-apps/sonar-core-entities-server": patch
-"@mj-biz-apps/sonar-ng": patch
+"@mj-biz-apps/sonar-engine": minor
+"@mj-biz-apps/sonar-core-entities-server": minor
+"@mj-biz-apps/sonar-ng": minor
 ---
+
+**The app is now called "Sonar"** (it was "BizAppSonar"). The new forward migration `V202610091900__v0.7.x_Rename_App_To_Sonar.sql`, with its PG twin, renames the `MJ: Applications` row `4F9477FB-…`. It keeps `Path` at `bizappsonar` and sets `AutoUpdatePath = 0`, so `/app/bizappsonar` links keep working: `MJApplicationEntityServer` would otherwise re-derive the path from the new name on the next save. The migration is idempotent, renames only a row still called `BizAppSonar`, and skips the rename when an app named `Sonar` already exists. `metadata/applications` carries the same change.
 
 **Population filters can test for a related record.** A `ScoreModel.PopulationFilter` leaf may now name another entity instead of a field. For example, `{ "relatedEntity": "MoreCheese: Member Profiles", "operator": "exists" }` scores only People that have a member profile. `notexists` is the inverse, an optional `filter` narrows the related rows by their own (base-table) columns, and `foreignKey` picks the FK when the related entity has several. It follows the factor leaf's rule: exactly one foreign key to the anchor, so an ambiguous relationship fails rather than guessing. It compiles to an uncorrelated `[PK] IN (SELECT fk … WHERE fk IS NOT NULL …)`, which is safe inside RunView's unaliased ExtraFilter and NULL-safe for `notexists`. A factor's `FilterExpression` rejects the leaf with a clear error. Anchors that drop out of the population lose their scores on the next recompute (existing population-exit behaviour). The Model Builder shows such a filter read-only, with a note, so the visual builder can't silently drop the condition. No schema change.
 
