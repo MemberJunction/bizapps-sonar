@@ -71,7 +71,7 @@ This creates the `__mj` core schema and its ~300 tables. It is the one step the 
 pnpm run mj:migrate
 ```
 
-This applies the `__mj_BizAppsSonar` schema migrations **and the seed migration** (`V…__Seed_App_Metadata.sql`), which loads Sonar's app metadata: score bands, time windows, actions, queries, the remote operation, and the authoring agent. On a clean core this is what makes the app usable without a separate metadata push.
+This applies the `__mj_BizAppsSonar` schema migrations **and the metadata seeds**: the v0.1 `V…__Seed_App_Metadata.sql`, later released metadata migrations, and each release's `V…__Metadata_Sync.sql`. Together they load Sonar's app metadata: score bands, time windows, actions, queries, the remote operation, and the authoring agent. On a clean core this is what makes the app usable without a separate metadata push. Metadata merged on `next` since the last release is not in a seed yet (the build engineer generates it at release; see [`migrations/README.md`](migrations/README.md)), so on a dev checkout run `pnpm mj sync push --dir metadata` to pick it up.
 
 ### 6. Generate entity code
 

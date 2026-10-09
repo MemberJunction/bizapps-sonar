@@ -1,40 +1,40 @@
 name: Distribution Gate
 
-# Catches the two ways this app can ship something that works here and nowhere else:
-# metadata that never made it into a delivering migration (MJ never reads mj-app.json's
-# metadata.directory at install), and SQL carrying a placeholder `mj app install` cannot resolve
-# (Skyway leaves unknown ones untouched, so they ship as literal strings rather than erroring).
-# The reasoning lives in scripts/check-distribution-seed.mjs. Ported from bizapps-sales
-# (originally bizapps-forms), adapted for Sonar's frozen-seed + forward-migration model and its
-# dual-dialect migration sets.
+# Catches SQL carrying a placeholder `mj app install` cannot resolve (Skyway leaves unknown ones
+# untouched, so they ship as literal strings rather than erroring), in both dialects and both
+# teardown sets. Metadata currency is NOT gated here: PRs contribute declarative JSON only, and the
+# build engineer generates one consolidated Metadata_Sync per release, so between releases metadata/
+# is ahead of the seed by design. That question is asked at the release, by publish.yml
+# (check:release-seed + check:seed-cadence). Reasoning: scripts/check-distribution-seed.mjs,
+# migrations/README.md, MJ/metadata/CLAUDE.md §1b. Mirrors bizapps-sales / bizapps-common.
 
 on:
   workflow_dispatch:
   # `push` as well as `pull_request`: the PR trigger alone would let a direct commit to next/main
-  # land unshipped metadata without the gate ever running.
+  # land an unresolvable placeholder without the gate ever running.
   push:
     branches: [next, main]
     paths:
-      - 'metadata/**'
       - 'migrations/**'
       - 'migrations-pg/**'
       - 'migrations-teardown/**'
       - 'migrations-teardown-pg/**'
       - 'mj-app.json'
-      - 'scripts/check-distribution-seed.mjs'
-      - 'scripts/write-seed-manifest.mjs'
+      - 'scripts/check-distribution-seed*.mjs'
+      - 'scripts/check-release-seed-*.mjs'
+      - '.github/scripts/strip-sql-comments.mjs'
       - '.github/workflows/distribution-gate.yml'
   pull_request:
     branches: [next, main]
     paths:
-      - 'metadata/**'
       - 'migrations/**'
       - 'migrations-pg/**'
       - 'migrations-teardown/**'
       - 'migrations-teardown-pg/**'
       - 'mj-app.json'
-      - 'scripts/check-distribution-seed.mjs'
-      - 'scripts/write-seed-manifest.mjs'
+      - 'scripts/check-distribution-seed*.mjs'
+      - 'scripts/check-release-seed-*.mjs'
+      - '.github/scripts/strip-sql-comments.mjs'
       - '.github/workflows/distribution-gate.yml'
 
 jobs:
@@ -49,8 +49,17 @@ jobs:
 
       # No dependency install: the gate is Node stdlib only, deliberately, so a dependency problem can never
       # be the reason nobody finds out the app does not install.
-      - name: Check delivered metadata and shipped placeholders
+      - name: Check shipped placeholders (both dialects + teardown)
         run: node scripts/check-distribution-seed.mjs
 
       - name: Check the gate itself still fires
         run: node scripts/check-distribution-seed.spec.mjs
+
+      # The release gates themselves run only in publish.yml — between releases they fail by design.
+      # Their SELF-TESTS run here too, so a PR that edits a release gate learns it broke the gate
+      # before a release does. The cadence spec builds throwaway git repos of its own; it does not
+      # need this checkout's history or tags.
+      - name: Self-test the release seed gates
+        run: |
+          node scripts/check-release-seed-coverage.spec.mjs
+          node scripts/check-release-seed-cadence.spec.mjs

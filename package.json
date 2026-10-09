@@ -26,7 +26,11 @@
     "mergemain:update-lock": "node ci/merge_main_and_update_lock.mjs",
     "test": "pnpm -r --if-present test",
     "lint:distribution": "node scripts/check-distribution-seed.mjs",
-    "seed:manifest": "node scripts/write-seed-manifest.mjs",
+    "lint:distribution:test": "node scripts/check-distribution-seed.spec.mjs",
+    "check:release-seed": "node scripts/check-release-seed-coverage.mjs",
+    "check:release-seed:test": "node scripts/check-release-seed-coverage.spec.mjs",
+    "check:seed-cadence": "node scripts/check-release-seed-cadence.mjs",
+    "check:seed-cadence:test": "node scripts/check-release-seed-cadence.spec.mjs",
     "check:pg-parity": "node scripts/check-pg-parity.mjs"
   },
   "repository": {

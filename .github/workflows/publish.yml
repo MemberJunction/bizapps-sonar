@@ -54,6 +54,12 @@ jobs:
       - name: Validate repository.url for npm provenance
         run: ./.github/scripts/validate-package-repository.sh
 
+      # Node stdlib only, so it needs nothing installed. Runs here as well as in
+      # distribution-gate.yml because that workflow is paths-filtered and this one is the release.
+      # Checks placeholders only — seed currency is the two release-readiness steps below.
+      - name: Distribution gate (shipped SQL placeholders, both dialects + teardown)
+        run: node scripts/check-distribution-seed.mjs
+
       - name: Configure git credentials
         run: |
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -69,6 +75,33 @@ jobs:
           else
             echo "Found $PENDING pending changeset(s)"
           fi
+
+      # RELEASE READINESS, and the only place these run. PRs contribute declarative JSON under
+      # metadata/ and no Metadata_Sync migration; the build engineer generates ONE consolidated seed
+      # per release from a clean database (migrations/README.md, MJ/metadata/CLAUDE.md §1b). Nothing
+      # on a feature PR can tell whether that has happened yet, so the question is asked HERE.
+      #
+      # A red step means the release seed has not been generated (or is stale). Fix it by generating
+      # the Metadata_Sync (migrations/README.md) — never by editing these steps. Both sit before
+      # `Update version` and `Publish to npm`, so a failure costs nothing but a re-run.
+      #
+      # Each self-test runs first: a gate nobody has watched fail is indistinguishable from one that
+      # always passes. Node stdlib only. Mirrors bizapps-common's publish.yml.
+      - name: Release readiness (every metadata record is in the shipped seed)
+        if: steps.changeset_check.outputs.pending != '0'
+        run: |
+          node scripts/check-release-seed-coverage.spec.mjs
+          pnpm run check:release-seed
+
+      # The half coverage cannot see: an EDITED record keeps its id, and a pile of per-PR deltas
+      # satisfies coverage while being the cadence this model abolishes. Asks: did metadata/ move
+      # since the last v* tag with no new seed? More than one unreleased seed? Is the seed empty, or
+      # older than a metadata change? Needs the tags — `fetch-depth: 0` + `fetch-tags: true` above.
+      - name: Release readiness (one consolidated seed, current with metadata/)
+        if: steps.changeset_check.outputs.pending != '0'
+        run: |
+          node scripts/check-release-seed-cadence.spec.mjs
+          pnpm run check:seed-cadence
 
       - name: Determine next expected version
         if: steps.changeset_check.outputs.pending != '0' && github.ref == 'refs/heads/main' && !github.event.inputs.targetVersion

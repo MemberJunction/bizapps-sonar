@@ -114,11 +114,10 @@ Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` a
 
 - **Never include `__mj_CreatedAt`/`__mj_UpdatedAt` in CREATE TABLE** — CodeGen handles them.
 - **Never create indexes for foreign key columns** — CodeGen creates them automatically.
-- **Use hardcoded UUIDs in seed/metadata migrations, never `NEWID()`.**
-- **Never edit an APPLIED migration.** Changing it changes its Flyway checksum, which aborts every upgrade — and Flyway won't re-run an applied version, so the edit wouldn't land anyway. Write a NEW forward migration with idempotent inserts (`IF NOT EXISTS` / `WHERE NOT EXISTS`), placed after the rows it FK-references.
-- **⚠️ `V202607142340__…_Seed_App_Metadata.sql` is FROZEN — it shipped in v0.2.0.** Editing it is what broke the v0.2.0 → v0.3.0 upgrade (PR #29). The old "regenerate the seed after editing `metadata/`" workflow is retired; it is now a footgun.
-- **Every migration needs a PostgreSQL twin** in `migrations-pg/V<same>__….pg.sql`. Template: `V202607202300__v0.3.x_Agent_Tool_Surface.sql` and its twin. PG registers Sonar entities under different `__mj.Entity` IDs, so resolve entity FKs **by Name** there, not by hardcoded id.
-- **App config in `metadata/` is dual-sourced.** `mj app install` runs migrations only, so anything `metadata/` holds (bands, windows, actions, queries, remote ops, the authoring agent) must ALSO reach the DB via a migration. `metadata/` stays the editable dev source of truth and round-trips via `mj sync`. Caveat: `metadata/agents/.sonar-agent.json` still describes the agent's `AIAgentAction` links, but forward migrations seed them — a naive seed regen would re-add them and re-break upgrades.
+- **Use hardcoded UUIDs for any row a migration inserts, never `NEWID()`.**
+- **Never edit an APPLIED migration.** Changing it changes its Flyway checksum, which aborts every upgrade — and Flyway won't re-run an applied version, so the edit wouldn't land anyway. `V202607142340__…_Seed_App_Metadata.sql` (shipped in v0.2.0) and the released v0.3.x–v0.5.x hand-written metadata migrations are append-only history: editing the seed is what broke the v0.2.0 → v0.3.0 upgrade (PR #29).
+- **Every migration needs a PostgreSQL twin** in `migrations-pg/V<same>__….pg.sql` (`check:pg-parity`; the release seed's twin comes from `mj:migrate:convert`). PG registers Sonar entities under different `__mj.Entity` IDs, so resolve entity FKs **by Name** there, not by hardcoded id.
+- **Metadata is declarative JSON in PRs; never hand-write metadata SQL.** See "How Sonar's metadata ships" below.
 - See [`migrations/README.md`](migrations/README.md).
 
 ---
@@ -169,6 +168,10 @@ See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.
 
 ## How Sonar's metadata ships
 
-Sonar does **not** use the per-release `Metadata_Sync` seed. Its seed migration is frozen, and metadata changes ship as hand-written forward migrations (see Database Migrations above and [`migrations/README.md`](migrations/README.md)). Do not regenerate a seed from `metadata/`: it would re-add the agent's `AIAgentAction` links and break upgrades again (#29).
+Sonar uses **MJ's release-time metadata model**, the same as MJ core and the other Open Apps ([Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md); the gates mirror bizapps-common / bizapps-forms). `mj app install` runs migrations only, so metadata reaches a host only through a migration — but that migration is generated at release, not written in your PR.
 
-For background only, the MJ-wide model is in the [Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md). It applies to Sonar only if Sonar moves to the release-seed model, which first needs the agent links reconciled.
+- **A PR that changes metadata carries the JSON under `metadata/` only**: fields, `@lookup`/`@file`/`@parent`, a `primaryKey` UUID from `uuidgen`, no `sync` block. **No `*Metadata_Sync.sql`, and no hand-written forward migration that inserts or updates metadata rows** (Actions, Agents, Prompts, Queries, Applications, Entity settings, bands, windows, …). A metadata-only PR with no migration is correct, and its gates are green. Reviewers (human or AI) must not flag the missing SQL.
+- **The build engineer generates ONE consolidated `V<ts>__v<x.y>.x__Metadata_Sync.sql` per release** (+ its PG twin via `mj:migrate:convert`) by running `mj sync push` against a clean database built from the shipped chain. Recipe: [`migrations/README.md`](migrations/README.md) → "Regenerating the metadata seed".
+- **Gates**: `pnpm run lint:distribution` (every PR — placeholders only, both dialects + teardown). `pnpm run check:release-seed` and `pnpm run check:seed-cadence` are **release** gates run by `publish.yml`; they fail between releases by design, and a release whose metadata is ahead of its seed fails there.
+- The old per-PR content-hash manifest (`migrations/metadata-seed.manifest.json`, `pnpm run seed:manifest`) and the `changes.yml` metadata↔migration tripwire are **retired**. Don't bring them back.
+- If a non-metadata migration must write a row `metadata/` also declares, update the JSON in the same PR — otherwise the next release seed silently reverts it.
