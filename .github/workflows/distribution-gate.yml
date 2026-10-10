@@ -37,6 +37,10 @@ on:
       - '.github/scripts/strip-sql-comments.mjs'
       - '.github/workflows/distribution-gate.yml'
 
+# Least privilege: the gate only reads the repo.
+permissions:
+  contents: read
+
 jobs:
   distribution-gate:
     runs-on: ubuntu-latest

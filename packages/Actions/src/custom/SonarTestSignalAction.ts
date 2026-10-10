@@ -39,6 +39,19 @@ export class SonarTestSignalAction extends SonarActionBase {
         if (!targetActionId) {
             return this.fail(params, "VALIDATION_ERROR", "TargetActionID is required (the signal to test).");
         }
+        if (!this.isGuid(targetActionId)) {
+            return this.failWithFix(params, "VALIDATION_ERROR", `TargetActionID '${targetActionId}' is not a valid GUID.`,
+                "pass the signal's Action GUID from the Signal Studio / factor-action catalog.");
+        }
+        // Authorization: this action deliberately bypasses the executor's code-approval gate (it runs the
+        // signal's code via an ephemeral Approved copy), so it must be limited to the people the gate exists
+        // FOR — signal authors/reviewers. Gate on Update rights for 'MJ: Actions' (the entity whose code this
+        // conceptually exercises), the same pattern as SonarUpdatePromptAction: without it, anyone able to
+        // invoke this action could execute still-unreviewed Pending code server-side.
+        const authError = this.requireEntityUpdate(params, "MJ: Actions", "signal code (MJ Actions)");
+        if (authError) {
+            return authError;
+        }
         const anchorIds = this.parseJsonParam<string[]>(params, "AnchorRecordIDs");
         if (!anchorIds || !Array.isArray(anchorIds) || anchorIds.length === 0) {
             return this.fail(params, "VALIDATION_ERROR", "AnchorRecordIDs must be a non-empty JSON array of record ids.");
