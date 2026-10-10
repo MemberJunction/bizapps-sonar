@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [next]
 
+# Least privilege: this workflow only reads the repo (checkout + build + test).
+permissions:
+  contents: read
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true

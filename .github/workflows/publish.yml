@@ -155,8 +155,13 @@ jobs:
 
       - name: Update version
         if: steps.changeset_check.outputs.pending != '0'
+        # The dispatch input goes through env (not inline ${{ }} in the script) so a crafted input
+        # value can never be interpreted as shell by the runner.
+        env:
+          TARGET_VERSION: ${{ github.event.inputs.targetVersion }}
+          COMPUTED_VERSION: ${{ steps.version_check.outputs.EXPECTED_NEXT_VERSION }}
         run: |
-          EXPECTED_NEXT_VERSION="${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}"
+          EXPECTED_NEXT_VERSION="${TARGET_VERSION:-$COMPUTED_VERSION}"
           echo "Expected next version: $EXPECTED_NEXT_VERSION"
 
           pnpm run version

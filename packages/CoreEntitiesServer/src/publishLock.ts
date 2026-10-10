@@ -24,6 +24,17 @@ import {
 
 const SCORE_MODEL_ENTITY = "MJ_BizApps_Sonar: Score Models";
 
+/**
+ * Escape a value for interpolation into a single-quoted SQL literal in a RunView ExtraFilter
+ * (MJ does not parameterize ExtraFilter). The ids these guards receive come off a DIRTY,
+ * not-yet-saved entity — i.e. they are caller-supplied strings at this point, not yet constrained
+ * to be GUIDs by the column type — so they must be escaped like any other interpolated value.
+ * Mirrors SonarActionBase.sqlString.
+ */
+export function sqlString(value: string): string {
+    return String(value).replace(/'/g, "''");
+}
+
 /** Statuses whose config is frozen. Kept as a const so the model + band-set queries agree. */
 const LOCKED_STATUSES = ["Active", "Paused"] as const;
 
@@ -129,7 +140,7 @@ async function modelConfigLockState(
     const result = await rv.RunView<{ Status: string }>(
         {
             EntityName: SCORE_MODEL_ENTITY,
-            ExtraFilter: `ID='${modelId}'`,
+            ExtraFilter: `ID='${sqlString(modelId)}'`,
             Fields: ["Status"],
             MaxRows: 1,
             ResultType: "simple",
@@ -163,7 +174,7 @@ async function bandSetConfigLockState(
     const result = await rv.RunView<{ ID: string }>(
         {
             EntityName: SCORE_MODEL_ENTITY,
-            ExtraFilter: `BandSetID='${bandSetId}' AND Status IN (${statusList})`,
+            ExtraFilter: `BandSetID='${sqlString(bandSetId)}' AND Status IN (${statusList})`,
             Fields: ["ID"],
             MaxRows: 1,
             ResultType: "simple",
