@@ -26,8 +26,8 @@
     "zod": "~3.24.4"
   },
   "peerDependencies": {
-    "@memberjunction/core": "^6.1.0-edge.4",
-    "@memberjunction/global": "^6.1.0-edge.4"
+    "@memberjunction/core": "^6.1.5",
+    "@memberjunction/global": "^6.1.5"
   },
   "repository": {
     "type": "git",

@@ -69,18 +69,17 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 - **Feature branches MUST track a remote branch of the SAME name** — never `main`. `git checkout -b <name> && git push -u origin <name>`. Verify with `git branch -vv` before every push; a branch cut from `main` tracks `origin/main` by default, which is dangerous.
 - **Flow**: feature → PR into `next` (`changes.yml` + `build.yml` validate) → merge. Release is a single coordinating PR `next` → `main`; pushing `main` triggers `publish.yml` (version, publish to npm, tag, then auto-merge back into `next` with an updated lockfile).
 - **Never commit directly to `main`.** Hotfixes still go through a PR to `main`; the publish workflow's merge-back handles reconciliation.
-- **Never hand-author the `chore: Update package-lock.json with vX.Y.Z dependencies` commit on `next`** — the publish workflow creates it. Wanting to write one by hand means something upstream is wrong.
+- **Never hand-author the `chore: Update pnpm-lock.yaml with vX.Y.Z dependencies` commit on `next`** — the publish workflow creates it. Wanting to write one by hand means something upstream is wrong.
 - Repo: https://github.com/MemberJunction/bizapps-sonar
 
 ---
 
 ## Build & Environment
 
-- **Build one package**: `npm run build` **in that package's directory**. Root builds run through Turborepo.
+- **Build one package**: `pnpm run build` **in that package's directory**. Root builds run through Turborepo.
 - **After any code change, build the affected package** and fix all TypeScript errors before moving on.
-- **Adding a dependency**: declare it in the individual package's `package.json`, then run `npm install` **at the repo root**. Never `npm install` inside a package.
-- **Ports**: MJAPI GraphQL **4102**, MJExplorer **4302** (chosen to avoid clashing with other MJ dev environments).
-- **Config**: the repo-root `.env` holds everything (DB, auth, AI keys). `apps/MJAPI/.env` is a **symlink** to it — don't create a separate file. Angular env files live in `apps/MJExplorer/src/environments/`.
+- **Adding a dependency**: declare it in the individual package's `package.json`, then run `pnpm install` **at the repo root**. Never `pnpm install` inside a package. pnpm is strict: an import a package does not declare fails to resolve instead of falling through to a hoisted copy, so declare every import.
+- **Config**: the repo-root `.env` holds everything (DB, auth, AI keys) for `mj migrate` and `mj codegen`. There is no in-repo API or Explorer; run the app on a host via `mj app install`, or link this workspace into an `mj dev workspace`.
 - **UI dev loop**: a change under `packages/Angular` needs that package rebuilt *and* the Explorer dev server restarted. Seeds/CodeGen need the API restarted.
 - Launch configs (MJAPI, MJExplorer, attach, Full Stack compound) are in `.vscode/launch.json`. Source maps are scoped to local packages only.
 
@@ -105,21 +104,20 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 Generated output lives in `packages/Entities/`, `packages/Actions/`, `packages/Server/src/generated/`, and `packages/Angular/src/lib/generated/`.
 
 - **Never manually edit files in generated directories** — CodeGen overwrites them.
-- **Always run CodeGen after schema changes**: `npm run mj:codegen` from the repo root.
+- **Always run CodeGen after schema changes**: `pnpm run mj:codegen` from the repo root.
 
 ---
 
 ## Database Migrations
 
-Run `npm run mj:migrate` from the repo root. Migrations live in `/migrations` and target `__mj_BizAppsSonar` via `${flyway:defaultSchema}`.
+Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` and target `__mj_BizAppsSonar` via `${flyway:defaultSchema}`.
 
 - **Never include `__mj_CreatedAt`/`__mj_UpdatedAt` in CREATE TABLE** — CodeGen handles them.
 - **Never create indexes for foreign key columns** — CodeGen creates them automatically.
-- **Use hardcoded UUIDs in seed/metadata migrations, never `NEWID()`.**
-- **Never edit an APPLIED migration.** Changing it changes its Flyway checksum, which aborts every upgrade — and Flyway won't re-run an applied version, so the edit wouldn't land anyway. Write a NEW forward migration with idempotent inserts (`IF NOT EXISTS` / `WHERE NOT EXISTS`), placed after the rows it FK-references.
-- **⚠️ `V202607142340__…_Seed_App_Metadata.sql` is FROZEN — it shipped in v0.2.0.** Editing it is what broke the v0.2.0 → v0.3.0 upgrade (PR #29). The old "regenerate the seed after editing `metadata/`" workflow is retired; it is now a footgun.
-- **Every migration needs a PostgreSQL twin** in `migrations-pg/V<same>__….pg.sql`. Template: `V202607202300__v0.3.x_Agent_Tool_Surface.sql` and its twin. PG registers Sonar entities under different `__mj.Entity` IDs, so resolve entity FKs **by Name** there, not by hardcoded id.
-- **App config in `metadata/` is dual-sourced.** `mj app install` runs migrations only, so anything `metadata/` holds (bands, windows, actions, queries, remote ops, the authoring agent) must ALSO reach the DB via a migration. `metadata/` stays the editable dev source of truth and round-trips via `mj sync`. Caveat: `metadata/agents/.sonar-agent.json` still describes the agent's `AIAgentAction` links, but forward migrations seed them — a naive seed regen would re-add them and re-break upgrades.
+- **Use hardcoded UUIDs for any row a migration inserts, never `NEWID()`.**
+- **Never edit an APPLIED migration.** Changing it changes its Flyway checksum, which aborts every upgrade — and Flyway won't re-run an applied version, so the edit wouldn't land anyway. `V202607142340__…_Seed_App_Metadata.sql` (shipped in v0.2.0) and the released v0.3.x–v0.5.x hand-written metadata migrations are append-only history: editing the seed is what broke the v0.2.0 → v0.3.0 upgrade (PR #29).
+- **Every migration needs a PostgreSQL twin** in `migrations-pg/V<same>__….pg.sql` (`check:pg-parity`; the release seed's twin comes from `mj:migrate:convert`). PG registers Sonar entities under different `__mj.Entity` IDs, so resolve entity FKs **by Name** there, not by hardcoded id.
+- **Metadata is declarative JSON in PRs; never hand-write metadata SQL.** See "How Sonar's metadata ships" below.
 - See [`migrations/README.md`](migrations/README.md).
 
 ---
@@ -167,3 +165,13 @@ Run `npm run mj:migrate` from the repo root. Migrations live in `/migrations` an
 ## Purpose
 
 See [`/plans/plan.md`](plans/plan.md) for the complete design and roadmap.
+
+## How Sonar's metadata ships
+
+Sonar uses **MJ's release-time metadata model**, the same as MJ core and the other Open Apps ([Release Metadata Migrations Guide](https://github.com/MemberJunction/MJ/blob/next/guides/RELEASE_METADATA_MIGRATIONS_GUIDE.md); the gates mirror bizapps-common / bizapps-forms). `mj app install` runs migrations only, so metadata reaches a host only through a migration — but that migration is generated at release, not written in your PR.
+
+- **A PR that changes metadata carries the JSON under `metadata/` only**: fields, `@lookup`/`@file`/`@parent`, a `primaryKey` UUID from `uuidgen`, no `sync` block. **No `*Metadata_Sync.sql`, and no hand-written forward migration that inserts or updates metadata rows** (Actions, Agents, Prompts, Queries, Applications, Entity settings, bands, windows, …). A metadata-only PR with no migration is correct, and its gates are green. Reviewers (human or AI) must not flag the missing SQL.
+- **The build engineer generates ONE consolidated `V<ts>__v<x.y>.x__Metadata_Sync.sql` per release** (+ its PG twin via `mj:migrate:convert`) by running `mj sync push` against a clean database built from the shipped chain. Recipe: [`migrations/README.md`](migrations/README.md) → "Regenerating the metadata seed".
+- **Gates**: `pnpm run lint:distribution` (every PR — placeholders only, both dialects + teardown). `pnpm run check:release-seed` and `pnpm run check:seed-cadence` are **release** gates run by `publish.yml`; they fail between releases by design, and a release whose metadata is ahead of its seed fails there.
+- The old per-PR content-hash manifest (`migrations/metadata-seed.manifest.json`, `pnpm run seed:manifest`) and the `changes.yml` metadata↔migration tripwire are **retired**. Don't bring them back.
+- If a non-metadata migration must write a row `metadata/` also declares, update the JSON in the same PR — otherwise the next release seed silently reverts it.

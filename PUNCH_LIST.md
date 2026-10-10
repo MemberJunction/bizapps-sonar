@@ -36,7 +36,7 @@ Start Claude Code from `~/dev/` (the parent folder) so all three repos are in sc
 
 ## Step 1 — Local environment prerequisites
 
-- [ ] Node.js ≥ 18 and npm ≥ 10 (`node -v`, `npm -v`)
+- [ ] Node.js ≥ 18 and pnpm ≥ 10 (`node -v`, `pnpm -v`)
 - [ ] Access to a **SQL Server database with MemberJunction v5.33+ installed** (the `__mj` core schema). Sonar is an Open App — it runs *on top of* an existing MJ database. Ask Madhav which dev database to point at (shared dev server vs. your own local MJ install).
 - [ ] Git access to this repo and the MJ repo
 
@@ -62,10 +62,9 @@ Start Claude Code from `~/dev/` (the parent folder) so all three repos are in sc
   ```
 - [ ] Symlink the API env file (the API reads the repo-root `.env`):
   ```bash
-  ln -s ../../.env apps/MJAPI/.env
   ```
-- [ ] `npm install` from the **repo root** (never inside package directories)
-- [ ] Verify the scaffold builds: `npm run build` — all packages and MJAPI should pass. (MJExplorer needs internet access to inline Google Fonts during prod builds; `npm run start:explorer` for dev doesn't.)
+- [ ] `pnpm install` from the **repo root** (never inside package directories)
+- [ ] Verify the scaffold builds: `pnpm run build` — all packages should pass.
 
 ## Step 3 — Learn the repo layout
 
@@ -74,8 +73,6 @@ mj-app.json          ← Open App manifest: schema __mj_BizAppsSonar, packages, 
 mj.config.cjs        ← CodeGen config: 'Sonar: ' entity prefix, output paths
 migrations/          ← YOUR migrations (Skyway/Flyway) — empty today, see its README
 metadata/            ← mj-sync metadata (schema-info is set up; more comes later)
-apps/MJAPI           ← GraphQL server, port 4102
-apps/MJExplorer      ← Angular Explorer shell, port 4302
 packages/
   Entities/            ← CodeGen output: entity subclasses (placeholder today)
   Actions/             ← CodeGen output: action subclasses (placeholder today)
@@ -122,25 +119,24 @@ Defer write-back (§5.5), action layer (§5.6), calibration (§5.7), and templat
   - Hardcoded UUIDs for any seed rows, never `NEWID()`
   - One `CREATE TABLE` per table; if altering, one consolidated `ALTER TABLE` per table
 - [ ] Get the migration reviewed (Madhav) **before** running it — schema mistakes are cheap now, expensive after CodeGen has run
-- [ ] Apply it: `npm run mj:migrate`
+- [ ] Apply it: `pnpm run mj:migrate`
 
 ## Step 6 — Run CodeGen and absorb the output
 
-- [ ] `npm run mj:codegen` — this connects to the database, discovers the new `__mj_BizAppsSonar` tables, and:
+- [ ] `pnpm run mj:codegen` — this connects to the database, discovers the new `__mj_BizAppsSonar` tables, and:
   - Replaces `packages/Entities/src/generated/entity_subclasses.ts` with real `Sonar: `-prefixed entity classes (Zod schemas, typed getters/setters)
   - Replaces `packages/Server/src/generated/generated.ts` with TypeGraphQL resolvers
   - Generates Angular CRUD forms into `packages/Angular/src/lib/generated/`
   - Writes views/sprocs/FK-indexes to the DB and logs SQL to `migrations/codegen/`
   - Builds the packages (configured in `mj.config.cjs` `commands`)
 - [ ] Review the diff. Generated entity names should read `Sonar: Score Models`, `Sonar: Factors`, etc. If prefixes are wrong, check `mj.config.cjs` `newEntityDefaults` before going further.
-- [ ] Push the metadata baseline: `npx mj-sync push --dir=metadata` (schema-info first — it's already ordered in `metadata/.mj-sync.json`)
-- [ ] `npm run build` from root — everything must compile with the real generated code
+- [ ] Push the metadata baseline: `pnpm exec mj-sync push --dir=metadata` (schema-info first — it's already ordered in `metadata/.mj-sync.json`)
+- [ ] `pnpm run build` from root — everything must compile with the real generated code
 - [ ] Commit migration + CodeGen output + metadata together on your feature branch, PR → `next`
 
 ## Step 7 — Verify the running stack
 
-- [ ] `npm run start:api` → MJAPI on http://localhost:4102, watch for clean startup and `LoadSonarServer` registration
-- [ ] `npm run start:explorer` → Explorer on http://localhost:4302, log in
+- [ ] Start a host that has the app installed (or linked via `mj dev workspace`), watch for clean startup and `LoadSonarServer` registration, then log in to its Explorer
 - [ ] In Explorer, confirm the Sonar entities appear and the generated forms open (create a test `ScoreModel` row end-to-end)
 
 ## Step 8 — After the schema: the build-out (in roadmap order)
@@ -159,8 +155,8 @@ Each of these is its own feature branch / PR. Details in `plans/plan.md` §6–�
 1. **Never edit anything in a `generated/` directory** — CodeGen will overwrite it. Custom behavior goes in subclasses (`CoreEntitiesServer`, `custom/` forms).
 2. **No `any` types. Ever.** See CLAUDE.md.
 3. **Migration → migrate → CodeGen → then write code** that uses the new fields. Never code against fields that haven't been generated yet.
-4. After changing any package: `cd packages/<Pkg> && npm run build` before moving on.
-5. `npm install` only at repo root.
+4. After changing any package: `cd packages/<Pkg> && pnpm run build` before moving on.
+5. `pnpm install` only at repo root.
 6. Entity access always via `md.GetEntityObject<T>('Sonar: ...')` / `RunView` — never `new SomeEntity()`. Server-side code always passes `contextUser`.
 7. Branch from `next`, push with `-u origin <same-name>`, verify `git branch -vv`.
 

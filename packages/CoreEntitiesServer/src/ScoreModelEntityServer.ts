@@ -1,7 +1,7 @@
 import {
     BaseEntity,
     EntitySaveOptions,
-    Metadata,
+    IMetadataProvider,
     RunView,
     RunViewResult,
     LogError,
@@ -25,6 +25,7 @@ import {
     isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
 } from "./publishLock";
 import { describeCoverageProblem } from "./bandCoverage";
+import { commitPublish, PublishTransactionProvider } from "./publishTransaction";
 
 /**
  * Server-side subclass of the Sonar ScoreModel entity. Two lifecycle hooks:
@@ -133,7 +134,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
      * batched existence query (MaxRows:1) for the cross-record checks.
      */
     private async validatePublishable(result: ValidationResult): Promise<void> {
-        const rv = new RunView();
+        const rv = this.runView();
         const [factorCheck, bandCheck] = await rv.RunViews(
             [
                 {
@@ -219,7 +220,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
      * factor or remove it from the rubric.
      */
     private async validateActionFactorsApproved(result: ValidationResult): Promise<void> {
-        const rv = new RunView();
+        const rv = this.runView();
         const rubric = await rv.RunView<{ FactorID: string }>(
             {
                 EntityName: "MJ_BizApps_Sonar: Model Factors",
@@ -304,85 +305,84 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     }
 
     /**
-     * Publish path: freeze the current config into a new immutable version and make it
-     * current atomically. The demote, the version insert, and the model update all
-     * commit together via a single transaction group, or none of them do. This is what
-     * removes the rollback hazard: a failed version insert can never leave the model
-     * pointing at a demoted version (or at nothing).
+     * Publish path: freeze the current config into a new immutable version and make it current
+     * atomically. The demote, the version insert, and the model update commit together or not at
+     * all — and they do so inside the CALLER's transaction (see {@link commitPublish}), so an outer
+     * unit of work that fails after this publish (e.g. a `mj sync push`) rolls the publish back too.
      */
     private async publishWithSnapshot(
         options?: EntitySaveOptions,
     ): Promise<boolean> {
         // Publishability gate FIRST — before any snapshot or transaction work. Save() routes a
         // publish straight here, so the base flow's own ValidateAsync wouldn't fire until the
-        // final super.Save() below, after the version rows are already queued. Running it here
-        // means an invalid publish does no wasted work and queues nothing. On failure, route back
-        // through the normal Save so the errors surface on LatestResult (and we never reach Submit).
+        // final super.Save() below. On failure, route back through the normal Save so the errors
+        // surface on LatestResult.
         const validation = await this.ValidateAsync();
         if (!validation.Success) {
             return await super.Save(options);
         }
 
-        // Gather everything we need to freeze BEFORE opening the transaction — these are
-        // reads, and must not be part of the atomic write set.
+        // Reads first (outside the write scope), on this entity's own provider so they see the
+        // caller's uncommitted rubric rows (read-your-writes inside a push transaction).
         const snapshot = await this.buildConfigSnapshot();
         const nextVersionNumber = await this.nextVersionNumber();
-
-        const md = new Metadata();
-        const tg = await md.CreateTransactionGroup();
-
-        // demote current version
-        const pv = await this.loadPriorVersion();
-        if (pv) {
-            pv.TransactionGroup = tg;
-            pv.IsCurrent = false;
-            await pv.Save();
+        const priorVersion = await this.loadPriorVersion();
+        const version = await this.newVersionRecord(snapshot, nextVersionNumber);
+        if (priorVersion) {
+            priorVersion.IsCurrent = false;
         }
 
-        const version = await md.GetEntityObject<mjBizAppsSonarScoreModelVersionEntity>(
+        const previousPointer = this.CurrentVersionID;
+        const outcome = await commitPublish(this.ProviderToUse as PublishTransactionProvider, {
+            priorVersion,
+            newVersion: version,
+            saveModel: async () => {
+                this.CurrentVersionID = version.ID;
+                const saved = await super.Save(options);
+                return { ok: saved, message: this.LatestResult?.CompleteMessage };
+            },
+        });
+        if (outcome.status === "rolledBack") {
+            // The scope rolled back — don't leave this instance pointing at a version that no longer exists.
+            this.CurrentVersionID = previousPointer;
+            LogError(`ScoreModelEntityServer: publish rolled back for ${this.ID}: ${outcome.error}`);
+            return false;
+        }
+        return true;
+    }
+
+    /** An unsaved ScoreModelVersion carrying the snapshot, created on this entity's provider. */
+    private async newVersionRecord(
+        snapshot: string,
+        versionNumber: number,
+    ): Promise<mjBizAppsSonarScoreModelVersionEntity> {
+        const version = await this.sameProviderEntity<mjBizAppsSonarScoreModelVersionEntity>(
             "MJ_BizApps_Sonar: Score Model Versions",
-            this.ContextCurrentUser,
         );
         version.NewRecord();
         version.ScoreModelID = this.ID;
-        version.VersionNumber = nextVersionNumber;
+        version.VersionNumber = versionNumber;
         version.ConfigSnapshotJSON = snapshot;
         version.IsCurrent = true;
         if (this.ContextCurrentUser?.ID) {
             version.PublishedByUserID = this.ContextCurrentUser.ID;
         }
+        return version;
+    }
 
-        version.TransactionGroup = tg;
-        await version.Save();
+    /**
+     * An entity object on THIS entity's provider (not the global default), so its save joins the
+     * same connection and transaction. The cast is the one BaseEntity itself uses for child
+     * entities: a provider that saves entities is also the metadata provider that creates them.
+     */
+    private async sameProviderEntity<T extends BaseEntity>(entityName: string): Promise<T> {
+        const provider = this.ProviderToUse as unknown as IMetadataProvider;
+        return provider.GetEntityObject<T>(entityName, this.ContextCurrentUser);
+    }
 
-        // update model's version to latest
-        this.CurrentVersionID = version.ID;
-        this.TransactionGroup = tg;
-        const modelSaved = await super.Save(options);
-        if (!modelSaved) {
-            // The model's own save failed (e.g. validation at queue time) — do NOT submit the
-            // queued demote + version insert, or we'd persist a half-published state.
-            LogError(
-                `ScoreModelEntityServer: model save failed during publish for ${this.ID}: ${
-                    this.LatestResult?.CompleteMessage ?? "unknown"
-                }`,
-            );
-            return false;
-        }
-
-        // complete atomic transaction for all changes
-        const ok = await tg.Submit();
-        if (!ok) {
-            LogError(
-                `ScoreModelEntityServer: publish transaction failed for ${
-                    this.ID
-                }: ${
-                    this.LatestResult?.CompleteMessage ??
-                    "see per-entity ResultHistory"
-                }`,
-            );
-        }
-        return ok;
+    /** A RunView bound to this entity's provider (read-your-writes inside the caller's transaction). */
+    private runView(): RunView {
+        return new RunView(this.RunViewProviderToUse);
     }
 
     /**
@@ -391,10 +391,8 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
      */
     private async loadPriorVersion(): Promise<mjBizAppsSonarScoreModelVersionEntity | null> {
         if (!this.CurrentVersionID) return null;
-        const md = new Metadata();
-        const v = await md.GetEntityObject<mjBizAppsSonarScoreModelVersionEntity>(
+        const v = await this.sameProviderEntity<mjBizAppsSonarScoreModelVersionEntity>(
             "MJ_BizApps_Sonar: Score Model Versions",
-            this.ContextCurrentUser,
         );
         const loaded = await v.Load(this.CurrentVersionID);
         return loaded ? v : null;
@@ -406,7 +404,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
      * The engine can score from this JSON alone.
      */
     private async buildConfigSnapshot(): Promise<string> {
-        const rv = new RunView();
+        const rv = this.runView();
         const [related, modelFactors, bands] = await rv.RunViews(
             [
                 {
@@ -454,7 +452,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             return [];
         }
         const idList = modelFactors.map((mf) => `'${mf.FactorID}'`).join(",");
-        const rv = new RunView();
+        const rv = this.runView();
         const result = await rv.RunView<mjBizAppsSonarFactorEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Factors",
@@ -468,7 +466,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
 
     /** Next monotonic version number for this model (max existing + 1). */
     private async nextVersionNumber(): Promise<number> {
-        const rv = new RunView();
+        const rv = this.runView();
         const result = await rv.RunView<mjBizAppsSonarScoreModelVersionEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",

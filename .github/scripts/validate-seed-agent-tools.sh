@@ -46,7 +46,7 @@ check_dir() {
   fi
   links=$(printf '%s\n' "$stream" | grep -icE "$link_re")
   if [ "$links" -eq 0 ]; then
-    echo "::error::[$label] an AI agent is seeded but NO AIAgentAction tool links exist anywhere in $dir/. A Loop agent with zero tools reports every action as 'unavailable'. Add a (forward) migration seeding the agent's tool links for this dialect. See #24 (SQL Server) and the PG parity fix."
+    echo "::error::[$label] an AI agent is seeded but NO AIAgentAction tool links exist anywhere in $dir/. A Loop agent with zero tools reports every action as 'unavailable'. Declare the agent's tool links in metadata/agents/ so the release Metadata_Sync (and its PG twin) carries them (migrations/README.md). See #24 (SQL Server) and the PG parity fix."
     return 1
   fi
 
@@ -89,7 +89,7 @@ for u, a, l in bad:
     print(f"::error::[{label}] AIAgentAction link at stream line {l} references Action {u}, which "
           f"this stream does not create until line {a}. On a clean install the FK-referenced Action "
           f"row does not exist yet => the seed aborts on a FK violation. Seed the link after the "
-          f"Action (same migration, later in the file) or in a later forward migration. See #27.")
+          f"Action (same migration, later in the file) or in a later migration. See #27.")
 if bad:
     sys.exit(1)
 

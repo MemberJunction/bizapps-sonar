@@ -42,3 +42,18 @@ side-effect imports (`@mj-biz-apps/sonar-actions`, `@memberjunction/ai-gemini`, 
 | Script | What it does |
 |---|---|
 | `delete-stray-sonar-app.cjs` | Removes a stray duplicate Sonar app registration (cleanup utility). |
+
+## CI / release gates (these ARE wired into CI)
+
+Node stdlib only, so they run without `pnpm install`. Each has a `.spec.mjs` self-test that proves it
+fires. The model they enforce is in [`../migrations/README.md`](../migrations/README.md).
+
+| Script | Runs | What it checks |
+|---|---|---|
+| `check-distribution-seed.mjs` (`pnpm run lint:distribution`) | every PR (`distribution-gate.yml`) + `publish.yml` | Shipped SQL (both dialects + teardown) uses only placeholders `mj app install` supplies. |
+| `check-release-seed-coverage.mjs` (`pnpm run check:release-seed`) | `publish.yml` only | Every `primaryKey` UUID under `metadata/` is named by some `migrations/*.sql`. |
+| `check-release-seed-cadence.mjs` (`pnpm run check:seed-cadence`) | `publish.yml` only | One consolidated `Metadata_Sync` per release, owed when `metadata/` moved since the last tag, non-empty and not older than any metadata change. |
+| `check-pg-parity.mjs` (`pnpm run check:pg-parity`) | build | Every `migrations/*.sql` has a valid PostgreSQL twin. |
+
+The two release gates fail between releases by design (metadata merged on `next` waits for the build
+engineer's release seed), which is why no PR workflow runs them — only their self-tests.
