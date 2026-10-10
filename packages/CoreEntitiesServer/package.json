@@ -25,10 +25,10 @@
     "@mj-biz-apps/sonar-entities": "0.6.0"
   },
   "peerDependencies": {
-    "@memberjunction/core": "^6.1.0-edge.4",
-    "@memberjunction/core-entities": "^6.1.0-edge.4",
-    "@memberjunction/global": "^6.1.0-edge.4",
-    "@memberjunction/sqlserver-dataprovider": "^6.1.0-edge.4"
+    "@memberjunction/core": "^6.1.5",
+    "@memberjunction/core-entities": "^6.1.5",
+    "@memberjunction/global": "^6.1.5",
+    "@memberjunction/sqlserver-dataprovider": "^6.1.5"
   },
   "repository": {
     "type": "git",
