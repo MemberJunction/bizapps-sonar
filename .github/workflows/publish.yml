@@ -248,18 +248,24 @@ jobs:
           node scripts/check-release-seed-cadence.spec.mjs
           pnpm run check:seed-cadence
 
+      # Build, tests and parity guard what gets published, so they run only when something will be
+      # (work == 'true'). A re-run whose only job is finishing the back-merge skips them: the release
+      # they would verify is already on npm, and a flaky test must not hold that back-merge hostage.
       - name: Build all packages
+        if: steps.release_check.outputs.work == 'true'
         run: pnpm run build:packages
 
       # Until this step existed, the vitest suites (Engine, CoreEntitiesServer, Actions) ran on PRs
       # in build.yml and never against the tree that actually ships. Runs after the build because
       # the suites import the packages' built siblings.
       - name: Unit tests
+        if: steps.release_check.outputs.work == 'true'
         run: pnpm test
 
       # Every migrations/*.sql has a T-SQL-free twin in migrations-pg/. release-prep --plan asked
       # this before the release PR existed; asking again here covers whatever merged after it.
       - name: PostgreSQL parity gate
+        if: steps.release_check.outputs.work == 'true'
         run: node scripts/check-pg-parity.mjs
 
       - name: Publish to npm

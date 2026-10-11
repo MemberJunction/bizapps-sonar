@@ -229,7 +229,7 @@ export function assessRelease(facts) {
 
     for (const gate of GATE_SCRIPTS) {
         if (gateResults[gate] !== 0) {
-            blockers.push(`\`npm run ${gate}\` failed (exit ${gateResults[gate]}): ${GATE_MEANINGS[gate]}`);
+            blockers.push(`\`pnpm run ${gate}\` failed (exit ${gateResults[gate]}): ${GATE_MEANINGS[gate]}`);
         }
     }
 
