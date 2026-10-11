@@ -2,47 +2,168 @@ name: Build All Packages
 
 on:
   workflow_dispatch:
+  # `main` as well as `next`. Filtered to `[next]`, a pull request whose base is `main` (every
+  # next → main release promotion) never started this workflow at all, so once its job is a
+  # required check on main the release PR deadlocks (bizapps-forms #173).
+  #
+  # No `paths:` filter either. A workflow skipped by `on: paths:` creates NO check run, so the PR
+  # hangs on "Expected — Waiting for status" forever; a job skipped by an `if:` reports `skipped`,
+  # which a required check treats as passing. The path list therefore lives in the `scope` job.
   push:
-    branches: [next]
+    branches: [next, main]
   pull_request:
-    branches: [next]
+    branches: [next, main]
 
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+# GitHub's implicit shell is `bash -e {0}`, without pipefail; naming it gives `-eo pipefail`, so a
+# failing command inside a pipeline fails the step instead of being masked by the last command's
+# status. No step here pipes today; this keeps one added later honest (see changes.yml).
+defaults:
+  run:
+    shell: bash
+
 jobs:
+  # Answers one question (is there anything here for build-only to do?) and nothing else. It
+  # exists because the path list can no longer live in `on:`, and a job-level `if:` cannot read a
+  # diff by itself.
+  #
+  # Why each entry is in the list:
+  #   - The root build inputs (pnpm-lock.yaml, pnpm-workspace.yaml, .npmrc, turbo.json,
+  #     package.json, tsconfig.angular.json, tsconfig.server.json): a `packages/` prefix cannot
+  #     reach the repository root, and every package tsconfig `extends` one of the two tsconfigs.
+  #     `tsconfig.` is not a prefix pattern, so both are named exactly.
+  #   - migrations/ and migrations-pg/: check:pg-parity runs here and nowhere else on a PR, and a
+  #     PG-only migration PR is a normal shape.
+  #   - .github/: the boundary gate, the validator self-test, and check-release-pushes.mjs (which
+  #     reads every workflow) all run here, so a PR editing only a gate must still run the gate.
+  #   - ci/: the release scripts that pushed straight to main and next lived here
+  #     (bizapps-forms #177). The push scripts are gone; ci/ still holds the teardown generators
+  #     and stays in scope, so a PR reintroducing a push script there runs the gate that forbids it.
+  #   - mj-app.json: the client/server package boundary gate reads it.
+  # scripts/check-paths-touched.spec.mjs pins each entry, so shortening this list fails a check
+  # rather than quietly widening the hole.
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.decide.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The decision is a diff against the base, which shallow history does not contain.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # The decider runs before it is trusted. Its restrictive-direction failure reports SUCCESS,
+      # so an unwatched decider is indistinguishable from one that always says "nothing to do".
+      # Plain `node`, no install: the script and its spec are stdlib only.
+      - name: Check the path decider still fires
+        run: node --test scripts/check-paths-touched.spec.mjs
+
+      - name: Does this change touch anything build-only reads?
+        id: decide
+        env:
+          # A pull_request diffs against its base; a push diffs against what was there before it.
+          # A workflow_dispatch has neither, which check-paths-touched.mjs treats as fail-open.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        # The script prints a ready-made `relevant=…` line, so its stdout goes straight to
+        # $GITHUB_OUTPUT (a per-step file, so the `cat` shows this decision alone).
+        run: |
+          node scripts/check-paths-touched.mjs "$BASE_SHA" "$HEAD_SHA" \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            .npmrc \
+            turbo.json \
+            package.json \
+            tsconfig.angular.json \
+            tsconfig.server.json \
+            packages/ \
+            scripts/ \
+            migrations/ \
+            migrations-pg/ \
+            .github/ \
+            ci/ \
+            mj-app.json >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  # The job id stays `build-only`: required-check names are derived from it.
   build-only:
+    needs: scope
+    # A job skipped by this `if:` reports `skipped`, which a required status check treats as
+    # passing. That is the whole reason the path list moved out of `on:`.
+    #
+    # The `needs.scope.result != 'success'` half is not padding. A job `if:` is implicitly ANDed
+    # with `success()` over its `needs`, so without it a FAILING scope job (the self-test catching
+    # a broken decider, say) would skip this job and report a passing required check over a build
+    # that never ran. If the decider could not decide, build.
+    #
+    # `!cancelled()` rather than `always()`: `always()` keeps a job running after cancellation is
+    # requested, and `cancel-in-progress: true` above would then leave every superseded push
+    # starting a 30-minute build nothing stops. The residual gap is a deliberate manual cancel on
+    # the head SHA, which is visible in the run list. Revisit if the concurrency group changes.
+    if: ${{ !cancelled() && (needs.scope.result != 'success' || needs.scope.outputs.relevant == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
+      # Must precede setup-node: `cache: 'pnpm'` needs pnpm already on PATH.
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Validate repository.url in packages
         run: ./.github/scripts/validate-package-repository.sh
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      # The release scripts' own specs. They run nowhere else on a PR, and each guards a step of
+      # publish.yml or release-prep.yml, where a broken script is found only at release time.
+      # lint:paths-touched:test also runs in `scope`, on purpose: `scope` is not a required check, so a
+      # broken decider must also turn THIS (required) job red, not just a job nobody is blocked by.
+      - name: Release script specs
+        run: |
+          pnpm run lint:sync-app-version:test
+          pnpm run lint:release-plan:test
+          pnpm run lint:paths-touched:test
+          pnpm run lint:release-prep:test
+          pnpm run lint:release-pushes:test
+
+      # No workflow or script may push to `main` or `next`: both are ruleset-protected with
+      # required checks, so such a push is rejected permanently (bizapps-forms #177).
+      - name: No release push to a protected branch
+        run: pnpm run lint:release-pushes
+
+      # Also runs (with the other validators' self-tests) in changes.yml. Duplicated on purpose:
+      # changes.yml runs on pull requests only, and this workflow also gates direct pushes.
+      - name: Self-test the CI validator scripts
+        run: ./.github/scripts/selftest.sh
+
+      - name: Client/server package boundary
+        run: ./.github/scripts/validate-client-package-boundary.sh
 
       - name: Build all packages
-        run: npm run build:packages
+        run: pnpm run build:packages
 
       # Three packages carry real vitest suites (Engine, CoreEntitiesServer, Actions) that CI
       # never ran before this step existed. --if-present keeps the echo-stub workspaces harmless.
       - name: Unit tests
-        run: npm test
+        run: pnpm test
 
-      # Guarded until PR #60 lands the parity checker; then the guard is dead weight to remove.
       - name: PostgreSQL parity gate
-        run: |
-          if [ -f scripts/check-pg-parity.mjs ]; then
-            node scripts/check-pg-parity.mjs
-          else
-            echo "scripts/check-pg-parity.mjs not present yet (PR #60) — skipping"
-          fi
+        run: pnpm run check:pg-parity

@@ -8,6 +8,20 @@ concurrency:
   group: changes-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+# `shell: bash` is not a no-op. With no shell named, GitHub runs `bash -e {0}`, which has NO
+# pipefail: `X=$(git ls-tree <bad sha> … | tail -1)` takes tail's status, and a failing git turns
+# into an empty, passing answer. Naming the shell gives `bash --noprofile --norc -eo pipefail {0}`.
+# Every pipeline below is written for that: expected "no match" from grep is wrapped as
+# `{ grep … || true; }` so it cannot mask the command feeding it, and `grep -q` reads a here-string
+# rather than a pipe, because its early exit would SIGPIPE the writer and pipefail would read that
+# as "no match".
+defaults:
+  run:
+    shell: bash
+
 jobs:
   changes_and_migrations:
     runs-on: ubuntu-latest
@@ -21,10 +35,17 @@ jobs:
         with:
           node-version: 24
 
+      # Both dialects. A PR that touches only migrations-pg/ is a normal shape (a hand-finished PG
+      # twin), and it ships to every PostgreSQL host verbatim, so it gets the same checks as a SQL
+      # Server migration. Top-level files only: migrations-pg/docs/ holds tooling, not migrations.
       - name: Check for migration file changes
         id: migration_check
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
-          MIGRATION_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^migrations/.*\.sql$' || true)
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          MIGRATION_FILES=$({ grep -E '^migrations(-pg)?/[^/]+\.sql$' || true; } <<< "$CHANGED")
           if [ -n "$MIGRATION_FILES" ]; then
             echo "has_migrations=true" >> "$GITHUB_OUTPUT"
             echo "Migration files changed:"
@@ -33,48 +54,85 @@ jobs:
             echo "has_migrations=false" >> "$GITHUB_OUTPUT"
             echo "No migration files changed"
           fi
+          if grep -qE '^migrations/' <<< "$MIGRATION_FILES"; then
+            echo "has_sqlserver=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_sqlserver=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -qE '^migrations-pg/' <<< "$MIGRATION_FILES"; then
+            echo "has_pg=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_pg=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Self-test the CI validator scripts
         run: ./.github/scripts/selftest.sh
 
-      - name: Validate migration filenames
-        if: steps.migration_check.outputs.has_migrations == 'true'
-        run: ./.github/scripts/validate-migration-filenames.sh
+      - name: Validate migration filenames (SQL Server)
+        if: steps.migration_check.outputs.has_sqlserver == 'true'
+        run: ./.github/scripts/validate-migration-filenames.sh migrations
 
+      - name: Validate migration filenames (PostgreSQL)
+        if: steps.migration_check.outputs.has_pg == 'true'
+        run: ./.github/scripts/validate-migration-filenames.sh migrations-pg
+
+      # Per directory: a new migrations-pg/ file is compared with the migrations-pg/ max on the base,
+      # not with the SQL Server chain's, because Flyway orders each chain on its own. `git ls-tree`
+      # rather than `git show <sha>:dir/ … || echo 0`: it prints nothing for a directory absent on the
+      # base (max 0, which is correct) and exits non-zero on a bad SHA, which pipefail (see
+      # `defaults` above) turns into a failed step instead of a silent max of 0.
       - name: Validate migration timestamps are newer than existing
         if: steps.migration_check.outputs.has_migrations == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
-          # Get max timestamp from existing migrations on base branch
-          MAX_EXISTING=$(git show ${{ github.event.pull_request.base.sha }}:migrations/ 2>/dev/null | \
-            grep -oE 'V[0-9]{12}' | sed 's/^V//' | sort -n | tail -1 || echo "0")
+          for dir in migrations migrations-pg; do
+            MAX_EXISTING=$(git ls-tree --name-only "$BASE_SHA" "$dir/" | sed 's#.*/##' \
+              | { grep -oE '^V[0-9]{12}' || true; } | sed 's/^V//' | sort -n | tail -1)
+            MAX_EXISTING=${MAX_EXISTING:-0}
 
-          # Check only newly added migration files (not modified existing ones, not renames)
-          NEW_FILES=$(git diff --diff-filter=A --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- migrations/ | grep -E '\.sql$' || true)
-          for file in $NEW_FILES; do
-            basename=$(basename "$file")
-            timestamp=$(echo "$basename" | grep -oE '^V[0-9]{12}' | sed 's/^V//' || true)
-            if [ -n "$timestamp" ] && [ "$timestamp" -le "$MAX_EXISTING" ]; then
-              echo "::error::Migration $basename has timestamp ($timestamp) <= max existing ($MAX_EXISTING)"
-              exit 1
-            fi
+            # Only newly added files (not modified existing ones, not renames).
+            NEW_FILES=$(git diff --diff-filter=A --name-only "$BASE_SHA" "$HEAD_SHA" -- "$dir/" \
+              | { grep -E "^$dir/[^/]+\.sql\$" || true; })
+            for file in $NEW_FILES; do
+              basename=$(basename "$file")
+              timestamp=$({ grep -oE '^V[0-9]{12}' || true; } <<< "$basename" | sed 's/^V//')
+              if [ -n "$timestamp" ] && [ "$timestamp" -le "$MAX_EXISTING" ]; then
+                echo "::error::$dir/$basename has timestamp ($timestamp) <= max existing in $dir/ ($MAX_EXISTING)"
+                exit 1
+              fi
+            done
+            echo "$dir/: all new migration timestamps are newer than $MAX_EXISTING"
           done
-          echo "All new migration timestamps are valid"
 
+      # Fires on a migration in EITHER dialect: a PG-only migration is still a schema change.
       - name: Check for changeset (PRs to next with migrations)
         if: |
           steps.migration_check.outputs.has_migrations == 'true' &&
           github.base_ref == 'next'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
-          CHANGESET_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '^\.changeset/.*\.md$' | grep -v 'README.md' || true)
+          # Added, modified or renamed (a renamed changeset still counts); a changeset deleted by this
+          # PR is not on disk to read.
+          CHANGESET_FILES=$(git diff --diff-filter=AMR --name-only "$BASE_SHA" "$HEAD_SHA" \
+            | { grep -E '^\.changeset/.*\.md$' || true; } | { grep -v 'README.md' || true; })
           if [ -z "$CHANGESET_FILES" ]; then
-            echo "::error::Migrations were added but no changeset found. Run 'npx changeset' to create one with at least a 'minor' bump."
+            echo "::error::Migrations were added but no changeset found. Run 'pnpm exec changeset' to create one with at least a 'minor' bump."
             exit 1
           fi
 
-          # Check that at least one changeset has 'minor' or 'major' bump
+          # The FIRST frontmatter block only (`n==1`; a later `---` rule in the prose cannot reopen
+          # it), CRLF-tolerant. The old `grep -qE "minor|major"` over the whole file passed a patch
+          # changeset whose prose merely said "minor". Captured first so an awk failure fails the
+          # step under -e, and so `grep -q` reads a here-string (see `defaults` above).
           HAS_SUFFICIENT_BUMP=false
           for f in $CHANGESET_FILES; do
-            if grep -qE "minor|major" "$f"; then
+            FRONTMATTER=$(awk '/^---\r?$/{n++;next} n==1' "$f")
+            # No `\r` here: it is not a defined POSIX ERE escape, and `\s*` already takes a CRLF's CR.
+            if grep -Eq ':\s*(minor|major)\s*$' <<< "$FRONTMATTER"; then
               HAS_SUFFICIENT_BUMP=true
               break
             fi
@@ -86,24 +144,13 @@ jobs:
           fi
           echo "Valid changeset with minor or major bump found"
 
-      - name: Check a migration delivers changed metadata config
-        run: |
-          # mj app install runs migrations only (not metadata/), so installable config that
-          # changes in metadata/ must be delivered to installs by a migration. The seed
-          # (V…_Seed_App_Metadata.sql) is FROZEN (shipped in v0.2.0 — never regenerate it, see
-          # migrations/README.md); new/changed config now goes in a NEW forward migration
-          # (migrations/V… and, for PG parity, migrations-pg/V…). Tripwire: if installable
-          # metadata config changed but NO migration was added/changed, a clean install ships
-          # stale config. .mj-sync.json is excluded — it's dev-only capture config, not installed.
-          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          CONFIG_CHANGED=$(echo "$CHANGED" | grep -E '^metadata/(score-band-sets|score-bands|time-windows|actions|queries|remote-operations|templates|prompts|agents|applications)/' | grep -v '\.mj-sync\.json$' || true)
-          MIGRATION_CHANGED=$(echo "$CHANGED" | grep -E '^migrations(-pg)?/.*\.sql$' || true)
-          if [ -n "$CONFIG_CHANGED" ] && [ -z "$MIGRATION_CHANGED" ]; then
-            echo "::error::metadata/ config changed but no migration delivers it. The seed is FROZEN — add a NEW forward migration (migrations/V… and, for PG, migrations-pg/V…) with the config; do NOT regenerate the seed (see migrations/README.md). Changed config:"
-            echo "$CONFIG_CHANGED"
-            exit 1
-          fi
-          echo "Config <-> migration coupling OK"
+      # There is deliberately NO metadata <-> migration tripwire here. Sonar follows MJ's release-time
+      # metadata model: a PR that changes metadata/ carries the declarative JSON only, and the build
+      # engineer generates ONE consolidated Metadata_Sync per release (migrations/README.md). A
+      # metadata-only PR without a migration is correct and must be green. Whether the release seed
+      # carries everything is checked at the release (check:release-seed, check:seed-cadence), by
+      # `release-prep --plan` before the release PR is cut and again in publish.yml, where the
+      # question has an answer.
 
       - name: Validate seeded AI agents have tools
         run: ./.github/scripts/validate-seed-agent-tools.sh

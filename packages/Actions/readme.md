@@ -19,10 +19,10 @@ This package is typically included as part of a MemberJunction server-side appli
 
 ```bash
 # From the MJ monorepo root
-npm install
+pnpm install
 
 # Build the package
-npm run build --filter=mj_generatedactions
+pnpm run build --filter=@mj-biz-apps/sonar-actions
 ```
 
 ## Usage
@@ -122,7 +122,7 @@ This package integrates seamlessly with other MemberJunction packages:
 ```bash
 # Build the package
 cd packages/GeneratedActions
-npm run build
+pnpm run build
 ```
 
 ### Generated Code
@@ -159,7 +159,7 @@ If actions are not being recognized:
 
 If experiencing build problems:
 1. Ensure all dependencies are installed at the monorepo root
-2. Run `npm run build` from the package directory
+2. Run `pnpm run build` from the package directory
 3. Check for TypeScript compilation errors
 4. Verify the generated code is up to date
 

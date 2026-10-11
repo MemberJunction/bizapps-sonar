@@ -21,7 +21,7 @@
     "outputDirectory": "./sql_logging",
     "filterPatterns": ["*spCreateAIPromptRun*", "*spUpdateAIPromptRun*"],
     "filterType": "exclude",
-    "formatAsMigration": false
+    "formatAsMigration": true
   },
   "emitSyncNotes": false
 }

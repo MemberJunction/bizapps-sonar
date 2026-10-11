@@ -282,11 +282,19 @@
                             <mj-filter-builder
                                 [fields]="populationFilterFields"
                                 [filter]="populationFilter"
-                                [disabled]="isPublished()"
+                                [disabled]="isPublished() || populationHasRelatedCondition()"
                                 [showSummary]="true"
                                 (filterChange)="onPopulationFilterChange($event)">
                             </mj-filter-builder>
                         </div>
+                        @if (populationHasRelatedCondition()) {
+                            <mj-alert Variant="info" Size="sm">
+                                <i class="fa-solid fa-link"></i>
+                                This population includes a related-record condition (for example, "has a member profile"),
+                                which the visual builder can't edit yet. It is applied when scores are computed;
+                                change it in the model's configuration.
+                            </mj-alert>
+                        }
                         <!-- An incomplete condition is NOT saved (it would compile to a misleading
                              WHERE, and an empty number box persists a null that fails the recompute
                              outright). Say so, or the screen and the scored population disagree in

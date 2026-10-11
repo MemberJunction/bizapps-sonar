@@ -1,6 +1,8 @@
 {
   "fields": {
-    "Name": "BizAppSonar",
+    "Name": "Sonar",
+    "Path": "bizappsonar",
+    "AutoUpdatePath": false,
     "Description": "Configurable engagement scoring — models, factors, and explainable scores.",
     "Icon": "fa-solid fa-wave-square",
     "DefaultForNewUser": false,
@@ -48,7 +50,7 @@
     "ID": "4F9477FB-BC8B-4CA9-A4FE-C0FB45496285"
   },
   "sync": {
-    "lastModified": "2026-06-29T17:59:11.597Z",
-    "checksum": "6fcd5a8091e8191a18da03461f351ed3bcff327503cd1e4e0ef379c06cea9c6d"
+    "lastModified": "2026-10-09T18:00:34.799Z",
+    "checksum": "7ca144364ff2b7bbefdf7cff9be2a5b8a07d2cb933ae1d718a936cc66d59a4d1"
   }
 }

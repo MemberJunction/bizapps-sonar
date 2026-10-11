@@ -63,36 +63,256 @@
         }
       ],
       "MJ: AI Agent Actions": [
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0009-4000-8000-000000000009", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0009-4000-8000-000000000009" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0012-4000-8000-000000000012", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0012-4000-8000-000000000012" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-001A-4000-8000-00000000001A", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-001A-4000-8000-00000000001A" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000F-4000-8000-00000000000F", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000F-4000-8000-00000000000F" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0019-4000-8000-000000000019", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0019-4000-8000-000000000019" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0008-4000-8000-000000000008", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0008-4000-8000-000000000008" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000A-4000-8000-00000000000A", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000A-4000-8000-00000000000A" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0010-4000-8000-000000000010", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0010-4000-8000-000000000010" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0016-4000-8000-000000000016", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0016-4000-8000-000000000016" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0017-4000-8000-000000000017", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0017-4000-8000-000000000017" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000C-4000-8000-000000000008", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000C-4000-8000-000000000008" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0005-4000-8000-000000000005", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0005-4000-8000-000000000005" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0011-4000-8000-000000000011", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0011-4000-8000-000000000011" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0001-4000-8000-000000000001", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0001-4000-8000-000000000001" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0002-4000-8000-000000000002", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0002-4000-8000-000000000002" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0014-4000-8000-000000000014", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0014-4000-8000-000000000014" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000B-4000-8000-00000000000B", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000B-4000-8000-00000000000B" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0013-4000-8000-000000000013", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0013-4000-8000-000000000013" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0018-4000-8000-000000000018", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0018-4000-8000-000000000018" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0015-4000-8000-000000000015", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0015-4000-8000-000000000015" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-000D-4000-8000-000000000009", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-000D-4000-8000-000000000009" } },
-        { "fields": { "AgentID": "@parent:ID", "ActionID": "5044A100-0003-4000-8000-000000000003", "Status": "Active", "ResultExpirationMode": "None" }, "primaryKey": { "ID": "AAC70000-0003-4000-8000-000000000003" } }
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0009-4000-8000-000000000009",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0009-4000-8000-000000000009"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0012-4000-8000-000000000012",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0012-4000-8000-000000000012"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-001A-4000-8000-00000000001A",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-001A-4000-8000-00000000001A"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-000F-4000-8000-00000000000F",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-000F-4000-8000-00000000000F"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0019-4000-8000-000000000019",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0019-4000-8000-000000000019"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0008-4000-8000-000000000008",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0008-4000-8000-000000000008"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-000A-4000-8000-00000000000A",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-000A-4000-8000-00000000000A"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0010-4000-8000-000000000010",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0010-4000-8000-000000000010"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0016-4000-8000-000000000016",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0016-4000-8000-000000000016"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0017-4000-8000-000000000017",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0017-4000-8000-000000000017"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-000C-4000-8000-000000000008",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-000C-4000-8000-000000000008"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0005-4000-8000-000000000005",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0005-4000-8000-000000000005"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0011-4000-8000-000000000011",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0011-4000-8000-000000000011"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0001-4000-8000-000000000001",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0001-4000-8000-000000000001"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0002-4000-8000-000000000002",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0002-4000-8000-000000000002"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0014-4000-8000-000000000014",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0014-4000-8000-000000000014"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-000B-4000-8000-00000000000B",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-000B-4000-8000-00000000000B"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0013-4000-8000-000000000013",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0013-4000-8000-000000000013"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0018-4000-8000-000000000018",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0018-4000-8000-000000000018"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0015-4000-8000-000000000015",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0015-4000-8000-000000000015"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-000D-4000-8000-000000000009",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-000D-4000-8000-000000000009"
+          }
+        },
+        {
+          "fields": {
+            "AgentID": "@parent:ID",
+            "ActionID": "5044A100-0003-4000-8000-000000000003",
+            "Status": "Active",
+            "ResultExpirationMode": "None"
+          },
+          "primaryKey": {
+            "ID": "AAC70000-0003-4000-8000-000000000003"
+          }
+        }
       ]
     },
     "primaryKey": {
       "ID": "CF1D58BA-451E-4515-89BD-AC3F16A19534"
     },
     "sync": {
-      "lastModified": "2026-07-14T23:34:28.985Z",
-      "checksum": "969f634390a932a764a839fb2a27504d9c333d5e3217fb53efe8132b4b7df039"
+      "lastModified": "2026-10-11T02:00:03.849Z",
+      "checksum": "41ace3872b507b454f43d8f3c4557e59636721a649cd9a9083db98449bdf1bd4"
     }
   }
 ]

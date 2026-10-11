@@ -20,7 +20,7 @@ This package is a private package used internally within MemberJunction applicat
 
 ```bash
 # Within the MemberJunction monorepo workspace
-npm install
+pnpm install
 ```
 
 Note: This package is marked as private (`"private": true`) in package.json and is not published to npm.
@@ -257,13 +257,13 @@ All generated entities inherit from `BaseEntity` and provide these key methods:
 
 ```bash
 # Build the package
-npm run build
+pnpm run build
 
 # Development mode with auto-reload
-npm run start
+pnpm run start
 
 # Run tests (not implemented yet)
-npm test
+pnpm test
 ```
 
 ## Code Generation

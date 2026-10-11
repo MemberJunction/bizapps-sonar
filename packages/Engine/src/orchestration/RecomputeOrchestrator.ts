@@ -2,7 +2,10 @@ import { EntityInfo, LogError, LogStatus, Metadata, RunView, UserInfo } from "@m
 import {
     compileFilterInline,
     CompositeFilterDescriptor,
+    RelatedExistsDescriptor,
+    ResolvedRelatedSource,
 } from "../factors/filter";
+import { resolveRelatedExistsSource } from "../factors/relatedExists";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
@@ -430,7 +433,8 @@ export class RecomputeOrchestrator {
         return result.TotalRowCount ?? 0;
     }
 
-    /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields) into
+    /** Compile ScoreModel.PopulationFilter (a Kendo filter JSON over the anchor's own fields, plus
+     *  optional related-record leaves — see RelatedExistsDescriptor) into
      *  a RunView ExtraFilter. Reuses compileFilter for field validation + structure, then inlines
      *  the parameters as escaped literals because RunView's ExtraFilter has no parameter binding.
      *  Returns null when the model has no population filter (the whole anchor entity is scored). */
@@ -451,7 +455,12 @@ export class RecomputeOrchestrator {
             );
         }
         const validColumns = anchorEntity.Fields.map((f) => f.Name);
-        return compileFilterInline(parsed, validColumns);
+        // Related-record leaves ("People that have a Member Profile") resolve against metadata here;
+        // the compiler itself stays pure.
+        const md = new Metadata();
+        const relatedResolver = (node: RelatedExistsDescriptor): ResolvedRelatedSource =>
+            resolveRelatedExistsSource(anchorEntity, md.EntityByName(node.relatedEntity), node);
+        return compileFilterInline(parsed, validColumns, { relatedResolver });
     }
 
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */

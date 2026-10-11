@@ -1,1 +1,215 @@
-[]
+[
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Factors"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.371Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Model Factors"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.401Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Model Related Entities"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.432Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Band Sets"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.462Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Band Transitions"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.489Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Bands"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.518Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Factor Contributions"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.545Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Histories"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.573Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Model Audit Events"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.602Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Model Versions"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.628Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": true,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "relatedEntities": {
+      "MJ: Entity Fields": [
+        {
+          "fields": {
+            "IncludeInUserSearchAPI": true,
+            "AutoUpdateIncludeInUserSearchAPI": false,
+            "UserSearchPredicateAPI": "BeginsWith"
+          },
+          "primaryKey": {
+            "ID": "@lookup:MJ: Entity Fields.Name=Name&EntityID=@parent:ID"
+          },
+          "sync": {
+            "lastModified": "2026-10-11T02:00:03.790Z",
+            "checksum": "a466f182b244c1a8245c11a1df92cf1ec368e5456934ce8351c40d7a5b6f0f0f"
+          }
+        },
+        {
+          "fields": {
+            "IncludeInUserSearchAPI": false,
+            "AutoUpdateIncludeInUserSearchAPI": false
+          },
+          "primaryKey": {
+            "ID": "@lookup:MJ: Entity Fields.Name=ID&EntityID=@parent:ID"
+          },
+          "sync": {
+            "lastModified": "2026-10-11T02:00:03.813Z",
+            "checksum": "882b1c4b195c7cc964188965e4b057dc2624ed5517b4ddd7b2e2fb41bd664a8c"
+          }
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Models"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.657Z",
+      "checksum": "0baff3649c31ed20ff60ec19d166dca22a08387e38072e637e0d28aec06cf5d6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Recompute Runs"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.683Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Scores"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.712Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  },
+  {
+    "fields": {
+      "AllowUserSearchAPI": false,
+      "AutoUpdateAllowUserSearchAPI": false
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Time Windows"
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:03.741Z",
+      "checksum": "557b2f2d442156dd31b2ae55bcfb3080cb61cf2d094d43039aa4c5907568aba6"
+    }
+  }
+]
