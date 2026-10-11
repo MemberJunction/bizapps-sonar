@@ -97,10 +97,10 @@ importers:
         specifier: ^6.1.5
         version: 6.1.5
       '@mj-biz-apps/sonar-engine':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Engine
       '@mj-biz-apps/sonar-entities':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Entities
       zod:
         specifier: ~3.24.4
@@ -173,7 +173,7 @@ importers:
         specifier: ^6.1.5
         version: 6.1.5(f555aaaffc2013cbecd9ce8e8e312d81)
       '@mj-biz-apps/sonar-entities':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Entities
       apexcharts:
         specifier: ^5.16.0
@@ -207,7 +207,7 @@ importers:
         specifier: ^6.1.5
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@mj-biz-apps/sonar-entities':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Entities
     devDependencies:
       typescript:
@@ -244,7 +244,7 @@ importers:
         specifier: ^6.1.5
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@mj-biz-apps/sonar-entities':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Entities
     devDependencies:
       typescript:
@@ -294,13 +294,13 @@ importers:
         specifier: ^6.1.5
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/sonar-actions':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Actions
       '@mj-biz-apps/sonar-core-entities-server':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../CoreEntitiesServer
       '@mj-biz-apps/sonar-entities':
-        specifier: 0.6.0
+        specifier: 0.7.0
         version: link:../Entities
       class-validator:
         specifier: ^0.14.3
