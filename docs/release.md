@@ -113,6 +113,10 @@ finish, then merges with a **merge commit** through the API, using the App token
 `next`'s CI. It never pushes to `next`, and it never squashes or rebases (`release:plan` checks that
 `main` is an ancestor of `next`, which only a merge commit achieves).
 
+It merges only when the PR's head is exactly `main`'s tip, the already-reviewed release merge.
+`chore/backmerge-*` is not a protected branch, so any other head (a commit pushed to it, including a
+human's conflict resolution) turns the run red and is left for a human to review and merge.
+
 If a check fails, the checks do not finish in time, the PR has conflicts, or GitHub refuses the merge,
 the run goes red naming the cause and the PR stays open. Then a human fixes the PR and merges it with
 a **merge commit**, or re-runs `publish.yml` on `main`, which finds the open PR, waits for its checks

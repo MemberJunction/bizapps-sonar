@@ -472,6 +472,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.backmerge_token.outputs.token }}
           PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
+          MAIN_SHA: ${{ steps.backmerge_scope.outputs.main_sha }}
         run: |
           set -euo pipefail
           # 80 x 30s = 40 minutes: build.yml's longest job is capped at 30 minutes, plus queueing.
@@ -531,9 +532,18 @@ jobs:
           # Pinned before waiting: the checks we wait on must be the checks of the commit we merge.
           # If someone pushes to the branch mid-wait, the head moves and we stop rather than merge a
           # commit whose checks we never saw (a re-run pins the new head).
+          # Merge only main's tip. chore/backmerge-* is not a protected branch, so anyone with write
+          # access could push to it between our push and this read; trusting headRefOid would merge
+          # that unreviewed commit into next with no human involved. main's tip is the merged,
+          # reviewed release PR, so it is the only head this step may merge on its own. Any other
+          # head (including a human's conflict resolution) is left for a human to review and merge.
+          if [ -z "${MAIN_SHA:-}" ]; then
+            echo "::error::main's SHA was not recorded by the back-merge scope step; refusing to merge an unpinned head."
+            exit 1
+          fi
           HEAD_SHA=$(jq -r '.headRefOid' <<<"$VIEW")
-          if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" = "null" ]; then
-            echo "::error::$PR_URL reported no head commit; refusing to merge an unpinned head."
+          if [ "$HEAD_SHA" != "$MAIN_SHA" ]; then
+            echo "::error::$PR_URL is at $HEAD_SHA, not main's tip $MAIN_SHA. Only main's tip is merged automatically; review the extra commits and merge it with a merge commit by hand."
             exit 1
           fi
           echo "Waiting for the checks on $PR_URL at $HEAD_SHA (up to $MAX_ATTEMPTS polls, ${INTERVAL_SECONDS}s apart)."
