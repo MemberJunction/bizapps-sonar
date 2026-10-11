@@ -1,8 +1,18 @@
 #!/bin/bash
 # Validates migration file naming conventions
 # Expected format: V[YYYYMMDDHHMM]__v[VERSION].x_[DESCRIPTION].sql
+# Usage: validate-migration-filenames.sh [dir]   (default: migrations). The PostgreSQL chain is run
+# with `migrations-pg`; its `.pg.sql` / `.pgonly.sql` suffixes need no special case because only the
+# `V<timestamp>__` prefix is checked, and `V*.sql` already matches them.
 
 MIGRATION_DIR="${1:-migrations}"
+
+# A missing directory used to validate zero files and pass (the `find` below hides its error), so a
+# mistyped argument was a green gate that never looked at anything.
+if [ ! -d "$MIGRATION_DIR" ]; then
+  echo "::error::Migration directory '$MIGRATION_DIR' does not exist."
+  exit 1
+fi
 ERRORS=()
 WARNINGS=()
 COUNT=0

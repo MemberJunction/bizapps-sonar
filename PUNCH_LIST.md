@@ -89,7 +89,7 @@ This repo follows the `next` → `main` two-tier model (see CLAUDE.md "Branching
 
 - [ ] Create `main` from the scaffold branch (`claude/upbeat-hopper-rrgep9`) via PR or admin push
 - [ ] Create `next` from `main`; set `main` as the GitHub default branch
-- [ ] From then on: **all feature branches cut from `next`**, PRs target `next`, releases are a single `next` → `main` PR
+- [ ] From then on: **all feature branches cut from `next`**, PRs target `next`, and a release is cut by dispatching **Prepare a release** (`release-prep.yml`), which opens `release/vX.Y.Z` → `main`; on merge `publish.yml` publishes, tags and opens the `chore/backmerge-vX.Y.Z` → `next` PR. Runbook: [`docs/release.md`](docs/release.md)
 - [ ] Every feature branch must track a same-named remote: `git push -u origin <branch>` and verify with `git branch -vv`
 
 ## Step 5 — THE BIG ONE: the initial `__mj_BizAppsSonar` schema migration

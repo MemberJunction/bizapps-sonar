@@ -1,0 +1,141 @@
+# Does the release App credential actually work in THIS repository?
+#
+# WHY THIS EXISTS
+# ---------------
+# Sonar's release reaches `main` and `next` only through pull requests (release-prep.yml opens
+# `release/vX.Y.Z` -> `main`; publish.yml opens `chore/backmerge-vX.Y.Z` -> `next`). Those branches
+# have to be pushed, and those PRs opened, by a credential that is NOT the job's GITHUB_TOKEN. The
+# credential is a GitHub App, minted from `vars.APP_CLIENT_ID` (org variable) and
+# `secrets.APP_PRIVATE_KEY` (org secret).
+#
+# Why a PR-based release at all: required status checks are evaluated against the check runs on the
+# SHA being INTRODUCED, and a direct push introduces a SHA the remote has never seen, so no check run
+# can exist for it (GH013, as in bizapps-forms #177). Sonar's ruleset, `protect-release-branches`,
+# does not require status checks yet (it carries only deletion and non_fast_forward); adding required
+# checks and a PR rule is a planned admin follow-up. The release is PR-based now so that follow-up
+# breaks nothing. This is the process bizapps-forms #218 automated, ported to Sonar.
+#
+# WHAT THE APP IS FOR, AND WHAT IT IS EMPHATICALLY NOT FOR
+# --------------------------------------------------------
+# Not a bypass. The App is not a ruleset bypass actor and must never become one, and this workflow
+# deliberately does NOT ask whether it could bypass anything. It does exactly two things here,
+# neither of them privileged: it pushes `release/*` and `chore/backmerge-*`, which the ruleset does
+# not cover (its conditions name refs/heads/main and refs/heads/next and nothing else), and it opens
+# pull requests. Those branches and those PRs then go through the same CI as anyone's. The push is
+# the App's only because both workflows keep checkout's persisted GITHUB_TOKEN extraheader off it —
+# release-prep.yml checks out with `persist-credentials: false`, publish.yml clears the header per
+# command with `git -c http.https://github.com/.extraheader=` — since that header outranks the App
+# token in the remote URL (bizapps-forms #226).
+#
+# The single reason it cannot just be GITHUB_TOKEN: GitHub does not start workflow runs from events
+# authored with it, so CI would not run on the release PRs. That is a nuisance today and becomes a
+# merge blocker once required checks are added. It is the entire justification for using an App.
+#
+# WHAT GREEN LOOKS LIKE
+# ---------------------
+# An org secret being readable and an App installation covering bizapps-sonar are different facts,
+# and only the second one decides whether the release automation works. Nothing outside Actions can
+# read either. The mint below is scoped to this repository alone, so it FAILS unless the installation
+# includes this repo — which is the question. Green means: the private key is valid, the App is the
+# one we think it is, its two grants are intact, and a token minted for this repo can read this repo.
+#
+# Run it before trusting release-prep.yml or publish.yml's back-merge. A red run here means the
+# release path is broken, and finding that out now costs a minute; finding it out during a publish
+# costs a release stranded between npm and the branch that has to carry it back.
+#
+# READ-ONLY. It writes nothing, pushes nothing, opens nothing and edits no ruleset — run it whenever.
+name: Verify the release App token
+
+on:
+  workflow_dispatch:
+
+# The job's own GITHUB_TOKEN needs nothing: every call below deliberately uses the minted App token,
+# because proving the App works is the whole point. A GITHUB_TOKEN that could answer these questions
+# would make the run green while telling you nothing about the credential the release uses.
+permissions: {}
+
+jobs:
+  verify:
+    name: Verify the release App credential
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Asserted, not printed. If `APP_PRIVATE_KEY` belonged to some OTHER app installed on this
+      # org, the mint would still succeed and every check below would still pass — against the wrong
+      # app. `blue-cypress-ci-bot` is the app MJ's release path drives with this same pair of values
+      # (MJ#4382); if the org ever moves the release automation to a different app, this is the line
+      # that has to move with it.
+      EXPECTED_APP_SLUG: blue-cypress-ci-bot
+    steps:
+      - name: Mint an installation token
+        id: token
+        uses: actions/create-github-app-token@v2
+        with:
+          # `app-id` accepts a client ID as well as a numeric app id, which is what the org variable
+          # holds. Read from `vars` rather than hardcoded, so this tests the SAME pair of values
+          # release-prep.yml and publish.yml use — a probe against different inputs proves nothing.
+          app-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # No `owner:`. Default scoping mints a token for THIS repository only, which is what makes
+          # this a real test rather than a test of the org: if the installation does not cover
+          # bizapps-sonar, this step fails and nothing below runs.
+          #
+          # Naming the permissions is what keeps the workflow read-only without losing coverage.
+          # GitHub refuses to mint a token carrying permissions the installation does not hold, so a
+          # trimmed grant fails HERE with a clear error, instead of surfacing later as a push or a
+          # `gh pr create` that dies with a confusing permissions error. These are the two the release needs and no more: contents to push `release/*`
+          # and `chore/backmerge-*`, pull-requests to open the two PRs.
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: The key belongs to the app we think it does
+        env:
+          GOT_SLUG: ${{ steps.token.outputs.app-slug }}
+          GOT_INSTALLATION: ${{ steps.token.outputs.installation-id }}
+        run: |
+          set -euo pipefail
+          echo "app-slug        = $GOT_SLUG"
+          echo "installation-id = $GOT_INSTALLATION"
+          if [ "$GOT_SLUG" != "$EXPECTED_APP_SLUG" ]; then
+            echo "::error::APP_PRIVATE_KEY belongs to '$GOT_SLUG', not '$EXPECTED_APP_SLUG'."
+            echo "::error::Do not wire the release to it until you know what that app is and what it can reach."
+            exit 1
+          fi
+          # The installation id is reported, not asserted. Unlike the slug we have no independently
+          # known value to compare it against for this repo — and asserting MJ's (156297321) would
+          # fail the day the org reinstalls the app, which changes the id while changing nothing that
+          # matters. The fact it would prove is already proven above: an installation that did not
+          # cover bizapps-sonar could not have minted this token at all.
+          echo "::notice::Identity confirmed: $GOT_SLUG (installation $GOT_INSTALLATION)"
+
+      - name: The token can actually reach this repository
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          set -euo pipefail
+          # `.full_name`, not `.permissions`. That block is computed for an authenticated USER, so an
+          # installation token reads it all-false no matter what it actually holds — MJ's probe
+          # asserted on it once and the assertion could only ever fail. What a read proves here is
+          # that the scoped token addresses THIS repository and the API accepts it.
+          FULL_NAME=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.full_name')
+          if [ "$FULL_NAME" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::the token read '$FULL_NAME' when asked about '$GITHUB_REPOSITORY'."
+            exit 1
+          fi
+          DEFAULT_BRANCH=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.default_branch')
+          echo "::notice::Read $FULL_NAME (default branch $DEFAULT_BRANCH) as ${{ steps.token.outputs.app-slug }}."
+          {
+            echo "### Release App credential"
+            echo
+            echo '| field | value |'
+            echo '|---|---|'
+            echo "| app | \`${{ steps.token.outputs.app-slug }}\` |"
+            echo "| installation | \`${{ steps.token.outputs.installation-id }}\` |"
+            echo "| scoped to | \`$FULL_NAME\` |"
+            echo "| grants requested | \`contents: write\`, \`pull-requests: write\` |"
+            echo
+            echo 'Green: the key is valid, the installation covers this repository, and both grants are intact.'
+            echo 'The App is **not** a ruleset bypass actor and must never become one — it pushes only'
+            echo '`release/*` and `chore/backmerge-*`, which no ruleset covers, and opens pull requests that'
+            echo 'go through the same CI as anyone else'"'"'s.'
+          } >> "$GITHUB_STEP_SUMMARY"
