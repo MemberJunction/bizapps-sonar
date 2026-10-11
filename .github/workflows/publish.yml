@@ -30,7 +30,10 @@ defaults:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 90, not 30: the publish itself takes up to ~30 minutes, and the back-merge step then waits up to
+    # 40 for the back-merge PR's checks before merging it (MAX_ATTEMPTS x INTERVAL_SECONDS there). The
+    # remaining 20 is margin so the cap, with its explicit message, fires before the job is killed.
+    timeout-minutes: 90
     steps:
       # Guard clause, and it runs before anything else — before checkout, before a single package is
       # built. `workflow_dispatch` lets whoever presses the button pick ANY ref, and every step below
@@ -284,7 +287,8 @@ jobs:
           echo "## Published v$VERSION" >> "$GITHUB_STEP_SUMMARY"
 
       # ----------------------------------------------------------------------------------------
-      # The back-merge: carry `main` back into `next`, as a pull request.
+      # The back-merge: carry `main` back into `next`, as a pull request this run merges once its
+      # checks pass.
       #
       # The merge commit this release just left on `main` has to reach `next` before the NEXT release
       # can go out. `release-prep.mjs` refuses to cut a release while `main` is not contained in
@@ -304,10 +308,10 @@ jobs:
       #
       # It has to be a GitHub App rather than GITHUB_TOKEN for exactly one reason: GitHub does not
       # start workflow runs from GITHUB_TOKEN-authored events, so no check would ever report on the
-      # branch or the PR. That holds only if the push really authenticates as the App, which is why
-      # the `app-push` calls clear checkout's persisted extraheader (see the checkout note above and
-      # bizapps-forms #226). `verify-release-app-token.yml` proves the credential is live without
-      # writing anything.
+      # branch or the PR, and the merge's push to `next` would start none of `next`'s own CI. That
+      # holds only if the push really authenticates as the App, which is why the `app-push` calls clear
+      # checkout's persisted extraheader (see the checkout note above and bizapps-forms #226).
+      # `verify-release-app-token.yml` proves the credential is live without writing anything.
       # ----------------------------------------------------------------------------------------
 
       # Deliberately not gated on `work`/`tag`. If a previous run published, tagged, and then failed
@@ -359,7 +363,8 @@ jobs:
           # happens to hold. Its blast radius is legible right here, and a trimmed grant fails HERE
           # with a clear error instead of surfacing as a push that dies looking like the branch
           # protection this design works around.
-          # contents -> the push of `chore/backmerge-*`; pull-requests -> the PR into `next`.
+          # contents -> the push of `chore/backmerge-*` and the merge into `next`; pull-requests ->
+          # opening that PR and merging it.
           permission-contents: write
           permission-pull-requests: write
 
@@ -429,10 +434,13 @@ jobs:
             echo "refuses to cut the **next** release, and once the planned \`strict: true\` rule lands"
             echo "(docs/release.md, admin setup) GitHub would refuse to merge that release's PR as well."
             echo
-            echo "**The release itself is finished.** The packages are on npm and \`v$VERSION\` is tagged, and the"
-            echo "publish run that opened this is green. Do not re-run the publish; resolve any conflicts here and"
-            echo "merge with a **merge commit**. Until this lands, \`release-prep.yml\` will refuse to cut the next"
-            echo "release and say why."
+            echo "**The release itself is finished.** The packages are on npm and \`v$VERSION\` is tagged."
+            echo
+            echo "**\`publish.yml\` merges this PR itself once its checks pass.** If it is still open after that run"
+            echo "finished, the run went red: a check failed, the checks did not finish in time, or GitHub refused the"
+            echo "merge, and the failed step says which. Then fix this PR and merge it with a **merge commit** (never"
+            echo "squash or rebase), or re-run \`publish.yml\` on \`main\`, which waits for the checks and merges again."
+            echo "Until this lands, \`release-prep.yml\` will refuse to cut the next release and say why."
           } > "$RUNNER_TEMP/backmerge-body.md"
 
           PR_URL=$(gh pr create \
@@ -444,6 +452,153 @@ jobs:
           echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
           echo "::notice::back-merge PR: $PR_URL"
 
+      # Merges the back-merge PR once its checks pass, so a release ends with `main` inside `next`
+      # and nobody has to remember the second PR. Three constraints shape it:
+      #  - Through the API, never a push: `gh pr merge` asks GitHub to merge, and a push to `next`
+      #    is what `lint:release-pushes` forbids.
+      #  - With the App token: the merge's push to `next` must start `next`'s own CI, and GitHub
+      #    starts no workflow from a GITHUB_TOKEN-authored event.
+      #  - `--merge`, never squash or rebase: `release-prep` checks that `main` is an ANCESTOR of
+      #    `next`, and only a merge commit makes it one.
+      # The wait happens here rather than through GitHub auto-merge: auto-merge is disabled for the
+      # repo, and with no required checks in the ruleset it would merge before CI reported anyway.
+      #
+      # No continue-on-error: a back-merge that did not merge is now a failure of this run, and its
+      # own error names why. The summary and the "could not be opened" step run on always(), so they
+      # still report.
+      - name: Merge the back-merge pull request once its checks pass
+        if: steps.backmerge_scope.outputs.nothing_to_merge == 'false' && steps.backmerge_pr.outputs.pr_url != ''
+        id: backmerge_merge
+        env:
+          GH_TOKEN: ${{ steps.backmerge_token.outputs.token }}
+          PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+          # 80 x 30s = 40 minutes: build.yml's longest job is capped at 30 minutes, plus queueing.
+          # The job's timeout-minutes is sized to fit this on top of the publish itself.
+          MAX_ATTEMPTS=80
+          INTERVAL_SECONDS=30
+          # Checks from different workflows register a few seconds apart. Seeing "all passed" once
+          # can mean one workflow finished before another registered, and with no required checks
+          # GitHub would let us merge past the late one. Two consecutive passing polls closes that.
+          REQUIRED_PASSING_POLLS=2
+
+          # One bucket per check: pass / pending / fail. CheckRuns (Actions) report status +
+          # conclusion; StatusContexts (commit statuses) report a single state. NEUTRAL and SKIPPED
+          # are passes because a job skipped by its own `if:` reports SKIPPED. Anything not
+          # recognised as a pass or pending is a fail, so a new GitHub conclusion cannot merge silently.
+          # The rollup lists every check on the head commit, and that commit is main's tip: the push to
+          # main that started THIS workflow put its own run there. Counting it would wait on ourselves
+          # until the cap, so runs of this workflow ($self = GITHUB_WORKFLOW) are excluded.
+          CLASSIFY='[.statusCheckRollup[] | select((.workflowName // "") != $self) | {
+            name: (.name // .context // "unnamed check"),
+            bucket: (if .__typename == "StatusContext" then
+                       (if .state == "SUCCESS" then "pass"
+                        elif (.state == "PENDING" or .state == "EXPECTED") then "pending"
+                        else "fail" end)
+                     else
+                       (if .status != "COMPLETED" then "pending"
+                        elif (.conclusion == "SUCCESS" or .conclusion == "NEUTRAL" or .conclusion == "SKIPPED") then "pass"
+                        else "fail" end)
+                     end)}]'
+
+          read_pr() {
+            if ! gh pr view "$PR_URL" --json state,mergeable,headRefOid,statusCheckRollup; then
+              echo "::error::Could not read $PR_URL (gh error above). The PR stays open; merge it with a merge commit, or re-run publish.yml on main." >&2
+              return 1
+            fi
+          }
+
+          # Returns 0 when the PR is open and the loop should continue; exits the step otherwise.
+          # Re-run idempotency lives here: a PR a human (or an earlier run) already merged is success.
+          handle_state() {
+            local STATE
+            STATE=$(jq -r '.state' <<<"$1")
+            case "$STATE" in
+              MERGED)
+                echo "::notice::$PR_URL is already merged."
+                echo "merged=true" >> "$GITHUB_OUTPUT"
+                exit 0 ;;
+              OPEN) ;;
+              *)
+                echo "::error::$PR_URL is $STATE, not open. Nothing to merge here: reopen it, or delete the branch and re-run publish.yml on main to open a fresh one."
+                exit 1 ;;
+            esac
+          }
+
+          VIEW=$(read_pr)
+          handle_state "$VIEW"
+          # Pinned before waiting: the checks we wait on must be the checks of the commit we merge.
+          # If someone pushes to the branch mid-wait, the head moves and we stop rather than merge a
+          # commit whose checks we never saw (a re-run pins the new head).
+          HEAD_SHA=$(jq -r '.headRefOid' <<<"$VIEW")
+          if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" = "null" ]; then
+            echo "::error::$PR_URL reported no head commit; refusing to merge an unpinned head."
+            exit 1
+          fi
+          echo "Waiting for the checks on $PR_URL at $HEAD_SHA (up to $MAX_ATTEMPTS polls, ${INTERVAL_SECONDS}s apart)."
+
+          PASSING_POLLS=0
+          for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
+            sleep "$INTERVAL_SECONDS"
+            VIEW=$(read_pr)
+            handle_state "$VIEW"
+
+            CURRENT_HEAD=$(jq -r '.headRefOid' <<<"$VIEW")
+            if [ "$CURRENT_HEAD" != "$HEAD_SHA" ]; then
+              echo "::error::The head of $PR_URL moved from $HEAD_SHA to $CURRENT_HEAD while waiting for its checks. Not merging; once the new commit's checks pass, merge it with a merge commit or re-run publish.yml on main."
+              exit 1
+            fi
+            # A conflicted PR gets no pull_request runs at all, so waiting would only burn the cap.
+            # UNKNOWN is GitHub still computing mergeability, which is keep-waiting.
+            if [ "$(jq -r '.mergeable' <<<"$VIEW")" = "CONFLICTING" ]; then
+              echo "::error::$PR_URL has merge conflicts with next. Resolve them on the branch and merge with a merge commit, or re-run publish.yml on main afterwards."
+              exit 1
+            fi
+
+            CHECKS=$(jq -c --arg self "$GITHUB_WORKFLOW" "$CLASSIFY" <<<"$VIEW")
+            TOTAL=$(jq 'length' <<<"$CHECKS")
+            FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$CHECKS")
+            PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$CHECKS")
+            if [ -n "$FAILED" ]; then
+              echo "::error::Checks failed on $PR_URL: $FAILED. Not merging. Fix the PR and merge it with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+              exit 1
+            fi
+            if [ "$TOTAL" -eq 0 ] || [ "$PENDING" -gt 0 ]; then
+              # No checks yet is not a pass: the workflows have not registered.
+              PASSING_POLLS=0
+              echo "attempt $ATTEMPT/$MAX_ATTEMPTS: $TOTAL check(s), $PENDING pending"
+              continue
+            fi
+            PASSING_POLLS=$((PASSING_POLLS + 1))
+            echo "attempt $ATTEMPT/$MAX_ATTEMPTS: all $TOTAL check(s) passed ($PASSING_POLLS/$REQUIRED_PASSING_POLLS)"
+            if [ "$PASSING_POLLS" -ge "$REQUIRED_PASSING_POLLS" ]; then
+              break
+            fi
+          done
+
+          if [ "$PASSING_POLLS" -lt "$REQUIRED_PASSING_POLLS" ]; then
+            echo "::error::The checks on $PR_URL did not all pass within $((MAX_ATTEMPTS * INTERVAL_SECONDS))s ($MAX_ATTEMPTS polls). Not merging. When they pass, merge it with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+            exit 1
+          fi
+
+          # --match-head-commit makes GitHub refuse if the head moved after our last poll.
+          if ! MERGE_OUTPUT=$(gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA" 2>&1); then
+            echo "$MERGE_OUTPUT"
+            echo "::error::GitHub refused to merge $PR_URL at $HEAD_SHA: ${MERGE_OUTPUT//$'\n'/ }. The PR stays open; fix it and merge with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+            exit 1
+          fi
+
+          # Postcondition: `gh pr merge` exiting 0 is not proof the PR merged (a merge queue would
+          # only enqueue it), and the summary below reports this as done.
+          VIEW=$(read_pr)
+          if [ "$(jq -r '.state' <<<"$VIEW")" != "MERGED" ]; then
+            echo "::error::gh pr merge succeeded but $PR_URL is $(jq -r '.state' <<<"$VIEW"), not MERGED. Check the PR and merge it with a merge commit."
+            exit 1
+          fi
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Merged $PR_URL into next at $HEAD_SHA."
+
       - name: Summarise the back-merge
         if: always() && steps.backmerge_scope.conclusion == 'success'
         env:
@@ -451,6 +606,7 @@ jobs:
           NOTHING: ${{ steps.backmerge_scope.outputs.nothing_to_merge }}
           BRANCH: ${{ steps.backmerge_pr.outputs.branch }}
           PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
+          MERGED: ${{ steps.backmerge_merge.outputs.merged }}
         run: |
           set -euo pipefail
           if [ "$NOTHING" = "true" ]; then
@@ -461,6 +617,18 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          if [ "${MERGED:-}" = "true" ]; then
+            {
+              echo ""
+              echo "### Back-merged"
+              echo ""
+              echo "$PR_URL"
+              echo ""
+              echo "**v$VERSION published, tagged and back-merged.** The back-merge PR passed its checks and was"
+              echo "merged into \`next\` with a merge commit, so the release is complete."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           {
             echo ""
             echo "### The back-merge is outstanding"
@@ -468,41 +636,40 @@ jobs:
             if [ -n "${PR_URL:-}" ]; then
               echo "$PR_URL"
               echo ""
-              echo "**v$VERSION published successfully.** The packages are on npm and the tag is pushed; the only"
-              echo "thing left is merging that pull request, which carries \`main\` back into \`next\`."
+              echo "**v$VERSION published successfully, but the back-merge PR was not merged.** The packages are on"
+              echo "npm and the tag is pushed. The merge step above says why: a check failed, the checks did not"
+              echo "finish in time, the PR has conflicts, or GitHub refused the merge."
               echo ""
-              echo "Nothing here is chasing you to do it today. The cost of leaving it lands on the NEXT release,"
-              echo "and that is where it is enforced: \`release-prep.yml\` refuses to cut a release while \`main\` is"
-              echo "not an ancestor of \`next\`, and names this pull request when it does (and once the planned"
-              echo "\`strict: true\` rule lands, GitHub would refuse that release's PR too)."
+              echo "Fix the PR and merge it with a **merge commit** (never squash or rebase), or re-run"
+              echo "\`publish.yml\` on \`main\`, which waits for the checks and merges again. The next release is"
+              echo "blocked until it merges: \`release-prep.yml\` refuses to cut a release while \`main\` is not an"
+              echo "ancestor of \`next\`, and names this pull request when it does."
             else
               echo "**v$VERSION published successfully, but the back-merge PR could not be opened.** The packages are"
               echo "on npm and the tag is pushed. Read the failed step above — a rejected push means the App"
               echo "credential needs attention (\`verify-release-app-token.yml\` diagnoses it read-only), anything else"
               echo "is in its error. Until \`main\` reaches \`next\`, \`release-prep\` refuses to cut the following release."
               echo ""
-              echo "By hand: branch \`${BRANCH:-chore/backmerge-v$VERSION}\` from \`main\`'s tip and open a PR into"
-              echo "\`next\` — see [\`docs/release.md\`](docs/release.md)."
+              echo "Re-run \`publish.yml\` on \`main\` once that is fixed: it opens the PR and merges it when its checks"
+              echo "pass. Or by hand: branch \`${BRANCH:-chore/backmerge-v$VERSION}\` from \`main\`'s tip, open a PR"
+              echo "into \`next\` and merge it with a merge commit — see [\`docs/release.md\`](docs/release.md)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # RED means the automation could not do its job — nothing else.
+      # RED means the automation could not finish the back-merge — nothing else.
       #
-      # Failing the run whenever a back-merge is merely OUTSTANDING (MJ's rule) does not transfer:
-      # there the back-merge MERGES, so a pull request existing at all means a human is needed and
-      # red is the honest signal. Here the pull request IS the designed path, so that rule would
-      # paint every good release red — and a workflow that is red on success cannot distinguish
-      # "published cleanly" from "published, then broke", which is the one question a release
-      # engineer asks this run.
+      # The back-merge now merges in this run, so a green run means `main` is inside `next`. There
+      # are two ways it cannot be: the PR was never opened (this step, which has to exist because
+      # `backmerge_pr` is continue-on-error so the summary still runs), or it was opened and not
+      # merged (the merge step fails itself, naming the failing checks or GitHub's refusal).
       #
-      # The outstanding merge is not unenforced, it is enforced somewhere it can actually stop
-      # damage: `release-prep.mjs` blocks the next release while `main` is not an ancestor of
-      # `next`, and names this pull request. A red check mark is a worse instrument than a refusal
-      # at the point of harm.
+      # Either way the release itself shipped, and the next release is still guarded where it can
+      # stop damage: `release-prep.mjs` blocks it while `main` is not an ancestor of `next`, and
+      # names the outstanding pull request.
       - name: The back-merge pull request could not be opened
         if: always() && steps.backmerge_scope.outputs.nothing_to_merge == 'false' && steps.backmerge_pr.outputs.pr_url == ''
         env:
           VERSION: ${{ steps.release_check.outputs.VERSION }}
         run: |
-          echo "::error::v$VERSION is published and tagged, but the main -> next back-merge PR could not be opened. See the failed step above; verify-release-app-token.yml diagnoses a credential problem read-only. Until main reaches next, release-prep refuses to cut the following release."
+          echo "::error::v$VERSION is published and tagged, but the main -> next back-merge PR could not be opened. See the failed step above; verify-release-app-token.yml diagnoses a credential problem read-only. Once fixed, re-run publish.yml on main to open and merge it. Until main reaches next, release-prep refuses to cut the following release."
           exit 1

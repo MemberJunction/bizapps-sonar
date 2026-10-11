@@ -1,6 +1,6 @@
 # Cutting a release
 
-Two pull requests, and both are opened for you. Nothing in the release path pushes to `main` or
+Two pull requests, and both are opened for you; the second is also merged for you. Nothing in the release path pushes to `main` or
 `next` (`pnpm run lint:release-pushes` fails any workflow or script that tries). Adapted from
 bizapps-forms' runbook.
 
@@ -10,7 +10,7 @@ bizapps-forms' runbook.
 | 1. Dispatch **Prepare a release** | you | cuts `release/vX.Y.Z` from `next`, bumps, opens the PR into `main` |
 | 2. Review and merge that PR | you | with a **merge commit** |
 | 3. Publish | `publish.yml` | builds, publishes to npm, tags, opens the back-merge PR |
-| 4. Merge the back-merge PR | you | carries `main` back into `next` |
+| 4. Back-merge | `publish.yml` | merges the back-merge PR into `next` once its checks pass; you step in only if the run goes red |
 
 ## Is a release due?
 
@@ -88,8 +88,8 @@ Merge it with a **merge commit**.
 
 The merge pushes to `main`, which triggers `publish.yml`. It refuses to run from any ref but `main`.
 It then validates, builds, tests, runs the release gates, publishes to npm, pushes the `vX.Y.Z` tag
-and opens the back-merge PR `chore/backmerge-vX.Y.Z` into `next`. Every gate sits before
-`Publish to npm`.
+opens the back-merge PR `chore/backmerge-vX.Y.Z` into `next`, and merges it once its checks pass
+(step 4). Every gate sits before `Publish to npm`.
 
 **Red before `Publish to npm` means nothing shipped: fix and re-run. Red after it: re-run
 `publish.yml` on main to finish.**
@@ -97,20 +97,30 @@ and opens the back-merge PR `chore/backmerge-vX.Y.Z` into `next`. Every gate sit
 **Re-run it to finish a partial release.** `release-plan.mjs` asks two questions separately: is any
 package missing this version from npm, and is the `vX.Y.Z` tag absent. Each gates its own step, so a
 re-run (dispatch `publish.yml` on `main`) after npm published but the tag is missing, or the tag was
-pushed but the back-merge is missing, finishes the remainder rather than failing on "already
+pushed but the back-merge is missing or unmerged, finishes the remainder rather than failing on "already
 published". It does nothing, and says so, only when the version is fully published and tagged.
 
 A step before it fails if any `.changeset/*.md` is still present: that means step 1 never ran.
 
-A green run means the automation did its job: published, tagged, and the back-merge PR open (or
-nothing left to back-merge).
+A green run means the automation did its job: published, tagged, and the back-merge PR merged into
+`next` (or nothing left to back-merge).
 
-## 4. Merge the back-merge PR
+## 4. The back-merge merges by itself
 
-`chore/backmerge-vX.Y.Z` into `next` carries the release merge commit back. Skipping it costs this
-release nothing and blocks the next one: `release:plan` refuses to cut a release while `main` is not
-contained in `next`, naming this PR, and once the planned `strict: true` rule lands (admin setup
-below) GitHub would refuse the next release PR as well.
+`chore/backmerge-vX.Y.Z` into `next` carries the release merge commit back. `publish.yml` merges it
+automatically once its checks pass: it waits up to 40 minutes for the PR's checks to register and
+finish, then merges with a **merge commit** through the API, using the App token so the merge starts
+`next`'s CI. It never pushes to `next`, and it never squashes or rebases (`release:plan` checks that
+`main` is an ancestor of `next`, which only a merge commit achieves).
+
+If a check fails, the checks do not finish in time, the PR has conflicts, or GitHub refuses the merge,
+the run goes red naming the cause and the PR stays open. Then a human fixes the PR and merges it with
+a **merge commit**, or re-runs `publish.yml` on `main`, which finds the open PR, waits for its checks
+and merges it. A re-run after the PR has merged has nothing to do.
+
+Leaving it unmerged costs this release nothing and blocks the next one: `release:plan` refuses to cut
+a release while `main` is not contained in `next`, naming this PR, and once the planned `strict: true`
+rule lands (admin setup below) GitHub would refuse the next release PR as well.
 
 ## Hotfixes
 
@@ -161,8 +171,10 @@ status checks, and `bypass_actors` is null. So **nothing server-side enforces th
   `build-only` (build.yml; its helper job `scope` also reports), `changes_and_migrations`
   (changes.yml) and `distribution-gate` (distribution-gate.yml).
 
-Never make the App a bypass actor. It writes only to `release/*` and `chore/backmerge-*`, which the
-ruleset does not cover; the `vX.Y.Z` tag is pushed with `publish.yml`'s own job token. Those App
+Never make the App a bypass actor. It pushes only to `release/*` and `chore/backmerge-*`, which the
+ruleset does not cover, and reaches `next` only by merging the back-merge PR through the API, which
+is subject to the ruleset like any merge (so a future rule requiring approving reviews would stop that
+automatic merge and leave the PR for a human); the `vX.Y.Z` tag is pushed with `publish.yml`'s own job token. Those App
 pushes are the App's only because checkout's persisted `GITHUB_TOKEN` header is kept off them
 (`persist-credentials: false` in `release-prep.yml`; `git -c http.https://github.com/.extraheader=`
 on the `app-push` calls in `publish.yml`). That header outranks the token in the remote URL, so
@@ -177,5 +189,6 @@ without it the push goes out as `github-actions[bot]` and its branch starts no C
 | Some packages genuinely did not publish | Re-run `publish.yml` on `main` (step 3). |
 | A push is refused with `GH013` (protected-branch rule violation) | Someone reintroduced a push to `main`/`next`. Run `pnpm run lint:release-pushes` to find it and route the change through a PR. |
 | A push is refused with a 403 naming `github-actions[bot]` | The push used the ambient token instead of the App token; see the persist-credentials notes in `release-prep.yml` and `publish.yml` (bizapps-forms #226). |
+| `publish.yml` is red at **Merge the back-merge pull request** | Everything shipped; only the back-merge is left. The error names the failing checks, the timeout, the conflict or GitHub's refusal, and the PR. Fix the PR and merge it with a merge commit, or re-run `publish.yml` on `main`. The next release is blocked until it merges. |
 | The back-merge branch exists at an unexpected SHA | The workflow will not force-push over it, since someone may have resolved conflicts there. Delete the branch or open the PR by hand. |
 | `release:plan` says the seed is owed | Step 0. |

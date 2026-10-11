@@ -63,9 +63,10 @@ const BUMP_RANK = Object.freeze({ patch: 1, minor: 2, major: 3 });
  * nothing else in the repo can tell you about.
  *
  * A release PR merges `next` → `main` and leaves a merge commit on `main` that `next` does not
- * contain; the `chore/backmerge-v<tag>` PR the publish workflow opens carries it back
- * (docs/release.md). Skipping that step costs the release that skipped it NOTHING — it has already
- * merged, published and tagged. The bill arrives at the FOLLOWING release: once the planned
+ * contain; the `chore/backmerge-v<tag>` PR the publish workflow opens, and merges once its checks
+ * pass, carries it back (docs/release.md). If that merge does not happen (the publish run went red
+ * at the back-merge and nobody finished it), that costs the release that skipped it NOTHING — it has
+ * already merged, published and tagged. The bill arrives at the FOLLOWING release: once the planned
  * required-checks/strict rules land (docs/release.md, admin setup), GitHub's `strict: true`
  * ("branch must be up to date with base") refuses to merge its PR, mid-release, after the version
  * bump is committed and the branch is pushed. Until those rules land nothing server-side refuses
@@ -78,9 +79,11 @@ const STALE_MAIN_BLOCKER =
     'from this next would not contain everything main has. This check refuses it now; once the ' +
     'planned required-checks/strict rules land (docs/release.md, admin setup), GitHub will refuse to ' +
     'merge such a PR too (`strict: true`, "branch must be up to date with base"). This is almost ' +
-    'always the PREVIOUS release\'s back-merge PR never having merged: that release shipped fine and ' +
-    'the cost lands here, on this one. Merge the outstanding `chore/backmerge-v<last tag>` PR (main ' +
-    'into next; docs/release.md) and re-run.';
+    'always the PREVIOUS release\'s back-merge PR never having merged: publish.yml merges it ' +
+    'automatically once its checks pass, so its publish run went red at the back-merge (a failing check, a refused merge, or a PR that was never opened). ' +
+    'That release shipped fine and the cost lands here, on this one. Fix the outstanding ' +
+    '`chore/backmerge-v<last tag>` PR (main into next; docs/release.md) and merge it with a merge ' +
+    'commit, or re-run publish.yml on main, then re-run this.';
 
 /**
  * The strongest bump the changesets ask for, or `null` when none of them asks for one.

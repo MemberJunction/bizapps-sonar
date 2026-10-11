@@ -282,13 +282,15 @@ jobs:
             echo "### On merge"
             echo
             echo "Merge with a **merge commit**. That triggers \`publish.yml\`, which builds, runs the"
-            echo "release-readiness gates, publishes to npm, tags \`v$VERSION\`, and opens the \`main\` -> \`next\`"
-            echo "back-merge PR."
+            echo "release-readiness gates, publishes to npm, tags \`v$VERSION\`, opens the \`main\` -> \`next\`"
+            echo "back-merge PR, and merges it with a merge commit once its checks pass."
             echo
-            echo "**A green publish run means it did all of that** — publishing and the back-merge PR both."
-            echo "Red before \`Publish to npm\` means nothing shipped: fix and re-run. Red after it: re-run"
+            echo "**A green publish run means it did all of that** — publishing, and the back-merge merged into"
+            echo "\`next\`. Red before \`Publish to npm\` means nothing shipped: fix and re-run. Red after it: re-run"
             echo "\`publish.yml\` on main to finish (docs/release.md step 3) — it publishes only what is missing,"
-            echo "tags only if the tag is absent, and opens the back-merge PR only if none is open."
+            echo "tags only if the tag is absent, opens the back-merge PR only if none is open, and merges it once"
+            echo "its checks pass. If the back-merge's checks fail or the merge is refused, fix that PR and merge"
+            echo "it with a merge commit, or re-run publish; the next release is blocked until it merges."
           } > "$RUNNER_TEMP/release-pr-body.md"
 
       # Minted LATE, immediately before use, and that is load-bearing: an installation token lives

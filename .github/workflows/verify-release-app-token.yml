@@ -3,8 +3,8 @@
 # WHY THIS EXISTS
 # ---------------
 # Sonar's release reaches `main` and `next` only through pull requests (release-prep.yml opens
-# `release/vX.Y.Z` -> `main`; publish.yml opens `chore/backmerge-vX.Y.Z` -> `next`). Those branches
-# have to be pushed, and those PRs opened, by a credential that is NOT the job's GITHUB_TOKEN. The
+# `release/vX.Y.Z` -> `main`; publish.yml opens `chore/backmerge-vX.Y.Z` -> `next` and merges it once
+# its checks pass). Those branches have to be pushed, and those PRs opened, by a credential that is NOT the job's GITHUB_TOKEN. The
 # credential is a GitHub App, minted from `vars.APP_CLIENT_ID` (org variable) and
 # `secrets.APP_PRIVATE_KEY` (org secret).
 #
@@ -21,7 +21,9 @@
 # deliberately does NOT ask whether it could bypass anything. It does exactly two things here,
 # neither of them privileged: it pushes `release/*` and `chore/backmerge-*`, which the ruleset does
 # not cover (its conditions name refs/heads/main and refs/heads/next and nothing else), and it opens
-# pull requests. Those branches and those PRs then go through the same CI as anyone's. The push is
+# pull requests (publish.yml also merges the back-merge PR through the API once its checks pass,
+# which is a PR merge, not a push). Those branches and those PRs then go through the same CI as
+# anyone's. The push is
 # the App's only because both workflows keep checkout's persisted GITHUB_TOKEN extraheader off it —
 # release-prep.yml checks out with `persist-credentials: false`, publish.yml clears the header per
 # command with `git -c http.https://github.com/.extraheader=` — since that header outranks the App
@@ -84,7 +86,8 @@ jobs:
           # GitHub refuses to mint a token carrying permissions the installation does not hold, so a
           # trimmed grant fails HERE with a clear error, instead of surfacing later as a push or a
           # `gh pr create` that dies with a confusing permissions error. These are the two the release needs and no more: contents to push `release/*`
-          # and `chore/backmerge-*`, pull-requests to open the two PRs.
+          # and `chore/backmerge-*` and to merge the back-merge PR, pull-requests to open the two PRs
+          # and merge that one.
           permission-contents: write
           permission-pull-requests: write
 
