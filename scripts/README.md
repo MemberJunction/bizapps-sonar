@@ -51,9 +51,14 @@ fires. The model they enforce is in [`../migrations/README.md`](../migrations/RE
 | Script | Runs | What it checks |
 |---|---|---|
 | `check-distribution-seed.mjs` (`pnpm run lint:distribution`) | every PR (`distribution-gate.yml`) + `publish.yml` | Shipped SQL (both dialects + teardown) uses only placeholders `mj app install` supplies. |
-| `check-release-seed-coverage.mjs` (`pnpm run check:release-seed`) | `publish.yml` only | Every `primaryKey` UUID under `metadata/` is named by some `migrations/*.sql`. |
-| `check-release-seed-cadence.mjs` (`pnpm run check:seed-cadence`) | `publish.yml` only | One consolidated `Metadata_Sync` per release, owed when `metadata/` moved since the last tag, non-empty and not older than any metadata change. |
-| `check-pg-parity.mjs` (`pnpm run check:pg-parity`) | build | Every `migrations/*.sql` has a valid PostgreSQL twin. |
+| `check-release-seed-coverage.mjs` (`pnpm run check:release-seed`) | release only: `release-prep.yml` (`--plan`) + `publish.yml` | Every `primaryKey` UUID under `metadata/` is named by some `migrations/*.sql`. |
+| `check-release-seed-cadence.mjs` (`pnpm run check:seed-cadence`) | release only: `release-prep.yml` (`--plan`) + `publish.yml` | One consolidated `Metadata_Sync` per release, owed when `metadata/` moved since the last tag, non-empty and not older than any metadata change. |
+| `check-pg-parity.mjs` (`pnpm run check:pg-parity`) | build, `publish.yml`, `release-prep --plan` | Every `migrations/*.sql` has a valid PostgreSQL twin. |
+| `release-prep.mjs` (`pnpm run release:plan`) | `release-prep.yml` | Read-only `--plan`: is a release due, which version, which blockers. `--apply` does the local half of cutting it. See [`../docs/release.md`](../docs/release.md). |
+| `release-plan.mjs` | `publish.yml` | Separately asks whether publish and tag are still owed, so a re-run finishes a partial release. |
+| `sync-app-version.mjs` | `pnpm run version`; `--check` in `publish.yml` and as `release-prep --apply`'s postcondition; its spec checks this repo on every build | Keeps `mj-app.json` `version`/`mjVersionRange` derived from `packages/Entities`. Run it by hand after an MJ pin bump. |
+| `check-release-pushes.mjs` (`pnpm run lint:release-pushes`) | build | Fails any workflow or script that pushes to `main` or `next`. |
+| `check-paths-touched.mjs` | `build.yml` (`scope` job) | Decides whether a diff touches anything the build reads. |
 
 The two release gates fail between releases by design (metadata merged on `next` waits for the build
 engineer's release seed), which is why no PR workflow runs them — only their self-tests.

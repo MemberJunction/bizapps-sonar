@@ -3,34 +3,77 @@ name: Build and Publish
 on:
   push:
     branches: [main]
+  # No `targetVersion` input any more. It existed to override a version this workflow computed
+  # itself with `changeset version`; the bump now arrives already committed on the release pull
+  # request (release-prep.yml, docs/release.md), so the version is read from
+  # packages/Entities/package.json and there is nothing here to override. A dispatch re-runs the
+  # publish for whatever version `main` carries — which is how a partial release is finished.
   workflow_dispatch:
-    inputs:
-      targetVersion:
-        description: 'Target version (e.g., 5.27.2). Leave empty for auto-detection.'
-        required: false
-        type: string
 
 permissions:
   contents: write
   id-token: write
+  # The back-merge merge step lists the PR's pull_request runs with the job's own token.
+  actions: read
 
 concurrency:
   group: "publish"
   cancel-in-progress: false
 
+# GitHub's implicit shell is `bash -e {0}`, without pipefail; naming it gives `-eo pipefail`, so a
+# failing command inside a pipeline fails the step instead of being masked by the last command's
+# status — this is the release, the one workflow where a masked failure ships. The conventions that
+# follow from it are changes.yml's: a grep that may legitimately match nothing is `{ grep … || true; }`,
+# and `grep -q` reads a here-string, never a pipe (its early exit would SIGPIPE the writer).
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 90, not 30: the publish itself takes up to ~30 minutes, and the back-merge step then waits up to
+    # 40 for the back-merge PR's checks before merging it (MAX_ATTEMPTS x INTERVAL_SECONDS there). The
+    # remaining 20 is margin so the cap, with its explicit message, fires before the job is killed.
+    timeout-minutes: 90
     steps:
+      # Guard clause, and it runs before anything else — before checkout, before a single package is
+      # built. `workflow_dispatch` lets whoever presses the button pick ANY ref, and every step below
+      # trusts that the tree it publishes is the one the release PR merged into `main`. Dispatched
+      # from `next` or a feature branch, it would publish and tag a version nobody reviewed. The
+      # `push` trigger can only ever be `main`, so this only ever fires on a mis-aimed dispatch.
+      - name: Refuse to publish from anything but main
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::publish runs only from main; dispatch it with ref main (this run's ref is $REF)."
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          # persist-credentials stays at its default (true), unlike release-prep.yml: the tag push
+          # below goes through `origin` on this job token and needs it. The cost is that checkout
+          # writes `http.https://github.com/.extraheader: AUTHORIZATION: basic <GITHUB_TOKEN>` into
+          # the local git config, and that header matches EVERY github.com URL and outranks a token
+          # embedded in a remote's URL (bizapps-forms #226). Left alone, the back-merge push to
+          # `app-push` would authenticate as github-actions[bot], not as the App — and a branch that
+          # GITHUB_TOKEN pushes starts no CI. So the two `app-push` git calls in "Open the back-merge
+          # pull request" clear the header for that one command with
+          # `git -c http.https://github.com/.extraheader= …`.
 
       # Must precede setup-node: `cache: 'pnpm'` needs pnpm already on PATH.
-      - uses: pnpm/action-setup@v4
+      # Pinned to an immutable SHA, unlike the copy in build.yml, and the difference is deliberate:
+      # this job mints a GitHub App installation token later in the same runner, so a compromised
+      # release of this action would share a process with a credential that can write to the
+      # repository. build.yml handles no credential and stays on the tag, matching MJ and the sibling
+      # Open Apps. Rule: third-party actions are pinned in workflows that hold a secret key.
+      # Re-resolve with: git ls-remote https://github.com/pnpm/action-setup refs/tags/v4^{}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
       - uses: actions/setup-node@v4
         with:
@@ -41,22 +84,30 @@ jobs:
       - name: Validate pnpm-lock.yaml case-sensitivity
         run: ./.github/scripts/validate-package-lock-case.sh
 
-      - name: Validate migration filenames
+      - name: Validate migration filenames (SQL Server)
         run: ./.github/scripts/validate-migration-filenames.sh
+
+      # migrations-pg/ is what a PostgreSQL host runs verbatim, so its names are held to the same
+      # rule as the SQL Server chain rather than trusted to have been copied correctly.
+      - name: Validate migration filenames (PostgreSQL)
+        run: ./.github/scripts/validate-migration-filenames.sh migrations-pg
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # No `github.ref == 'refs/heads/main'` condition, unlike the copy this was ported from: the
+      # guard at the top of the job already refuses every other ref, and a second copy of that
+      # decision here would be one that can drift.
       - name: Validate all packages exist on npm
-        if: github.ref == 'refs/heads/main'
         run: ./.github/scripts/validate-npm-packages.sh
 
       - name: Validate repository.url for npm provenance
         run: ./.github/scripts/validate-package-repository.sh
 
-      # Node stdlib only, so it needs nothing installed. Runs here as well as in
-      # distribution-gate.yml because that workflow is paths-filtered and this one is the release.
-      # Checks placeholders only — seed currency is the two release-readiness steps below.
+      # Node stdlib only, so it needs nothing installed. distribution-gate.yml runs it on every PR and
+      # `release-prep --plan` runs it before the release PR is cut; it runs again here because this
+      # is the tree that actually ships. Checks placeholders only — seed currency is the two
+      # release-readiness steps below.
       - name: Distribution gate (shipped SQL placeholders, both dialects + teardown)
         run: node scripts/check-distribution-seed.mjs
 
@@ -65,30 +116,124 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Check for pending changesets
-        id: changeset_check
+      # This workflow writes to no protected branch, and that has to stay true once the planned
+      # required-checks/strict rules land (docs/release.md, admin setup). Required status checks are
+      # evaluated against the check runs on the SHA being introduced, and a direct push introduces a
+      # SHA the remote has never seen — so no check run can exist for it and the push is rejected
+      # permanently (GH013). That is not a race a retry wins (bizapps-forms #177, after
+      # bizapps-forms #173 gave both of its rulesets required checks), which is why the version bump
+      # moved onto the release pull request (docs/release.md) instead of being worked around here.
+      # The ci/ push scripts that used to make those pushes are gone for the same reason, and
+      # check-release-pushes.mjs keeps them gone.
+      #
+      # What is left is a pure reader of the tree it was handed, plus one tag push and one push of a
+      # `chore/backmerge-*` branch. Neither is protected: Sonar's one ruleset
+      # (protect-release-branches) is `target: branch`, scoped to refs/heads/main and refs/heads/next.
+      #
+      # The gate below replaces "are there changesets to consume?", which was the right question
+      # only while this workflow ran `changeset version` itself:
+      #
+      #   pending changesets | version on npm | what it means
+      #   -------------------|----------------|-----------------------------------------------
+      #   > 0                | —              | the release PR never ran `pnpm run version` — FAIL
+      #   0                  | yes            | already released; nothing to do
+      #   0                  | no             | publish and tag
+      - name: The bump has to have happened before this branch was merged
         run: |
-          PENDING=$(find .changeset -name "*.md" -not -name "README.md" 2>/dev/null | wc -l | tr -d ' ')
-          echo "pending=$PENDING" >> "$GITHUB_OUTPUT"
-          if [ "$PENDING" -eq 0 ]; then
-            echo "No pending changesets — nothing to publish"
-          else
-            echo "Found $PENDING pending changeset(s)"
+          # A missing .changeset/ is a broken checkout or a deleted config, not "zero pending" — and
+          # zero pending is the answer that publishes. So it fails here instead of counting as 0.
+          if [ ! -d .changeset ]; then
+            echo "::error::.changeset/ is missing, so this run cannot tell whether the version was bumped. Refusing to publish."
+            exit 1
+          fi
+          PENDING=$(find .changeset -name "*.md" -not -name "README.md" | wc -l | tr -d ' ')
+          if [ "$PENDING" -ne 0 ]; then
+            VERSION=$(jq -r .version packages/Entities/package.json)
+            echo "::error::$PENDING changeset(s) are still on this branch, so the version was never bumped. Publishing now would republish $VERSION. Cut the release with the 'Prepare a release' workflow (release-prep.yml), which runs 'pnpm run version' on a branch off next and opens the release PR — see docs/release.md."
+            exit 1
           fi
 
-      # RELEASE READINESS, and the only place these run. PRs contribute declarative JSON under
-      # metadata/ and no Metadata_Sync migration; the build engineer generates ONE consolidated seed
-      # per release from a clean database (migrations/README.md, MJ/metadata/CLAUDE.md §1b). Nothing
-      # on a feature PR can tell whether that has happened yet, so the question is asked HERE.
+      # Answers `publish` and `tag` SEPARATELY. They used to be one output derived from a single
+      # question — is packages/Entities' version on npm? — which reads a partially published release
+      # as a finished one: `changeset publish` publishes concurrently, so one package landing while a
+      # sibling fails is a state it produces by design and expects a retry to finish. That retry
+      # skipped publish AND tag and reported success. See scripts/release-plan.mjs for the whole
+      # argument; its spec pins the three states.
+      - name: What is there to release?
+        id: release_check
+        run: node scripts/release-plan.mjs
+
+      # The derivation used to happen here, in bash (the old "Sync mj-app.json version and MJ
+      # version range" step). It happens on the release PR now (`pnpm run version` runs
+      # scripts/sync-app-version.mjs), so this end only verifies — a hand-edited mj-app.json, or a
+      # release PR that skipped the script, stops the release before anything reaches npm.
+      - name: mj-app.json agrees with the packages being published
+        if: steps.release_check.outputs.work == 'true'
+        run: node scripts/sync-app-version.mjs --check
+
+      # A migration is a schema change, so it must not ship as a patch. changes.yml enforces the
+      # rule on PRs into `next` by reading the changeset; by the time a release runs, the changesets
+      # are consumed and gone, so this backstop asks the same question of the artifacts instead:
+      # did migrations/ (either dialect) move since the last release, and did the version move by
+      # more than a patch? migrations-pg/ counts on its own: a PG-only migration is still a schema
+      # change on every PostgreSQL host.
+      #
+      # Deliberately carries NO ref condition beyond the guard at the top of the job — it must hold
+      # on every path that can cut a release, including workflow_dispatch. In bizapps-forms a dry run
+      # dispatched from `next` once shipped a patch carrying a new migration, and tagged it, because
+      # the gate lived inside a step that path never reached.
+      #
+      # It reads the shipped artifacts rather than `.changeset/*.md` for the same reason it now runs
+      # at all: the changesets are gone by this point, and a gate that reads a file which is always
+      # empty is a gate that always passes.
+      - name: Enforce schema-change version policy
+        if: steps.release_check.outputs.work == 'true'
+        env:
+          VERSION: ${{ steps.release_check.outputs.VERSION }}
+        run: |
+          # `--count=1` rather than `git tag --list … | head -1`: under pipefail, head's early exit can
+          # SIGPIPE git once there are enough tags, failing the step for no reason.
+          LAST_TAG=$(git for-each-ref --count=1 --sort=-v:refname --format='%(refname:lstrip=2)' 'refs/tags/v*')
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous v* tag — first release, no previously-shipped schema to have changed"
+            exit 0
+          fi
+
+          # No `|| true`: a diff git cannot compute (a missing object, a bad ref) must stop the gate.
+          # Swallowed, it reads as "no migrations changed" — the one answer that lets a patch through.
+          NEW_MIGRATIONS=$(git --no-pager diff --name-only "$LAST_TAG" "$GITHUB_SHA" -- migrations/ migrations-pg/)
+          if [ -z "$NEW_MIGRATIONS" ]; then
+            echo "No migrations changed since $LAST_TAG — a patch release is in policy"
+            exit 0
+          fi
+
+          PREV="${LAST_TAG#v}"
+          IFS='.' read -r PREV_MAJOR PREV_MINOR _ <<< "$PREV"
+          IFS='.' read -r NEW_MAJOR NEW_MINOR _ <<< "$VERSION"
+          if [ "$NEW_MAJOR" -gt "$PREV_MAJOR" ] || [ "$NEW_MINOR" -gt "$PREV_MINOR" ]; then
+            echo "migrations changed since $LAST_TAG and $PREV -> $VERSION is at least a minor — in policy"
+            exit 0
+          fi
+
+          echo "$NEW_MIGRATIONS"
+          echo "::error::migrations changed since $LAST_TAG but $PREV -> $VERSION is only a patch. A schema change must ship as at least a minor. Redo the release PR with a 'minor' changeset."
+          exit 1
+
+      # RELEASE READINESS. PRs contribute declarative JSON under metadata/ and no Metadata_Sync
+      # migration; the build engineer generates ONE consolidated seed per release from a clean
+      # database (migrations/README.md, MJ/metadata/CLAUDE.md §1b). Nothing on a feature PR can tell
+      # whether that has happened yet, so the question is asked at the release: first by
+      # `release-prep.mjs --plan` before the release PR is cut, and again HERE against the tree that
+      # actually merged into `main`.
       #
       # A red step means the release seed has not been generated (or is stale). Fix it by generating
       # the Metadata_Sync (migrations/README.md) — never by editing these steps. Both sit before
-      # `Update version` and `Publish to npm`, so a failure costs nothing but a re-run.
+      # `Publish to npm` and the tag, so a failure costs nothing but a re-run.
       #
       # Each self-test runs first: a gate nobody has watched fail is indistinguishable from one that
       # always passes. Node stdlib only. Mirrors bizapps-common's publish.yml.
       - name: Release readiness (every metadata record is in the shipped seed)
-        if: steps.changeset_check.outputs.pending != '0'
+        if: steps.release_check.outputs.work == 'true'
         run: |
           node scripts/check-release-seed-coverage.spec.mjs
           pnpm run check:release-seed
@@ -98,123 +243,505 @@ jobs:
       # since the last v* tag with no new seed? More than one unreleased seed? Is the seed empty, or
       # older than a metadata change? Needs the tags — `fetch-depth: 0` + `fetch-tags: true` above.
       - name: Release readiness (one consolidated seed, current with metadata/)
-        if: steps.changeset_check.outputs.pending != '0'
+        if: steps.release_check.outputs.work == 'true'
         run: |
           node scripts/check-release-seed-cadence.spec.mjs
           pnpm run check:seed-cadence
 
-      - name: Determine next expected version
-        if: steps.changeset_check.outputs.pending != '0' && github.ref == 'refs/heads/main' && !github.event.inputs.targetVersion
-        id: version_check
+      # Build, tests and parity guard what gets published, so they run only when something will be
+      # (work == 'true'). A re-run whose only job is finishing the back-merge skips them: the release
+      # they would verify is already on npm, and a flaky test must not hold that back-merge hostage.
+      - name: Build all packages
+        if: steps.release_check.outputs.work == 'true'
+        run: pnpm run build:packages
+
+      # Until this step existed, the vitest suites (Engine, CoreEntitiesServer, Actions) ran on PRs
+      # in build.yml and never against the tree that actually ships. Runs after the build because
+      # the suites import the packages' built siblings.
+      - name: Unit tests
+        if: steps.release_check.outputs.work == 'true'
+        run: pnpm test
+
+      # Every migrations/*.sql has a T-SQL-free twin in migrations-pg/. release-prep --plan asked
+      # this before the release PR existed; asking again here covers whatever merged after it.
+      - name: PostgreSQL parity gate
+        if: steps.release_check.outputs.work == 'true'
+        run: node scripts/check-pg-parity.mjs
+
+      - name: Publish to npm
+        if: steps.release_check.outputs.publish == 'true'
+        run: pnpm exec changeset publish
+
+      # One of the two remote writes this workflow still makes, on the job token through `origin`.
+      # Tags are outside the ruleset — it is `target: branch`, scoped to refs/heads/main and
+      # refs/heads/next — so this is not the push bizapps-forms #177 is about, and
+      # check-release-pushes.mjs allows it for that reason.
+      #
+      # `changeset publish` has already created its own per-package tags locally; this adds the
+      # single repo-wide `v<version>` that the release-readiness checks and the schema-policy gate
+      # above both read, and pushes only that one.
+      #
+      # Gated on `tag`, NOT on `publish`. The two are different questions and a release can fail
+      # between them: if every package published and only the tag push failed, `publish` is false on
+      # the retry while the tag is still missing — and check-release-seed-cadence.mjs reads the
+      # newest `v*` tag to decide what has shipped, so the missing tag would fail the NEXT release.
+      - name: Tag the release
+        if: steps.release_check.outputs.tag == 'true'
+        env:
+          VERSION: ${{ steps.release_check.outputs.VERSION }}
         run: |
-          # Get current version from entities package (any of the 4 BAC packages works since they're fixed-versioned)
-          CURRENT_VERSION=$(jq -r .version packages/Entities/package.json)
-          echo "Current version: $CURRENT_VERSION"
+          git tag "v$VERSION"
+          git push origin "refs/tags/v$VERSION"
+          echo "## Published v$VERSION" >> "$GITHUB_STEP_SUMMARY"
 
-          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
-          NEXT_MAJOR_VERSION="$(( ${VERSION_PARTS[0]} + 1 )).0.0"
-          NEXT_MINOR_VERSION="${VERSION_PARTS[0]}.$(( ${VERSION_PARTS[1]} + 1 )).0"
-          NEXT_PATCH_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$(( ${VERSION_PARTS[2]} + 1 ))"
+      # ----------------------------------------------------------------------------------------
+      # The back-merge: carry `main` back into `next`, as a pull request this run merges once its
+      # checks pass.
+      #
+      # The merge commit this release just left on `main` has to reach `next` before the NEXT release
+      # can go out. `release-prep.mjs` refuses to cut a release while `main` is not contained in
+      # `next`, and once the planned `strict: true` rule lands (docs/release.md, admin setup) GitHub
+      # will also refuse to merge a release PR whose branch is behind `main`. That asymmetry is what
+      # makes forgetting it expensive: skipping it costs THIS release nothing at all, and blocks the
+      # following one, weeks later. This replaces the old ci/ merge script, which pushed straight to
+      # `next` and so could never pass required checks once `next` has them.
+      #
+      # A PR and not a push, and the distinction is the whole design. Once the planned
+      # required-checks rule covers `next`, a direct push to it is rejected permanently
+      # (bizapps-forms #177); check-release-pushes.mjs keeps such a push out of this repo already.
+      # `chore/backmerge-*` is covered by no ruleset — the one ruleset is `target: branch` with
+      # conditions naming refs/heads/main and refs/heads/next and nothing else — so pushing THAT
+      # branch is an ordinary write rather than a bypass, and the ruleset has no bypass actors.
+      # Nothing below asks for an exception.
+      #
+      # It has to be a GitHub App rather than GITHUB_TOKEN for exactly one reason: GitHub does not
+      # start workflow runs from GITHUB_TOKEN-authored events, so no check would ever report on the
+      # branch or the PR, and the merge's push to `next` would start none of `next`'s own CI. That
+      # holds only if the push really authenticates as the App, which is why the `app-push` calls clear
+      # checkout's persisted extraheader (see the checkout note above and bizapps-forms #226).
+      # `verify-release-app-token.yml` proves the credential is live without writing anything.
+      # ----------------------------------------------------------------------------------------
 
-          # Check if any changeset requests an explicit major or minor bump
-          HAS_MAJOR=false
-          HAS_MINOR=false
-          for f in .changeset/*.md; do
-            [ "$f" = ".changeset/README.md" ] && continue
-            [ ! -f "$f" ] && continue
-            if grep -qE '^"@mj-biz-apps/.*":\s*major' "$f"; then
-              HAS_MAJOR=true
-            fi
-            if grep -qE '^"@mj-biz-apps/.*":\s*minor' "$f"; then
-              HAS_MINOR=true
-            fi
-          done
+      # Deliberately not gated on `work`/`tag`. If a previous run published, tagged, and then failed
+      # to open this PR, a re-run has `tag == 'false'` — gating on it would skip the back-merge on
+      # precisely the run that exists to finish it. Ancestry is the real question and it is cheap, so
+      # it is the only condition.
+      - name: Is there anything to back-merge?
+        id: backmerge_scope
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          MAIN_SHA=$(git rev-parse FETCH_HEAD)
+          git fetch --no-tags origin next
+          NEXT_SHA=$(git rev-parse FETCH_HEAD)
+          # Ancestry, not a tip comparison: `next` legitimately carries commits `main` does not, and
+          # only the other direction is a back-merge. The exit code is read explicitly because
+          # `--is-ancestor` answers "no" with 1 and reports a broken repository state with anything
+          # else — and "I could not tell" must never be read as "nothing to do".
+          set +e
+          git merge-base --is-ancestor "$MAIN_SHA" "$NEXT_SHA"
+          RC=$?
+          set -e
+          case "$RC" in
+            0) NOTHING=true ;;
+            1) NOTHING=false ;;
+            *) echo "::error::git merge-base --is-ancestor exited $RC — cannot tell whether a back-merge is outstanding."; exit 1 ;;
+          esac
+          echo "main=$MAIN_SHA next=$NEXT_SHA nothing_to_merge=$NOTHING"
+          {
+            echo "main_sha=$MAIN_SHA"
+            echo "nothing_to_merge=$NOTHING"
+          } >> "$GITHUB_OUTPUT"
 
-          if [ "$HAS_MAJOR" = true ]; then
-            echo "Major changeset found — bumping major version"
-            echo "EXPECTED_NEXT_VERSION=$NEXT_MAJOR_VERSION" >> "$GITHUB_OUTPUT"
-          elif [ "$HAS_MINOR" = true ]; then
-            echo "Minor changeset found — bumping minor version"
-            echo "EXPECTED_NEXT_VERSION=$NEXT_MINOR_VERSION" >> "$GITHUB_OUTPUT"
-          else
-            # Check for new migration files since last tag
-            if git rev-parse "v${CURRENT_VERSION}" >/dev/null 2>&1; then
-              NEW_MIGRATION_FILES=$(git --no-pager diff --name-only "v${CURRENT_VERSION}" "${{ github.sha }}" -- migrations/ || true)
-            else
-              NEW_MIGRATION_FILES=""
-            fi
+      # Minted HERE rather than at the top of the job, and that is load-bearing: an installation
+      # token lives one hour, and everything above it — a cold install, a full build, the tests,
+      # `changeset publish` against npm — routinely runs for tens of minutes. A token minted at
+      # checkout is one that will eventually expire at exactly this step, on a day nobody changed
+      # anything.
+      - name: Mint the App token for the back-merge branch
+        if: steps.backmerge_scope.outputs.nothing_to_merge == 'false'
+        id: backmerge_token
+        uses: actions/create-github-app-token@v2
+        with:
+          # `app-id`, not `client-id`: v2 of this action declares only `app-id` (required), and it
+          # accepts a client ID as well as a numeric app id, which is what the org variable holds.
+          app-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # Least privilege, named at the call site rather than inherited from whatever the App
+          # happens to hold. Its blast radius is legible right here, and a trimmed grant fails HERE
+          # with a clear error instead of surfacing as a push that dies looking like the branch
+          # protection this design works around.
+          # contents -> the push of `chore/backmerge-*` and the merge into `next`; pull-requests ->
+          # opening that PR and merging it.
+          permission-contents: write
+          permission-pull-requests: write
 
-            if [ -n "$NEW_MIGRATION_FILES" ]; then
-              echo "New migrations found — bumping minor version"
-              echo "EXPECTED_NEXT_VERSION=$NEXT_MINOR_VERSION" >> "$GITHUB_OUTPUT"
-            else
-              echo "No new migrations — bumping patch version"
-              echo "EXPECTED_NEXT_VERSION=$NEXT_PATCH_VERSION" >> "$GITHUB_OUTPUT"
-            fi
+      # continue-on-error, paired with the explicit failure step at the end of the job. The summary
+      # below must still be written when this fails — a run that dies here with no summary is how a
+      # released-but-unmerged state becomes invisible — and the failure is expressed once, in one
+      # place, where it can say which of the two states the run is in.
+      - name: Open the back-merge pull request
+        if: steps.backmerge_scope.outputs.nothing_to_merge == 'false'
+        id: backmerge_pr
+        continue-on-error: true
+        env:
+          APP_TOKEN: ${{ steps.backmerge_token.outputs.token }}
+          GH_TOKEN: ${{ steps.backmerge_token.outputs.token }}
+          VERSION: ${{ steps.release_check.outputs.VERSION }}
+          MAIN_SHA: ${{ steps.backmerge_scope.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          BRANCH="chore/backmerge-v${VERSION}"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+          # Version-stamped rather than timestamped, so re-running a half-finished publish lands on
+          # the same branch instead of stacking a second one beside it.
+          #
+          # An open PR is the deliverable, so an existing one ends this step. Re-pushing over the
+          # branch behind it would discard conflict resolutions a human may have committed there,
+          # which is the one outcome worse than not opening the PR at all.
+          EXISTING=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base next --state open --json url --jq '.[0].url // ""')
+          if [ -n "$EXISTING" ]; then
+            echo "::notice::back-merge PR already open: $EXISTING"
+            echo "pr_url=$EXISTING" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-      - name: Update version
-        if: steps.changeset_check.outputs.pending != '0'
-        run: |
-          EXPECTED_NEXT_VERSION="${{ github.event.inputs.targetVersion || steps.version_check.outputs.EXPECTED_NEXT_VERSION }}"
-          echo "Expected next version: $EXPECTED_NEXT_VERSION"
+          # A second remote rather than re-pointing `origin`: `origin` keeps the job's own token for
+          # the fetches and the tag push above, and the App credential stays attached to the one
+          # write that needs it. The URL token alone is not enough: checkout's persisted
+          # extraheader outranks it (bizapps-forms #226), so each `app-push` call clears that header
+          # with `-c http.https://github.com/.extraheader=`, or it would authenticate as GITHUB_TOKEN.
+          git remote remove app-push 2>/dev/null || true
+          git remote add app-push "https://x-access-token:$APP_TOKEN@github.com/$GITHUB_REPOSITORY"
 
-          pnpm run version
-
-          NEXT_VERSION=$(jq -r .version packages/Entities/package.json)
-          echo "Actual next version: $NEXT_VERSION"
-
-          if [ -n "$EXPECTED_NEXT_VERSION" ] && [ "$NEXT_VERSION" != "$EXPECTED_NEXT_VERSION" ]; then
-            echo "::error::Version mismatch! Expected $EXPECTED_NEXT_VERSION but got $NEXT_VERSION"
+          # No `--exit-code`: an absent branch is empty output and a zero exit, while an unreachable
+          # remote still exits 128 and, with pipefail, stops the step. Conflating the two would read
+          # a dead credential as "the branch does not exist yet" and then attempt a push that cannot
+          # succeed — a misleading error from the step whose job is to report one clearly.
+          REMOTE_SHA=$(git -c http.https://github.com/.extraheader= ls-remote app-push "refs/heads/$BRANCH" | cut -f1)
+          if [ -z "$REMOTE_SHA" ]; then
+            # Push main's tip straight to the new ref — no checkout, so nothing here depends on
+            # what the working tree looks like after a build and a publish.
+            git -c http.https://github.com/.extraheader= push app-push "$MAIN_SHA:refs/heads/$BRANCH"
+            echo "pushed $BRANCH at $MAIN_SHA"
+          elif [ "$REMOTE_SHA" != "$MAIN_SHA" ]; then
+            # Branch present, no PR open, and it is not what we would push. Every way out of this is
+            # a guess — force-push over whatever is there, or open a PR that back-merges the wrong
+            # commit — so it stops instead and says what it found. Reached only when a release
+            # repeats a version, which is itself worth knowing about.
+            echo "::error::$BRANCH exists at $REMOTE_SHA, which is not main's tip ($MAIN_SHA), and no pull request is open for it. Refusing to force-push over it — delete the branch, or open the PR by hand."
             exit 1
           fi
 
-      - name: Sync mj-app.json version and MJ version range
-        if: steps.changeset_check.outputs.pending != '0'
-        run: |
-          # Sync app version from entities package
-          VERSION=$(jq -r .version packages/Entities/package.json)
-          jq --arg v "$VERSION" '.version = $v' mj-app.json > mj-app.json.tmp
-          mv mj-app.json.tmp mj-app.json
-          echo "Updated mj-app.json version to $VERSION"
+          {
+            echo "Opened by \`publish.yml\` after publishing **v$VERSION**."
+            echo
+            echo "\`main\` at \`${MAIN_SHA:0:10}\` is not an ancestor of \`next\`. This carries the release merge"
+            echo "commit and the version bump back, and it is not bookkeeping: until this merges, \`release-prep\`"
+            echo "refuses to cut the **next** release, and once the planned \`strict: true\` rule lands"
+            echo "(docs/release.md, admin setup) GitHub would refuse to merge that release's PR as well."
+            echo
+            echo "**The release itself is finished.** The packages are on npm and \`v$VERSION\` is tagged."
+            echo
+            echo "**\`publish.yml\` merges this PR itself once its checks pass.** If it is still open after that run"
+            echo "finished, the run went red: a check failed, the checks did not finish in time, or GitHub refused the"
+            echo "merge, and the failed step says which. Then:"
+            echo
+            echo "- **Nothing was pushed to this branch** (a flaky or timed-out check): re-run the failed checks, then"
+            echo "  re-run \`publish.yml\` on \`main\` and it merges this PR."
+            echo "- **Anything was pushed to this branch** (a conflict resolution or a fix): \`publish.yml\` only ever"
+            echo "  merges \`main\`'s tip, so a human reviews the new commits and merges this PR with a **merge commit**"
+            echo "  (never squash or rebase) by hand."
+            echo
+            echo "Either way, until this lands \`release-prep.yml\` will refuse to cut the next release and say why."
+          } > "$RUNNER_TEMP/backmerge-body.md"
 
-          # Derive mjVersionRange from the @memberjunction/core dependency
-          MJ_DEP=$(jq -r '.dependencies["@memberjunction/core"] // .peerDependencies["@memberjunction/core"] // empty' packages/Entities/package.json)
-          if [ -n "$MJ_DEP" ]; then
-            # Strip semver range prefix (^, ~, >=, etc.) to get the base version
-            MJ_MIN=$(echo "$MJ_DEP" | sed 's/^[^0-9]*//')
-            # Next major = current major + 1
-            MJ_NEXT_MAJOR="$(( $(echo "$MJ_MIN" | cut -d. -f1) + 1 )).0.0"
-            MJ_RANGE=">=${MJ_MIN} <${MJ_NEXT_MAJOR}"
-            jq --arg r "$MJ_RANGE" '.mjVersionRange = $r' mj-app.json > mj-app.json.tmp
-            mv mj-app.json.tmp mj-app.json
-            echo "Updated mj-app.json mjVersionRange to $MJ_RANGE"
+          PR_URL=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base next \
+            --head "$BRANCH" \
+            --title "chore: back-merge main into next after v$VERSION" \
+            --body-file "$RUNNER_TEMP/backmerge-body.md")
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "::notice::back-merge PR: $PR_URL"
+
+      # Merges the back-merge PR once its checks pass, so a release ends with `main` inside `next`
+      # and nobody has to remember the second PR. Three constraints shape it:
+      #  - Through the API, never a push: `gh pr merge` asks GitHub to merge, and a push to `next`
+      #    is what `lint:release-pushes` forbids.
+      #  - With the App token: the merge's push to `next` must start `next`'s own CI, and GitHub
+      #    starts no workflow from a GITHUB_TOKEN-authored event.
+      #  - `--merge`, never squash or rebase: `release-prep` checks that `main` is an ANCESTOR of
+      #    `next`, and only a merge commit makes it one.
+      # The wait happens here rather than through GitHub auto-merge: auto-merge is disabled for the
+      # repo, and with no required checks in the ruleset it would merge before CI reported anyway.
+      #
+      # It merges main's tip and nothing else, so it can only ever be re-run against an unchanged
+      # head. Anything pushed to the branch (a conflict resolution, a fix) is a human's to review
+      # and merge by hand; every error below says which of the two paths applies.
+      #
+      # No continue-on-error: a back-merge that did not merge is now a failure of this run, and its
+      # own error names why. The summary and the "could not be opened" step run on always(), so they
+      # still report.
+      - name: Merge the back-merge pull request once its checks pass
+        if: steps.backmerge_scope.outputs.nothing_to_merge == 'false' && steps.backmerge_pr.outputs.pr_url != ''
+        id: backmerge_merge
+        env:
+          GH_TOKEN: ${{ steps.backmerge_token.outputs.token }}
+          # Only for `gh run list`. Listing workflow runs needs Actions read, which the App token is
+          # deliberately not minted with; the job's own token has it (`actions: read` above) and
+          # this is a read, so nothing here needs the App to start CI.
+          RUNS_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
+          MAIN_SHA: ${{ steps.backmerge_scope.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          # 80 x 30s = 40 minutes: build.yml's longest job is capped at 30 minutes, plus queueing.
+          # The job's timeout-minutes is sized to fit this on top of the publish itself.
+          MAX_ATTEMPTS=80
+          INTERVAL_SECONDS=30
+          # The pull_request workflows (build.yml, changes.yml, distribution-gate.yml) register a few
+          # seconds apart. Seeing "all passed" once can mean one finished before another registered,
+          # and with no required checks GitHub would let us merge past the late one. Two consecutive
+          # passing polls closes that.
+          REQUIRED_PASSING_POLLS=2
+          # Appended to every "not merging" error whose head is still main's tip, so the way out is
+          # stated once and the same everywhere.
+          UNCHANGED_HEAD_WAY_OUT="If nothing was pushed to the branch (a flaky or timed-out check), re-run the failed checks, then re-run publish.yml on main and it merges the PR. If anything was pushed to the branch (a conflict resolution or a fix), a human reviews it and merges the PR with a merge commit by hand; publish.yml only ever merges main's tip. Either way the next release is blocked until it merges."
+
+          # One bucket per check: pass / pending / fail. CheckRuns (Actions) report status +
+          # conclusion; StatusContexts (commit statuses) report a single state. NEUTRAL and SKIPPED
+          # are passes because a job skipped by its own `if:` reports SKIPPED. Anything not
+          # recognised as a pass or pending is a fail, so a new GitHub conclusion cannot merge silently.
+          # The rollup lists every check on the head commit, and that commit is main's tip: the push to
+          # main that started THIS workflow put its own run there. Counting it would wait on ourselves
+          # until the cap, so runs of this workflow ($self = GITHUB_WORKFLOW) are excluded.
+          #
+          # The rollup is a fail-fast only, never the go signal. main's tip already carries the
+          # push-event runs of build.yml and distribution-gate.yml, all finished and passing before
+          # the PR exists, so a rollup that is "all passed" says nothing about the PR's own runs.
+          CLASSIFY_ROLLUP='[.statusCheckRollup[] | select((.workflowName // "") != $self) | {
+            name: (.name // .context // "unnamed check"),
+            bucket: (if .__typename == "StatusContext" then
+                       (if .state == "SUCCESS" then "pass"
+                        elif (.state == "PENDING" or .state == "EXPECTED") then "pending"
+                        else "fail" end)
+                     else
+                       (if .status != "COMPLETED" then "pending"
+                        elif (.conclusion == "SUCCESS" or .conclusion == "NEUTRAL" or .conclusion == "SKIPPED") then "pass"
+                        else "fail" end)
+                     end)}]'
+          # The go signal: the pull_request-event runs for this head on the back-merge branch. Same
+          # buckets, lowercase because the REST API reports them that way. A run the PR started can
+          # only come from the PR, so these cannot be satisfied by the push to main.
+          CLASSIFY_RUNS='[.[] | select(.headBranch == $branch and (.workflowName // "") != $self) | {
+            name: (.workflowName // .name // "unnamed workflow"),
+            bucket: (if .status != "completed" then "pending"
+                     elif (.conclusion == "success" or .conclusion == "neutral" or .conclusion == "skipped") then "pass"
+                     else "fail" end)}]'
+
+          read_pr() {
+            if ! gh pr view "$PR_URL" --json state,mergeable,headRefOid,headRefName,statusCheckRollup; then
+              echo "::error::Could not read $PR_URL (gh error above). Nothing was merged. $UNCHANGED_HEAD_WAY_OUT" >&2
+              return 1
+            fi
+          }
+
+          read_pr_runs() {
+            if ! GH_TOKEN="$RUNS_TOKEN" gh run list --repo "$GITHUB_REPOSITORY" --commit "$HEAD_SHA" \
+                --event pull_request --limit 100 --json workflowName,name,status,conclusion,headBranch; then
+              echo "::error::Could not list the pull_request runs for $HEAD_SHA on $PR_URL (gh error above). Nothing was merged. $UNCHANGED_HEAD_WAY_OUT" >&2
+              return 1
+            fi
+          }
+
+          # Returns 0 when the PR is open and the loop should continue; exits the step otherwise.
+          # Re-run idempotency lives here: a PR a human (or an earlier run) already merged is success.
+          handle_state() {
+            local STATE
+            STATE=$(jq -r '.state' <<<"$1")
+            case "$STATE" in
+              MERGED)
+                echo "::notice::$PR_URL is already merged."
+                echo "merged=true" >> "$GITHUB_OUTPUT"
+                exit 0 ;;
+              OPEN) ;;
+              *)
+                echo "::error::$PR_URL is $STATE, not open. Nothing to merge here: reopen it, or delete the branch and re-run publish.yml on main to open a fresh one. The next release is blocked until main reaches next."
+                exit 1 ;;
+            esac
+          }
+
+          VIEW=$(read_pr)
+          handle_state "$VIEW"
+          # Pinned before waiting: the checks we wait on must be the checks of the commit we merge.
+          # If someone pushes to the branch mid-wait, the head moves and we stop rather than merge a
+          # commit whose checks we never saw. A re-run would refuse the new head too (below), so a
+          # moved head is always a human's to merge.
+          # Merge only main's tip. chore/backmerge-* is not a protected branch, so anyone with write
+          # access could push to it between our push and this read; trusting headRefOid would merge
+          # that unreviewed commit into next with no human involved. main's tip is the merged,
+          # reviewed release PR, so it is the only head this step may merge on its own. Any other
+          # head (including a human's conflict resolution) is left for a human to review and merge.
+          if [ -z "${MAIN_SHA:-}" ]; then
+            echo "::error::main's SHA was not recorded by the back-merge scope step; refusing to merge an unpinned head."
+            exit 1
+          fi
+          HEAD_SHA=$(jq -r '.headRefOid' <<<"$VIEW")
+          BRANCH=$(jq -r '.headRefName' <<<"$VIEW")
+          if [ "$HEAD_SHA" != "$MAIN_SHA" ]; then
+            echo "::error::$PR_URL is at $HEAD_SHA, not main's tip $MAIN_SHA. Only main's tip is merged automatically, so re-running publish.yml will not merge it either: a human reviews the extra commits and merges the PR with a merge commit by hand. The next release is blocked until it merges."
+            exit 1
+          fi
+          echo "Waiting for the pull_request checks on $PR_URL ($BRANCH at $HEAD_SHA, up to $MAX_ATTEMPTS polls, ${INTERVAL_SECONDS}s apart)."
+
+          PASSING_POLLS=0
+          for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
+            sleep "$INTERVAL_SECONDS"
+            VIEW=$(read_pr)
+            handle_state "$VIEW"
+
+            CURRENT_HEAD=$(jq -r '.headRefOid' <<<"$VIEW")
+            if [ "$CURRENT_HEAD" != "$HEAD_SHA" ]; then
+              echo "::error::The head of $PR_URL moved from $HEAD_SHA to $CURRENT_HEAD while waiting for its checks. Not merging a commit this run did not pin, and re-running publish.yml will not merge it either (only main's tip merges automatically): a human reviews the new commits and merges the PR with a merge commit by hand. The next release is blocked until it merges."
+              exit 1
+            fi
+            # A conflicted PR gets no pull_request runs at all, so waiting would only burn the cap.
+            # UNKNOWN is GitHub still computing mergeability, which is keep-waiting.
+            if [ "$(jq -r '.mergeable' <<<"$VIEW")" = "CONFLICTING" ]; then
+              echo "::error::$PR_URL has merge conflicts with next. Resolving them means pushing to the branch, which moves its head off main's tip, so publish.yml will not merge it: a human resolves the conflicts on the branch, reviews them, and merges the PR with a merge commit by hand. The next release is blocked until it merges."
+              exit 1
+            fi
+
+            ROLLUP=$(jq -c --arg self "$GITHUB_WORKFLOW" "$CLASSIFY_ROLLUP" <<<"$VIEW")
+            ROLLUP_FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$ROLLUP")
+            if [ -n "$ROLLUP_FAILED" ]; then
+              echo "::error::Checks failed on $PR_URL: $ROLLUP_FAILED. Not merging. $UNCHANGED_HEAD_WAY_OUT"
+              exit 1
+            fi
+            ROLLUP_PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$ROLLUP")
+
+            PR_RUNS_JSON=$(read_pr_runs)
+            RUNS=$(jq -c --arg self "$GITHUB_WORKFLOW" --arg branch "$BRANCH" "$CLASSIFY_RUNS" <<<"$PR_RUNS_JSON")
+            RUNS_TOTAL=$(jq 'length' <<<"$RUNS")
+            RUNS_FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$RUNS")
+            RUNS_PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$RUNS")
+            if [ -n "$RUNS_FAILED" ]; then
+              echo "::error::pull_request workflow run(s) failed or were cancelled on $PR_URL: $RUNS_FAILED. Not merging. $UNCHANGED_HEAD_WAY_OUT"
+              exit 1
+            fi
+            # No pull_request runs yet is not a pass: the PR's workflows have not registered, and the
+            # push-event checks already on main's tip cannot stand in for them.
+            if [ "$RUNS_TOTAL" -eq 0 ] || [ "$RUNS_PENDING" -gt 0 ] || [ "$ROLLUP_PENDING" -gt 0 ]; then
+              PASSING_POLLS=0
+              echo "attempt $ATTEMPT/$MAX_ATTEMPTS: $RUNS_TOTAL pull_request run(s), $RUNS_PENDING pending; $ROLLUP_PENDING other check(s) pending"
+              continue
+            fi
+            PASSING_POLLS=$((PASSING_POLLS + 1))
+            echo "attempt $ATTEMPT/$MAX_ATTEMPTS: all $RUNS_TOTAL pull_request run(s) passed ($PASSING_POLLS/$REQUIRED_PASSING_POLLS)"
+            if [ "$PASSING_POLLS" -ge "$REQUIRED_PASSING_POLLS" ]; then
+              break
+            fi
+          done
+
+          if [ "$PASSING_POLLS" -lt "$REQUIRED_PASSING_POLLS" ]; then
+            echo "::error::The pull_request checks on $PR_URL did not all register and pass within $((MAX_ATTEMPTS * INTERVAL_SECONDS))s ($MAX_ATTEMPTS polls). Not merging. If they are still running, wait for them to pass and then re-run publish.yml on main. $UNCHANGED_HEAD_WAY_OUT"
+            exit 1
           fi
 
-      - name: Build all packages
-        run: pnpm run build:packages
+          # --match-head-commit makes GitHub refuse if the head moved after our last poll.
+          if ! MERGE_OUTPUT=$(gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA" 2>&1); then
+            echo "$MERGE_OUTPUT"
+            echo "::error::GitHub refused to merge $PR_URL at $HEAD_SHA: ${MERGE_OUTPUT//$'\n'/ }. The PR stays open. $UNCHANGED_HEAD_WAY_OUT"
+            exit 1
+          fi
 
-      - name: Publish to npm
-        if: steps.changeset_check.outputs.pending != '0'
-        run: pnpm exec changeset publish
+          # Postcondition: `gh pr merge` exiting 0 is not proof the PR merged (a merge queue would
+          # only enqueue it), and the summary below reports this as done.
+          VIEW=$(read_pr)
+          if [ "$(jq -r '.state' <<<"$VIEW")" != "MERGED" ]; then
+            echo "::error::gh pr merge succeeded but $PR_URL is $(jq -r '.state' <<<"$VIEW"), not MERGED. Check the PR and merge it with a merge commit."
+            exit 1
+          fi
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Merged $PR_URL into next at $HEAD_SHA."
 
-      - name: Get version and create tag
-        if: steps.changeset_check.outputs.pending != '0'
-        id: get_version
-        run: |
-          git pull
-          VERSION="v$(jq -r .version packages/Entities/package.json)"
-          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "## Published $VERSION" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Commit and push
-        if: steps.changeset_check.outputs.pending != '0'
+      - name: Summarise the back-merge
+        if: always() && steps.backmerge_scope.conclusion == 'success'
         env:
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
-        run: pnpm run commitpush
-
-      - name: Merge main into next and update lockfile
-        if: steps.changeset_check.outputs.pending != '0'
+          VERSION: ${{ steps.release_check.outputs.VERSION }}
+          NOTHING: ${{ steps.backmerge_scope.outputs.nothing_to_merge }}
+          BRANCH: ${{ steps.backmerge_pr.outputs.branch }}
+          PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
+          MERGED: ${{ steps.backmerge_merge.outputs.merged }}
         run: |
-          git checkout next
-          pnpm run mergemain:update-lock
+          set -euo pipefail
+          if [ "$NOTHING" = "true" ]; then
+            echo "::notice::main is already an ancestor of next — nothing to back-merge."
+            {
+              echo ""
+              echo "\`main\` is already an ancestor of \`next\` — nothing to back-merge, and the release is complete."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "${MERGED:-}" = "true" ]; then
+            {
+              echo ""
+              echo "### Back-merged"
+              echo ""
+              echo "$PR_URL"
+              echo ""
+              echo "**v$VERSION published, tagged and back-merged.** The back-merge PR passed its checks and was"
+              echo "merged into \`next\` with a merge commit, so the release is complete."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo ""
+            echo "### The back-merge is outstanding"
+            echo ""
+            if [ -n "${PR_URL:-}" ]; then
+              echo "$PR_URL"
+              echo ""
+              echo "**v$VERSION published successfully, but the back-merge PR was not merged.** The packages are on"
+              echo "npm and the tag is pushed. The merge step above says why: a check failed, the checks did not"
+              echo "finish in time, the PR has conflicts, or GitHub refused the merge."
+              echo ""
+              echo "- **Nothing was pushed to the branch** (a flaky or timed-out check): re-run the failed checks, then"
+              echo "  re-run \`publish.yml\` on \`main\` and it merges the PR."
+              echo "- **Anything was pushed to the branch** (a conflict resolution or a fix): \`publish.yml\` only ever"
+              echo "  merges \`main\`'s tip, so a human reviews the new commits and merges the PR with a **merge commit**"
+              echo "  (never squash or rebase) by hand."
+              echo ""
+              echo "Either way the next release is blocked until it merges: \`release-prep.yml\` refuses to cut a"
+              echo "release while \`main\` is not an ancestor of \`next\`, and names this pull request when it does."
+            else
+              echo "**v$VERSION published successfully, but the back-merge PR could not be opened.** The packages are"
+              echo "on npm and the tag is pushed. Read the failed step above — a rejected push means the App"
+              echo "credential needs attention (\`verify-release-app-token.yml\` diagnoses it read-only), anything else"
+              echo "is in its error. Until \`main\` reaches \`next\`, \`release-prep\` refuses to cut the following release."
+              echo ""
+              echo "Re-run \`publish.yml\` on \`main\` once that is fixed: it opens the PR and merges it when its checks"
+              echo "pass. Or by hand: branch \`${BRANCH:-chore/backmerge-v$VERSION}\` from \`main\`'s tip, open a PR"
+              echo "into \`next\` and merge it with a merge commit — see [\`docs/release.md\`](docs/release.md)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # RED means the automation could not finish the back-merge — nothing else.
+      #
+      # The back-merge now merges in this run, so a green run means `main` is inside `next`. There
+      # are two ways it cannot be: the PR was never opened (this step, which has to exist because
+      # `backmerge_pr` is continue-on-error so the summary still runs), or it was opened and not
+      # merged (the merge step fails itself, naming the failing checks or GitHub's refusal).
+      #
+      # Either way the release itself shipped, and the next release is still guarded where it can
+      # stop damage: `release-prep.mjs` blocks it while `main` is not an ancestor of `next`, and
+      # names the outstanding pull request.
+      - name: The back-merge pull request could not be opened
+        if: always() && steps.backmerge_scope.outputs.nothing_to_merge == 'false' && steps.backmerge_pr.outputs.pr_url == ''
+        env:
+          VERSION: ${{ steps.release_check.outputs.VERSION }}
+        run: |
+          echo "::error::v$VERSION is published and tagged, but the main -> next back-merge PR could not be opened. See the failed step above; verify-release-app-token.yml diagnoses a credential problem read-only. Once fixed, re-run publish.yml on main to open and merge it. Until main reaches next, release-prep refuses to cut the following release."
+          exit 1

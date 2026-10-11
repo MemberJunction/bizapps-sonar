@@ -4,42 +4,40 @@ name: Distribution Gate
 # untouched, so they ship as literal strings rather than erroring), in both dialects and both
 # teardown sets. Metadata currency is NOT gated here: PRs contribute declarative JSON only, and the
 # build engineer generates one consolidated Metadata_Sync per release, so between releases metadata/
-# is ahead of the seed by design. That question is asked at the release, by publish.yml
-# (check:release-seed + check:seed-cadence). Reasoning: scripts/check-distribution-seed.mjs,
+# is ahead of the seed by design. That question is asked at the release: by `release-prep --plan`
+# before the release PR is cut, and again by publish.yml (check:release-seed + check:seed-cadence).
+# Reasoning: scripts/check-distribution-seed.mjs,
 # migrations/README.md, MJ/metadata/CLAUDE.md §1b. Mirrors bizapps-sales / bizapps-common.
 
 on:
   workflow_dispatch:
   # `push` as well as `pull_request`: the PR trigger alone would let a direct commit to next/main
   # land an unresolvable placeholder without the gate ever running.
+  #
+  # No `paths:` filter. A workflow skipped by `on: paths:` creates NO check run, so once this gate
+  # is a required check a PR that misses the list hangs on "Expected — Waiting for status" forever
+  # (bizapps-forms #173). Every step below is a cheap stdlib check, so the whole job simply runs on
+  # every change; if a slow step is ever added, scope THAT step with check-paths-touched.mjs (as
+  # build.yml does for its job) instead of reintroducing `on: paths:`.
   push:
     branches: [next, main]
-    paths:
-      - 'migrations/**'
-      - 'migrations-pg/**'
-      - 'migrations-teardown/**'
-      - 'migrations-teardown-pg/**'
-      - 'mj-app.json'
-      - 'scripts/check-distribution-seed*.mjs'
-      - 'scripts/check-release-seed-*.mjs'
-      - '.github/scripts/strip-sql-comments.mjs'
-      - '.github/workflows/distribution-gate.yml'
   pull_request:
     branches: [next, main]
-    paths:
-      - 'migrations/**'
-      - 'migrations-pg/**'
-      - 'migrations-teardown/**'
-      - 'migrations-teardown-pg/**'
-      - 'mj-app.json'
-      - 'scripts/check-distribution-seed*.mjs'
-      - 'scripts/check-release-seed-*.mjs'
-      - '.github/scripts/strip-sql-comments.mjs'
-      - '.github/workflows/distribution-gate.yml'
+
+permissions:
+  contents: read
+
+# GitHub's implicit shell is `bash -e {0}`, without pipefail; naming it gives `-eo pipefail`, so a
+# failing command inside a pipeline fails the step instead of being masked by the last command's
+# status. No step here pipes today; this keeps one added later honest (see changes.yml).
+defaults:
+  run:
+    shell: bash
 
 jobs:
   distribution-gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +53,8 @@ jobs:
       - name: Check the gate itself still fires
         run: node scripts/check-distribution-seed.spec.mjs
 
-      # The release gates themselves run only in publish.yml — between releases they fail by design.
+      # The release gates themselves run only at a release — `release-prep --plan` and publish.yml —
+      # because between releases they fail by design.
       # Their SELF-TESTS run here too, so a PR that edits a release gate learns it broke the gate
       # before a release does. The cadence spec builds throwaway git repos of its own; it does not
       # need this checkout's history or tags.

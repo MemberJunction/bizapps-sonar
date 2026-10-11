@@ -1,0 +1,1 @@
+{"packages":{"server":[{"name":"@mj-biz-apps/sonar-server"}],"client":[{"name":"@mj-biz-apps/sonar-ng"}],"shared":[{"name":"@mj-biz-apps/sonar-entities"}]}}
