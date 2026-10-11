@@ -451,8 +451,8 @@
             "ID": "5044A100-0008-4000-8000-0000000000A2"
           },
           "sync": {
-            "lastModified": "2026-06-25T22:10:27.412Z",
-            "checksum": "ff3064fab4082cbf11796f65cf8024ce55aff9861447f34c6e76614b6c731688"
+            "lastModified": "2026-10-11T02:00:04.239Z",
+            "checksum": "6d2d37f979eb2f65f64bcc6581a2ab8d52807d477842bcd1a6503fdc940e2298"
           }
         },
         {
@@ -2728,8 +2728,8 @@
             "ID": "5044A100-001A-4000-8000-0000000000A6"
           },
           "sync": {
-            "lastModified": "2026-06-30T15:45:42.626Z",
-            "checksum": "9a9041230d2e3b8d6dafe99fba63bc6eb1d1af790f7c3f3fba53f40106b32a39"
+            "lastModified": "2026-10-11T02:00:04.249Z",
+            "checksum": "263d3557ff9dc4d3c2db22cfea8e019d00706f1ae36c3442bb3832c466e8fca8"
           }
         },
         {
@@ -2881,6 +2881,10 @@
           }
         }
       ]
+    },
+    "sync": {
+      "lastModified": "2026-10-11T02:00:04.236Z",
+      "checksum": "dc9db7d5362feacecd10d4ff5f15c4722c75fdad82cf03ea5cf8ca9b5b2b316c"
     }
   }
 ]
