@@ -289,8 +289,10 @@ jobs:
             echo "\`next\`. Red before \`Publish to npm\` means nothing shipped: fix and re-run. Red after it: re-run"
             echo "\`publish.yml\` on main to finish (docs/release.md step 3) — it publishes only what is missing,"
             echo "tags only if the tag is absent, opens the back-merge PR only if none is open, and merges it once"
-            echo "its checks pass. If the back-merge's checks fail or the merge is refused, fix that PR and merge"
-            echo "it with a merge commit, or re-run publish; the next release is blocked until it merges."
+            echo "its checks pass. If the back-merge's checks fail or the merge is refused and nothing was pushed"
+            echo "to its branch, re-run the failed checks and then \`publish.yml\`; if anything was pushed to it, a"
+            echo "human reviews it and merges that PR with a merge commit by hand. Either way the next release is"
+            echo "blocked until it merges."
           } > "$RUNNER_TEMP/release-pr-body.md"
 
       # Minted LATE, immediately before use, and that is load-bearing: an installation token lives

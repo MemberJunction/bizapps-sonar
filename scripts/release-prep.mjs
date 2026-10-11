@@ -81,9 +81,11 @@ const STALE_MAIN_BLOCKER =
     'merge such a PR too (`strict: true`, "branch must be up to date with base"). This is almost ' +
     'always the PREVIOUS release\'s back-merge PR never having merged: publish.yml merges it ' +
     'automatically once its checks pass, so its publish run went red at the back-merge (a failing check, a refused merge, or a PR that was never opened). ' +
-    'That release shipped fine and the cost lands here, on this one. Fix the outstanding ' +
-    '`chore/backmerge-v<last tag>` PR (main into next; docs/release.md) and merge it with a merge ' +
-    'commit, or re-run publish.yml on main, then re-run this.';
+    'That release shipped fine and the cost lands here, on this one. Land the outstanding ' +
+    '`chore/backmerge-v<last tag>` PR (main into next; docs/release.md step 4): if nothing was pushed ' +
+    'to its branch (a flaky or timed-out check), re-run the failed checks, then re-run publish.yml on ' +
+    'main and it merges; if anything was pushed to it (a conflict resolution or a fix), a human ' +
+    'reviews it and merges the PR with a merge commit by hand. Then re-run this.';
 
 /**
  * The strongest bump the changesets ask for, or `null` when none of them asks for one.

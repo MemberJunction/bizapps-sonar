@@ -108,8 +108,9 @@ A green run means the automation did its job: published, tagged, and the back-me
 ## 4. The back-merge merges by itself
 
 `chore/backmerge-vX.Y.Z` into `next` carries the release merge commit back. `publish.yml` merges it
-automatically once its checks pass: it waits up to 40 minutes for the PR's checks to register and
-finish, then merges with a **merge commit** through the API, using the App token so the merge starts
+automatically once its checks pass: it waits up to 40 minutes for the PR's own `pull_request` runs
+to register and finish (the push-event checks already on `main`'s tip do not count, though any failing
+check stops it), then merges with a **merge commit** through the API, using the App token so the merge starts
 `next`'s CI. It never pushes to `next`, and it never squashes or rebases (`release:plan` checks that
 `main` is an ancestor of `next`, which only a merge commit achieves).
 
@@ -118,9 +119,17 @@ It merges only when the PR's head is exactly `main`'s tip, the already-reviewed 
 human's conflict resolution) turns the run red and is left for a human to review and merge.
 
 If a check fails, the checks do not finish in time, the PR has conflicts, or GitHub refuses the merge,
-the run goes red naming the cause and the PR stays open. Then a human fixes the PR and merges it with
-a **merge commit**, or re-runs `publish.yml` on `main`, which finds the open PR, waits for its checks
-and merges it. A re-run after the PR has merged has nothing to do.
+the run goes red naming the cause and the PR stays open. Then:
+
+- **Nothing was pushed to the branch** (a flaky or timed-out check): re-run the failed checks, then
+  re-run `publish.yml` on `main`. It finds the open PR, still at `main`'s tip, waits for its checks
+  and merges it.
+- **Anything was pushed to the branch** (a conflict resolution or a fix): the head is no longer
+  `main`'s tip, so a re-run refuses it. A human reviews the new commits and merges the PR with a
+  **merge commit** by hand.
+
+Either way the next release is blocked until it merges. A re-run after the PR has merged has nothing
+to do.
 
 Leaving it unmerged costs this release nothing and blocks the next one: `release:plan` refuses to cut
 a release while `main` is not contained in `next`, naming this PR, and once the planned `strict: true`
@@ -193,6 +202,6 @@ without it the push goes out as `github-actions[bot]` and its branch starts no C
 | Some packages genuinely did not publish | Re-run `publish.yml` on `main` (step 3). |
 | A push is refused with `GH013` (protected-branch rule violation) | Someone reintroduced a push to `main`/`next`. Run `pnpm run lint:release-pushes` to find it and route the change through a PR. |
 | A push is refused with a 403 naming `github-actions[bot]` | The push used the ambient token instead of the App token; see the persist-credentials notes in `release-prep.yml` and `publish.yml` (bizapps-forms #226). |
-| `publish.yml` is red at **Merge the back-merge pull request** | Everything shipped; only the back-merge is left. The error names the failing checks, the timeout, the conflict or GitHub's refusal, and the PR. Fix the PR and merge it with a merge commit, or re-run `publish.yml` on `main`. The next release is blocked until it merges. |
+| `publish.yml` is red at **Merge the back-merge pull request** | Everything shipped; only the back-merge is left. The error names the failing checks, the timeout, the conflict or GitHub's refusal, and the PR. If nothing was pushed to the branch (a flaky or timed-out check), re-run the failed checks, then re-run `publish.yml` on `main` and it merges. If anything was pushed to it (a conflict resolution or a fix), a human reviews it and merges the PR with a merge commit by hand. Either way the next release is blocked until it merges. |
 | The back-merge branch exists at an unexpected SHA | The workflow will not force-push over it, since someone may have resolved conflicts there. Delete the branch or open the PR by hand. |
 | `release:plan` says the seed is owed | Step 0. |

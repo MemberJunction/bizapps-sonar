@@ -13,6 +13,8 @@ on:
 permissions:
   contents: write
   id-token: write
+  # The back-merge merge step lists the PR's pull_request runs with the job's own token.
+  actions: read
 
 concurrency:
   group: "publish"
@@ -438,9 +440,15 @@ jobs:
             echo
             echo "**\`publish.yml\` merges this PR itself once its checks pass.** If it is still open after that run"
             echo "finished, the run went red: a check failed, the checks did not finish in time, or GitHub refused the"
-            echo "merge, and the failed step says which. Then fix this PR and merge it with a **merge commit** (never"
-            echo "squash or rebase), or re-run \`publish.yml\` on \`main\`, which waits for the checks and merges again."
-            echo "Until this lands, \`release-prep.yml\` will refuse to cut the next release and say why."
+            echo "merge, and the failed step says which. Then:"
+            echo
+            echo "- **Nothing was pushed to this branch** (a flaky or timed-out check): re-run the failed checks, then"
+            echo "  re-run \`publish.yml\` on \`main\` and it merges this PR."
+            echo "- **Anything was pushed to this branch** (a conflict resolution or a fix): \`publish.yml\` only ever"
+            echo "  merges \`main\`'s tip, so a human reviews the new commits and merges this PR with a **merge commit**"
+            echo "  (never squash or rebase) by hand."
+            echo
+            echo "Either way, until this lands \`release-prep.yml\` will refuse to cut the next release and say why."
           } > "$RUNNER_TEMP/backmerge-body.md"
 
           PR_URL=$(gh pr create \
@@ -463,6 +471,10 @@ jobs:
       # The wait happens here rather than through GitHub auto-merge: auto-merge is disabled for the
       # repo, and with no required checks in the ruleset it would merge before CI reported anyway.
       #
+      # It merges main's tip and nothing else, so it can only ever be re-run against an unchanged
+      # head. Anything pushed to the branch (a conflict resolution, a fix) is a human's to review
+      # and merge by hand; every error below says which of the two paths applies.
+      #
       # No continue-on-error: a back-merge that did not merge is now a failure of this run, and its
       # own error names why. The summary and the "could not be opened" step run on always(), so they
       # still report.
@@ -471,6 +483,10 @@ jobs:
         id: backmerge_merge
         env:
           GH_TOKEN: ${{ steps.backmerge_token.outputs.token }}
+          # Only for `gh run list`. Listing workflow runs needs Actions read, which the App token is
+          # deliberately not minted with; the job's own token has it (`actions: read` above) and
+          # this is a read, so nothing here needs the App to start CI.
+          RUNS_TOKEN: ${{ github.token }}
           PR_URL: ${{ steps.backmerge_pr.outputs.pr_url }}
           MAIN_SHA: ${{ steps.backmerge_scope.outputs.main_sha }}
         run: |
@@ -479,10 +495,14 @@ jobs:
           # The job's timeout-minutes is sized to fit this on top of the publish itself.
           MAX_ATTEMPTS=80
           INTERVAL_SECONDS=30
-          # Checks from different workflows register a few seconds apart. Seeing "all passed" once
-          # can mean one workflow finished before another registered, and with no required checks
-          # GitHub would let us merge past the late one. Two consecutive passing polls closes that.
+          # The pull_request workflows (build.yml, changes.yml, distribution-gate.yml) register a few
+          # seconds apart. Seeing "all passed" once can mean one finished before another registered,
+          # and with no required checks GitHub would let us merge past the late one. Two consecutive
+          # passing polls closes that.
           REQUIRED_PASSING_POLLS=2
+          # Appended to every "not merging" error whose head is still main's tip, so the way out is
+          # stated once and the same everywhere.
+          UNCHANGED_HEAD_WAY_OUT="If nothing was pushed to the branch (a flaky or timed-out check), re-run the failed checks, then re-run publish.yml on main and it merges the PR. If anything was pushed to the branch (a conflict resolution or a fix), a human reviews it and merges the PR with a merge commit by hand; publish.yml only ever merges main's tip. Either way the next release is blocked until it merges."
 
           # One bucket per check: pass / pending / fail. CheckRuns (Actions) report status +
           # conclusion; StatusContexts (commit statuses) report a single state. NEUTRAL and SKIPPED
@@ -491,7 +511,11 @@ jobs:
           # The rollup lists every check on the head commit, and that commit is main's tip: the push to
           # main that started THIS workflow put its own run there. Counting it would wait on ourselves
           # until the cap, so runs of this workflow ($self = GITHUB_WORKFLOW) are excluded.
-          CLASSIFY='[.statusCheckRollup[] | select((.workflowName // "") != $self) | {
+          #
+          # The rollup is a fail-fast only, never the go signal. main's tip already carries the
+          # push-event runs of build.yml and distribution-gate.yml, all finished and passing before
+          # the PR exists, so a rollup that is "all passed" says nothing about the PR's own runs.
+          CLASSIFY_ROLLUP='[.statusCheckRollup[] | select((.workflowName // "") != $self) | {
             name: (.name // .context // "unnamed check"),
             bucket: (if .__typename == "StatusContext" then
                        (if .state == "SUCCESS" then "pass"
@@ -502,10 +526,26 @@ jobs:
                         elif (.conclusion == "SUCCESS" or .conclusion == "NEUTRAL" or .conclusion == "SKIPPED") then "pass"
                         else "fail" end)
                      end)}]'
+          # The go signal: the pull_request-event runs for this head on the back-merge branch. Same
+          # buckets, lowercase because the REST API reports them that way. A run the PR started can
+          # only come from the PR, so these cannot be satisfied by the push to main.
+          CLASSIFY_RUNS='[.[] | select(.headBranch == $branch and (.workflowName // "") != $self) | {
+            name: (.workflowName // .name // "unnamed workflow"),
+            bucket: (if .status != "completed" then "pending"
+                     elif (.conclusion == "success" or .conclusion == "neutral" or .conclusion == "skipped") then "pass"
+                     else "fail" end)}]'
 
           read_pr() {
-            if ! gh pr view "$PR_URL" --json state,mergeable,headRefOid,statusCheckRollup; then
-              echo "::error::Could not read $PR_URL (gh error above). The PR stays open; merge it with a merge commit, or re-run publish.yml on main." >&2
+            if ! gh pr view "$PR_URL" --json state,mergeable,headRefOid,headRefName,statusCheckRollup; then
+              echo "::error::Could not read $PR_URL (gh error above). Nothing was merged. $UNCHANGED_HEAD_WAY_OUT" >&2
+              return 1
+            fi
+          }
+
+          read_pr_runs() {
+            if ! GH_TOKEN="$RUNS_TOKEN" gh run list --repo "$GITHUB_REPOSITORY" --commit "$HEAD_SHA" \
+                --event pull_request --limit 100 --json workflowName,name,status,conclusion,headBranch; then
+              echo "::error::Could not list the pull_request runs for $HEAD_SHA on $PR_URL (gh error above). Nothing was merged. $UNCHANGED_HEAD_WAY_OUT" >&2
               return 1
             fi
           }
@@ -522,7 +562,7 @@ jobs:
                 exit 0 ;;
               OPEN) ;;
               *)
-                echo "::error::$PR_URL is $STATE, not open. Nothing to merge here: reopen it, or delete the branch and re-run publish.yml on main to open a fresh one."
+                echo "::error::$PR_URL is $STATE, not open. Nothing to merge here: reopen it, or delete the branch and re-run publish.yml on main to open a fresh one. The next release is blocked until main reaches next."
                 exit 1 ;;
             esac
           }
@@ -531,7 +571,8 @@ jobs:
           handle_state "$VIEW"
           # Pinned before waiting: the checks we wait on must be the checks of the commit we merge.
           # If someone pushes to the branch mid-wait, the head moves and we stop rather than merge a
-          # commit whose checks we never saw (a re-run pins the new head).
+          # commit whose checks we never saw. A re-run would refuse the new head too (below), so a
+          # moved head is always a human's to merge.
           # Merge only main's tip. chore/backmerge-* is not a protected branch, so anyone with write
           # access could push to it between our push and this read; trusting headRefOid would merge
           # that unreviewed commit into next with no human involved. main's tip is the merged,
@@ -542,11 +583,12 @@ jobs:
             exit 1
           fi
           HEAD_SHA=$(jq -r '.headRefOid' <<<"$VIEW")
+          BRANCH=$(jq -r '.headRefName' <<<"$VIEW")
           if [ "$HEAD_SHA" != "$MAIN_SHA" ]; then
-            echo "::error::$PR_URL is at $HEAD_SHA, not main's tip $MAIN_SHA. Only main's tip is merged automatically; review the extra commits and merge it with a merge commit by hand."
+            echo "::error::$PR_URL is at $HEAD_SHA, not main's tip $MAIN_SHA. Only main's tip is merged automatically, so re-running publish.yml will not merge it either: a human reviews the extra commits and merges the PR with a merge commit by hand. The next release is blocked until it merges."
             exit 1
           fi
-          echo "Waiting for the checks on $PR_URL at $HEAD_SHA (up to $MAX_ATTEMPTS polls, ${INTERVAL_SECONDS}s apart)."
+          echo "Waiting for the pull_request checks on $PR_URL ($BRANCH at $HEAD_SHA, up to $MAX_ATTEMPTS polls, ${INTERVAL_SECONDS}s apart)."
 
           PASSING_POLLS=0
           for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
@@ -556,46 +598,56 @@ jobs:
 
             CURRENT_HEAD=$(jq -r '.headRefOid' <<<"$VIEW")
             if [ "$CURRENT_HEAD" != "$HEAD_SHA" ]; then
-              echo "::error::The head of $PR_URL moved from $HEAD_SHA to $CURRENT_HEAD while waiting for its checks. Not merging; once the new commit's checks pass, merge it with a merge commit or re-run publish.yml on main."
+              echo "::error::The head of $PR_URL moved from $HEAD_SHA to $CURRENT_HEAD while waiting for its checks. Not merging a commit this run did not pin, and re-running publish.yml will not merge it either (only main's tip merges automatically): a human reviews the new commits and merges the PR with a merge commit by hand. The next release is blocked until it merges."
               exit 1
             fi
             # A conflicted PR gets no pull_request runs at all, so waiting would only burn the cap.
             # UNKNOWN is GitHub still computing mergeability, which is keep-waiting.
             if [ "$(jq -r '.mergeable' <<<"$VIEW")" = "CONFLICTING" ]; then
-              echo "::error::$PR_URL has merge conflicts with next. Resolve them on the branch and merge with a merge commit, or re-run publish.yml on main afterwards."
+              echo "::error::$PR_URL has merge conflicts with next. Resolving them means pushing to the branch, which moves its head off main's tip, so publish.yml will not merge it: a human resolves the conflicts on the branch, reviews them, and merges the PR with a merge commit by hand. The next release is blocked until it merges."
               exit 1
             fi
 
-            CHECKS=$(jq -c --arg self "$GITHUB_WORKFLOW" "$CLASSIFY" <<<"$VIEW")
-            TOTAL=$(jq 'length' <<<"$CHECKS")
-            FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$CHECKS")
-            PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$CHECKS")
-            if [ -n "$FAILED" ]; then
-              echo "::error::Checks failed on $PR_URL: $FAILED. Not merging. Fix the PR and merge it with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+            ROLLUP=$(jq -c --arg self "$GITHUB_WORKFLOW" "$CLASSIFY_ROLLUP" <<<"$VIEW")
+            ROLLUP_FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$ROLLUP")
+            if [ -n "$ROLLUP_FAILED" ]; then
+              echo "::error::Checks failed on $PR_URL: $ROLLUP_FAILED. Not merging. $UNCHANGED_HEAD_WAY_OUT"
               exit 1
             fi
-            if [ "$TOTAL" -eq 0 ] || [ "$PENDING" -gt 0 ]; then
-              # No checks yet is not a pass: the workflows have not registered.
+            ROLLUP_PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$ROLLUP")
+
+            PR_RUNS_JSON=$(read_pr_runs)
+            RUNS=$(jq -c --arg self "$GITHUB_WORKFLOW" --arg branch "$BRANCH" "$CLASSIFY_RUNS" <<<"$PR_RUNS_JSON")
+            RUNS_TOTAL=$(jq 'length' <<<"$RUNS")
+            RUNS_FAILED=$(jq -r '[.[] | select(.bucket == "fail") | .name] | join(", ")' <<<"$RUNS")
+            RUNS_PENDING=$(jq '[.[] | select(.bucket == "pending")] | length' <<<"$RUNS")
+            if [ -n "$RUNS_FAILED" ]; then
+              echo "::error::pull_request workflow run(s) failed or were cancelled on $PR_URL: $RUNS_FAILED. Not merging. $UNCHANGED_HEAD_WAY_OUT"
+              exit 1
+            fi
+            # No pull_request runs yet is not a pass: the PR's workflows have not registered, and the
+            # push-event checks already on main's tip cannot stand in for them.
+            if [ "$RUNS_TOTAL" -eq 0 ] || [ "$RUNS_PENDING" -gt 0 ] || [ "$ROLLUP_PENDING" -gt 0 ]; then
               PASSING_POLLS=0
-              echo "attempt $ATTEMPT/$MAX_ATTEMPTS: $TOTAL check(s), $PENDING pending"
+              echo "attempt $ATTEMPT/$MAX_ATTEMPTS: $RUNS_TOTAL pull_request run(s), $RUNS_PENDING pending; $ROLLUP_PENDING other check(s) pending"
               continue
             fi
             PASSING_POLLS=$((PASSING_POLLS + 1))
-            echo "attempt $ATTEMPT/$MAX_ATTEMPTS: all $TOTAL check(s) passed ($PASSING_POLLS/$REQUIRED_PASSING_POLLS)"
+            echo "attempt $ATTEMPT/$MAX_ATTEMPTS: all $RUNS_TOTAL pull_request run(s) passed ($PASSING_POLLS/$REQUIRED_PASSING_POLLS)"
             if [ "$PASSING_POLLS" -ge "$REQUIRED_PASSING_POLLS" ]; then
               break
             fi
           done
 
           if [ "$PASSING_POLLS" -lt "$REQUIRED_PASSING_POLLS" ]; then
-            echo "::error::The checks on $PR_URL did not all pass within $((MAX_ATTEMPTS * INTERVAL_SECONDS))s ($MAX_ATTEMPTS polls). Not merging. When they pass, merge it with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+            echo "::error::The pull_request checks on $PR_URL did not all register and pass within $((MAX_ATTEMPTS * INTERVAL_SECONDS))s ($MAX_ATTEMPTS polls). Not merging. If they are still running, wait for them to pass and then re-run publish.yml on main. $UNCHANGED_HEAD_WAY_OUT"
             exit 1
           fi
 
           # --match-head-commit makes GitHub refuse if the head moved after our last poll.
           if ! MERGE_OUTPUT=$(gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA" 2>&1); then
             echo "$MERGE_OUTPUT"
-            echo "::error::GitHub refused to merge $PR_URL at $HEAD_SHA: ${MERGE_OUTPUT//$'\n'/ }. The PR stays open; fix it and merge with a merge commit, or re-run publish.yml on main. The next release is blocked until it merges."
+            echo "::error::GitHub refused to merge $PR_URL at $HEAD_SHA: ${MERGE_OUTPUT//$'\n'/ }. The PR stays open. $UNCHANGED_HEAD_WAY_OUT"
             exit 1
           fi
 
@@ -650,10 +702,14 @@ jobs:
               echo "npm and the tag is pushed. The merge step above says why: a check failed, the checks did not"
               echo "finish in time, the PR has conflicts, or GitHub refused the merge."
               echo ""
-              echo "Fix the PR and merge it with a **merge commit** (never squash or rebase), or re-run"
-              echo "\`publish.yml\` on \`main\`, which waits for the checks and merges again. The next release is"
-              echo "blocked until it merges: \`release-prep.yml\` refuses to cut a release while \`main\` is not an"
-              echo "ancestor of \`next\`, and names this pull request when it does."
+              echo "- **Nothing was pushed to the branch** (a flaky or timed-out check): re-run the failed checks, then"
+              echo "  re-run \`publish.yml\` on \`main\` and it merges the PR."
+              echo "- **Anything was pushed to the branch** (a conflict resolution or a fix): \`publish.yml\` only ever"
+              echo "  merges \`main\`'s tip, so a human reviews the new commits and merges the PR with a **merge commit**"
+              echo "  (never squash or rebase) by hand."
+              echo ""
+              echo "Either way the next release is blocked until it merges: \`release-prep.yml\` refuses to cut a"
+              echo "release while \`main\` is not an ancestor of \`next\`, and names this pull request when it does."
             else
               echo "**v$VERSION published successfully, but the back-merge PR could not be opened.** The packages are"
               echo "on npm and the tag is pushed. Read the failed step above — a rejected push means the App"
