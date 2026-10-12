@@ -205,6 +205,9 @@
                                                             @if (selectedStale()) { <span class="sonar-neg sonar-drill__stale">⚠ older than live v{{ currentVersionNumber() }} — recompute to refresh</span> }
                                                         </div>
                                                     }
+                                                    <button type="button" class="sonar-btn sonar-btn--ghost sonar-drill__open" [disabled]="!canOpenRecord()" (click)="openSelectedRecord()" title="Open this record">
+                                                        <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Open record
+                                                    </button>
                                                 </div>
 
                                                 <div class="sonar-drill__score">
