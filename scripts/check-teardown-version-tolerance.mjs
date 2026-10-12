@@ -1,226 +1,121 @@
 #!/usr/bin/env node
 /**
- * Validates that Sonar's teardown scripts are version-tolerant.
+ * Teardown version-tolerance gate (issue #56).
  *
- * Checks:
- * 1. All column/table references in teardown scripts are guarded against
- *    missing columns (using COL_LENGTH in T-SQL or information_schema in PG)
- * 2. Known problematic columns from issue #56 are properly guarded
+ * The teardown scripts in migrations-teardown/ and migrations-teardown-pg/ are a snapshot of
+ * MJ's FK graph: they name MJ core tables and columns directly. mj-app.json declares the oldest
+ * MJ this release supports (the `>=` floor of mjVersionRange). Any table or column the scripts
+ * name that the floor version does not have breaks uninstall on that version, so it must be
+ * guarded:
  *
- * Problematic columns (added after MJ 6.1.5):
- *   - [__mj].[AIPromptRun].[AgentRunID]
- *   - [__mj].[ContentSource].[ScheduledActionID]
- *   - [__mj].[ScheduledActionParam].[ScheduledActionID]
+ *   SQL Server — `IF COL_LENGTH('[...].[Table]', 'Column') IS NOT NULL` (or `IF OBJECT_ID(...)`
+ *                for a whole table) followed by `EXEC sp_executesql N'...'`. The statement must
+ *                be dynamic: SQL Server resolves column names when it compiles the batch, so a
+ *                static statement fails even inside a false IF.
+ *   PostgreSQL — a `DO $$ ... IF EXISTS (SELECT 1 FROM information_schema.columns|tables ...)`
+ *                block naming the table (and column).
+ *
+ * The floor's schema is scripts/mj-schema-floor/mj-core-columns.json. The gate fails if that
+ * snapshot is for a different MJ version than the floor, so raising the floor forces a refresh.
+ *
+ * Usage: node scripts/check-teardown-version-tolerance.mjs
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SNAPSHOT_PATH = path.join(repoRoot, 'scripts/mj-schema-floor/mj-core-columns.json');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
-
-const PROBLEMATIC_COLUMNS = [
-  { table: 'AIPromptRun', column: 'AgentRunID', issue: '#56' },
-  { table: 'ContentSource', column: 'ScheduledActionID', issue: '#56' },
-  { table: 'ScheduledActionParam', column: 'ScheduledActionID', issue: '#56' },
+const DIALECTS = [
+  { dir: 'migrations-teardown', name: 'SQL Server', ident: String.raw`\[([A-Za-z0-9_]+)\]` },
+  { dir: 'migrations-teardown-pg', name: 'PostgreSQL', ident: String.raw`"([A-Za-z0-9_]+)"` },
 ];
 
-/**
- * Check if a column reference in T-SQL is guarded with COL_LENGTH
- */
-function isTSQLGuarded(sql, table, column) {
-  // Look for pattern: IF COL_LENGTH(...) IS NOT NULL ... BEGIN ... UPDATE/DELETE ... END
-  const pattern = new RegExp(
-    `IF\\s+COL_LENGTH\\s*\\(\\s*'[^']*'\\s*,\\s*'${column}'\\s*\\)\\s+IS\\s+NOT\\s+NULL`,
-    'i'
-  );
-  return pattern.test(sql);
+/** The `>=x.y.z` floor of mj-app.json's mjVersionRange. */
+function readFloorVersion() {
+  const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, 'mj-app.json'), 'utf8'));
+  const match = /^\s*>=\s*(\d+\.\d+\.\d+)/.exec(manifest.mjVersionRange ?? '');
+  if (!match) throw new Error(`mj-app.json mjVersionRange "${manifest.mjVersionRange}" has no ">=x.y.z" floor`);
+  return match[1];
 }
 
-/**
- * Check if a column reference in PostgreSQL is guarded with information_schema
- */
-function isPGGuarded(sql, table, column) {
-  // Look for pattern: DO $$ BEGIN IF EXISTS (... information_schema.columns ...
-  const pattern = new RegExp(
-    `DO\\s+\\$\\$\\s+BEGIN\\s+IF\\s+EXISTS\\s*\\(\\s*SELECT\\s+1\\s+FROM\\s+information_schema\\.columns\\s+WHERE.*column_name\\s*=\\s*'${column}'`,
-    'is'
-  );
-  return pattern.test(sql);
+/** Every MJ-schema table, and every (table, column) in a SET/WHERE clause, named in a chunk. */
+function collectReferences(chunk, ident) {
+  const schema = ident.replace('([A-Za-z0-9_]+)', String.raw`\$\{mjSchema\}`);
+  const tables = new Set();
+  const columns = [];
+  const tableRe = new RegExp(`${schema}\\.${ident}`, 'g');
+  for (const m of chunk.matchAll(tableRe)) tables.add(m[1]);
+  // UPDATE t SET c = NULL WHERE c IN / DELETE FROM t WHERE c IN / SELECT x FROM t WHERE c IN
+  const stmtRe = new RegExp(`${schema}\\.${ident}\\s+(?:SET\\s+${ident}\\s*=\\s*NULL\\s+)?WHERE\\s+${ident}`, 'g');
+  for (const m of chunk.matchAll(stmtRe)) {
+    const [, table, setColumn, whereColumn] = m;
+    if (setColumn) columns.push({ table, column: setColumn });
+    columns.push({ table, column: whereColumn });
+  }
+  return { tables, columns };
 }
 
-/**
- * Extract unguarded references to a column in SQL
- */
-function findUnguardedReferences(sql, table, column) {
-  const references = [];
-
-  // Find all references like [schema].[table].[column] or "schema"."table"."column"
-  const tsqlPattern = new RegExp(
-    `\\[(?:__mj|\\$\\{mjSchema\\})\\]\\.\\[${table}\\]\\s+SET\\s+\\[${column}\\]|` +
-    `"(?:__mj|\\$\\{mjSchema\\})"\\."${table}"\\s+SET\\s+"${column}"`,
-    'gi'
-  );
-
-  // Look for DELETE FROM patterns too
-  const tsqlDeletePattern = new RegExp(
-    `DELETE\\s+FROM\\s+\\[(?:__mj|\\$\\{mjSchema\\})\\]\\.\\[${table}\\]\\s+WHERE\\s+\\[${column}\\]`,
-    'gi'
-  );
-
-  const pgPattern = new RegExp(
-    `"(?:__mj|\\$\\{mjSchema\\})"\\."${table}"\\s+SET\\s+"${column}"`,
-    'gi'
-  );
-
-  const pgDeletePattern = new RegExp(
-    `DELETE\\s+FROM\\s+"(?:__mj|\\$\\{mjSchema\\})"\\."${table}"\\s+WHERE\\s+"${column}"`,
-    'gi'
-  );
-
-  const lines = sql.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.match(tsqlPattern) || line.match(tsqlDeletePattern) ||
-        line.match(pgPattern) || line.match(pgDeletePattern)) {
-      references.push({ line: i + 1, text: line.trim() });
-    }
+/** Whether the chunk carries a guard for this table (and column) in the dialect's form. */
+function isGuarded(chunk, dialect, table, column) {
+  if (dialect.name === 'SQL Server') {
+    if (!/EXEC\s+sp_executesql\s+N'/i.test(chunk)) return false;
+    return column
+      ? new RegExp(`COL_LENGTH\\(\\s*'[^']*\\[${table}\\]'\\s*,\\s*'${column}'\\s*\\)\\s+IS\\s+NOT\\s+NULL`, 'i').test(chunk)
+      : new RegExp(`(OBJECT_ID|COL_LENGTH)\\(\\s*'[^']*\\[${table}\\]'[^)]*\\)\\s+IS\\s+NOT\\s+NULL`, 'i').test(chunk);
   }
-
-  return references;
+  if (!/DO\s+\$\$/.test(chunk)) return false;
+  return column
+    ? new RegExp(`information_schema\\.columns[\\s\\S]*?table_name\\s*=\\s*'${table}'\\s+AND\\s+column_name\\s*=\\s*'${column}'`, 'i').test(chunk)
+    : new RegExp(`information_schema\\.(tables|columns)[\\s\\S]*?table_name\\s*=\\s*'${table}'`, 'i').test(chunk);
 }
 
-/**
- * Main validation
- */
-function validateTeardownTolerance() {
-  const teardownDir = path.join(repoRoot, 'migrations-teardown');
-  const teardownPgDir = path.join(repoRoot, 'migrations-teardown-pg');
+function main() {
+  const floor = readFloorVersion();
+  const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'));
+  if (snapshot.mjVersion !== floor) {
+    console.error(`❌ mj-app.json supports MJ >=${floor}, but ${path.relative(repoRoot, SNAPSHOT_PATH)} describes MJ ${snapshot.mjVersion}.`);
+    console.error(`   Regenerate the snapshot from a database installed with "mj install -t v${floor}" (see the file's "source").`);
+    process.exit(1);
+  }
+  const known = new Map(Object.entries(snapshot.tables).map(([t, cols]) => [t, new Set(cols)]));
 
-  let hasErrors = false;
-  const results = {
-    tsql: { file: 'migrations-teardown/01__Detach_Optional_References.sql', guarded: {}, unguarded: {} },
-    tsql2: { file: 'migrations-teardown/02__Delete_Sonar_Rows.sql', guarded: {}, unguarded: {} },
-    pg: { file: 'migrations-teardown-pg/01__Detach_Optional_References.sql', guarded: {}, unguarded: {} },
-    pg2: { file: 'migrations-teardown-pg/02__Delete_Sonar_Rows.sql', guarded: {}, unguarded: {} },
-  };
-
-  // Check T-SQL files
-  const tsqlFile1 = path.join(teardownDir, '01__Detach_Optional_References.sql');
-  const tsqlFile2 = path.join(teardownDir, '02__Delete_Sonar_Rows.sql');
-
-  if (!fs.existsSync(tsqlFile1)) {
-    console.error(`ERROR: ${tsqlFile1} not found`);
-    hasErrors = true;
-  } else {
-    const sql = fs.readFileSync(tsqlFile1, 'utf-8');
-    for (const col of PROBLEMATIC_COLUMNS) {
-      if (isTSQLGuarded(sql, col.table, col.column)) {
-        results.tsql.guarded[`${col.table}.${col.column}`] = true;
-      } else {
-        const refs = findUnguardedReferences(sql, col.table, col.column);
-        if (refs.length > 0) {
-          results.tsql.unguarded[`${col.table}.${col.column}`] = refs;
-          hasErrors = true;
+  const problems = [];
+  let checked = 0;
+  for (const dialect of DIALECTS) {
+    const dir = path.join(repoRoot, dialect.dir);
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+      const rel = `${dialect.dir}/${file}`;
+      // Generated teardown scripts put one statement (plus its comment and guard) per
+      // blank-line-separated chunk.
+      for (const chunk of fs.readFileSync(path.join(dir, file), 'utf8').split(/\n\s*\n/)) {
+        const { tables, columns } = collectReferences(chunk, dialect.ident);
+        for (const table of tables) {
+          checked++;
+          if (!known.has(table) && !isGuarded(chunk, dialect, table)) {
+            problems.push(`${rel}: table ${table} does not exist in MJ ${floor} and is not guarded`);
+          }
+        }
+        for (const { table, column } of columns) {
+          checked++;
+          if (known.has(table) && !known.get(table).has(column) && !isGuarded(chunk, dialect, table, column)) {
+            problems.push(`${rel}: column ${table}.${column} does not exist in MJ ${floor} and is not guarded`);
+          }
         }
       }
     }
   }
 
-  if (!fs.existsSync(tsqlFile2)) {
-    console.error(`ERROR: ${tsqlFile2} not found`);
-    hasErrors = true;
-  } else {
-    const sql = fs.readFileSync(tsqlFile2, 'utf-8');
-    for (const col of PROBLEMATIC_COLUMNS) {
-      if (isTSQLGuarded(sql, col.table, col.column)) {
-        results.tsql2.guarded[`${col.table}.${col.column}`] = true;
-      } else {
-        const refs = findUnguardedReferences(sql, col.table, col.column);
-        if (refs.length > 0) {
-          results.tsql2.unguarded[`${col.table}.${col.column}`] = refs;
-          hasErrors = true;
-        }
-      }
-    }
+  const unique = [...new Set(problems)];
+  if (unique.length) {
+    console.error(`❌ Teardown is not safe on MJ ${floor} (mj-app.json floor):\n`);
+    for (const p of unique) console.error(`  • ${p}`);
+    console.error(`\nGuard each statement as described at the top of ${path.relative(repoRoot, fileURLToPath(import.meta.url))}.`);
+    process.exit(1);
   }
-
-  // Check PostgreSQL files
-  const pgFile1 = path.join(teardownPgDir, '01__Detach_Optional_References.sql');
-  const pgFile2 = path.join(teardownPgDir, '02__Delete_Sonar_Rows.sql');
-
-  if (!fs.existsSync(pgFile1)) {
-    console.error(`ERROR: ${pgFile1} not found`);
-    hasErrors = true;
-  } else {
-    const sql = fs.readFileSync(pgFile1, 'utf-8');
-    for (const col of PROBLEMATIC_COLUMNS) {
-      if (isPGGuarded(sql, col.table, col.column)) {
-        results.pg.guarded[`${col.table}.${col.column}`] = true;
-      } else {
-        const refs = findUnguardedReferences(sql, col.table, col.column);
-        if (refs.length > 0) {
-          results.pg.unguarded[`${col.table}.${col.column}`] = refs;
-          hasErrors = true;
-        }
-      }
-    }
-  }
-
-  if (!fs.existsSync(pgFile2)) {
-    console.error(`ERROR: ${pgFile2} not found`);
-    hasErrors = true;
-  } else {
-    const sql = fs.readFileSync(pgFile2, 'utf-8');
-    for (const col of PROBLEMATIC_COLUMNS) {
-      if (isPGGuarded(sql, col.table, col.column)) {
-        results.pg2.guarded[`${col.table}.${col.column}`] = true;
-      } else {
-        const refs = findUnguardedReferences(sql, col.table, col.column);
-        if (refs.length > 0) {
-          results.pg2.unguarded[`${col.table}.${col.column}`] = refs;
-          hasErrors = true;
-        }
-      }
-    }
-  }
-
-  // Report results
-  console.log('\n=== Teardown Version Tolerance Check ===\n');
-
-  const allGuarded = Object.values(results).every(r => Object.keys(r.unguarded).length === 0);
-
-  if (allGuarded) {
-    console.log('✓ All problematic columns are properly guarded\n');
-
-    for (const key of Object.keys(results)) {
-      const r = results[key];
-      const guarded = Object.keys(r.guarded);
-      if (guarded.length > 0) {
-        console.log(`${r.file}:`);
-        guarded.forEach(col => console.log(`  ✓ ${col}`));
-      }
-    }
-    return 0;
-  } else {
-    console.log('✗ ERRORS: Some problematic columns are not guarded:\n');
-
-    for (const key of Object.keys(results)) {
-      const r = results[key];
-      if (Object.keys(r.unguarded).length > 0) {
-        console.log(`${r.file}:`);
-        for (const col of Object.keys(r.unguarded)) {
-          console.log(`  ✗ ${col} - UNGUARDED`);
-          r.unguarded[col].forEach(ref => {
-            console.log(`    Line ${ref.line}: ${ref.text}`);
-          });
-        }
-      }
-    }
-    return 1;
-  }
+  console.log(`✅ Teardown version tolerance: ${checked} table/column references checked against MJ ${floor}; every one missing there is guarded.`);
 }
 
-process.exit(validateTeardownTolerance());
+main();

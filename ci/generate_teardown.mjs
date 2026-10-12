@@ -15,6 +15,7 @@
 const sql = require('mssql');
 const fs = require('fs');
 const path = require('path');
+const { LoadFloor, GuardStatement } = require('./teardown_guards.cjs');
 
 const SEED_TABLES = ['Action', 'ActionParam', 'ActionResultCode', 'AIAgent', 'AIAgentAction',
   'AIAgentPrompt', 'AIPrompt', 'Query', 'QueryField', 'QueryParameter', 'QueryEntity',
@@ -24,6 +25,9 @@ const MAX_DEPTH = 6;
 (async () => {
   const idsMs = JSON.parse(fs.readFileSync(path.join(__dirname, 'seeded_ids.json'))).ids;
   const idsPg = JSON.parse(fs.readFileSync(path.join(__dirname, 'seeded_ids_pg.json'))).ids;
+  // The oldest MJ this release supports. Statements naming anything it lacks get a version
+  // guard, because the database this reads is usually newer than that (issue #56).
+  const floor = LoadFloor();
 
   const p = await sql.connect({
     server: process.env.DB_HOST, port: +(process.env.DB_PORT || 1433),
@@ -142,7 +146,7 @@ ${b}
 
 `;
 
-  for (const d of Object.values(DIALECTS)) {
+  for (const [dialect, d] of Object.entries(DIALECTS)) {
     const outDir = path.join(process.argv[2], d.dir);
     fs.rmSync(outDir, { recursive: true, force: true });
     fs.mkdirSync(outDir, { recursive: true });
@@ -152,7 +156,7 @@ ${b}
     for (const e of detaches) {
       const w = predTo(d, e.col, e.target, 0);
       if (!w) continue;
-      dParts.push(`-- ${e.table}.${e.col} -> ${e.target.seed || e.target.table}\nUPDATE ${d.t(e.table)} SET ${d.c(e.col)} = NULL WHERE ${w};\n`);
+      dParts.push(`-- ${e.table}.${e.col} -> ${e.target.seed || e.target.table}\n${GuardStatement(`UPDATE ${d.t(e.table)} SET ${d.c(e.col)} = NULL WHERE ${w};`, dialect, floor)}\n`);
       dn++;
     }
     fs.writeFileSync(path.join(outDir, '01__Detach_Optional_References.sql'),
@@ -179,11 +183,11 @@ ${b}
       for (const n of byTable[t] || []) {
         const w = pred(d, n, 0);
         if (!w) continue;
-        block.push(`DELETE FROM ${d.t(t)} WHERE ${w};  -- via ${n.col} -> ${n.parent.table}\n`);
+        block.push(`${GuardStatement(`DELETE FROM ${d.t(t)} WHERE ${w};  -- via ${n.col} -> ${n.parent.table}`, dialect, floor)}\n`);
         sn++;
       }
       if (SEED_TABLES.includes(t) && (d.ids[t] || []).length) {
-        block.push(`-- ...and the ${d.ids[t].length} row(s) the seed wrote directly.\nDELETE FROM ${d.t(t)} WHERE ${d.c('ID')} IN (\n${lits(d, t, '  ')}\n);\n`);
+        block.push(`-- ...and the ${d.ids[t].length} row(s) the seed wrote directly.\n${GuardStatement(`DELETE FROM ${d.t(t)} WHERE ${d.c('ID')} IN (\n${lits(d, t, '  ')}\n);`, dialect, floor)}\n`);
         sn++;
       }
       if (block.length) parts.push(`-- ---- ${t} ${'-'.repeat(Math.max(0, 66 - t.length))}\n` + block.join('\n'));

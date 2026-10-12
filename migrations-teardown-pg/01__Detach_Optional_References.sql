@@ -387,13 +387,11 @@ UPDATE "${mjSchema}"."TemplateParam" SET "TemplateContentID" = NULL WHERE "Templ
 );
 
 -- ContentSource.ScheduledActionID -> ScheduledAction
--- NOTE: ScheduledActionID column was added after MJ 6.1.5; only update if it exists
+-- NOTE: needs table ScheduledAction, column ContentSource.ScheduledActionID, which MJ 6.1.5 does not have; skipped where missing.
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = '${mjSchema}' AND table_name = 'ContentSource' AND column_name = 'ScheduledActionID'
-  ) THEN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = '${mjSchema}' AND table_name = 'ScheduledAction')
+     AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '${mjSchema}' AND table_name = 'ContentSource' AND column_name = 'ScheduledActionID') THEN
     UPDATE "${mjSchema}"."ContentSource" SET "ScheduledActionID" = NULL WHERE "ScheduledActionID" IN (
       SELECT "ID" FROM "${mjSchema}"."ScheduledAction" WHERE "ActionID" IN (
         SELECT "ID" FROM "${mjSchema}"."Action" WHERE "ID" IN (
@@ -548,13 +546,10 @@ UPDATE "${mjSchema}"."ExperimentSessionIteration" SET "AIAgentRunID" = NULL WHER
 );
 
 -- AIPromptRun.AgentRunID -> AIAgentRun
--- NOTE: AgentRunID column was added after MJ 6.1.5; only update if it exists
+-- NOTE: needs column AIPromptRun.AgentRunID, which MJ 6.1.5 does not have; skipped where missing.
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = '${mjSchema}' AND table_name = 'AIPromptRun' AND column_name = 'AgentRunID'
-  ) THEN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '${mjSchema}' AND table_name = 'AIPromptRun' AND column_name = 'AgentRunID') THEN
     UPDATE "${mjSchema}"."AIPromptRun" SET "AgentRunID" = NULL WHERE "AgentRunID" IN (
       SELECT "ID" FROM "${mjSchema}"."AIAgentRun" WHERE "AgentID" IN (
         SELECT "ID" FROM "${mjSchema}"."AIAgent" WHERE "ID" IN (
