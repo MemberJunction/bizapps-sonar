@@ -40,6 +40,8 @@ jobs:
   #     `tsconfig.` is not a prefix pattern, so both are named exactly.
   #   - migrations/ and migrations-pg/: check:pg-parity runs here and nowhere else on a PR, and a
   #     PG-only migration PR is a normal shape.
+  #   - migrations-teardown/ and migrations-teardown-pg/: check:teardown-tolerance runs here and
+  #     checks every teardown statement against the oldest MJ mj-app.json supports (issue #56).
   #   - .github/: the boundary gate, the validator self-test, and check-release-pushes.mjs (which
   #     reads every workflow) all run here, so a PR editing only a gate must still run the gate.
   #   - ci/: the release scripts that pushed straight to main and next lived here
@@ -91,6 +93,8 @@ jobs:
             scripts/ \
             migrations/ \
             migrations-pg/ \
+            migrations-teardown/ \
+            migrations-teardown-pg/ \
             .github/ \
             ci/ \
             mj-app.json >> "$GITHUB_OUTPUT"
@@ -167,3 +171,7 @@ jobs:
 
       - name: PostgreSQL parity gate
         run: pnpm run check:pg-parity
+
+      # Teardown must run on the oldest MJ mj-app.json supports (issue #56).
+      - name: Teardown version-tolerance gate
+        run: pnpm run check:teardown-tolerance
