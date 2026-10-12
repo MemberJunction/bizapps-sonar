@@ -35,7 +35,8 @@
     "check:release-seed:test": "node scripts/check-release-seed-coverage.spec.mjs",
     "check:seed-cadence": "node scripts/check-release-seed-cadence.mjs",
     "check:seed-cadence:test": "node scripts/check-release-seed-cadence.spec.mjs",
-    "check:pg-parity": "node scripts/check-pg-parity.mjs"
+    "check:pg-parity": "node scripts/check-pg-parity.mjs",
+    "check:teardown-tolerance": "node scripts/check-teardown-version-tolerance.mjs"
   },
   "repository": {
     "type": "git",
