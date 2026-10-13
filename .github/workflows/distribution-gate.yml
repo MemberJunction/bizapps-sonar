@@ -4,8 +4,8 @@ name: Distribution Gate
 # untouched, so they ship as literal strings rather than erroring), in both dialects and both
 # teardown sets. Metadata currency is NOT gated here: PRs contribute declarative JSON only, and the
 # build engineer generates one consolidated Metadata_Sync per release, so between releases metadata/
-# is ahead of the seed by design. That question is asked at the release: by `release-prep --plan`
-# before the release PR is cut, and again by publish.yml (check:release-seed + check:seed-cadence).
+# is ahead of the seed by design. That question is asked at the release, on the Version Packages PR:
+# `repo: release seed` (check:release-seed + check:seed-cadence) and `rr: metadata shipped`.
 # Reasoning: scripts/check-distribution-seed.mjs,
 # migrations/README.md, MJ/metadata/CLAUDE.md §1b. Mirrors bizapps-sales / bizapps-common.
 
@@ -17,8 +17,8 @@ on:
   # No `paths:` filter. A workflow skipped by `on: paths:` creates NO check run, so once this gate
   # is a required check a PR that misses the list hangs on "Expected — Waiting for status" forever
   # (bizapps-forms #173). Every step below is a cheap stdlib check, so the whole job simply runs on
-  # every change; if a slow step is ever added, scope THAT step with check-paths-touched.mjs (as
-  # build.yml does for its job) instead of reintroducing `on: paths:`.
+  # every change; if a slow step is ever added, scope THAT step inside the job instead of
+  # reintroducing `on: paths:`.
   push:
     branches: [next, main]
   pull_request:
@@ -53,7 +53,7 @@ jobs:
       - name: Check the gate itself still fires
         run: node scripts/check-distribution-seed.spec.mjs
 
-      # The release gates themselves run only at a release — `release-prep --plan` and publish.yml —
+      # The release gates themselves run only at a release — `repo: release seed` on the PR into main —
       # because between releases they fail by design.
       # Their SELF-TESTS run here too, so a PR that edits a release gate learns it broke the gate
       # before a release does. The cadence spec builds throwaway git repos of its own; it does not

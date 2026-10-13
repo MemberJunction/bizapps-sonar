@@ -2,36 +2,29 @@
 #
 # WHY THIS EXISTS
 # ---------------
-# Sonar's release reaches `main` and `next` only through pull requests (release-prep.yml opens
-# `release/vX.Y.Z` -> `main`; publish.yml opens `chore/backmerge-vX.Y.Z` -> `next` and merges it once
-# its checks pass). Those branches have to be pushed, and those PRs opened, by a credential that is NOT the job's GITHUB_TOKEN. The
-# credential is a GitHub App, minted from `vars.APP_CLIENT_ID` (org variable) and
-# `secrets.APP_PRIVATE_KEY` (org secret).
+# Ported from bizapps-forms. There, MemberJunction/bizapps-forms#173 made status checks required on
+# both `main` and `next`, and MemberJunction/bizapps-forms#177 established why that makes a direct
+# push to either branch permanently impossible: required checks are evaluated against the check runs
+# present on the SHA being INTRODUCED, and a push introduces a SHA the remote has never seen, so no
+# check run can exist for it (GH013). The fix there was to stop pushing to `main`/`next` and route
+# every release write through pull requests opened by a GitHub App; it first ran on 2026-09-15 to
+# ship v0.11.0, with this workflow run immediately before it.
 #
-# Why a PR-based release at all: required status checks are evaluated against the check runs on the
-# SHA being INTRODUCED, and a direct push introduces a SHA the remote has never seen, so no check run
-# can exist for it (GH013, as in bizapps-forms #177). Sonar's ruleset, `protect-release-branches`,
-# does not require status checks yet (it carries only deletion and non_fast_forward); adding required
-# checks and a PR rule is a planned admin follow-up. The release is PR-based now so that follow-up
-# breaks nothing. This is the process bizapps-forms #218 automated, ported to Sonar.
+# bizapps-sonar already released through App-opened pull requests (its former release-prep.yml),
+# and `pnpm run lint:release-pushes` keeps any push to `main`/`next` out. MJ core hit the identical GH013 on
+# refs/heads/next at v6.1.0-edge.6 and fixed it with a GitHub App, and BOTH halves of that credential
+# are org-level: `vars.APP_CLIENT_ID` (org variable) and `secrets.APP_PRIVATE_KEY` (org secret).
 #
 # WHAT THE APP IS FOR, AND WHAT IT IS EMPHATICALLY NOT FOR
 # --------------------------------------------------------
-# Not a bypass. The App is not a ruleset bypass actor and must never become one, and this workflow
-# deliberately does NOT ask whether it could bypass anything. It does exactly two things here,
-# neither of them privileged: it pushes `release/*` and `chore/backmerge-*`, which the ruleset does
-# not cover (its conditions name refs/heads/main and refs/heads/next and nothing else), and it opens
-# pull requests (publish.yml also merges the back-merge PR through the API once its checks pass,
-# which is a PR merge, not a push). Those branches and those PRs then go through the same CI as
-# anyone's. The push is
-# the App's only because both workflows keep checkout's persisted GITHUB_TOKEN extraheader off it —
-# release-prep.yml checks out with `persist-credentials: false`, publish.yml clears the header per
-# command with `git -c http.https://github.com/.extraheader=` — since that header outranks the App
-# token in the remote URL (bizapps-forms #226).
+# Under the shared open-app release pipeline the App does two things: `version.yml` uses it to open
+# the Version Packages PR (`changeset-release/main` -> `main`), and `publish.yml` uses it to open and
+# merge the `release-back-merge/vX.Y.Z` PR into `next`. On `next` it is a "pull requests only" bypass
+# actor, so that back-merge can merge before its checks finish; it pushes to no protected branch.
 #
 # The single reason it cannot just be GITHUB_TOKEN: GitHub does not start workflow runs from events
-# authored with it, so CI would not run on the release PRs. That is a nuisance today and becomes a
-# merge blocker once required checks are added. It is the entire justification for using an App.
+# authored with it, so `changes.yml` and `build.yml` would never start on such a branch or such a PR
+# and it would reach review with no CI at all. That is the entire justification for using an App.
 #
 # WHAT GREEN LOOKS LIKE
 # ---------------------
@@ -41,7 +34,7 @@
 # includes this repo — which is the question. Green means: the private key is valid, the App is the
 # one we think it is, its two grants are intact, and a token minted for this repo can read this repo.
 #
-# Run it before trusting release-prep.yml or publish.yml's back-merge. A red run here means the
+# Run it before trusting version.yml or publish.yml's back-merge. A red run here means the
 # release path is broken, and finding that out now costs a minute; finding it out during a publish
 # costs a release stranded between npm and the branch that has to carry it back.
 #
@@ -71,12 +64,12 @@ jobs:
     steps:
       - name: Mint an installation token
         id: token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          # `app-id` accepts a client ID as well as a numeric app id, which is what the org variable
-          # holds. Read from `vars` rather than hardcoded, so this tests the SAME pair of values
-          # release-prep.yml and publish.yml use — a probe against different inputs proves nothing.
-          app-id: ${{ vars.APP_CLIENT_ID }}
+          # The org variable holds the App's client ID; v3 takes it as `client-id` (`app-id` is
+          # deprecated). Read from `vars` rather than hardcoded, so this tests the SAME pair of values
+          # version.yml and publish.yml use — a probe against different inputs proves nothing.
+          client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           # No `owner:`. Default scoping mints a token for THIS repository only, which is what makes
           # this a real test rather than a test of the org: if the installation does not cover
@@ -85,9 +78,10 @@ jobs:
           # Naming the permissions is what keeps the workflow read-only without losing coverage.
           # GitHub refuses to mint a token carrying permissions the installation does not hold, so a
           # trimmed grant fails HERE with a clear error, instead of surfacing later as a push or a
-          # `gh pr create` that dies with a confusing permissions error. These are the two the release needs and no more: contents to push `release/*`
-          # and `chore/backmerge-*` and to merge the back-merge PR, pull-requests to open the two PRs
-          # and merge that one.
+          # `gh pr create` that dies looking exactly like the branch-protection problem all of this
+          # is about. These are the two the release needs and no more: contents to push the
+          # `changeset-release/main` and `release-back-merge/*` branches, pull-requests to open the
+          # Version Packages PR and to open and merge the back-merge PR.
           permission-contents: write
           permission-pull-requests: write
 
@@ -138,7 +132,7 @@ jobs:
             echo "| grants requested | \`contents: write\`, \`pull-requests: write\` |"
             echo
             echo 'Green: the key is valid, the installation covers this repository, and both grants are intact.'
-            echo 'The App is **not** a ruleset bypass actor and must never become one — it pushes only'
-            echo '`release/*` and `chore/backmerge-*`, which no ruleset covers, and opens pull requests that'
-            echo 'go through the same CI as anyone else'"'"'s.'
+            echo 'The App opens the Version Packages PR and opens and merges the back-merge PR. On `next` it is'
+            echo 'a "pull requests only" bypass actor, so the back-merge can merge before its checks finish; it'
+            echo 'pushes to no protected branch.'
           } >> "$GITHUB_STEP_SUMMARY"
