@@ -20,6 +20,7 @@ import {
 } from "@mj-biz-apps/sonar-entities";
 import {
     appendPublishLockFailure,
+    escapeSqlLiteral,
     failPublishLock,
     isScoringEditBlocked,
     isInvalidArchiveTransition as isInvalidArchiveTransitionPure,
@@ -139,7 +140,9 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             [
                 {
                     EntityName: "MJ_BizApps_Sonar: Model Factors",
-                    ExtraFilter: `ScoreModelID='${this.ID}'`,
+                    // Escaped: on a CREATE with Status='Active', ID/BandSetID are client-supplied
+                    // dirty values that reach this filter before the DB validates their type.
+                    ExtraFilter: `ScoreModelID='${escapeSqlLiteral(this.ID)}'`,
                     MaxRows: 1,
                     ResultType: "simple",
                     Fields: ["ID"],
@@ -149,7 +152,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                     // scale, which needs every row's range, not merely proof that a band exists.
                     EntityName: "MJ_BizApps_Sonar: Score Bands",
                     ExtraFilter: this.BandSetID
-                        ? `BandSetID='${this.BandSetID}'`
+                        ? `BandSetID='${escapeSqlLiteral(this.BandSetID)}'`
                         : "1=0",
                     ResultType: "simple",
                     Fields: ["ID", "Label", "MinScore", "MaxScore"],
@@ -224,7 +227,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         const rubric = await rv.RunView<{ FactorID: string }>(
             {
                 EntityName: "MJ_BizApps_Sonar: Model Factors",
-                ExtraFilter: `ScoreModelID='${this.ID}'`,
+                ExtraFilter: `ScoreModelID='${escapeSqlLiteral(this.ID)}'`,
                 Fields: ["FactorID"],
                 ResultType: "simple",
             },
@@ -409,18 +412,18 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
             [
                 {
                     EntityName: "MJ_BizApps_Sonar: Model Related Entities",
-                    ExtraFilter: `ScoreModelID='${this.ID}'`,
+                    ExtraFilter: `ScoreModelID='${escapeSqlLiteral(this.ID)}'`,
                     ResultType: "entity_object",
                 },
                 {
                     EntityName: "MJ_BizApps_Sonar: Model Factors",
-                    ExtraFilter: `ScoreModelID='${this.ID}'`,
+                    ExtraFilter: `ScoreModelID='${escapeSqlLiteral(this.ID)}'`,
                     ResultType: "entity_object",
                 },
                 {
                     EntityName: "MJ_BizApps_Sonar: Score Bands",
                     ExtraFilter: this.BandSetID
-                        ? `BandSetID='${this.BandSetID}'`
+                        ? `BandSetID='${escapeSqlLiteral(this.BandSetID)}'`
                         : "1=0",
                     ResultType: "entity_object",
                 },
@@ -470,7 +473,7 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
         const result = await rv.RunView<mjBizAppsSonarScoreModelVersionEntity>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",
-                ExtraFilter: `ScoreModelID='${this.ID}'`,
+                ExtraFilter: `ScoreModelID='${escapeSqlLiteral(this.ID)}'`,
                 OrderBy: "VersionNumber DESC",
                 MaxRows: 1,
                 ResultType: "entity_object",
