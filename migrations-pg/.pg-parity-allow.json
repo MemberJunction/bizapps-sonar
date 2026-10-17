@@ -7,6 +7,7 @@
     "V202606241205__v0.1.x_Widen_AnchorRecordID.sql",
     "V202607142340__v0.1.x_Seed_App_Metadata.sql",
     "V202607202300__v0.3.x_Agent_Tool_Surface.sql",
-    "V202607272000__v0.5.x_Timestamps_To_DateTimeOffset.sql"
+    "V202607272000__v0.5.x_Timestamps_To_DateTimeOffset.sql",
+    "V202610171645__v0.8.x__SaveReturnMode_DatestampsOnly_StoredProcedures.sql"
   ]
 }
