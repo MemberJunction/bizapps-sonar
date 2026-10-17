@@ -5,16 +5,13 @@
     ],
     "fields": {
       "Name": "MJ_BizApps_Sonar: Score Histories",
+      "TrackRecordChanges": false,
       "Configuration": {
         "SaveReturnMode": "datestamps_only"
       }
     },
     "primaryKey": {
       "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Histories"
-    },
-    "sync": {
-      "lastModified": "2026-10-17T20:28:44.293Z",
-      "checksum": "1917e8cc326287bf1b6ede0fc26fccd3434e059777e6ebddcbd25ae5244f0c32"
     }
   },
   {
@@ -23,16 +20,13 @@
     ],
     "fields": {
       "Name": "MJ_BizApps_Sonar: Score Factor Contributions",
+      "TrackRecordChanges": false,
       "Configuration": {
         "SaveReturnMode": "datestamps_only"
       }
     },
     "primaryKey": {
       "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Factor Contributions"
-    },
-    "sync": {
-      "lastModified": "2026-10-17T20:28:44.324Z",
-      "checksum": "d1589621d029e0e68346e483c6378a645be5d8108cc8b38a5a3fea2a21394b33"
     }
   },
   {
@@ -41,16 +35,13 @@
     ],
     "fields": {
       "Name": "MJ_BizApps_Sonar: Score Model Audit Events",
+      "TrackRecordChanges": false,
       "Configuration": {
         "SaveReturnMode": "datestamps_only"
       }
     },
     "primaryKey": {
       "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Model Audit Events"
-    },
-    "sync": {
-      "lastModified": "2026-10-17T20:28:44.356Z",
-      "checksum": "4635d591485180479aac83b4095af09379430367f9b1323574dca796a4ea939e"
     }
   }
 ]
