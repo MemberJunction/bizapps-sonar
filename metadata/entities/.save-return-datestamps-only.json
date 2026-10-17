@@ -1,0 +1,47 @@
+[
+  {
+    "_comments": [
+      "Configures MJ_BizApps_Sonar: Score Histories to use SaveReturnMode = datestamps_only so spCreate/spUpdate return only [ID], [__mj_CreatedAt], [__mj_UpdatedAt] from BaseTable instead of re-reading BaseView."
+    ],
+    "fields": {
+      "Name": "MJ_BizApps_Sonar: Score Histories",
+      "TrackRecordChanges": false,
+      "Configuration": {
+        "SaveReturnMode": "datestamps_only"
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Histories"
+    }
+  },
+  {
+    "_comments": [
+      "Configures MJ_BizApps_Sonar: Score Factor Contributions to use SaveReturnMode = datestamps_only so spCreate/spUpdate return only [ID], [__mj_CreatedAt], [__mj_UpdatedAt] from BaseTable instead of re-reading BaseView."
+    ],
+    "fields": {
+      "Name": "MJ_BizApps_Sonar: Score Factor Contributions",
+      "TrackRecordChanges": false,
+      "Configuration": {
+        "SaveReturnMode": "datestamps_only"
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Factor Contributions"
+    }
+  },
+  {
+    "_comments": [
+      "Configures MJ_BizApps_Sonar: Score Model Audit Events to use SaveReturnMode = datestamps_only so spCreate/spUpdate return only [ID], [__mj_CreatedAt], [__mj_UpdatedAt] from BaseTable instead of re-reading BaseView."
+    ],
+    "fields": {
+      "Name": "MJ_BizApps_Sonar: Score Model Audit Events",
+      "TrackRecordChanges": false,
+      "Configuration": {
+        "SaveReturnMode": "datestamps_only"
+      }
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Model Audit Events"
+    }
+  }
+]
