@@ -45,6 +45,15 @@ export class SonarTestSignalAction extends SonarActionBase {
         }
         const asOf = this.getInput(params, "AsOf") ?? new Date().toISOString();
 
+        // Authorization gate: testing a signal EXECUTES its code via Test Runtime Action's ephemeral
+        // path, which deliberately sidesteps the executor's approval gate. That power belongs only to
+        // callers who can change actions (signal authors/reviewers) — gate on Update rights for
+        // 'MJ: Actions', the entity whose code this really runs.
+        const authError = this.requireEntityUpdate(params, "MJ: Actions", "actions (signals)");
+        if (authError) {
+            return authError;
+        }
+
         try {
             const md = new Metadata();
             const action = await md.GetEntityObject<MJActionEntity>("MJ: Actions", params.ContextUser);
@@ -53,6 +62,22 @@ export class SonarTestSignalAction extends SonarActionBase {
                 return this.failWithFix(params, "NOT_FOUND",
                     `Signal '${targetActionId}' wasn't found or has no code yet.`,
                     "confirm the signal exists and ActionSmith has finished writing it.");
+            }
+            // Only a Sonar SIGNAL may be tested here: a Runtime (Studio/ActionSmith-authored) action,
+            // the same Type distinction SonarBindSignalToModel applies. Compiled/codebase actions are
+            // not runtime scripts — feeding an arbitrary action's Code through the ephemeral path
+            // would execute code this tester was never meant to reach.
+            if (action.Type !== "Runtime") {
+                return this.failWithFix(params, "VALIDATION_ERROR",
+                    `Action '${action.Name}' is '${action.Type}', not a Runtime signal, so it cannot be tested here.`,
+                    "pass the TargetActionID of a Runtime factor-action authored in the Signal Studio.");
+            }
+            // A Pending signal is exactly what this tester exists for, but a REJECTED one was explicitly
+            // turned down by a reviewer — keep the ephemeral path from executing rejected code.
+            if (action.CodeApprovalStatus === "Rejected") {
+                return this.failWithFix(params, "ERROR",
+                    `Signal '${action.Name}' was Rejected in code review, so its code will not be run.`,
+                    "revise the signal (ActionSmith refine) so it re-enters review as Pending, then test it.");
             }
 
             const engine = ActionEngineServer.Instance;
