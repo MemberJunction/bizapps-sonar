@@ -5,9 +5,19 @@ const sql = require('mssql');
 const STRAY = '9A7C3E10-4B2D-4F6A-8C1E-5D0FAB12C3D4';
 
 (async () => {
+  // Connection settings come from the DB_* env vars (same names mj.config.cjs reads); the
+  // password is never hardcoded. Load the repo .env first: set -a && . ./.env && set +a
+  if (!process.env.DB_PASSWORD) {
+    console.error('DB_PASSWORD is not set. Load the repo .env first (set -a && . ./.env && set +a) or export DB_PASSWORD.');
+    process.exit(1);
+  }
   await sql.connect({
-    user: 'sa', password: 'Securepassword!23', server: 'localhost', port: 1433,
-    database: 'Sonar_Dev', options: { trustServerCertificate: true, encrypt: false },
+    user: process.env.DB_USERNAME ?? 'sa',
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_HOST ?? 'localhost',
+    port: parseInt(process.env.DB_PORT ?? '1433', 10),
+    database: process.env.DB_DATABASE ?? 'Sonar_Dev',
+    options: { trustServerCertificate: true, encrypt: false },
   });
 
   // Count dependents across the tables that FK to Application.

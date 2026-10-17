@@ -6,6 +6,7 @@
  * Run:  set -a && . ./.env && set +a && node scripts/test-unpublish-model.mjs ["Model Name"]
  */
 import sql from "mssql";
+import { dbConfigFromEnv } from "./lib/bootstrap.mjs";
 import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
 import { ActionEngineServer } from "@memberjunction/actions";
 import { RunView } from "@memberjunction/core";
@@ -28,7 +29,7 @@ async function run(name, params) {
 }
 
 async function main() {
-    const pool = new sql.ConnectionPool({ user: "sa", password: "Securepassword!23", server: "localhost", port: 1433, database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false } });
+    const pool = new sql.ConnectionPool(dbConfigFromEnv());
     await pool.connect();
     await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
     await UserCache.Instance.Refresh(pool);

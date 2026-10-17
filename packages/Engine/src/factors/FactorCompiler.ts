@@ -14,6 +14,7 @@ import {
     compileFilter,
 } from "./filter";
 import { RunViewFactorEvaluator, RunViewFactorSpec } from "./RunViewFactorEvaluator";
+import { isBusinessEntity } from "../metadata/entityScope";
 import {
     SupportedAggregation,
     runViewIneligibilityReason,
@@ -223,12 +224,23 @@ export class FactorCompiler {
             factor,
             contextUser,
         );
+        // SECURITY GATE: the compiled read path runs raw SQL on the service connection
+        // (provider.ExecuteSQL), which applies NEITHER entity permissions NOR Row-Level Security —
+        // so every table the query can touch (anchor, each join hop, the leaf) must pass the
+        // business-entity scope AND the calling user's Read permission BEFORE any SQL is built.
+        const anchorEntity = new Metadata().EntityByID(factor.AnchorEntityID);
+        if (!anchorEntity) {
+            throw new Error(`FactorCompiler: anchor entity ${factor.AnchorEntityID} not found in metadata.`);
+        }
+        this.assertEntityReadable(anchorEntity, "anchor entity", contextUser);
+        this.assertEntityReadable(leafEntity, "data source", contextUser);
         // Resolve the path from the leaf (measure) entity to the anchor: single-hop (leaf has a
         // direct FK to the anchor) or multi-hop (follow RelationshipPath, emitting JOINs).
         const { joins, anchorKeyColumns } = this.resolveJoinPath(
             leafEntity,
             relationshipPath,
             factor.AnchorEntityID,
+            contextUser,
         );
         const validColumns = leafEntity.Fields.map((f) => f.Name);
         // The leaf table's handle — every leaf column (aggregate/window/filter) is qualified with it
@@ -445,6 +457,40 @@ export class FactorCompiler {
     }
 
     /**
+     * SECURITY GATE for every table a compiled factor can reach. The compiled evaluator executes
+     * raw SQL on the service connection, so neither MJ entity permissions nor Row-Level Security
+     * apply at query time — this check is the only permission enforcement that path gets. Two
+     * requirements, both fail-loud and entity-naming:
+     *  1. scope — the entity must be a scoreable BUSINESS entity (the same `isBusinessEntity`
+     *     predicate the anchor/source pickers and agent tools filter through), never MJ core or
+     *     Sonar-internal plumbing (`__mj`, `__mj_BizAppsSonar`);
+     *  2. permission — the CALLING user must hold Read on the entity, checked here against MJ's
+     *     entity permissions because the database will not check them later.
+     */
+    private assertEntityReadable(entity: EntityInfo, role: string, contextUser: UserInfo): void {
+        if (!isBusinessEntity(entity)) {
+            throw new Error(
+                `FactorCompiler: entity '${entity.Name}' (the factor's ${role}) is not a business entity — ` +
+                    `framework/Sonar-internal schemas cannot be read by a factor.`,
+            );
+        }
+        if (!contextUser) {
+            throw new Error(
+                `FactorCompiler: no context user supplied — cannot verify Read permission on ` +
+                    `entity '${entity.Name}' (the factor's ${role}).`,
+            );
+        }
+        // GetUserPermisions returns null on an internal error — treat that as denied (fail closed).
+        const permissions = entity.GetUserPermisions(contextUser);
+        if (!permissions?.CanRead) {
+            throw new Error(
+                `FactorCompiler: the calling user does not have Read permission on entity ` +
+                    `'${entity.Name}' (the factor's ${role}), so this factor cannot be compiled.`,
+            );
+        }
+    }
+
+    /**
      * Resolve how the leaf reaches the anchor, in priority order:
      *   1. explicit `RelationshipPath` (the disambiguation override) → walk it;
      *   2. else a single direct FK leaf→anchor → single-hop (unchanged);
@@ -456,6 +502,7 @@ export class FactorCompiler {
         leafEntity: EntityInfo,
         relationshipPath: string | null,
         anchorEntityID: string,
+        contextUser: UserInfo,
     ): { joins: CompiledJoin[]; anchorKeyColumns: AnchorKeyColumn[] } {
         let hops = parseRelationshipPath(relationshipPath);
         // No explicit path + no direct FK to the anchor → try to discover the path automatically.
@@ -499,6 +546,9 @@ export class FactorCompiler {
                     `FactorCompiler: RelationshipPath hop ${i} — target entity ${fkField.RelatedEntityID} not in metadata.`,
                 );
             }
+            // Every hop becomes a JOINed table in the compiled SQL, so it needs the same
+            // scope + Read-permission gate as the anchor and the leaf (see compile()).
+            this.assertEntityReadable(next, `join path (hop ${i + 1})`, contextUser);
             const alias = `h${i + 1}`;
             const qualifier = leftQualifier;
             joins.push({
