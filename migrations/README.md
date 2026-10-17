@@ -67,15 +67,15 @@ UUID from `uuidgen` in the JSON, not from a migration.
 
 | Command | Runs | Asks |
 |---|---|---|
-| `pnpm run lint:distribution` | every PR (`distribution-gate.yml`) and `publish.yml` | Does shipped SQL — both dialects and both teardown sets — use only placeholders `mj app install` supplies (`${flyway:defaultSchema}`, `${mjSchema}`)? It does **not** ask whether metadata is current with a seed. |
-| `pnpm run check:release-seed` | release only: `release-prep.yml` (`--plan`) + `publish.yml` | Does every `primaryKey` UUID under `metadata/` appear in some `migrations/*.sql`? Its output is the list the next seed still owes. |
-| `pnpm run check:seed-cadence` | release only: `release-prep.yml` (`--plan`) + `publish.yml` | At most one unreleased `Metadata_Sync`; not zero when `metadata/` moved since the last `v*` tag; and that seed is non-empty and not older than any later metadata change. |
+| `pnpm run lint:distribution` | every PR (`distribution-gate.yml`) | Does shipped SQL — both dialects and both teardown sets — use only placeholders `mj app install` supplies (`${flyway:defaultSchema}`, `${mjSchema}`)? It does **not** ask whether metadata is current with a seed. |
+| `pnpm run check:release-seed` | release only: `repo: release seed` on the PR into `main` | Does every `primaryKey` UUID under `metadata/` appear in some `migrations/*.sql`? Its output is the list the next seed still owes. |
+| `pnpm run check:seed-cadence` | release only: `repo: release seed` on the PR into `main` | At most one unreleased `Metadata_Sync`; not zero when `metadata/` moved since the last `v*` tag; and that seed is non-empty and not older than any later metadata change. |
 
 The two release gates fail **between releases by design** — `metadata/` is normally ahead of the last
-seed until the build engineer generates the next one — so they are not PR gates. They run twice per
-release: `release-prep.yml` (`pnpm run release:plan`) refuses to cut the release PR while either
-fails, and `publish.yml` runs them again, with their self-tests, against the merged tree before
-anything is published or tagged. A release with metadata its migrations do not carry fails there.
+seed until the build engineer generates the next one — so they are not PR gates into `next`. At a
+release, `repo: release seed` runs them, with their self-tests, on the Version Packages PR into
+`main`, so the release cannot merge while either fails. A release with metadata its migrations do
+not carry fails there (as does `rr: metadata shipped`).
 
 They see an **edited** record only by order (a record moved after the last release, or after the
 seed). Neither reads the seed's SQL to confirm it carries the edit; replaying the chain on a clean
