@@ -34,7 +34,7 @@ const BAND_LABELS: Record<BandKey, string> = {
 /** One model's aggregated data for the portfolio view. */
 interface PortfolioSlot {
     model: mjBizAppsSonarScoreModelEntity;
-    /** Distribution in BAND_ORDER so the Marimekko stacks consistently. */
+    /** Distribution in BAND_ORDER so the band charts stack consistently. */
     distribution: BandSlice[];
     scoredCount: number;
     lastDay: string | null;
@@ -47,8 +47,6 @@ interface PortfolioSlot {
     loading: boolean;
 }
 
-/** One row in the per-model insight (distribution) table. */
-interface InsightRow { key: BandKey; label: string; count: number; pct: number; delta: number | null; }
 /** One column in the band-mix history chart. */
 interface MixCol { label: string; segments: { key: BandKey; pct: number }[]; }
 
@@ -70,9 +68,10 @@ function daysSince(day: string): number {
 }
 
 /**
- * Sonar Portfolio — the cross-model command center. Shows all active scoring models simultaneously
- * via a proportional band distribution chart (Marimekko), aggregate KPIs, a movement table, and
- * a compact sidebar list sorted by urgency. Reached via the nav DriverClass 'SonarPortfolioResource'.
+ * Sonar Portfolio — the cross-model command center. Shows the most-urgent model's KPIs, a chart card
+ * with three lenses (Overview across all models, plus Distribution and History for the focused
+ * model), a movement table, and a compact sidebar list sorted by urgency. Reached via the nav
+ * DriverClass 'SonarOverviewResource' (the nav slot it took over from the original Overview).
  *
  * Data loading: distribution + trend for each model are fetched in parallel; a second wave fetches
  * band flows (recovered/slipped counts) for models with ≥ 2 recompute snapshots.
@@ -130,27 +129,17 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         void this.refresh();
     });
 
-    /** Which Marimekko mode is active: proportional (width = member count) or normalized (equal widths). */
-    public readonly chartView = signal<"proportional" | "normalized">("proportional");
-
-    /** ID of the Marimekko column currently under the mouse — drives the hover info panel. */
-    public readonly hoveredSlotId = signal<string | null>(null);
-    public readonly hoveredSlot = computed(() => {
-        const id = this.hoveredSlotId();
-        return id ? (this.mekSlots().find(s => s.model.ID === id) ?? null) : null;
-    });
-
     /** ID of the sidebar model currently focused — drives Distribution + History lenses. */
     public readonly selectedSlotId = signal<string | null>(null);
     public readonly focusedSlot = computed(() => {
         const id = this.selectedSlotId();
         if (id) return this.slots().find(s => s.model.ID === id) ?? null;
         // Default to the most urgent active scored model so Distribution/History always have content.
-        return this.mekSlots()[0] ?? this.sortedSlots()[0] ?? null;
+        return this.overviewSlots()[0] ?? this.sortedSlots()[0] ?? null;
     });
 
     /** Which chart lens is active in the main card. */
-    public readonly lensView = signal<"marimekko" | "distribution" | "history">("marimekko");
+    public readonly lensView = signal<"overview" | "distribution" | "history">("overview");
 
     // ── ApexCharts configurations ──────────────────────────────────────────────
 
@@ -175,7 +164,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     /** Overview: horizontal stacked bar — one row per model, bands as segments. */
     public readonly overviewChart = computed(() => {
-        const slots = this.mekSlots();
+        const slots = this.overviewSlots();
         const dark = this.darkMode();
         return {
             series: BAND_ORDER.map(key => ({
@@ -257,15 +246,15 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         this.slots().filter(s => s.model.Status === "Active")
     );
 
-    /** Marimekko: active, scored, sorted most-urgent-first (drives column order left→right). */
-    public readonly mekSlots = computed(() =>
+    /** Overview chart rows: active, scored, sorted most-urgent-first (top row = most urgent). */
+    public readonly overviewSlots = computed(() =>
         this.activeSlots()
             .filter(s => s.scoredCount > 0)
             .sort((a, b) => slotUrgency(a) - slotUrgency(b))
     );
 
-    /** Movement table: same set as mekSlots (active + scored), same sort. */
-    public readonly tableSlots = computed(() => this.mekSlots());
+    /** Movement table: same set as overviewSlots (active + scored), same sort. */
+    public readonly tableSlots = computed(() => this.overviewSlots());
 
     /** Full list for sidebar: active first, then inactive, each group by urgency. */
     public readonly sortedSlots = computed(() =>
@@ -279,23 +268,6 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     // ── KPI aggregates ─────────────────────────────────────────────────────────
 
     public readonly kpiActiveCount = computed(() => this.activeSlots().length);
-
-    public readonly kpiTotalScored = computed(() =>
-        this.activeSlots().reduce((n, s) => n + s.scoredCount, 0)
-    );
-
-    public readonly kpiAtRisk = computed(() =>
-        this.activeSlots().reduce((n, s) => n + this.atRiskCount(s), 0)
-    );
-
-    public readonly kpiAtRiskPct = computed(() => {
-        const scored = this.kpiTotalScored();
-        return scored > 0 ? Math.round((this.kpiAtRisk() / scored) * 100) : 0;
-    });
-
-    public readonly kpiNet = computed(() =>
-        this.activeSlots().reduce((n, s) => n + s.net, 0)
-    );
 
     // NOTE: the top-fold metrics (action bar + primary KPI strip) are scoped to the single
     // most-urgent model via focusedSlot(), NOT summed across models. Summing double-counts members
@@ -340,7 +312,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
      * pre-recompute distributions until a browser reload.
      *
      * Preserves the rendered slots while the new reads land, so a refresh doesn't blank every
-     * model to a skeleton and flash the whole Marimekko.
+     * model to a skeleton and flash every chart.
      */
     public async refresh(): Promise<void> {
         if (this.refreshing()) return;
@@ -355,7 +327,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     /**
      * Load every model's slot. `preserveExisting` keeps the already-rendered slots on screen while
      * the fresh reads land (loadSlot replaces each one in place by model ID) — without it a refresh
-     * would blank every slot to its skeleton and flash the whole Marimekko. Models that have no
+     * would blank every slot to its skeleton and flash every chart. Models that have no
      * slot yet are still seeded empty so there's a row for loadSlot to fill.
      */
     private async loadPortfolio(preserveExisting = false): Promise<void> {
@@ -384,7 +356,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         const scoredCount = dist.total;
         const staleDays = lastDay ? daysSince(lastDay) : null;
 
-        // Pin to BAND_ORDER so the Marimekko column-reverse stack is deterministic.
+        // Pin to BAND_ORDER so every band chart stacks in the same, deterministic order.
         const distribution: BandSlice[] = BAND_ORDER.map(k =>
             dist.slices.find(s => s.key === k) ?? { key: k, label: k, count: 0, pct: 0, bandId: null }
         );
@@ -410,30 +382,13 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     // ── Template helpers ───────────────────────────────────────────────────────
 
-    public setChartView(v: "proportional" | "normalized"): void {
-        this.chartView.set(v);
-    }
-
     public pickSlot(id: string): void {
         this.selectedSlotId.set(id);
         this.lensView.set("distribution");
     }
 
-    public setLensView(v: "marimekko" | "distribution" | "history"): void {
+    public setLensView(v: "overview" | "distribution" | "history"): void {
         this.lensView.set(v);
-    }
-
-    /** Rows for the per-model insight table — BAND_ORDER, annotated with delta vs prev snapshot. */
-    public insightRows(slot: PortfolioSlot): InsightRow[] {
-        const prev = slot.trend && slot.trend.points.length >= 2 ? slot.trend.points.at(-2) ?? null : null;
-        return BAND_ORDER.map(key => {
-            const band = slot.distribution.find(b => b.key === key);
-            const count = band?.count ?? 0;
-            const pct = band?.pct ?? 0;
-            const prevCount = prev ? (prev.counts[key] ?? 0) : null;
-            const delta = prevCount !== null ? count - prevCount : null;
-            return { key, label: band?.label ?? key, count, pct, delta };
-        }).filter(r => r.count > 0);
     }
 
     /** Columns for the band-mix history chart — last 8 trend snapshots, each proportionally stacked. */
@@ -448,21 +403,6 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
                 .filter(s => s.pct > 0);
             return { label, segments };
         });
-    }
-
-    public deltaGood(row: InsightRow): boolean {
-        if (row.delta === null || row.delta === 0) return false;
-        return row.key === "healthy" ? row.delta > 0 : row.delta < 0;
-    }
-
-    public deltaBad(row: InsightRow): boolean {
-        if (row.delta === null || row.delta === 0) return false;
-        return row.key === "healthy" ? row.delta < 0 : row.delta > 0;
-    }
-
-    /** Flex value for a Marimekko column: member count in proportional mode, 1 in normalized. */
-    public mekFlex(slot: PortfolioSlot): number {
-        return this.chartView() === "proportional" ? slot.scoredCount : 1;
     }
 
     public bandColor(key: BandKey | string): string {

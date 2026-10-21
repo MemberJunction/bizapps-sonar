@@ -84,7 +84,7 @@
         <div class="sonar-card sonar-pf-chart-card">
           <div class="sonar-card__head">
             <span class="sonar-card__label">
-              @if (lensView() === 'marimekko') { Band distribution }
+              @if (lensView() === 'overview') { Band distribution }
               @else if (lensView() === 'distribution') {
                 @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; Distribution }
                 @else { Distribution }
@@ -96,8 +96,8 @@
             </span>
             <div class="sonar-pf-view-toggle">
               <button class="sonar-pf-view-toggle__btn"
-                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'marimekko'"
-                      (click)="setLensView('marimekko')">
+                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'overview'"
+                      (click)="setLensView('overview')">
                 Overview
               </button>
               <button class="sonar-pf-view-toggle__btn"
@@ -114,10 +114,10 @@
           </div>
 
           <!-- ── Overview lens: stacked bar chart ── -->
-          @if (lensView() === 'marimekko') {
+          @if (lensView() === 'overview') {
             @if (!loaded()) {
-              <div class="sonar-pf-mek-placeholder sonar-skeleton"></div>
-            } @else if (mekSlots().length === 0) {
+              <div class="sonar-pf-overview-placeholder sonar-skeleton"></div>
+            } @else if (overviewSlots().length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-column"></i>
                 <p>No active models with scored members yet.</p>
