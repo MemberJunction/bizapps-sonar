@@ -7,16 +7,17 @@ import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
-import { BandKey, BandSlice, OverviewTrend, ScoreReadService } from "../../core/services/score-read.service";
-import { BAND_ORDER, bandColor, buildDistributionChart, buildHistoryChart, buildOverviewChart } from "./portfolio-charts";
+import { BandKey, OverviewTrend, ScoreReadService } from "../../core/services/score-read.service";
+import { aggregateByKey, type BandKeyRow } from "../../core/band-aggregate";
+import { bandColor, buildDistributionChart, buildHistoryChart, buildOverviewChart } from "./portfolio-charts";
 
 const MS_PER_DAY = 86_400_000;
 
 /** One model's aggregated data for the portfolio view. */
 interface PortfolioSlot {
     model: mjBizAppsSonarScoreModelEntity;
-    /** Distribution in BAND_ORDER so the band charts stack consistently. */
-    distribution: BandSlice[];
+    /** One row per band key in BAND_ORDER, counts summed across bands sharing a key (aggregateByKey). */
+    distribution: BandKeyRow[];
     scoredCount: number;
     lastDay: string | null;
     prevDay: string | null;
@@ -129,7 +130,10 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     });
 
     /** History: 100%-stacked area of the focused model's band mix over recent snapshots. */
-    public readonly historyChart = computed(() => buildHistoryChart(this.focusedSlot()?.trend?.points ?? []));
+    public readonly historyChart = computed(() => {
+        const slot = this.focusedSlot();
+        return buildHistoryChart(slot?.trend?.points ?? [], slot?.distribution ?? []);
+    });
 
     // ── Derived slices ─────────────────────────────────────────────────────────
 
@@ -239,10 +243,9 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         const scoredCount = dist.total;
         const staleDays = lastDay ? daysSince(lastDay) : null;
 
-        // Pin to BAND_ORDER so every band chart stacks in the same, deterministic order.
-        const distribution: BandSlice[] = BAND_ORDER.map(k =>
-            dist.slices.find(s => s.key === k) ?? { key: k, label: k, count: 0, pct: 0, bandId: null }
-        );
+        // One row per band key, counts summed: two bands can share a key (5+ band sets, unbanded
+        // scores), and every reader below looks a key up once.
+        const distribution = aggregateByKey(dist.slices);
 
         let recovered = 0;
         let slipped = 0;

@@ -1,17 +1,19 @@
 import type { ChartSeries, DonutSlice } from "@memberjunction/ng-charts";
-import type { BandKey, BandSlice, BandTrendPoint } from "../../core/services/score-read.service";
+import type { BandKey, BandTrendPoint } from "../../core/services/score-read.service";
+import { BAND_ORDER, type BandKeyRow } from "../../core/band-aggregate";
 
 /**
  * Inputs for the Portfolio's three chart lenses (@memberjunction/ng-charts), built from band data
  * that is already loaded. Pure presentation mapping: no I/O, no Angular, so it is unit-tested on
- * its own (portfolio-charts.test.ts). Imports above are type-only, so loading this file pulls in
- * neither the chart package nor the MJ data services.
+ * its own (portfolio-charts.test.ts). The chart package and the MJ data services are type-only
+ * imports, and band-aggregate is itself pure, so loading this file pulls in neither.
+ *
+ * Band rows come from aggregateByKey: one row per band key, counts summed, labels the model's own
+ * band names. A series exists only for a key some band maps to, so a 3-band set gets 3 series.
  */
 
-/** Every band chart stacks and lists bands in this order. */
-export const BAND_ORDER: readonly BandKey[] = ["healthy", "watch", "atrisk", "critical"];
-
-export const BAND_LABELS: Readonly<Record<BandKey, string>> = {
+/** Names a key in History when the focused model's current distribution has no band for it. */
+const FALLBACK_LABELS: Readonly<Record<BandKey, string>> = {
     healthy:  "Healthy",
     watch:    "Watch",
     atrisk:   "At Risk",
@@ -38,7 +40,7 @@ export function bandColor(key: BandKey): string {
 /** One model row in the Overview lens. */
 export interface OverviewRow {
     Name: string;
-    Distribution: readonly BandSlice[];
+    Distribution: readonly BandKeyRow[];
 }
 
 export interface OverviewChartInput {
@@ -57,28 +59,29 @@ export interface HistoryChartInput {
     Series: ChartSeries[];
 }
 
-function bandCount(distribution: readonly BandSlice[], key: BandKey): number {
-    return distribution.find(d => d.key === key)?.count ?? 0;
+function rowFor(distribution: readonly BandKeyRow[], key: BandKey): BandKeyRow | undefined {
+    return distribution.find(d => d.key === key);
 }
 
-/** Overview: horizontal stacked bar, one row per model (in the given order), one series per band. */
+/** Overview: horizontal stacked bar, one row per model (in the given order), one series per band key. */
 export function buildOverviewChart(rows: readonly OverviewRow[]): OverviewChartInput {
-    const series = BAND_ORDER.map(key => ({
-        Name: BAND_LABELS[key],
-        Values: rows.map(r => bandCount(r.Distribution, key)),
-        Color: bandColor(key),
-    }));
+    const series = BAND_ORDER.flatMap(key => {
+        // Models can name the same key differently; the legend lists each distinct name once.
+        const labels = [...new Set(rows.flatMap(r => rowFor(r.Distribution, key)?.label ?? []))];
+        if (labels.length === 0) return [];
+        return [{
+            Name: labels.join(" / "),
+            Values: rows.map(r => rowFor(r.Distribution, key)?.count ?? 0),
+            Color: bandColor(key),
+        }];
+    });
     const height = Math.max(OVERVIEW_MIN_PX, rows.length * OVERVIEW_ROW_PX + OVERVIEW_CHROME_PX);
     return { Categories: rows.map(r => r.Name), Series: series, Height: height };
 }
 
-/** Distribution: one donut slice per band, with the scored-member total for the center. */
-export function buildDistributionChart(distribution: readonly BandSlice[], scoredCount: number): DistributionChartInput {
-    const slices = BAND_ORDER.map(key => ({
-        Label: BAND_LABELS[key],
-        Value: bandCount(distribution, key),
-        Color: bandColor(key),
-    }));
+/** Distribution: one donut slice per band key, with the scored-member total for the center. */
+export function buildDistributionChart(distribution: readonly BandKeyRow[], scoredCount: number): DistributionChartInput {
+    const slices = distribution.map(row => ({ Label: row.label, Value: row.count, Color: bandColor(row.key) }));
     return { Slices: slices, CenterValue: scoredCount.toLocaleString() };
 }
 
@@ -89,14 +92,17 @@ export function formatSnapshotDate(asOf: Date): string {
 
 /**
  * History: the band mix over the last HISTORY_POINTS snapshots. Values are raw member counts;
- * the chart's StackMode "percent" turns them into shares, so its tooltip can show both.
+ * the chart's StackMode "percent" turns them into shares, so its tooltip can show both. Series are
+ * named from the focused model's current bands; a key with members only in past snapshots keeps
+ * its series under a generic name.
  */
-export function buildHistoryChart(points: readonly BandTrendPoint[]): HistoryChartInput {
+export function buildHistoryChart(points: readonly BandTrendPoint[], distribution: readonly BandKeyRow[]): HistoryChartInput {
     const recent = points.slice(-HISTORY_POINTS);
-    const series = BAND_ORDER.map(key => ({
-        Name: BAND_LABELS[key],
-        Values: recent.map(pt => pt.counts[key] ?? 0),
-        Color: bandColor(key),
-    }));
+    const series = BAND_ORDER.flatMap(key => {
+        const current = rowFor(distribution, key);
+        const values = recent.map(pt => pt.counts[key] ?? 0);
+        if (!current && values.every(v => v === 0)) return [];
+        return [{ Name: current?.label ?? FALLBACK_LABELS[key], Values: values, Color: bandColor(key) }];
+    });
     return { Categories: recent.map(pt => formatSnapshotDate(pt.asOf)), Series: series };
 }
