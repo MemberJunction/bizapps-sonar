@@ -1,0 +1,46 @@
+[
+  {
+    "_comments": [
+      "Polymorphic foreign key declaration(s) on MJ_BizApps_Sonar: Score Histories: each payload field sets EntityIDFieldName to its companion EntityID discriminator field."
+    ],
+    "fields": {
+      "Name": "MJ_BizApps_Sonar: Score Histories"
+    },
+    "relatedEntities": {
+      "MJ: Entity Fields": [
+        {
+          "fields": {
+            "EntityID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "EntityIDFieldName": "AnchorEntityID"
+          }
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Histories"
+    }
+  },
+  {
+    "_comments": [
+      "Polymorphic foreign key declaration(s) on MJ_BizApps_Sonar: Scores: each payload field sets EntityIDFieldName to its companion EntityID discriminator field."
+    ],
+    "fields": {
+      "Name": "MJ_BizApps_Sonar: Scores"
+    },
+    "relatedEntities": {
+      "MJ: Entity Fields": [
+        {
+          "fields": {
+            "EntityID": "@parent:ID",
+            "Name": "AnchorRecordID",
+            "EntityIDFieldName": "AnchorEntityID"
+          }
+        }
+      ]
+    },
+    "primaryKey": {
+      "ID": "@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Scores"
+    }
+  }
+]
