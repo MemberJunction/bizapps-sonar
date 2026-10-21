@@ -10,6 +10,7 @@ import { ScoreBandService } from "../../core/services/score-band.service";
 import { BandFlow, BandKey, BandSlice, BandTrendPoint, OverviewTrend, ScoreReadService, WindowMover } from "../../core/services/score-read.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
+import { BAND_ORDER, aggregateByKey } from "../../core/band-aggregate";
 
 /** The hero's three lenses on the same population. Persisted so a user's preferred default sticks. */
 export type HeroView = "insight" | "flow" | "mix";
@@ -19,9 +20,6 @@ const HERO_VIEW_KEY = "sonar.overviewHeroView";
  *  resolved against history snapshots (so it works regardless of the stored Score.Delta). */
 export type ActionWindow = "run" | 30 | 90 | 365;
 const MS_PER_DAY = 86_400_000;
-
-/** Band-key severity order, healthy end first — drives row order and worse/better judgments. */
-const BAND_ORDER: BandKey[] = ["healthy", "watch", "atrisk", "critical"];
 
 /** One row of the insight table: a band's current share, prev → curr counts, and its share
  *  sparkline. All sparklines share ONE y-scale so a 0.3% wiggle can't masquerade as a collapse. */
@@ -296,7 +294,7 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
         const prev = this.prevPoint();
         const total = this.scoredCount() || 1;
         const sparkMax = this.sharedSparkMax();
-        return this.aggregateByKey(slices).map((s) => {
+        return aggregateByKey(slices).map((s) => {
             const prevCount = prev ? prev.counts[s.key] : null;
             const delta = prevCount != null ? s.count - prevCount : null;
             return {
@@ -308,18 +306,6 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
             };
         });
     });
-
-    /** Collapse slices sharing a band key (e.g. two labels both mapping to "watch") into one row,
-     *  since trend counts are keyed by BandKey. Rows come out in severity order. */
-    private aggregateByKey(slices: BandSlice[]): { key: BandKey; label: string; count: number }[] {
-        const byKey = new Map<BandKey, { key: BandKey; label: string; count: number }>();
-        for (const s of slices) {
-            const row = byKey.get(s.key);
-            if (row) { row.count += s.count; row.label = `${row.label} / ${s.label}`; }
-            else byKey.set(s.key, { key: s.key, label: s.label, count: s.count });
-        }
-        return BAND_ORDER.filter((k) => byKey.has(k)).map((k) => byKey.get(k)!);
-    }
 
     /** Growth in an unhealthy band is bad; growth in Healthy is good; middle bands stay neutral
      *  (a Watch member may have come from either direction, so no color judgment). */
