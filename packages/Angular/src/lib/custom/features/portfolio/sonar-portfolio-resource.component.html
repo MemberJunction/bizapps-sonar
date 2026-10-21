@@ -123,18 +123,14 @@
                 <p>No active models with scored members yet.</p>
               </div>
             } @else {
-              <apx-chart
-                [series]="overviewChart().series"
-                [chart]="overviewChart().chart"
-                [plotOptions]="overviewChart().plotOptions"
-                [xaxis]="overviewChart().xaxis"
-                [colors]="overviewChart().colors"
-                [dataLabels]="overviewChart().dataLabels"
-                [legend]="overviewChart().legend"
-                [grid]="overviewChart().grid"
-                [tooltip]="overviewChart().tooltip"
-                [fill]="overviewChart().fill">
-              </apx-chart>
+              <mj-bar-chart
+                AriaLabel="Members in each score band, by model"
+                [Categories]="overviewChart().Categories"
+                [Series]="overviewChart().Series"
+                Orientation="horizontal"
+                [Stacked]="true"
+                [Height]="overviewChart().Height">
+              </mj-bar-chart>
             }
           }
 
@@ -143,17 +139,14 @@
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
             } @else {
-              <apx-chart
-                [series]="distributionChart().series"
-                [chart]="distributionChart().chart"
-                [labels]="distributionChart().labels"
-                [colors]="distributionChart().colors"
-                [plotOptions]="distributionChart().plotOptions"
-                [dataLabels]="distributionChart().dataLabels"
-                [legend]="distributionChart().legend"
-                [stroke]="distributionChart().stroke"
-                [tooltip]="distributionChart().tooltip">
-              </apx-chart>
+              <mj-donut-chart
+                [AriaLabel]="(focusedSlot()?.model?.Name ?? 'Model') + ' band distribution'"
+                [Slices]="distributionChart().Slices"
+                CenterLabel="Scored"
+                [CenterValue]="distributionChart().CenterValue"
+                [ShowPercentLabels]="true"
+                [Height]="300">
+              </mj-donut-chart>
             }
           }
 
@@ -161,24 +154,20 @@
           @if (lensView() === 'history') {
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
-            } @else if (mixCols(focusedSlot()!).length === 0) {
+            } @else if (historyChart().Categories.length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-area"></i>
                 <p>Not enough history yet for {{ focusedSlot()?.model?.Name }}.</p>
               </div>
             } @else {
-              <apx-chart
-                [series]="historyChart().series"
-                [chart]="historyChart().chart"
-                [xaxis]="historyChart().xaxis"
-                [colors]="historyChart().colors"
-                [stroke]="historyChart().stroke"
-                [fill]="historyChart().fill"
-                [dataLabels]="historyChart().dataLabels"
-                [legend]="historyChart().legend"
-                [grid]="historyChart().grid"
-                [tooltip]="historyChart().tooltip">
-              </apx-chart>
+              <mj-area-chart
+                [AriaLabel]="(focusedSlot()?.model?.Name ?? 'Model') + ' band mix over time'"
+                [Categories]="historyChart().Categories"
+                [Series]="historyChart().Series"
+                StackMode="percent"
+                Curve="smooth"
+                [Height]="300">
+              </mj-area-chart>
             }
           }
         </div>

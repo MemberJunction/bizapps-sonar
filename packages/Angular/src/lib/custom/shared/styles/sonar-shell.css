@@ -63,11 +63,8 @@
        Bootstrap warning set. These are slightly muted jewel tones — enough saturation to signal
        status on a small chip/dot/number, calm enough to sit on a big chart area. A §2 deliberate
        deviation: documented tokens, both modes verified, distinct from the brand accent.
-       The -bg tints derive from the base via color-mix, so they auto-follow the per-theme base. */
-    --sonar-healthy: #10b981;
-    --sonar-watch: #3b82f6;
-    --sonar-atrisk: #f97316;
-    --sonar-critical: #ef4444;
+       The -bg tints derive from the base via color-mix, so they auto-follow the per-theme base.
+       The four bases themselves are defined page-wide (see "Band colors, page-wide" below). */
     --sonar-healthy-bg:  color-mix(in srgb, var(--sonar-healthy)  12%, var(--sonar-surface));
     --sonar-watch-bg:    color-mix(in srgb, var(--sonar-watch)    12%, var(--sonar-surface));
     --sonar-atrisk-bg:   color-mix(in srgb, var(--sonar-atrisk)   12%, var(--sonar-surface));
@@ -89,11 +86,24 @@
    --sonar-bg/surface/ink/border → --mj-*, and MJ re-resolves those in dark mode automatically).
    We do NOT hard-code the canvas here — that's the documented rule (CLAUDE.md §0): anchor neutrals
    to MJ so light/dark + Explorer-shell consistency come for free. Only the SANCTIONED Sonar accent
-   layer overrides per-mode: the violet accent lifts brighter, and the band bases shift to lighter,
-   desaturated pastels (saturated hues vibrate on a dark surface). */
-:host-context([data-theme="dark"]) {
-    /* Dark-mode brand override passes through to --sonar-accent automatically. */
-    /* Band overrides — pastel tones for dark-surface legibility. */
+   layer overrides per-mode: the violet accent follows the dark-mode brand token automatically,
+   and the band bases shift to pastels in the page-wide block below. */
+
+/* ── Band colors, page-wide ──────────────────────────────────────────────────
+   The four band bases are defined on the document, not on :host. Chart tooltips
+   (@memberjunction/ng-charts) render in a CDK overlay attached to <body>, outside every Sonar
+   component, so a :host-scoped token would leave their color swatches blank. Defined here, the
+   overlay and every Sonar surface inherit the same values. ::ng-deep is what keeps these two
+   rules unscoped; every component that loads this file emits the same pair, which is harmless.
+   Dark mode: lighter, desaturated pastels, because saturated hues vibrate on a dark surface. */
+::ng-deep :root {
+    --sonar-healthy: #10b981;
+    --sonar-watch: #3b82f6;
+    --sonar-atrisk: #f97316;
+    --sonar-critical: #ef4444;
+}
+
+::ng-deep [data-theme="dark"] {
     --sonar-healthy: #3ddc97;
     --sonar-watch: #6aa6f5;
     --sonar-atrisk: #e6ab52;
@@ -910,79 +920,3 @@ mj-filter-builder {
 ::ng-deep .tab-body {
     overflow: hidden !important;
 }
-
-/* ── ApexCharts global dark-mode overrides ───────────────────────────────────
-   ApexCharts renders its canvas and tooltip outside Angular's emulated
-   encapsulation, so these rules must live in a global stylesheet.
-   Scoped to [data-theme="dark"] so they have zero impact in light mode.    */
-
-[data-theme="dark"] .apexcharts-canvas {
-    background: transparent !important;
-}
-
-/* Axis and legend text */
-[data-theme="dark"] .apexcharts-text,
-[data-theme="dark"] .apexcharts-xaxis-label text,
-[data-theme="dark"] .apexcharts-yaxis-label text,
-[data-theme="dark"] .apexcharts-legend-text {
-    fill: #94a3b8 !important;
-    color: #94a3b8 !important;
-}
-
-/* Tooltip */
-[data-theme="dark"] .apexcharts-tooltip {
-    background: #1e293b !important;
-    border: 1px solid #334155 !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
-    color: #f1f5f9 !important;
-}
-
-[data-theme="dark"] .apexcharts-tooltip-title {
-    background: #0f172a !important;
-    border-bottom: 1px solid #334155 !important;
-    color: #94a3b8 !important;
-    font-weight: 600;
-}
-
-[data-theme="dark"] .apexcharts-tooltip-text,
-[data-theme="dark"] .apexcharts-tooltip-text-y-value,
-[data-theme="dark"] .apexcharts-tooltip-text-y-label {
-    color: #f1f5f9 !important;
-}
-
-[data-theme="dark"] .apexcharts-tooltip-marker {
-    border-radius: 2px !important;
-}
-
-/* Crosshair / zoom rect */
-[data-theme="dark"] .apexcharts-selection-rect,
-[data-theme="dark"] .apexcharts-zoom-rect {
-    fill: rgba(148, 163, 184, 0.1) !important;
-}
-
-/* Donut center labels */
-[data-theme="dark"] .apexcharts-datalabel-label {
-    fill: #94a3b8 !important;
-}
-
-[data-theme="dark"] .apexcharts-datalabel-value {
-    fill: #f1f5f9 !important;
-}
-
-/* Grid lines */
-[data-theme="dark"] .apexcharts-gridline {
-    stroke: #334155 !important;
-}
-
-/* Data labels on slices / bars */
-[data-theme="dark"] .apexcharts-pie-label,
-[data-theme="dark"] .apexcharts-datalabel {
-    fill: #f1f5f9 !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-}
-
-/* Legend markers */
-[data-theme="dark"] .apexcharts-legend-marker {
-    border-radius: 3px !important;
-}
-

@@ -78,9 +78,5 @@
       "@memberjunction/core": "^6.1.5",
       "@memberjunction/global": "^6.1.5"
     }
-  },
-  "dependencies": {
-    "apexcharts": "^5.16.0",
-    "ng-apexcharts": "^2.4.0"
   }
 }

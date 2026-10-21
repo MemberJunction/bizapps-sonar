@@ -25,13 +25,6 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      apexcharts:
-        specifier: ^5.16.0
-        version: 5.16.0
-      ng-apexcharts:
-        specifier: ^2.4.0
-        version: 2.5.0(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(apexcharts@5.16.0)(rxjs@7.8.2)
     devDependencies:
       '@changesets/cli':
         specifier: ^2.29.8
@@ -148,6 +141,9 @@ importers:
       '@memberjunction/ng-base-forms':
         specifier: ^6.1.5
         version: 6.1.5(f2d0322bb431625ab56704434ca4aaf9)
+      '@memberjunction/ng-charts':
+        specifier: ^6.2.0-edge.4
+        version: 6.2.0-edge.4(@angular/cdk@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))
       '@memberjunction/ng-conversations':
         specifier: ^6.1.5
         version: 6.1.5(c9cd629a42b04a784f72f54d93926dd8)
@@ -175,12 +171,6 @@ importers:
       '@mj-biz-apps/sonar-entities':
         specifier: 0.7.0
         version: link:../Entities
-      apexcharts:
-        specifier: ^5.16.0
-        version: 5.16.0
-      ng-apexcharts:
-        specifier: ^2.4.0
-        version: 2.5.0(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(apexcharts@5.16.0)(rxjs@7.8.2)
     devDependencies:
       '@angular/compiler':
         specifier: 21.1.3
@@ -191,6 +181,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@25.9.5)(jsdom@26.1.0)
 
   packages/CoreEntitiesServer:
     dependencies:
@@ -205,7 +198,7 @@ importers:
         version: 6.1.5
       '@memberjunction/sqlserver-dataprovider':
         specifier: ^6.1.5
-        version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+        version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@mj-biz-apps/sonar-entities':
         specifier: 0.7.0
         version: link:../Entities
@@ -2094,6 +2087,13 @@ packages:
       '@angular/common': 21.1.3
       '@angular/core': 21.1.3
 
+  '@memberjunction/ng-charts@6.2.0-edge.4':
+    resolution: {integrity: sha512-jI0AX2qiPQLSeCm8EU8c0MuQ0ugCc8zztARR0TEMVNMzUKSH+WL4NJjd0L3QZGHMzs+FDemiqFbmQYx2BwuRtQ==}
+    peerDependencies:
+      '@angular/cdk': ^21.2.14
+      '@angular/common': 21.1.3
+      '@angular/core': 21.1.3
+
   '@memberjunction/ng-code-editor@6.1.5':
     resolution: {integrity: sha512-fh8wVi/hOry+OKKV6oWIYDjs8tSlvRjUwHDDQR3KWOdm13ireS+R14qTPj7PPfPfjzoqT7qYoNbN6eFfVaLsSw==}
     peerDependencies:
@@ -3731,9 +3731,6 @@ packages:
 
   anynum@1.0.1:
     resolution: {integrity: sha512-N6//FLET/tXYNM/F6ABca1oH6fWB+KlTt909Le28WMDBk8oaT4vY17DCrwg2MvmuqUKt3Ni4N5dGJ/EoBgcO6A==}
-
-  apexcharts@5.16.0:
-    resolution: {integrity: sha512-ULO3Gqrm0/26uwBcYz49u181uIp8Fy6BQQgg9QUDajs+JAs/EbXxiAmdc6BLy1JY29/JXroM7P0j0t2JPDApdg==}
 
   archiver-utils@2.1.0:
     resolution: {integrity: sha512-bEL/yUb/fNNiNTuUz979Z0Yg5L+LzLxGJz8x79lYmR54fmTIb6ob/hNQgkQnIUDWIFjZVQwl9Xs356I6BAMHfw==}
@@ -6213,14 +6210,6 @@ packages:
   netmask@2.1.1:
     resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
     engines: {node: '>= 0.4.0'}
-
-  ng-apexcharts@2.5.0:
-    resolution: {integrity: sha512-kVDSo8MQPEZaiRAtlWicBXxwsLHqxebmMLcunk1AJHEV9QafUmdxN6kXggc5xRdlHd1L/HMBzvSAfZozYElf6w==}
-    peerDependencies:
-      '@angular/common': 21.1.3
-      '@angular/core': 21.1.3
-      apexcharts: ^5.10.3 || ^6.0.0
-      rxjs: ^7.8.2
 
   node-abi@3.96.0:
     resolution: {integrity: sha512-rebQ/lz7i0EkoLzUVSrKRzA69zMkwLp95kKMWoMDkkM00Suxz0D7zEQPwRml5fQum24mj7bPvmlgLAmu2JCiYg==}
@@ -13583,6 +13572,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@memberjunction/ng-charts@6.2.0-edge.4(@angular/cdk@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))':
+    dependencies:
+      '@angular/cdk': 21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
+      '@angular/common': 21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@angular/core': 21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)
+      '@memberjunction/core': 6.1.5
+      d3: 7.9.0
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - supports-color
+
   '@memberjunction/ng-code-editor@6.1.5(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/forms@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))':
     dependencies:
       '@angular/common': 21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2)
@@ -17584,8 +17584,6 @@ snapshots:
 
   anynum@1.0.1: {}
 
-  apexcharts@5.16.0: {}
-
   archiver-utils@2.1.0:
     dependencies:
       glob: 7.2.3
@@ -20274,14 +20272,6 @@ snapshots:
       content-type: 2.1.0
 
   netmask@2.1.1: {}
-
-  ng-apexcharts@2.5.0(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(apexcharts@5.16.0)(rxjs@7.8.2):
-    dependencies:
-      '@angular/common': 21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2)
-      '@angular/core': 21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)
-      apexcharts: 5.16.0
-      rxjs: 7.8.2
-      tslib: 2.8.1
 
   node-abi@3.96.0:
     dependencies:

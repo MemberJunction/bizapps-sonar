@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from "@angular/core";
+import { Component, OnInit, computed, effect, inject, signal } from "@angular/core";
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
@@ -8,28 +8,9 @@ import { ScoreModelService } from "../../core/services/score-model.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
 import { BandKey, BandSlice, OverviewTrend, ScoreReadService } from "../../core/services/score-read.service";
-import type {
-    ApexAxisChartSeries, ApexChart, ApexXAxis, ApexDataLabels,
-    ApexStroke, ApexFill, ApexLegend, ApexTooltip, ApexPlotOptions,
-    ApexNonAxisChartSeries, ApexGrid,
-} from "ng-apexcharts";
+import { BAND_ORDER, bandColor, buildDistributionChart, buildHistoryChart, buildOverviewChart } from "./portfolio-charts";
 
-const BAND_ORDER: BandKey[] = ["healthy", "watch", "atrisk", "critical"];
 const MS_PER_DAY = 86_400_000;
-
-const BAND_COLORS: Record<BandKey, string> = {
-    healthy:  "#10b981",
-    watch:    "#3b82f6",
-    atrisk:   "#f97316",
-    critical: "#ef4444",
-};
-
-const BAND_LABELS: Record<BandKey, string> = {
-    healthy:  "Healthy",
-    watch:    "Watch",
-    atrisk:   "At Risk",
-    critical: "Critical",
-};
 
 /** One model's aggregated data for the portfolio view. */
 interface PortfolioSlot {
@@ -46,9 +27,6 @@ interface PortfolioSlot {
     trend: OverviewTrend | null;
     loading: boolean;
 }
-
-/** One column in the band-mix history chart. */
-interface MixCol { label: string; segments: { key: BandKey; pct: number }[]; }
 
 function emptySlot(model: mjBizAppsSonarScoreModelEntity): PortfolioSlot {
     return { model, distribution: [], scoredCount: 0, lastDay: null, prevDay: null, staleDays: null, recovered: 0, slipped: 0, net: 0, trend: null, loading: true };
@@ -86,18 +64,12 @@ function daysSince(day: string): number {
         "./sonar-portfolio-resource.component.css",
     ],
 })
-export class SonarPortfolioResourceComponent extends BaseResourceComponent implements OnInit, OnDestroy {
+export class SonarPortfolioResourceComponent extends BaseResourceComponent implements OnInit {
     private readonly modelService = inject(ScoreModelService);
     private readonly scoreRead = inject(ScoreReadService);
     /** Shared cross-surface model selection — set before opening triage so Engagement lands scoped. */
     private readonly current = inject(CurrentModelService);
     private readonly bus = inject(SonarDataBusService);
-
-    /** Tracks the MJ dark-mode flag so charts re-render with correct colors on theme switch. */
-    private readonly darkMode = signal(
-        document.documentElement.getAttribute("data-theme") === "dark"
-    );
-    private themeObserver: MutationObserver | null = null;
 
     public readonly loaded = signal(false);
     /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
@@ -141,104 +113,23 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
     /** Which chart lens is active in the main card. */
     public readonly lensView = signal<"overview" | "distribution" | "history">("overview");
 
-    // ── ApexCharts configurations ──────────────────────────────────────────────
-
-    private baseChart(dark: boolean, extra: Partial<ApexChart>): ApexChart {
-        return {
-            toolbar: { show: false },
-            fontFamily: "inherit",
-            animations: { enabled: true, speed: 500, animateGradually: { enabled: false } },
-            background: "transparent",
-            foreColor: dark ? "#9ca3af" : "#6b7280",
-            ...extra,
-        } as ApexChart;
-    }
-
-    private baseGrid(dark: boolean): ApexGrid {
-        return {
-            borderColor: dark ? "#334155" : "#e5e7eb",
-            strokeDashArray: 3,
-            padding: { left: 4, right: 4 },
-        };
-    }
+    // ── Chart inputs (@memberjunction/ng-charts; mapping in portfolio-charts.ts) ──
+    // Colors are var(--sonar-<band>) references, so the charts re-color through CSS on a theme
+    // switch with no re-render.
 
     /** Overview: horizontal stacked bar — one row per model, bands as segments. */
-    public readonly overviewChart = computed(() => {
-        const slots = this.overviewSlots();
-        const dark = this.darkMode();
-        return {
-            series: BAND_ORDER.map(key => ({
-                name: BAND_LABELS[key],
-                data: slots.map(s => s.distribution.find(d => d.key === key)?.count ?? 0),
-            })) as ApexAxisChartSeries,
-            chart: this.baseChart(dark, { type: "bar", stacked: true, height: Math.max(180, slots.length * 52 + 60) }),
-            plotOptions: { bar: { horizontal: true, barHeight: "55%", borderRadius: 4, borderRadiusApplication: "end" as const } } as ApexPlotOptions,
-            xaxis: { categories: slots.map(s => s.model.Name), labels: { formatter: (v: string) => Number(v).toLocaleString(), style: { colors: dark ? "#9ca3af" : "#6b7280" } } } as ApexXAxis,
-            colors: BAND_ORDER.map(k => BAND_COLORS[k]),
-            dataLabels: { enabled: false } as ApexDataLabels,
-            legend: { position: "bottom", horizontalAlign: "center", fontSize: "12px", itemMargin: { horizontal: 8 }, labels: { colors: dark ? "#9ca3af" : "#374151" } } as ApexLegend,
-            grid: this.baseGrid(dark),
-            tooltip: { theme: dark ? "dark" : "light", y: { formatter: (v: number) => v.toLocaleString() } } as ApexTooltip,
-            fill: { opacity: 1 } as ApexFill,
-        };
-    });
+    public readonly overviewChart = computed(() =>
+        buildOverviewChart(this.overviewSlots().map(s => ({ Name: s.model.Name, Distribution: s.distribution })))
+    );
 
-    /** Distribution: donut chart for the focused model's band breakdown. */
+    /** Distribution: donut of the focused model's band breakdown, total scored in the center. */
     public readonly distributionChart = computed(() => {
         const slot = this.focusedSlot();
-        const dark = this.darkMode();
-        const counts = BAND_ORDER.map(k => slot?.distribution.find(d => d.key === k)?.count ?? 0);
-        const total = slot?.scoredCount ?? 0;
-        const labelColor = dark ? "#9ca3af" : "#6b7280";
-        const valueColor = dark ? "#f1f5f9" : "#111827";
-        return {
-            series: counts as ApexNonAxisChartSeries,
-            chart: this.baseChart(dark, { type: "donut", height: 300 }),
-            labels: BAND_ORDER.map(k => BAND_LABELS[k]),
-            colors: BAND_ORDER.map(k => BAND_COLORS[k]),
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: "70%",
-                        labels: {
-                            show: true,
-                            total: { show: true, label: "Scored", fontSize: "13px", fontWeight: 600, color: labelColor, formatter: () => total.toLocaleString() },
-                            value: { fontSize: "22px", fontWeight: 800, color: valueColor, formatter: (v: string) => Number(v).toLocaleString() },
-                        },
-                    },
-                },
-            } as ApexPlotOptions,
-            dataLabels: { enabled: true, formatter: (v: number) => Math.round(v) + "%" } as ApexDataLabels,
-            legend: { position: "bottom", horizontalAlign: "center", fontSize: "12px", itemMargin: { horizontal: 8 }, labels: { colors: dark ? "#9ca3af" : "#374151" } } as ApexLegend,
-            stroke: { width: 2, colors: ["transparent"] } as ApexStroke,
-            tooltip: { theme: dark ? "dark" : "light", y: { formatter: (v: number) => v.toLocaleString() } } as ApexTooltip,
-        };
+        return buildDistributionChart(slot?.distribution ?? [], slot?.scoredCount ?? 0);
     });
 
-    /** History: 100% stacked area — smooth band-mix evolution over time. */
-    public readonly historyChart = computed(() => {
-        const slot = this.focusedSlot();
-        const dark = this.darkMode();
-        const cols = slot ? this.mixCols(slot) : [];
-        return {
-            series: BAND_ORDER.map(key => ({
-                name: BAND_LABELS[key],
-                data: cols.map(c => {
-                    const seg = c.segments.find(s => s.key === key);
-                    return seg ? Math.round(seg.pct) : 0;
-                }),
-            })) as ApexAxisChartSeries,
-            chart: this.baseChart(dark, { type: "area", stacked: true, stackType: "100%" as const, height: 300 }),
-            xaxis: { categories: cols.map(c => c.label), labels: { style: { fontSize: "11px", colors: dark ? "#9ca3af" : "#6b7280" } } } as ApexXAxis,
-            colors: BAND_ORDER.map(k => BAND_COLORS[k]),
-            stroke: { curve: "smooth", width: 2 } as ApexStroke,
-            fill: { type: "solid", opacity: dark ? 0.75 : 0.85 } as ApexFill,
-            dataLabels: { enabled: false } as ApexDataLabels,
-            legend: { position: "bottom", horizontalAlign: "center", fontSize: "12px", itemMargin: { horizontal: 8 }, labels: { colors: dark ? "#9ca3af" : "#374151" } } as ApexLegend,
-            grid: this.baseGrid(dark),
-            tooltip: { theme: dark ? "dark" : "light", y: { formatter: (v: number) => v + "%" } } as ApexTooltip,
-        };
-    });
+    /** History: 100%-stacked area of the focused model's band mix over recent snapshots. */
+    public readonly historyChart = computed(() => buildHistoryChart(this.focusedSlot()?.trend?.points ?? []));
 
     // ── Derived slices ─────────────────────────────────────────────────────────
 
@@ -294,14 +185,6 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     public ngOnInit(): void {
         void this.loadPortfolio();
-        this.themeObserver = new MutationObserver(() => {
-            this.darkMode.set(document.documentElement.getAttribute("data-theme") === "dark");
-        });
-        this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    }
-
-    public ngOnDestroy(): void {
-        this.themeObserver?.disconnect();
     }
 
     // ── Data loading ───────────────────────────────────────────────────────────
@@ -391,22 +274,8 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         this.lensView.set(v);
     }
 
-    /** Columns for the band-mix history chart — last 8 trend snapshots, each proportionally stacked. */
-    public mixCols(slot: PortfolioSlot): MixCol[] {
-        const pts = slot.trend?.points.slice(-8) ?? [];
-        return pts.map(pt => {
-            const total = pt.total || 1;
-            const asOfDate = pt.asOf instanceof Date ? pt.asOf : new Date(pt.asOf);
-            const label = asOfDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-            const segments = BAND_ORDER
-                .map(key => ({ key, pct: ((pt.counts[key] ?? 0) / total) * 100 }))
-                .filter(s => s.pct > 0);
-            return { label, segments };
-        });
-    }
-
-    public bandColor(key: BandKey | string): string {
-        return `var(--sonar-${key})`;
+    public bandColor(key: BandKey): string {
+        return bandColor(key);
     }
 
     public anchorName(model: mjBizAppsSonarScoreModelEntity): string {
