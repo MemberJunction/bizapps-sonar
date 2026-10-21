@@ -24,9 +24,21 @@
   <!-- ── Body ── -->
   <div class="sonar-page__body">
 
+    <!-- A failed read is never shown as "empty": name what failed and offer the retry. -->
+    @if (loadError() || failedSlots().length > 0) {
+      <div class="sonar-empty sonar-empty--inline sonar-empty--error" role="alert">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>
+          @if (loadError()) { {{ loadError() }} }
+          @else { Couldn't load scores for {{ failedNames() }}. {{ failedSlots().length === 1 ? 'It is' : 'They are' }} left out of the views below. }
+        </p>
+        <button class="sonar-btn" [disabled]="refreshing()" (click)="refresh()">Retry</button>
+      </div>
+    }
+
     <!-- Top fold — scoped to the single most-urgent model (focusedSlot), NOT summed across models
          (summing double-counts members scored by more than one model on the same anchor entity). -->
-    @if (loaded() && focusedSlot(); as fs) {
+    @if (loaded() && topFoldSlot(); as fs) {
 
       <!-- Triage action bar — the single action that matters, above the data layout -->
       <div class="sonar-actionbar">
@@ -117,6 +129,11 @@
           @if (lensView() === 'overview') {
             @if (!loaded()) {
               <div class="sonar-pf-overview-placeholder sonar-skeleton"></div>
+            } @else if (overviewSlots().length === 0 && (loadError() || failedSlots().length > 0)) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Scores couldn't be loaded.</p>
+              </div>
             } @else if (overviewSlots().length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-column"></i>
@@ -138,6 +155,11 @@
           @if (lensView() === 'distribution') {
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
+            } @else if (focusedSlot()?.error) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>{{ focusedSlot()?.error }}</p>
+              </div>
             } @else {
               <mj-donut-chart
                 [AriaLabel]="(focusedSlot()?.model?.Name ?? 'Model') + ' band distribution'"
@@ -154,6 +176,11 @@
           @if (lensView() === 'history') {
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
+            } @else if (focusedSlot()?.error) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>{{ focusedSlot()?.error }}</p>
+              </div>
             } @else if (historyChart().Categories.length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-area"></i>
@@ -279,7 +306,11 @@
                     <span class="sonar-chip sonar-chip--muted">{{ slot.model.Status }}</span>
                   }
                 </div>
-                @if (slot.scoredCount > 0) {
+                @if (slot.error) {
+                  <div class="sonar-pf-slot__meta sonar-pf-slot__error">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Couldn't load scores
+                  </div>
+                } @else if (slot.scoredCount > 0) {
                   <div class="sonar-pf-slot__band-bar">
                     @for (band of slot.distribution; track band.key) {
                       @if (band.count > 0) {

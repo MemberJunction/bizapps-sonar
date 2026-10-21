@@ -27,10 +27,12 @@ interface PortfolioSlot {
     net: number;
     trend: OverviewTrend | null;
     loading: boolean;
+    /** Set when this model's reads failed. Its counts are then placeholders, never shown as real. */
+    error: string | null;
 }
 
 function emptySlot(model: mjBizAppsSonarScoreModelEntity): PortfolioSlot {
-    return { model, distribution: [], scoredCount: 0, lastDay: null, prevDay: null, staleDays: null, recovered: 0, slipped: 0, net: 0, trend: null, loading: true };
+    return { model, distribution: [], scoredCount: 0, lastDay: null, prevDay: null, staleDays: null, recovered: 0, slipped: 0, net: 0, trend: null, loading: true, error: null };
 }
 
 /** 0 = most urgent (slippage), 3 = least (no movement). Used for sort ordering. */
@@ -108,8 +110,21 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         const id = this.selectedSlotId();
         if (id) return this.slots().find(s => s.model.ID === id) ?? null;
         // Default to the most urgent active scored model so Distribution/History always have content.
-        return this.overviewSlots()[0] ?? this.sortedSlots()[0] ?? null;
+        return this.overviewSlots()[0] ?? this.sortedSlots().find(s => s.error === null) ?? null;
     });
+
+    /** The top fold's model: the focused one, unless its reads failed (its zeros are not real). */
+    public readonly topFoldSlot = computed(() => {
+        const slot = this.focusedSlot();
+        return slot && slot.error === null ? slot : null;
+    });
+
+    /** The model list itself failed to load — nothing below it is real. */
+    public readonly loadError = signal<string | null>(null);
+
+    /** Models whose reads failed, named in the page's alert so a failure never reads as "empty". */
+    public readonly failedSlots = computed(() => this.slots().filter(s => s.error !== null));
+    public readonly failedNames = computed(() => this.failedSlots().map(s => s.model.Name).join(", "));
 
     /** Which chart lens is active in the main card. */
     public readonly lensView = signal<"overview" | "distribution" | "history">("overview");
@@ -218,7 +233,16 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
      * slot yet are still seeded empty so there's a row for loadSlot to fill.
      */
     private async loadPortfolio(preserveExisting = false): Promise<void> {
-        const models = await this.modelService.list();
+        let models: mjBizAppsSonarScoreModelEntity[];
+        try {
+            models = await this.modelService.list();
+            this.loadError.set(null);
+        } catch (e) {
+            console.error("SonarPortfolio: loading the scoring models failed", e);
+            this.loadError.set("Couldn't load the scoring models.");
+            this.loaded.set(true);
+            return;
+        }
         if (preserveExisting) {
             const known = new Set(this.slots().map(s => s.model.ID));
             const added = models.filter(m => !known.has(m.ID)).map(emptySlot);
@@ -229,7 +253,17 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
             this.slots.set(models.map(emptySlot));
         }
         this.loaded.set(true);
-        await Promise.all(models.map(m => this.loadSlot(m)));
+        await Promise.all(models.map(m => this.loadSlot(m).catch((e: unknown) => this.markSlotFailed(m, e))));
+    }
+
+    /** A model's reads failed: log it with the model, and mark its slot so no view reports it as empty. */
+    private markSlotFailed(model: mjBizAppsSonarScoreModelEntity, e: unknown): void {
+        console.error(`SonarPortfolio: loading scores for model "${model.Name}" (${model.ID}) failed`, e);
+        this.slots.update(all =>
+            // Drop the old counts too: every reader (chart, table, sidebar, sort) then sees placeholders,
+            // not numbers from a load that is no longer current.
+            all.map(s => s.model.ID === model.ID ? { ...emptySlot(model), loading: false, error: "Couldn't load this model's scores." } : s)
+        );
     }
 
     private async loadSlot(model: mjBizAppsSonarScoreModelEntity): Promise<void> {
@@ -260,7 +294,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
         this.slots.update(all =>
             all.map(s =>
                 s.model.ID === model.ID
-                    ? { model, distribution, scoredCount, lastDay, prevDay, staleDays, recovered, slipped, net: recovered - slipped, trend, loading: false }
+                    ? { model, distribution, scoredCount, lastDay, prevDay, staleDays, recovered, slipped, net: recovered - slipped, trend, loading: false, error: null }
                     : s
             )
         );
@@ -308,6 +342,7 @@ export class SonarPortfolioResourceComponent extends BaseResourceComponent imple
 
     /** Left-border color for sidebar rows and table dots — encodes urgency at a glance. */
     public indicatorColor(slot: PortfolioSlot): string {
+        if (slot.error) return "var(--sonar-critical)";
         if (slot.model.Status !== "Active") return "var(--sonar-border)";
         if (slot.slipped > 0) return "var(--sonar-atrisk)";
         if (slot.distribution.some(d => d.key === "critical" && d.count > 0)) return "var(--sonar-critical)";

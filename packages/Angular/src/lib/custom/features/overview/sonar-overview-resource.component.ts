@@ -106,6 +106,8 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
     public readonly loaded = signal(false);
     /** True while a model's context is loading — drives the hero/stat skeletons. */
     public readonly loadingModel = signal(false);
+    /** The selected model's scores failed to load (see loadModel); nothing below is shown as real. */
+    public readonly loadError = signal<string | null>(null);
     /** A manual refresh is in flight (drives the Refresh button's spinner/disabled state). */
     public readonly refreshing = signal(false);
     /** The selected model (entity) + its derived context. */
@@ -485,6 +487,7 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
         // model as a pending change and re-read on top of it.
         this.seenRevision.set(id, this.busRevision(id));
         this.loadingModel.set(true);
+        this.loadError.set(null);
         try {
             const model = await this.modelService.get(id);
             this.model.set(model);
@@ -519,6 +522,11 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
                 const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
                 this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
             }
+        } catch (e) {
+            // Without this the previous model's numbers would stay on screen under the new name.
+            console.error(`SonarOverview: loading model ${id} failed`, e);
+            this.resetContext();
+            this.loadError.set("Couldn't load this model's scores.");
         } finally {
             this.loadingModel.set(false);
         }
