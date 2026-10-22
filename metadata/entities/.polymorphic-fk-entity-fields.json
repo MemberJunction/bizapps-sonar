@@ -10,9 +10,10 @@
       "MJ: Entity Fields": [
         {
           "fields": {
-            "EntityID": "@parent:ID",
-            "Name": "AnchorRecordID",
             "EntityIDFieldName": "AnchorEntityID"
+          },
+          "primaryKey": {
+            "ID": "@lookup:MJ: Entity Fields.EntityID=@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Score Histories&Name=AnchorRecordID"
           }
         }
       ]
@@ -32,9 +33,10 @@
       "MJ: Entity Fields": [
         {
           "fields": {
-            "EntityID": "@parent:ID",
-            "Name": "AnchorRecordID",
             "EntityIDFieldName": "AnchorEntityID"
+          },
+          "primaryKey": {
+            "ID": "@lookup:MJ: Entity Fields.EntityID=@lookup:MJ: Entities.Name=MJ_BizApps_Sonar: Scores&Name=AnchorRecordID"
           }
         }
       ]
