@@ -1,0 +1,112 @@
+name: Repo checks
+
+# Checks specific to bizapps-sonar. They live here, not in the shared workflows, because
+# changes.yml, build.yml, release-readiness.yml and the rest are copied byte-for-byte from the
+# reference repo (bizapps-issues) and must stay identical across the open apps. Before the
+# release-pipeline port these ran inside sonar's own build.yml, changes.yml and publish.yml.
+# distribution-gate.yml and verify-release-app-token.yml are sonar's own and unchanged.
+on:
+  pull_request:
+    branches: [next, main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: 'repo: guards'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # fetch-depth: the PostgreSQL timestamp step reads the base branch's migrations-pg/.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      # The validators' own fixtures, so a pass below means each check can fail.
+      - name: Self-test the CI validator scripts
+        run: ./.github/scripts/selftest.sh
+
+      - name: Client/server package boundary
+        run: ./.github/scripts/validate-client-package-boundary.sh
+
+      - name: Seeded AI agents have tools
+        run: ./.github/scripts/validate-seed-agent-tools.sh
+
+      # The shared changes.yml checks migrations/ only. Flyway orders each chain on its own, so a
+      # new migrations-pg/ file is compared with the migrations-pg/ max on the base, not with the
+      # SQL Server chain's.
+      - name: Migration filenames (PostgreSQL)
+        run: ./.github/scripts/validate-migration-filenames.sh migrations-pg
+
+      - name: Migration timestamps are newer than existing (PostgreSQL)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          dir=migrations-pg
+          MAX_EXISTING=$(git ls-tree --name-only "$BASE_SHA" "$dir/" | sed 's#.*/##' \
+            | { grep -oE '^V[0-9]{12}' || true; } | sed 's/^V//' | sort -n | tail -1)
+          MAX_EXISTING=${MAX_EXISTING:-0}
+          MERGE_BASE=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          NEW_FILES=$(git diff --diff-filter=A --name-only "$MERGE_BASE" "$HEAD_SHA" -- "$dir/" \
+            | { grep -E "^$dir/[^/]+\.sql\$" || true; })
+          for file in $NEW_FILES; do
+            basename=$(basename "$file")
+            timestamp=$({ grep -oE '^V[0-9]{12}' || true; } <<< "$basename" | sed 's/^V//')
+            if [ -n "$timestamp" ] && [ "$timestamp" -le "$MAX_EXISTING" ]; then
+              echo "::error::$dir/$basename has timestamp ($timestamp) <= max existing in $dir/ ($MAX_EXISTING)"
+              exit 1
+            fi
+          done
+          echo "$dir/: all new migration timestamps are newer than $MAX_EXISTING"
+
+      - name: PostgreSQL parity
+        run: pnpm run check:pg-parity
+
+      # Teardown must run on the oldest MJ mj-app.json supports (issue #56).
+      - name: Teardown version tolerance
+        run: pnpm run check:teardown-tolerance
+
+      # No workflow or script may push straight to `main` or `next`; releases go through PRs.
+      - name: Release-push gate
+        run: |
+          pnpm run lint:release-pushes:test
+          pnpm run lint:release-pushes
+
+  release-seed:
+    name: 'repo: release seed'
+    if: github.event.pull_request.draft == false && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      # Formerly in publish.yml, after the merge. On the release PR they fail before it.
+      # Each self-test runs first: a gate nobody has watched fail is indistinguishable from one
+      # that always passes (MemberJunction/bizapps-forms#105).
+      - name: Every metadata record is in the shipped seed
+        run: |
+          node --test scripts/check-release-seed-coverage.spec.mjs
+          pnpm run check:release-seed
+      - name: One consolidated seed per release, not per-PR deltas
+        run: |
+          node --test scripts/check-release-seed-cadence.spec.mjs
+          pnpm run check:seed-cadence
