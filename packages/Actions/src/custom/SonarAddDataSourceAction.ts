@@ -35,6 +35,10 @@ export class SonarAddDataSourceAction extends SonarActionBase {
         if (!spec.relatedEntityID || !spec.alias) {
             return this.fail(params, "VALIDATION_ERROR", "Spec.relatedEntityID and Spec.alias are required.");
         }
+        // Scope gate: a data source becomes a table the factor engine aggregates over, so it must be
+        // a business entity — never `__mj` or other framework/internal schemas (see entityScope).
+        const outOfScope = this.businessEntityError(params, spec.relatedEntityID, "a data source");
+        if (outOfScope) return outOfScope;
         const locked = await this.modelEditableError(params, modelId);
         if (locked) return locked;
         if (await this.aliasInUse(modelId, spec.alias, params.ContextUser)) {
