@@ -108,6 +108,15 @@ export function failPublishLock(entity: BaseEntity, op: "create" | "update" | "d
  * two apart is what lets the hard enforcement path and the cosmetic message path resolve a query error
  * DIFFERENTLY (see the two wrappers below) instead of both silently treating it as "unlocked".
  */
+/**
+ * SECURITY: modelId/bandSetId reach these helpers as the in-memory (pre-validation) value of the
+ * row being saved, then get interpolated into an ExtraFilter. Guard the shape before interpolating
+ * so a crafted "id" can neither break out of the literal nor flip the existence check to
+ * "not found → unlocked". A non-UUID value is treated as "unknown" (the caller's conservative
+ * branch), never silently unlocked.
+ */
+const SONAR_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 export type ModelLockState = "locked" | "unlocked" | "unknown";
 
 /**
@@ -124,6 +133,9 @@ async function modelConfigLockState(
         // viable form is a copy-on-add TEMPLATE (instantiated into a normal model-owned factor), which has
         // no shared live row to drift a published model. Reasoning: plans/library-factors.md.
         return "unlocked";
+    }
+    if (!SONAR_UUID_RE.test(modelId)) {
+        return "unknown"; // malformed id — never interpolate it, never claim unlocked
     }
     const rv = new RunView();
     const result = await rv.RunView<{ Status: string }>(
@@ -157,6 +169,9 @@ async function bandSetConfigLockState(
 ): Promise<ModelLockState> {
     if (!bandSetId) {
         return "unlocked";
+    }
+    if (!SONAR_UUID_RE.test(bandSetId)) {
+        return "unknown"; // malformed id — never interpolate it, never claim unlocked
     }
     const statusList = LOCKED_STATUSES.map((s) => `'${s}'`).join(",");
     const rv = new RunView();

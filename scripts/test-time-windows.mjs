@@ -104,7 +104,7 @@ async function proveKind(kind) {
 }
 
 try {
-    pool = new sql.ConnectionPool({ user: "sa", password: "Securepassword!23", server: "localhost", port: 1433, database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false } });
+    pool = new sql.ConnectionPool({ user: "sa", password: process.env.DB_PASSWORD ?? "", server: "localhost", port: 1433, database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false } });
     await pool.connect();
     await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
     await UserCache.Instance.Refresh(pool);
