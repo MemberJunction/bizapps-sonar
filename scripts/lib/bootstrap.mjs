@@ -9,24 +9,34 @@
  *   await pool.close();
  *
  * Domain side-effect imports (core-entities, sonar-entities, sonar-actions, ai-gemini, AIEngine
- * config, …) stay in each script — only the connection plumbing is shared. Creds default to the
- * local Sonar_Demo sandbox; override via opts or DB_* env vars.
+ * config, …) stay in each script — only the connection plumbing is shared. Connection settings come
+ * from the DB_* env vars (the same names mj.config.cjs reads), overridable via opts. The password is
+ * NEVER defaulted — a committed fallback credential is exactly what this replaces.
  */
 import sql from "mssql";
 import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
 
-export async function bootstrap(opts = {}) {
-    const cfg = {
-        user: opts.user ?? process.env.DB_USERNAME ?? "sa",
-        password: opts.password ?? process.env.DB_PASSWORD ?? "Securepassword!23",
-        server: opts.server ?? process.env.DB_HOST ?? "localhost",
-        port: opts.port ?? parseInt(process.env.DB_PORT ?? "1433", 10),
-        database: opts.database ?? "Sonar_Demo",
+/** Connection config for the dev/test scripts, read from DB_* env vars. Throws a clear error when
+ *  DB_PASSWORD is unset: load the repo .env first (`set -a && . ./.env && set +a`) or export it. */
+export function dbConfigFromEnv(overrides = {}) {
+    const password = overrides.password ?? process.env.DB_PASSWORD;
+    if (!password) {
+        throw new Error(
+            "DB_PASSWORD is not set. Load the repo .env first (set -a && . ./.env && set +a) or export DB_PASSWORD — credentials are never hardcoded in these scripts.",
+        );
+    }
+    return {
+        user: overrides.user ?? process.env.DB_USERNAME ?? "sa",
+        password,
+        server: overrides.server ?? process.env.DB_HOST ?? "localhost",
+        port: overrides.port ?? parseInt(process.env.DB_PORT ?? "1433", 10),
+        database: overrides.database ?? process.env.DB_DATABASE ?? "Sonar_Demo",
+        options: { trustServerCertificate: true, encrypt: false },
     };
-    const pool = new sql.ConnectionPool({
-        user: cfg.user, password: cfg.password, server: cfg.server, port: cfg.port,
-        database: cfg.database, options: { trustServerCertificate: true, encrypt: false },
-    });
+}
+
+export async function bootstrap(opts = {}) {
+    const pool = new sql.ConnectionPool(dbConfigFromEnv(opts));
     await pool.connect();
     await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
     await UserCache.Instance.Refresh(pool);
