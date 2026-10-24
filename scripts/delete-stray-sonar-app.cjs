@@ -4,10 +4,18 @@
 const sql = require('mssql');
 const STRAY = '9A7C3E10-4B2D-4F6A-8C1E-5D0FAB12C3D4';
 
+// Creds come from the DB_* env vars (the gitignored repo-root .env the mj CLI reads) — no
+// hardcoded password fallback, ever.
+if (!process.env.DB_PASSWORD) {
+  console.error('DB_PASSWORD is not set. Export it (it lives in the gitignored repo-root .env the mj CLI reads) before running this script — it never falls back to a hardcoded password.');
+  process.exit(1);
+}
+
 (async () => {
   await sql.connect({
-    user: 'sa', password: 'Securepassword!23', server: 'localhost', port: 1433,
-    database: 'Sonar_Dev', options: { trustServerCertificate: true, encrypt: false },
+    user: process.env.DB_USERNAME ?? 'sa', password: process.env.DB_PASSWORD,
+    server: process.env.DB_HOST ?? 'localhost', port: parseInt(process.env.DB_PORT ?? '1433', 10),
+    database: process.env.DB_DATABASE ?? 'Sonar_Dev', options: { trustServerCertificate: true, encrypt: false },
   });
 
   // Count dependents across the tables that FK to Application.
