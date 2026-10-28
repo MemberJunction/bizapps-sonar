@@ -106,15 +106,15 @@ export class ScorePersister {
         }));
 
         const result = await RecordSetProcessor.Instance.Process({
-            Source: new ArraySource(refs, model.AnchorEntityID),
-            Processor: new FunctionRecordProcessor((record) => this.persistMember(record, context, runId, contextUser)),
-            Tracker: new GenericProcessRunTracker(),
-            ContextUser: contextUser,
-            EntityID: model.AnchorEntityID,
-            BatchSize: ScorePersister.BatchSize,
-            MaxConcurrency: ScorePersister.DefaultConcurrency,
-            Resume: false,
-            OnAfterBatch: async (_batch, processed) => {
+            source: new ArraySource(refs, model.AnchorEntityID),
+            processor: new FunctionRecordProcessor((record) => this.persistMember(record, context, runId, contextUser)),
+            tracker: new GenericProcessRunTracker(),
+            contextUser,
+            entityID: model.AnchorEntityID,
+            batchSize: ScorePersister.BatchSize,
+            maxConcurrency: ScorePersister.DefaultConcurrency,
+            resume: false,
+            onAfterBatch: async (_batch, processed) => {
                 onProgress?.(processed, scores.size);
                 return null;
             },
