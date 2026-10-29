@@ -26,6 +26,13 @@ export abstract class SonarActionBase extends BaseAction {
         return String(value).replace(/'/g, "''");
     }
 
+    /** Escape a value for use inside a LIKE pattern: quote-double as usual, then bracket-escape the
+     *  LIKE wildcards so a user searching for `%`, `_` or `[` matches the literal character instead
+     *  of widening the search. Pair with `ESCAPE` is unnecessary because we bracket-quote. */
+    protected sqlLike(value: string): string {
+        return this.sqlString(value).replace(/\[/g, "[[]").replace(/%/g, "[%]").replace(/_/g, "[_]");
+    }
+
     /** Strict UUID check (canonical 8-4-4-4-12 hex). Sonar ids are GUIDs; use this to REJECT a
      *  malformed id up front with a teaching error. `sqlString` is what makes interpolation safe
      *  regardless; this is the validity gate (unlike a loose char-class, it won't pass junk like
