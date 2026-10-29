@@ -36,7 +36,14 @@
         <sonar-model-sidebar [createEnabled]="false" (select)="onSelect($event)"></sonar-model-sidebar>
 
         <div class="sonar-with-rail__main sonar-mgr__body-layout">
-            @if (loaded() && tiles().length === 0) {
+            @if (loadError()) {
+                <div class="sonar-empty sonar-empty--error" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <h2>{{ loadError() }}</h2>
+                    <p>Nothing below would be accurate, so it is not shown.</p>
+                    <button class="sonar-btn sonar-btn--primary" (click)="retryLoad()">Retry</button>
+                </div>
+            } @else if (loaded() && tiles().length === 0) {
                 <div class="sonar-empty">
                     <i class="fa-solid fa-chart-line"></i>
                     <h2>No scores to triage yet</h2>

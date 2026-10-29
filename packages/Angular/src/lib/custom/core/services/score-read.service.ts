@@ -535,7 +535,12 @@ export class ScoreReadService {
             ResultType: "entity_object",
             IgnoreMaxRows: true,
         });
-        return result.Success ? result.Results ?? [] : [];
+        // A failed read must not look like "nothing scored": RunView reports failure instead of
+        // throwing, so turn it into the same rejection a transport failure already produces.
+        if (!result.Success) {
+            throw new Error(`ScoreReadService: loading scores for model ${modelId} failed: ${result.ErrorMessage ?? "unknown error"}`);
+        }
+        return result.Results ?? [];
     }
 
     /** Compose a Score ExtraFilter from the active triage filters (all AND-ed). bandId undefined →
