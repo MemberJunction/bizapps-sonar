@@ -1,6 +1,7 @@
 import { ActionResultSimple, RunActionParams, ActionParam } from "@memberjunction/actions-base";
 import { BaseAction } from "@memberjunction/actions";
 import { Metadata, RunView } from "@memberjunction/core";
+import { isBusinessEntity } from "@mj-biz-apps/sonar-engine";
 
 const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 
@@ -81,6 +82,55 @@ export abstract class SonarActionBase extends BaseAction {
             return this.failWithFix(params, "UNAUTHORIZED",
                 `You don't have permission to update ${whatItAffects}.`,
                 `this action edits ${whatItAffects}; ask an administrator for update rights on the '${entityName}' entity. Do NOT retry as the same user.`);
+        }
+        return null;
+    }
+
+    /** Authorization gate for a READ that flows through an engine path which may bypass MJ's own
+     *  row-level enforcement (e.g. the compiled factor read path runs raw set-based SQL). Checks the
+     *  caller's Read permission on `entityName` and returns a teaching failure when they lack it,
+     *  else null. Sibling of {@link requireEntityUpdate}; runs as the caller (params.ContextUser). */
+    protected requireEntityRead(
+        params: RunActionParams,
+        entityName: string,
+        whatItReads: string,
+    ): ActionResultSimple | null {
+        const user = params.ContextUser;
+        if (!user) {
+            return this.fail(params, "UNAUTHORIZED", "No context user is set; this action cannot be authorized.");
+        }
+        const entity = new Metadata().EntityByName(entityName);
+        if (!entity) {
+            return this.fail(params, "ERROR", `Entity '${entityName}' not found in metadata.`);
+        }
+        if (!entity.GetUserPermisions(user).CanRead) {
+            return this.failWithFix(params, "UNAUTHORIZED",
+                `You don't have permission to read ${whatItReads}.`,
+                `this action reads ${whatItReads}; ask an administrator for read rights on the '${entityName}' entity. Do NOT retry as the same user.`);
+        }
+        return null;
+    }
+
+    /** Scope gate for entity ids a caller wires into a model as an anchor or data source. Sonar only
+     *  scores BUSINESS entities — MJ core (`__mj`) and Sonar's own schema hold users, permissions, and
+     *  scoring internals, and letting a caller aggregate over those turns the factor engine into a
+     *  read oracle on framework tables. The pickers already filter to business entities; this enforces
+     *  the same rule server-side on the write path. Returns a teaching failure, or null when in scope. */
+    protected businessEntityError(
+        params: RunActionParams,
+        entityId: string,
+        role: string,
+    ): ActionResultSimple | null {
+        const entity = new Metadata().EntityByID(entityId);
+        if (!entity) {
+            return this.failWithFix(params, "VALIDATION_ERROR",
+                `Entity '${entityId}' was not found in metadata.`,
+                "pass a valid entity ID (use Sonar: Find Entities to look one up). Do NOT retry with the same ID.");
+        }
+        if (!isBusinessEntity(entity)) {
+            return this.failWithFix(params, "VALIDATION_ERROR",
+                `Entity '${entity.Name}' (schema '${entity.SchemaName}') cannot be used as ${role} — MJ core and Sonar internal tables are not scoreable business data.`,
+                "pick a business entity (Sonar: Find Entities and Sonar: List Related Entities only offer valid candidates). Do NOT retry with this entity.");
         }
         return null;
     }
