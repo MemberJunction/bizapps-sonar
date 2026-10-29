@@ -45,10 +45,9 @@ export const PROTECTED_BRANCHES = Object.freeze(['main', 'next']);
  * Where release automation lives. Deliberately whole directories rather than the files that happen
  * to be guilty today — the point is that a *new* file cannot reintroduce the push.
  *
- * `scripts/` earns its place from this change itself: Sonar's `ci/` push scripts are deleted and
- * the release derivation moves into `scripts/sync-app-version.mjs` and `scripts/release-prep.mjs`, which
- * `publish.yml` and `release-prep.yml` run. A list that omitted it would have
- * guarded the directory release automation just LEFT while ignoring the one it moved to.
+ * `scripts/` holds Sonar's own release-time gates (check-release-seed-*, check-pg-parity), so a push
+ * planted beside them must fail this gate too. (It first earned its place when the release derivation
+ * moved there; the shared pipeline has since taken that over, in `ci/`.)
  *
  * `ci/` stays scanned. The push scripts are gone; ci/ still holds the teardown generators
  * (generate_teardown.mjs, extract_ids*.py), so a push script reintroduced beside them must fail

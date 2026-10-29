@@ -5,6 +5,6 @@
   "fixed": [["@mj-biz-apps/*"]],
   "linked": [],
   "access": "public",
-  "baseBranch": "main",
+  "baseBranch": "next",
   "updateInternalDependencies": "patch"
 }
