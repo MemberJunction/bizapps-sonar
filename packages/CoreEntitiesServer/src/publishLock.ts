@@ -35,6 +35,15 @@ export function sqlString(value: string): string {
 /** Statuses whose config is frozen. Kept as a const so the model + band-set queries agree. */
 const LOCKED_STATUSES = ["Active", "Paused"] as const;
 
+/**
+ * Canonical 8-4-4-4-12 GUID shape (same gate as SonarActionBase.isGuid). The ids these guards receive
+ * (ScoreModelID / BandSetID) are client-supplied FK strings off the row being saved, and the guards run
+ * in Save()/Delete() OVERRIDES — before field type validation — so a crafted value would otherwise be
+ * interpolated straight into the ExtraFilter text below. Anything non-GUID is never queried: it resolves
+ * to "unknown", which the hard enforcement path fails CLOSED on (the write is refused).
+ */
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 /** The single message every guard surfaces, so the lock reads consistently across entities. */
 export const PUBLISH_LOCK_MESSAGE =
     "This model is published (Active or Paused) — its scoring configuration is locked. Unpublish " +
@@ -133,6 +142,12 @@ async function modelConfigLockState(
         // no shared live row to drift a published model. Reasoning: plans/library-factors.md.
         return "unlocked";
     }
+    if (!UUID_RE.test(modelId)) {
+        // Not a GUID → never interpolate it into the filter. "unknown" fails the hard path CLOSED
+        // (the save/delete is refused via failPublishLock) while the cosmetic path stays quiet.
+        LogError("publishLock: refusing model lock-state query — ScoreModelID is not a valid GUID.");
+        return "unknown";
+    }
     const rv = new RunView();
     const result = await rv.RunView<{ Status: string }>(
         {
@@ -165,6 +180,11 @@ async function bandSetConfigLockState(
 ): Promise<ModelLockState> {
     if (!bandSetId) {
         return "unlocked";
+    }
+    if (!UUID_RE.test(bandSetId)) {
+        // Same posture as modelConfigLockState: a non-GUID id never reaches the filter text.
+        LogError("publishLock: refusing band-set lock-state query — BandSetID is not a valid GUID.");
+        return "unknown";
     }
     const statusList = LOCKED_STATUSES.map((s) => `'${s}'`).join(",");
     const rv = new RunView();
