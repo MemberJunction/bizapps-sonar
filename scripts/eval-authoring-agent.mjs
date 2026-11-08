@@ -7,6 +7,7 @@
  * Run from repo root:  set -a && . ./.env && set +a && node scripts/eval-authoring-agent.mjs [N]
  */
 import sql from "mssql";
+import { dbConfigFromEnv } from "./lib/bootstrap.mjs";
 import { setupSQLServerClient, SQLServerProviderConfigData, UserCache } from "@memberjunction/sqlserver-dataprovider";
 import { Metadata, RunView } from "@memberjunction/core";
 import { AIEngine } from "@memberjunction/aiengine";
@@ -53,7 +54,7 @@ async function cleanup(name) {
 }
 
 async function main() {
-    pool = new sql.ConnectionPool({ user: "sa", password: "Securepassword!23", server: "localhost", port: 1433, database: "Sonar_Demo", options: { trustServerCertificate: true, encrypt: false } });
+    pool = new sql.ConnectionPool(dbConfigFromEnv());
     await pool.connect();
     await setupSQLServerClient(new SQLServerProviderConfigData(pool, "__mj"));
     await UserCache.Instance.Refresh(pool);

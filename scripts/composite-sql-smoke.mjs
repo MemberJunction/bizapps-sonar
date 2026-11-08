@@ -2,10 +2,11 @@
  *  string-asserted shape), with the real payload — no cross-key conflation, no fan-out. Uses temp
  *  tables in a single batch (ephemeral, no schema pollution). Run: node scripts/composite-sql-smoke.mjs */
 import sql from "mssql";
+import { dbConfigFromEnv } from "./lib/bootstrap.mjs";
 import { buildFactorSql, buildAnchorKeysJson } from "@mj-biz-apps/sonar-engine";
 
 const k = (id, values) => ({ id, json: "", values }); // minimal AnchorKey (buildAnchorKeysJson uses id+values)
-const pool = await sql.connect({ user:"sa", password:"Securepassword!23", server:"localhost", port:1433, database:"Sonar_Demo", options:{ trustServerCertificate:true, encrypt:false } });
+const pool = await sql.connect(dbConfigFromEnv());
 let failures = 0;
 const check = (name, ok, detail) => { console.log(`${ok ? "✓ PASS" : "✗ FAIL"} — ${name}${detail ? " :: " + detail : ""}`); if (!ok) failures++; };
 

@@ -1,7 +1,9 @@
+import { LogError } from "@memberjunction/core";
 import { ActionEngineServer } from "@memberjunction/actions";
 import { ActionParam, ActionResult } from "@memberjunction/actions-base";
 import { FactorEvaluationContext } from "../contracts/IFactorEvaluator";
 import {
+    ActionConfigError,
     ActionFactorSpec,
     ActionRunResult,
     ActionRunner,
@@ -46,6 +48,23 @@ export function createActionRunner(): ActionRunner {
         const action = engine.Actions.find((a) => a.ID === spec.actionId);
         if (!action) {
             throw new Error(`ActionFactor: Action ${spec.actionId} not found in the catalog.`);
+        }
+        // SECURITY GATE: a Runtime action is AI/Studio-authored code, and the engine must never
+        // execute it unless it is Active with APPROVED code — Factor.ActionID is configuration, so
+        // without this check a factor could point at a Pending/Rejected or deactivated action and
+        // the scoring engine would run that code anyway. This is a config-level condition (the same
+        // for every anchor), so it raises ActionConfigError: the factor's run fails loudly with a
+        // logged, user-visible error instead of degrading to no-data per anchor. Compiled (codebase)
+        // actions carry no CodeApprovalStatus and are inherently trusted, so only Runtime is gated.
+        if (action.Type === "Runtime" && (action.Status !== "Active" || action.CodeApprovalStatus !== "Approved")) {
+            const detail = `Status '${action.Status}', CodeApprovalStatus '${action.CodeApprovalStatus ?? "(none)"}'`;
+            LogError(
+                `ActionFactor ${spec.factorId}: refused to run action '${action.Name}' (${spec.actionId}) — ${detail}.`,
+            );
+            throw new ActionConfigError(
+                `ActionFactor: action '${action.Name}' is not approved to run (${detail}); a Runtime action ` +
+                    `must be Active with Approved code before the engine can score with it.`,
+            );
         }
 
         const params: ActionParam[] = [

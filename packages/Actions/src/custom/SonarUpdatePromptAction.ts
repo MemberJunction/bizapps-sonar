@@ -2,7 +2,7 @@ import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-bas
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
-import { Metadata, UserInfo } from "@memberjunction/core";
+import { Metadata, RunView, UserInfo } from "@memberjunction/core";
 import { MJTemplateContentEntity } from "@memberjunction/core-entities";
 
 const TEMPLATE_CONTENT = "MJ: Template Contents";
@@ -40,9 +40,22 @@ export class SonarUpdatePromptAction extends SonarActionBase {
             return authError;
         }
         try {
-            const ok = await this.saveText(contentId, text ?? "", params.ContextUser);
-            if (!ok) {
-                return this.fail(params, "NOT_FOUND", `Template content '${contentId}' not found (or save failed).`);
+            const content = await this.loadContent(contentId, params.ContextUser);
+            if (!content) {
+                return this.fail(params, "NOT_FOUND", `Template content '${contentId}' not found.`);
+            }
+            // The gate above authorizes editing AI PROMPTS — so the target row must actually BE a
+            // prompt's storage. TemplateContentID is caller-supplied, and without this check the
+            // action would write ANY template content (navigation emails, document templates, …)
+            // under an authorization that was granted for prompts only.
+            if (!(await this.promptReferencesTemplate(content.TemplateID, params.ContextUser))) {
+                return this.failWithFix(params, "VALIDATION_ERROR",
+                    `Template content '${contentId}' is not an AI prompt's template, so this action cannot edit it.`,
+                    "pass the TemplateContentID that Sonar: Get Prompt returned.");
+            }
+            content.TemplateText = text ?? "";
+            if (!(await content.Save())) {
+                return this.fail(params, "ERROR", `Failed to save the prompt text: ${this.errOf(content)}`);
             }
             return {
                 Success: true,
@@ -55,14 +68,27 @@ export class SonarUpdatePromptAction extends SonarActionBase {
         }
     }
 
-    /** Load the template-content row, overwrite its text, save. */
-    private async saveText(contentId: string, text: string, contextUser?: UserInfo): Promise<boolean> {
+    /** Load the template-content row (null when it doesn't exist). */
+    private async loadContent(contentId: string, contextUser?: UserInfo): Promise<MJTemplateContentEntity | null> {
         const md = new Metadata();
         const content = await md.GetEntityObject<MJTemplateContentEntity>(TEMPLATE_CONTENT, contextUser);
         await content.Load(contentId);
-        if (!content.IsSaved) return false;
-        content.TemplateText = text;
-        return content.Save();
+        return content.IsSaved ? content : null;
     }
 
+    /** True when at least one AI Prompt references the template — i.e. the content row really is
+     *  prompt storage, the object the Update gate authorized the caller to edit. */
+    private async promptReferencesTemplate(templateId: string, contextUser?: UserInfo): Promise<boolean> {
+        const res = await new RunView().RunView<{ ID: string }>(
+            {
+                EntityName: AI_PROMPT,
+                ExtraFilter: `TemplateID='${this.sqlString(templateId)}'`,
+                Fields: ["ID"],
+                MaxRows: 1,
+                ResultType: "simple",
+            },
+            contextUser,
+        );
+        return res.Success && (res.Results?.length ?? 0) > 0;
+    }
 }
