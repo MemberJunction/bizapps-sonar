@@ -19,6 +19,7 @@ export * from "./ModelFactorEntityServer";
 export * from "./ModelRelatedEntityEntityServer";
 export * from "./ScoreBandEntityServer";
 export * from "./publishLock";
+export * from "./promotionGate";
 export * from "./publishTransaction";
 
 /** Marker export so importers can force-load this module (and its decorators). */
