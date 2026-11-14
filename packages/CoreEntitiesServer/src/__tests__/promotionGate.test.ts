@@ -153,28 +153,43 @@ describe("evaluateBoundActionApproval", () => {
  * is a confirmed `blocked`: there is nothing approvable to execute.
  */
 describe("boundActionApprovalState", () => {
+    // ActionID is client-supplied pre-save, so the wrapper GUID-gates it before it can reach the
+    // ExtraFilter text — these ids must therefore be real GUIDs to exercise the query path.
+    const actionId = "A1B2C3D4-0000-4000-8000-000000000001";
+    const missingId = "A1B2C3D4-0000-4000-8000-000000000002";
+
     it("approves when the bound Action's code is Approved", async () => {
         mock.rows = [{ ...actionRow() }];
-        expect((await boundActionApprovalState("a1")).state).toBe("approved");
+        expect((await boundActionApprovalState(actionId)).state).toBe("approved");
     });
 
     it("blocks when the bound Action's code is not Approved", async () => {
         mock.rows = [{ ...actionRow({ CodeApprovalStatus: "Pending" }) }];
-        const result = await boundActionApprovalState("a1");
+        const result = await boundActionApprovalState(actionId);
         expect(result.state).toBe("blocked");
     });
 
     it("blocks when the bound Action can't be found", async () => {
         mock.rows = [];
-        const result = await boundActionApprovalState("missing");
+        const result = await boundActionApprovalState(missingId);
         expect(result.state).toBe("blocked");
         if (result.state === "blocked") {
             expect(result.message).toContain("could not be found");
         }
     });
 
+    it("blocks a non-GUID ActionID without ever querying (ExtraFilter injection gate)", async () => {
+        // The mock would APPROVE if the query ran — proving the gate short-circuits first.
+        mock.rows = [{ ...actionRow() }];
+        const result = await boundActionApprovalState("x' OR 1=1 --");
+        expect(result.state).toBe("blocked");
+        if (result.state === "blocked") {
+            expect(result.message).toContain("not a valid GUID");
+        }
+    });
+
     it("returns `unknown` when the query fails — Save() fails CLOSED on it", async () => {
         mock.success = false;
-        expect((await boundActionApprovalState("a1")).state).toBe("unknown");
+        expect((await boundActionApprovalState(actionId)).state).toBe("unknown");
     });
 });
