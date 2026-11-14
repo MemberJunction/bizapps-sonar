@@ -6,6 +6,7 @@ import {
     ResolvedRelatedSource,
 } from "../factors/filter";
 import { resolveRelatedExistsSource } from "../factors/relatedExists";
+import { isBusinessEntity } from "../metadata/entityScope";
 import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
@@ -343,7 +344,7 @@ export class RecomputeOrchestrator {
             );
         }
         const pkFields = anchorEntity.PrimaryKeys.map((pk) => pk.Name);
-        const extraFilter = this.compilePopulationFilter(model, anchorEntity);
+        const extraFilter = this.compilePopulationFilter(model, anchorEntity, contextUser);
         const rv = new RunView();
         // Record<string, unknown> (not string): an anchor PK can be int/uuid/string, and CompositeKey
         // preserves each value's type — so the row map must not pre-coerce everything to string.
@@ -401,7 +402,7 @@ export class RecomputeOrchestrator {
                 `RecomputeOrchestrator: anchor entity ${model.AnchorEntityID} not found in metadata.`,
             );
         }
-        const extraFilter = this.compilePopulationFilter(model, anchorEntity);
+        const extraFilter = this.compilePopulationFilter(model, anchorEntity, contextUser);
         const total = await this.countAnchors(anchorEntity, null, contextUser);
         // No filter → the scoped count IS the total; skip the redundant second query.
         const scoped = extraFilter === null
@@ -441,6 +442,7 @@ export class RecomputeOrchestrator {
     private compilePopulationFilter(
         model: mjBizAppsSonarScoreModelEntity,
         anchorEntity: EntityInfo,
+        contextUser: UserInfo,
     ): string | null {
         const raw = model.PopulationFilter;
         if (!raw || raw.trim().length === 0) {
@@ -456,11 +458,45 @@ export class RecomputeOrchestrator {
         }
         const validColumns = anchorEntity.Fields.map((f) => f.Name);
         // Related-record leaves ("People that have a Member Profile") resolve against metadata here;
-        // the compiler itself stays pure.
+        // the compiler itself stays pure. Each resolved entity passes the same scope + Read gate the
+        // factor compiler applies (assertRelatedEntityReadable below) before its table name can reach
+        // the filter text.
         const md = new Metadata();
-        const relatedResolver = (node: RelatedExistsDescriptor): ResolvedRelatedSource =>
-            resolveRelatedExistsSource(anchorEntity, md.EntityByName(node.relatedEntity), node);
+        const relatedResolver = (node: RelatedExistsDescriptor): ResolvedRelatedSource => {
+            const related = md.EntityByName(node.relatedEntity);
+            if (related) {
+                this.assertRelatedEntityReadable(related, contextUser);
+            }
+            return resolveRelatedExistsSource(anchorEntity, related, node);
+        };
         return compileFilterInline(parsed, validColumns, { relatedResolver });
+    }
+
+    /**
+     * SECURITY GATE for a population filter's related-exists table — the same two checks the factor
+     * compiler applies to every table its compiled SQL can touch (FactorCompiler.assertEntityReadable).
+     * The related-exists leaf becomes a subquery over the related entity's BASE TABLE inside the
+     * RunView ExtraFilter, and RunView enforces entity permissions only on the MAIN (anchor) entity —
+     * the subqueried table escapes both entity permissions and Row-Level Security. So before its table
+     * name reaches the filter text: (1) it must be a business entity (never `__mj` / Sonar-internal
+     * plumbing), and (2) the calling user must hold Read on it, because the database will not check
+     * either later.
+     */
+    private assertRelatedEntityReadable(entity: EntityInfo, contextUser: UserInfo): void {
+        if (!isBusinessEntity(entity)) {
+            throw new Error(
+                `RecomputeOrchestrator: population filter references entity '${entity.Name}', which is ` +
+                    `not a business entity — framework/Sonar-internal schemas cannot be read by a population filter.`,
+            );
+        }
+        // GetUserPermisions returns null on an internal error — treat that as denied (fail closed).
+        const permissions = entity.GetUserPermisions(contextUser);
+        if (!permissions?.CanRead) {
+            throw new Error(
+                `RecomputeOrchestrator: the calling user does not have Read permission on entity ` +
+                    `'${entity.Name}', so this model's population filter cannot be compiled.`,
+            );
+        }
     }
 
     /** For each rubric row: compile its factor, evaluate it over the population, normalize the results. */
