@@ -24,9 +24,21 @@
   <!-- ── Body ── -->
   <div class="sonar-page__body">
 
+    <!-- A failed read is never shown as "empty": name what failed and offer the retry. -->
+    @if (loadError() || failedSlots().length > 0) {
+      <div class="sonar-empty sonar-empty--inline sonar-empty--error" role="alert">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>
+          @if (loadError()) { {{ loadError() }} }
+          @else { Couldn't load scores for {{ failedNames() }}. {{ failedSlots().length === 1 ? 'It is' : 'They are' }} left out of the views below. }
+        </p>
+        <button class="sonar-btn" [disabled]="refreshing()" (click)="refresh()">Retry</button>
+      </div>
+    }
+
     <!-- Top fold — scoped to the single most-urgent model (focusedSlot), NOT summed across models
          (summing double-counts members scored by more than one model on the same anchor entity). -->
-    @if (loaded() && focusedSlot(); as fs) {
+    @if (loaded() && topFoldSlot(); as fs) {
 
       <!-- Triage action bar — the single action that matters, above the data layout -->
       <div class="sonar-actionbar">
@@ -84,7 +96,7 @@
         <div class="sonar-card sonar-pf-chart-card">
           <div class="sonar-card__head">
             <span class="sonar-card__label">
-              @if (lensView() === 'marimekko') { Band distribution }
+              @if (lensView() === 'overview') { Band distribution }
               @else if (lensView() === 'distribution') {
                 @if (focusedSlot(); as s) { {{ s.model.Name }} &middot; Distribution }
                 @else { Distribution }
@@ -96,8 +108,8 @@
             </span>
             <div class="sonar-pf-view-toggle">
               <button class="sonar-pf-view-toggle__btn"
-                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'marimekko'"
-                      (click)="setLensView('marimekko')">
+                      [class.sonar-pf-view-toggle__btn--active]="lensView() === 'overview'"
+                      (click)="setLensView('overview')">
                 Overview
               </button>
               <button class="sonar-pf-view-toggle__btn"
@@ -114,27 +126,28 @@
           </div>
 
           <!-- ── Overview lens: stacked bar chart ── -->
-          @if (lensView() === 'marimekko') {
+          @if (lensView() === 'overview') {
             @if (!loaded()) {
-              <div class="sonar-pf-mek-placeholder sonar-skeleton"></div>
-            } @else if (mekSlots().length === 0) {
+              <div class="sonar-pf-overview-placeholder sonar-skeleton"></div>
+            } @else if (overviewSlots().length === 0 && (loadError() || failedSlots().length > 0)) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Scores couldn't be loaded.</p>
+              </div>
+            } @else if (overviewSlots().length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-column"></i>
                 <p>No active models with scored members yet.</p>
               </div>
             } @else {
-              <apx-chart
-                [series]="overviewChart().series"
-                [chart]="overviewChart().chart"
-                [plotOptions]="overviewChart().plotOptions"
-                [xaxis]="overviewChart().xaxis"
-                [colors]="overviewChart().colors"
-                [dataLabels]="overviewChart().dataLabels"
-                [legend]="overviewChart().legend"
-                [grid]="overviewChart().grid"
-                [tooltip]="overviewChart().tooltip"
-                [fill]="overviewChart().fill">
-              </apx-chart>
+              <mj-bar-chart
+                AriaLabel="Members in each score band, by model"
+                [Categories]="overviewChart().Categories"
+                [Series]="overviewChart().Series"
+                Orientation="horizontal"
+                [Stacked]="true"
+                [Height]="overviewChart().Height">
+              </mj-bar-chart>
             }
           }
 
@@ -142,18 +155,20 @@
           @if (lensView() === 'distribution') {
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
+            } @else if (focusedSlot()?.error) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>{{ focusedSlot()?.error }}</p>
+              </div>
             } @else {
-              <apx-chart
-                [series]="distributionChart().series"
-                [chart]="distributionChart().chart"
-                [labels]="distributionChart().labels"
-                [colors]="distributionChart().colors"
-                [plotOptions]="distributionChart().plotOptions"
-                [dataLabels]="distributionChart().dataLabels"
-                [legend]="distributionChart().legend"
-                [stroke]="distributionChart().stroke"
-                [tooltip]="distributionChart().tooltip">
-              </apx-chart>
+              <mj-donut-chart
+                [AriaLabel]="(focusedSlot()?.model?.Name ?? 'Model') + ' band distribution'"
+                [Slices]="distributionChart().Slices"
+                CenterLabel="Scored"
+                [CenterValue]="distributionChart().CenterValue"
+                [ShowPercentLabels]="true"
+                [Height]="300">
+              </mj-donut-chart>
             }
           }
 
@@ -161,24 +176,25 @@
           @if (lensView() === 'history') {
             @if (!loaded() || focusedSlot()?.loading) {
               <div class="sonar-skeleton" style="height: 300px; border-radius: 4px;"></div>
-            } @else if (mixCols(focusedSlot()!).length === 0) {
+            } @else if (focusedSlot()?.error) {
+              <div class="sonar-empty sonar-empty--inline sonar-empty--error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>{{ focusedSlot()?.error }}</p>
+              </div>
+            } @else if (historyChart().Categories.length === 0) {
               <div class="sonar-empty sonar-empty--inline">
                 <i class="fa-solid fa-chart-area"></i>
                 <p>Not enough history yet for {{ focusedSlot()?.model?.Name }}.</p>
               </div>
             } @else {
-              <apx-chart
-                [series]="historyChart().series"
-                [chart]="historyChart().chart"
-                [xaxis]="historyChart().xaxis"
-                [colors]="historyChart().colors"
-                [stroke]="historyChart().stroke"
-                [fill]="historyChart().fill"
-                [dataLabels]="historyChart().dataLabels"
-                [legend]="historyChart().legend"
-                [grid]="historyChart().grid"
-                [tooltip]="historyChart().tooltip">
-              </apx-chart>
+              <mj-area-chart
+                [AriaLabel]="(focusedSlot()?.model?.Name ?? 'Model') + ' band mix over time'"
+                [Categories]="historyChart().Categories"
+                [Series]="historyChart().Series"
+                StackMode="percent"
+                Curve="smooth"
+                [Height]="300">
+              </mj-area-chart>
             }
           }
         </div>
@@ -290,7 +306,11 @@
                     <span class="sonar-chip sonar-chip--muted">{{ slot.model.Status }}</span>
                   }
                 </div>
-                @if (slot.scoredCount > 0) {
+                @if (slot.error) {
+                  <div class="sonar-pf-slot__meta sonar-pf-slot__error">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Couldn't load scores
+                  </div>
+                } @else if (slot.scoredCount > 0) {
                   <div class="sonar-pf-slot__band-bar">
                     @for (band of slot.distribution; track band.key) {
                       @if (band.count > 0) {

@@ -43,6 +43,8 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
 
     public readonly modelName = signal("—");
     public readonly loaded = signal(false);
+    /** The selected model's scores failed to load (see loadModel). */
+    public readonly loadError = signal<string | null>(null);
     public readonly hasModel = computed(() => !!this.current.modelId());
 
     public readonly tiles = signal<BandSlice[]>([]);
@@ -184,11 +186,28 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
         await this.loadModel(id);
     }
 
-    /** Load the band summary + first page of the triage list (lowest scores first) for a model. */
+    /** Load the band summary + first page of the triage list (lowest scores first) for a model.
+     *  A failed read shows the load-error state; it must never read as "no scores to triage". */
     private async loadModel(id: string): Promise<void> {
         // Baseline the bus BEFORE any await, so the invalidation effect doesn't treat this load's own
         // model as a pending change and re-read on top of it.
         this.seenRevision.set(id, this.busRevision(id));
+        this.loadError.set(null);
+        try {
+            await this.readModel(id);
+        } catch (e) {
+            console.error(`SonarEngagement: loading model ${id} failed`, e);
+            this.loadError.set("Couldn't load this model's scores.");
+        }
+    }
+
+    /** Retry the load that failed, for the model the rail has selected. */
+    public async retryLoad(): Promise<void> {
+        const id = this.current.modelId();
+        if (id) await this.loadModel(id);
+    }
+
+    private async readModel(id: string): Promise<void> {
         const model = await this.modelService.get(id);
         this.modelName.set(model?.Name ?? "—");
         this.page.set(0);
@@ -250,7 +269,10 @@ export class SonarEngagementManagerResourceComponent extends BaseResourceCompone
             if (band) this.selectedBand.set(dist.slices.find((s) => s.bandId === band.bandId) ?? null);
 
             await this.loadMembers();
-        } catch {
+            // The data on screen is now current, so an earlier failed load no longer applies.
+            this.loadError.set(null);
+        } catch (e) {
+            console.error(`SonarEngagement: refreshing model ${id} failed`, e);
             this.error.set("Couldn't refresh. Please try again.");
         } finally {
             this.refreshing.set(false);

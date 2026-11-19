@@ -152,6 +152,9 @@ export class SonarPublishSnapshotComponent implements OnInit {
                 return { label, key: this.bandKey(label), beforePct, afterPct, delta: afterPct - beforePct };
             });
             this.impact.set({ firstScoring: persisted.total === 0, projectedTotal: preview.totalScored, rows, error: "" });
+        } catch (e) {
+            console.error(`SonarPublishSnapshot: loading the impact preview for model ${modelId} failed`, e);
+            this.impact.set({ firstScoring: false, projectedTotal: 0, rows: [], error: "Couldn't load the impact preview." });
         } finally {
             this.impactLoading.set(false);
         }

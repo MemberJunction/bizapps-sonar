@@ -10,7 +10,7 @@
                     {{ model() ? model()!.Name : 'Sonar' }}
                 </h1>
                 <p class="sonar-page__subtitle">
-                    @if (model()) {
+                    @if (model() && !loadError()) {
                         <!-- The old stat-tile grid, collapsed to one metadata line (population, coverage,
                              config counts, recency). Low coverage is an operational warning, so it gets
                              band-colored emphasis instead of whispering in muted text. -->
@@ -56,6 +56,12 @@
                         <div class="sonar-skeleton sonar-skeleton--text" style="width:14rem"></div>
                         <div class="sonar-skeleton sonar-skeleton--block" style="width:100%;height:7rem;margin-top:1rem"></div>
                     </section>
+                </div>
+            } @else if (loadError()) {
+                <div class="sonar-empty sonar-empty--error" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <h2>{{ loadError() }}</h2>
+                    <p>Nothing below would be accurate, so it is not shown.</p>
                 </div>
             } @else if (loaded() && !model()) {
                 <div class="sonar-empty">

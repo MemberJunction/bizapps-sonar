@@ -1,7 +1,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NgApexchartsModule } from 'ng-apexcharts';
+// Token-themed d3 charts (bar / donut / area) for the Portfolio lenses. Standalone components,
+// so they're imported here rather than declared.
+import { MJAreaChartComponent, MJBarChartComponent, MJDonutChartComponent } from '@memberjunction/ng-charts';
 // Searchable single-select (filter-as-you-type). Standalone MJ UI component — the multiselect
 // primitive builds its chips-over-a-picker on top of <mj-combobox>.
 import { MJAlertComponent, MJButtonDirective, MJComboboxComponent, MJTabNavComponent } from '@memberjunction/ng-ui-components';
@@ -84,7 +86,9 @@ import { SonarVersionHistoryComponent } from './features/model-builder/builders/
         MJAlertComponent,
         FilterBuilderModule,
         ConversationsModule,
-        NgApexchartsModule
+        MJBarChartComponent,
+        MJDonutChartComponent,
+        MJAreaChartComponent
     ],
     exports: [
         SonarMultiselectComponent,

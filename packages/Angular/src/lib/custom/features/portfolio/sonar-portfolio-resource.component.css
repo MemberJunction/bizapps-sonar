@@ -23,10 +23,6 @@
     margin-top: 0.125rem;
 }
 
-.sonar-stat--warn .sonar-stat__value {
-    color: var(--sonar-atrisk);
-}
-
 /* Primary tile — the one KPI that should read first (At risk). Subtle atrisk tint + a larger,
    atrisk-toned value so it carries visual weight without a loud accent rail. */
 .sonar-stat--primary {
@@ -64,50 +60,16 @@
 }
 
 /* ── Chart card ─────────────────────────────────────────────────────────────
-   Removes sonar-card default padding so the Marimekko bleeds to the card edge,
-   then re-adds it above and below the chart. */
+   Extra bottom padding so the chart legend doesn't sit on the card edge. */
 
 .sonar-pf-chart-card {
     padding-bottom: 1rem;
 }
 
 /* Loading placeholder */
-.sonar-pf-mek-placeholder {
+.sonar-pf-overview-placeholder {
     height: 180px;
     border-radius: var(--sonar-radius-sm);
-}
-
-/* ── Marimekko chart ────────────────────────────────────────────────────────
-   A flex row where each column's width is proportional to its `flex` value
-   (member count). Within each column, band segments stack bottom→top via
-   column-reverse — so healthy (DOM-first) lands at the bottom and critical
-   (DOM-last) floats to the top. */
-
-.sonar-pf-mek {
-    display: flex;
-    height: 180px;
-    gap: 3px;
-    overflow: hidden;
-    border-radius: var(--sonar-radius-sm);
-    margin-bottom: 10px;
-}
-
-.sonar-pf-mek__col {
-    display: flex;
-    flex-direction: column-reverse;
-    overflow: hidden;
-    cursor: pointer;
-    transition: filter 0.12s;
-}
-
-.sonar-pf-mek__col:hover,
-.sonar-pf-mek__col--hovered {
-    filter: brightness(1.08);
-}
-
-.sonar-pf-mek__seg {
-    width: 100%;
-    flex-shrink: 0;
 }
 
 /* ── Chart view toggle ──────────────────────────────────────────────────────*/
@@ -141,105 +103,6 @@
     background: var(--sonar-surface);
     color: var(--sonar-ink);
     box-shadow: 0 1px 2px rgba(0,0,0,.06);
-}
-
-/* ── Marimekko column labels ────────────────────────────────────────────────
-   Mirror the chart's flex layout so each label aligns to its column. */
-
-.sonar-pf-mek-labels {
-    display: flex;
-    gap: 3px;
-    margin-top: 6px;
-}
-
-.sonar-pf-mek-labels__name {
-    font-size: var(--sonar-font-xs);
-    font-weight: 600;
-    color: var(--sonar-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-}
-
-/* ── Marimekko footer: hover info panel + static legend ─────────────────────
-   The footer area transitions between a static legend (no hover) and a live
-   band-breakdown panel when a column is moused over. */
-
-.sonar-pf-mek-footer {
-    padding-top: 0.75rem;
-    margin-top: 0.75rem;
-    border-top: 1px solid var(--sonar-border);
-    min-height: 28px;
-}
-
-.sonar-pf-mek-info {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-size: var(--sonar-font-xs);
-    color: var(--sonar-muted);
-    animation: sonar-fadein 0.1s ease;
-}
-
-@keyframes sonar-fadein {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-.sonar-pf-mek-info__name {
-    font-weight: 700;
-    color: var(--sonar-ink);
-}
-
-.sonar-pf-mek-info__sep {
-    color: var(--sonar-border-strong);
-}
-
-.sonar-pf-mek-info__total {
-    color: var(--sonar-muted);
-}
-
-.sonar-pf-mek-info__band {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 7px;
-    background: var(--sonar-surface-sunken);
-    border-radius: var(--sonar-radius-sm);
-}
-
-.sonar-pf-mek-info__swatch {
-    display: block;
-    width: 7px;
-    height: 7px;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-/* ── Chart legend ───────────────────────────────────────────────────────────*/
-
-.sonar-pf-legend {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.sonar-pf-legend__item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: var(--sonar-font-xs);
-    color: var(--sonar-muted);
-}
-
-.sonar-pf-legend__swatch {
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    flex-shrink: 0;
 }
 
 /* ── Movement table ─────────────────────────────────────────────────────────*/
@@ -486,211 +349,6 @@
     border-left-width: 3px;
 }
 
-/* ── Model detail header ─────────────────────────────────────────────────────
-   Breadcrumb back-button + model title + lens toggle, all in one flex row.  */
-
-.sonar-pf-detail-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.25rem;
-}
-
-.sonar-pf-detail-back {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: var(--sonar-font-xs);
-    font-weight: 600;
-    color: var(--sonar-faint);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 0;
-    white-space: nowrap;
-    transition: color 0.12s;
-}
-
-.sonar-pf-detail-back:hover {
-    color: var(--sonar-muted);
-}
-
-.sonar-pf-detail-title {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.sonar-pf-detail-model {
-    font-size: var(--sonar-font-base);
-    font-weight: 800;
-    color: var(--sonar-ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sonar-pf-detail-anchor {
-    font-size: var(--sonar-font-xs);
-    color: var(--sonar-faint);
-    white-space: nowrap;
-}
-
-/* ── Insight table ───────────────────────────────────────────────────────────
-   Four-column flex row per band: [swatch+label] [count] [pct] [delta].
-   Right-aligned numeric columns with tabular figures for clean stacking.    */
-
-.sonar-pf-insight {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
-}
-
-.sonar-pf-insight__row {
-    display: grid;
-    grid-template-columns: 1fr auto auto auto;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.625rem 0;
-    border-bottom: 1px solid var(--sonar-border);
-    font-size: var(--sonar-font-sm);
-    font-variant-numeric: tabular-nums;
-}
-
-.sonar-pf-insight__row:last-child {
-    border-bottom: none;
-}
-
-.sonar-pf-insight__band {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--sonar-ink);
-}
-
-.sonar-pf-insight__swatch {
-    display: block;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.sonar-pf-insight__count {
-    font-weight: 700;
-    color: var(--sonar-ink);
-    text-align: right;
-    min-width: 48px;
-}
-
-.sonar-pf-insight__pct {
-    color: var(--sonar-muted);
-    text-align: right;
-    min-width: 36px;
-}
-
-.sonar-pf-insight__delta {
-    text-align: right;
-    min-width: 44px;
-    font-weight: 600;
-    color: var(--sonar-faint);
-}
-
-.sonar-pf-insight__delta--good { color: var(--sonar-healthy); }
-.sonar-pf-insight__delta--bad  { color: var(--sonar-atrisk); }
-
-/* Full-width band bar below the insight rows — mirrors the Marimekko proportions. */
-.sonar-pf-insight__bar {
-    display: flex;
-    height: 6px;
-    border-radius: 3px;
-    overflow: hidden;
-    gap: 2px;
-}
-
-.sonar-pf-insight__bar-seg {
-    flex-shrink: 0;
-    height: 100%;
-}
-
-/* ── Band-mix history chart ──────────────────────────────────────────────────
-   One proportional stacked column per snapshot, column-reverse so healthy
-   sits at the bottom (same visual grammar as the Marimekko).               */
-
-.sonar-pf-mix {
-    display: flex;
-    height: 140px;
-    gap: 4px;
-    align-items: stretch;
-}
-
-.sonar-pf-mix__col {
-    flex: 1;
-    display: flex;
-    flex-direction: column-reverse;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.sonar-pf-mix__seg {
-    width: 100%;
-    flex-shrink: 0;
-}
-
-.sonar-pf-mix-labels {
-    display: flex;
-    gap: 4px;
-    margin-top: 6px;
-}
-
-.sonar-pf-mix-labels__label {
-    flex: 1;
-    text-align: center;
-    font-size: 10px;
-    color: var(--sonar-faint);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* ── Cycle movement summary (3-up flow stats) ───────────────────────────────*/
-
-.sonar-pf-detail-movement {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.sonar-pf-detail-flow {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.sonar-pf-detail-flow__val {
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    color: var(--sonar-muted);
-    line-height: 1;
-}
-
-.sonar-pf-detail-flow--good .sonar-pf-detail-flow__val { color: var(--sonar-healthy); }
-.sonar-pf-detail-flow--bad  .sonar-pf-detail-flow__val { color: var(--sonar-atrisk); }
-
-.sonar-pf-detail-flow__label {
-    font-size: var(--sonar-font-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--sonar-faint);
-}
-
 /* ── Skeleton pulse ─────────────────────────────────────────────────────────*/
 
 .sonar-skeleton {
@@ -702,4 +360,9 @@
 @keyframes sonar-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.45; }
+}
+
+/* A model whose scores failed to load: say so instead of showing counts. */
+.sonar-pf-slot__error {
+    color: var(--sonar-critical);
 }
