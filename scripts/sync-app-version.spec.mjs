@@ -40,6 +40,14 @@ test('a tilde pin keeps its floor and caps at the next major', () => {
     assert.equal(mjVersionRange, '>=6.1.5 <7.0.0');
 });
 
+test('a bounded release-line peer range is preserved verbatim', () => {
+    const { mjVersionRange } = deriveAppFields({
+        version: '1.0.0',
+        peerDependencies: { '@memberjunction/core': '>=6.1.5 <6.2.0' },
+    });
+    assert.equal(mjVersionRange, '>=6.1.5 <6.2.0');
+});
+
 // A pin with no version in it must stop the derivation, not write `NaN.0.0` (or `>= <1.0.0`, which
 // is what an empty string becomes, since Number('') is 0) into the mj-app.json a host installs from.
 for (const pin of ['workspace:*', 'latest', '^', '*']) {

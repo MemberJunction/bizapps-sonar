@@ -40,6 +40,12 @@ export function deriveAppFields(entitiesPkg) {
                 'mjVersionRange has no input to derive from',
         );
     }
+    // A release line caps MJ below the next minor (`>=6.1.5 <6.2.0`); preserve an explicit
+    // bounded range verbatim instead of appending a second upper bound.
+    const bounded = /^>=\s*(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\s+<\s*(\d+\.\d+\.\d+(?:-0)?)$/.exec(String(pin).trim());
+    if (bounded) {
+        return { version, mjVersionRange: `>=${bounded[1]} <${bounded[2]}` };
+    }
     // Strips a range operator (`^`, `~`, `>=`) to reach the floor version. Anything that leaves no
     // `major.minor.patch` behind (`workspace:*`, `latest`, `*`) has no floor to derive from; without
     // this guard it became `NaN.0.0` (or `>= <1.0.0`, since Number('') is 0) in the mj-app.json a

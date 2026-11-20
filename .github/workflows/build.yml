@@ -10,9 +10,9 @@ on:
   # hangs on "Expected — Waiting for status" forever; a job skipped by an `if:` reports `skipped`,
   # which a required check treats as passing. The path list therefore lives in the `scope` job.
   push:
-    branches: [next, main]
+    branches: [next, main, 'lts/**']
   pull_request:
-    branches: [next, main]
+    branches: [next, main, 'lts/**']
 
 concurrency:
   group: build-${{ github.ref }}

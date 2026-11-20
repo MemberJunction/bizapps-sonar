@@ -71,6 +71,7 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 - **No workflow or script may push to `main`/`next`** (`pnpm run lint:release-pushes` enforces it). Release automation pushes only `release/*` and `chore/backmerge-*` (via the release GitHub App) and the `vX.Y.Z` tag, and reaches `next` only by merging the back-merge PR through the API.
 - **Never commit directly to `main`.** Hotfixes go through `next` and a normal **Prepare a release** release. An out-of-band hotfix PR straight to `main` is unsupported until it is designed: `publish.yml` would fail on its leftover changeset, or, with none, publish nothing. See [`docs/release.md`](docs/release.md#hotfixes).
 - **Never hand-author the release bump or the back-merge** — `release-prep.yml` and `publish.yml` create them. Wanting to write one by hand means something upstream is wrong.
+- **Release lines (`lts/X.Y`)**: `next` tracks MJ Edge and never publishes; production releases come from release lines tracked in [`release-lines.json`](release-lines.json) (starting with `lts/6.1` for MJ 6.1.5). Label PRs into `next` with `backport lts/6.1` to cherry-pick onto the line, or list edge-only migrations in `release-lines.json` (`next.edgeOnlyMigrations`). Full guide: [`guides/RELEASE_LINES.md`](guides/RELEASE_LINES.md).
 - Repo: https://github.com/MemberJunction/bizapps-sonar
 
 ---
