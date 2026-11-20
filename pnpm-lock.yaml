@@ -19,8 +19,8 @@ overrides:
   '@angular/platform-browser-dynamic': 21.1.3
   '@angular/router': 21.1.3
   '@angular/service-worker': 21.1.3
-  '@memberjunction/core': ^6.1.5
-  '@memberjunction/global': ^6.1.5
+  '@memberjunction/core': '>=6.1.5 <6.2.0'
+  '@memberjunction/global': '>=6.1.5 <6.2.0'
 
 importers:
 
@@ -37,7 +37,7 @@ importers:
         specifier: ^2.29.8
         version: 2.31.1(@types/node@25.9.5)
       '@memberjunction/cli':
-        specifier: ^6.1.5
+        specifier: 6.1.5
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@aws-sdk/credential-providers@3.1126.0)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(@types/node@25.9.5)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(socks@2.8.10)(typescript@5.9.3)(ws@8.21.3)
       '@types/node':
         specifier: ^25.7.0
@@ -67,34 +67,34 @@ importers:
   packages/Actions:
     dependencies:
       '@memberjunction/actions':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/actions-base':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/ai':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/ai-agents':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@memberjunction/ai-core-plus':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/aiengine':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(encoding@0.1.13)(typescript@5.9.3)
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-entities':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-entities-server':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@mj-biz-apps/sonar-engine':
         specifier: 0.7.0
@@ -131,46 +131,46 @@ importers:
         specifier: 21.1.3
         version: 21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@memberjunction/actions-base':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-entities':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/graphql-dataprovider':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(ws@8.21.3)
       '@memberjunction/ng-base-forms':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(f2d0322bb431625ab56704434ca4aaf9)
       '@memberjunction/ng-conversations':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(c9cd629a42b04a784f72f54d93926dd8)
       '@memberjunction/ng-entity-viewer':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(a6a8b44abd5c78d6157895340b7cb10b)
       '@memberjunction/ng-filter-builder':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(ec34213903d6d60626451b179fc33f97)
       '@memberjunction/ng-link-directives':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
       '@memberjunction/ng-notifications':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(ws@8.21.3)
       '@memberjunction/ng-shared':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/router@21.1.3(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(rxjs@7.8.2)(ws@8.21.3)
       '@memberjunction/ng-shared-generic':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(@angular/platform-browser@21.1.3(@angular/animations@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(@angular/common@21.1.3(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.1.3(@angular/compiler@21.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@memberjunction/ng-ui-components':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(f555aaaffc2013cbecd9ce8e8e312d81)
       '@mj-biz-apps/sonar-entities':
         specifier: 0.7.0
@@ -195,17 +195,17 @@ importers:
   packages/CoreEntitiesServer:
     dependencies:
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-entities':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/sqlserver-dataprovider':
-        specifier: ^6.1.5
-        version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
+        specifier: '>=6.1.5 <6.2.0'
+        version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@mj-biz-apps/sonar-entities':
         specifier: 0.7.0
         version: link:../Entities
@@ -220,28 +220,28 @@ importers:
   packages/Engine:
     dependencies:
       '@memberjunction/actions':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/actions-base':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-entities':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/record-set-processor':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@memberjunction/record-set-processor-base':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/sqlserver-dataprovider':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@4.5.4))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@4.5.4)
       '@mj-biz-apps/sonar-entities':
         specifier: 0.7.0
@@ -257,10 +257,10 @@ importers:
   packages/Entities:
     dependencies:
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       zod:
         specifier: ^3.24.4
@@ -276,22 +276,22 @@ importers:
   packages/Server:
     dependencies:
       '@memberjunction/action-runtime-host':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@memberjunction/core':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/core-actions':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)
       '@memberjunction/global':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5
       '@memberjunction/server':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@aws-sdk/credential-providers@3.1126.0)(@azure/identity@4.13.2)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(socks@2.8.10)(typescript@5.9.3)
       '@memberjunction/sqlserver-dataprovider':
-        specifier: ^6.1.5
+        specifier: '>=6.1.5 <6.2.0'
         version: 6.1.5(@aws-sdk/credential-provider-node@3.972.82)(@modelcontextprotocol/sdk@1.30.0(zod@3.25.76))(@smithy/signature-v4@5.7.3)(axios@1.20.0)(chokidar@3.6.0)(encoding@0.1.13)(typescript@5.9.3)(ws@8.21.3)(zod@3.25.76)
       '@mj-biz-apps/sonar-actions':
         specifier: 0.7.0
@@ -3128,6 +3128,9 @@ packages:
   '@smithy/core@3.33.3':
     resolution: {integrity: sha512-CsOeKq/9kA3y6VJHt+/+VTCtBaxJ4OTFpgrjIUhPpDIKxBci1k2bJaQASF2h/ELWrulGp+t97DZ0mevfAD8idg==}
     engines: {node: '>=18.0.0'}
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
@@ -3810,6 +3813,7 @@ packages:
 
   axios-retry@4.5.0:
     resolution: {integrity: sha512-aR99oXhpEDGo0UuAlYcn2iGRds30k366Zfa05XWScR9QaQD4JYiP3/1Qt1u7YlefUOK+cn0CcwoL1oefavQUlQ==}
+    deprecated: axios-retry is no longer maintained. See https://github.com/softonic/axios-retry for alternatives.
     peerDependencies:
       axios: 0.x || 1.x
 
@@ -5355,6 +5359,7 @@ packages:
   http-call@5.3.0:
     resolution: {integrity: sha512-ahwimsC23ICE4kPl9xTBjKB4inbRaeLyZeRunC/1Jy/Z6X8tv22MEAjK+KBOMSVLaqXPTTmd8638waVIKLGx2w==}
     engines: {node: '>=8.0.0'}
+    deprecated: Renamed to @heroku/http-call — please install @heroku/http-call instead.
 
   http-errors@2.0.1:
     resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
