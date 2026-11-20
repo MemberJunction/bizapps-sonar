@@ -2,7 +2,7 @@ name: Validate Changes
 
 on:
   pull_request:
-    branches: [next, main]
+    branches: [next, main, 'lts/**']
 
 concurrency:
   group: changes-${{ github.ref }}
@@ -81,8 +81,11 @@ jobs:
       # rather than `git show <sha>:dir/ … || echo 0`: it prints nothing for a directory absent on the
       # base (max 0, which is correct) and exits non-zero on a bad SHA, which pipefail (see
       # `defaults` above) turns into a failed step instead of a silent max of 0.
+      # `next` only. On a release line, a backported migration keeps its timestamp from `next`, so it
+      # can be older than the line's newest migration; `lines: migrations` (release-lines-gates.yml)
+      # checks order on release lines instead.
       - name: Validate migration timestamps are newer than existing
-        if: steps.migration_check.outputs.has_migrations == 'true'
+        if: steps.migration_check.outputs.has_migrations == 'true' && github.base_ref == 'next'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
