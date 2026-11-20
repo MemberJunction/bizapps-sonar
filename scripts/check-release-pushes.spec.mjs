@@ -202,7 +202,7 @@ test('a push in scripts/ is found — that is where release automation lives now
 });
 
 test('the scanned list covers every directory the release path actually runs from', () => {
-    assert.ok(SCANNED_DIRS.includes('scripts'), 'publish.yml runs `node scripts/sync-app-version.mjs`');
+    assert.ok(SCANNED_DIRS.includes('scripts'), 'repo-checks.yml runs node scripts/*.mjs');
     assert.ok(SCANNED_DIRS.includes('.github/workflows'));
     assert.ok(SCANNED_DIRS.includes('.github/scripts'));
     assert.ok(SCANNED_DIRS.includes('ci'), 'kept as a tripwire for a directory that must not come back');
