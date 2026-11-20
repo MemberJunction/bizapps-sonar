@@ -1,7 +1,7 @@
 {
- "mjVersion": "6.1.5",
+ "mjVersion": "6.3.0",
  "schema": "__mj",
- "source": "sys.columns of a database installed by 'mj install -t v6.1.5' (no Open Apps); regenerate when mj-app.json's mjVersionRange floor changes",
+ "source": "MJ v6.3.0-edge.1 __mj schema (derived from v6.1.5 sys.columns snapshot + MJ v6.1.5..v6.3.0-edge.1 migrations); regenerate from sys.columns when mj-app.json floor changes",
  "tables": {
   "AccessControlRule": [
    "ID",
@@ -46,7 +46,10 @@
    "Config",
    "RuntimeActionConfiguration",
    "MaxExecutionTimeMS",
-   "CreatedByAgentID"
+   "CreatedByAgentID",
+   "CompensationActionID",
+   "CompensationInputMapping",
+   "IsIdempotent"
   ],
   "ActionAuthorization": [
    "ID",
@@ -128,7 +131,8 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "MediaModality",
-   "LogValue"
+   "LogValue",
+   "ValueSchema"
   ],
   "ActionResultCode": [
    "ID",
@@ -375,7 +379,8 @@
    "SecondaryScopes",
    "LastAccessedAt",
    "AccessCount",
-   "ExpiresAt"
+   "ExpiresAt",
+   "EmbeddingVectorBinary"
   ],
   "AIAgentHarness": [
    "ID",
@@ -450,7 +455,8 @@
    "DerivedFromNoteIDs",
    "ProtectionTier",
    "ImportanceScore",
-   "AuthorType"
+   "AuthorType",
+   "EmbeddingVectorBinary"
   ],
   "AIAgentNoteType": [
    "ID",
@@ -547,6 +553,21 @@
    "DefaultExpirationMinutes",
    "RequiresResponse"
   ],
+  "AIAgentRubric": [
+   "ID",
+   "AgentID",
+   "RubricID",
+   "Purpose",
+   "IsDefault",
+   "Status",
+   "PassThreshold",
+   "SampleRate",
+   "MaxSelfCheckAttempts",
+   "EvaluatorConfig",
+   "Sequence",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "AIAgentRun": [
    "ID",
    "AgentID",
@@ -600,7 +621,8 @@
    "AgentSessionID",
    "PlanMode",
    "ExternalSessionID",
-   "ContinuationDepth"
+   "ContinuationDepth",
+   "BoundActionParams"
   ],
   "AIAgentRunMedia": [
    "ID",
@@ -687,7 +709,12 @@
    "RecordingStartedAt",
    "RecordingFileID",
    "LinkedEntityID",
-   "LinkedRecordID"
+   "LinkedRecordID",
+   "RecordingStatus",
+   "RecordingExpectedShards",
+   "RecordingCapturedSamples",
+   "RecordingGaps",
+   "RecordingAssemblyVersion"
   ],
   "AIAgentSessionBridge": [
    "ID",
@@ -731,6 +758,19 @@
    "Config",
    "LastActiveAt",
    "DisconnectedAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "AIAgentSessionRecordingShard": [
+   "ID",
+   "AgentSessionID",
+   "Index",
+   "StartSample",
+   "SampleCount",
+   "Bytes",
+   "Sha256",
+   "Data",
+   "ReceivedAt",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -804,6 +844,32 @@
    "CompactionTargetPercent",
    "ConversationSummaryPromptID"
   ],
+  "AIAgentUserPolicy": [
+   "ID",
+   "AgentID",
+   "UserID",
+   "DisplayNameOverride",
+   "PreferredPersonaID",
+   "Status",
+   "OnboardingStatus",
+   "OnboardedAt",
+   "CoordinationMode",
+   "DefaultDataAccessMode",
+   "EmailChannelMode",
+   "PhoneChannelMode",
+   "MessagingChannelMode",
+   "CalendarChannelMode",
+   "AllowInterAgentCoordination",
+   "RequireApprovalForExternalComms",
+   "RequireApprovalForFinancials",
+   "RequireApprovalForDestructiveActions",
+   "AutoApproveAmountThreshold",
+   "EntityAccessRules",
+   "ActionPolicyRules",
+   "InstructionsOverride",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "AIArchitecture": [
    "ID",
    "Name",
@@ -826,7 +892,8 @@
    "IsActive",
    "Configuration",
    "__mj_CreatedAt",
-   "__mj_UpdatedAt"
+   "__mj_UpdatedAt",
+   "UserID"
   ],
   "AIBridgeProvider": [
    "ID",
@@ -1247,7 +1314,8 @@
    "InputUnitsUsed",
    "OutputUnitsUsed",
    "UsageTypeID",
-   "ToolCallingMode"
+   "ToolCallingMode",
+   "UserID"
   ],
   "AIPromptRunMedia": [
    "ID",
@@ -1375,7 +1443,8 @@
    "Description",
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
-   "CredentialTypeID"
+   "CredentialTypeID",
+   "Configuration"
   ],
   "AIVendorType": [
    "ID",
@@ -1600,7 +1669,19 @@
    "UserID",
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
-   "Visibility"
+   "Visibility",
+   "DelegateEntityID",
+   "DelegateRecordID"
+  ],
+  "ArtifactGuestShareLink": [
+   "ID",
+   "MagicLinkInviteID",
+   "ArtifactID",
+   "ArtifactVersionID",
+   "CreatedByUserID",
+   "Label",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
   ],
   "ArtifactPermission": [
    "ID",
@@ -1630,7 +1711,8 @@
    "ToolLibraryClass",
    "Priority",
    "DefaultDeliveryMode",
-   "SystemSupplied"
+   "SystemSupplied",
+   "Configuration"
   ],
   "ArtifactUse": [
    "ID",
@@ -1668,6 +1750,14 @@
    "Type",
    "Value",
    "StandardProperty",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "ArtifactWorkingState": [
+   "ID",
+   "ArtifactID",
+   "YjsState",
+   "LastModifiedByUserID",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -1734,6 +1824,39 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "BrandKit": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "BrandKitAsset": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "CalendarEventLink": [
+   "ID",
+   "CommunicationProviderID",
+   "AccountIdentifier",
+   "CalendarID",
+   "ExternalEventID",
+   "ExternalSeriesID",
+   "ICalUID",
+   "EntityID",
+   "RecordID",
+   "Status",
+   "LastSyncedAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "CalendarSyncState": [
+   "ID",
+   "CommunicationProviderID",
+   "AccountIdentifier",
+   "CalendarID",
+   "SyncToken",
+   "LastSyncedAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "ClusterAnalysis": [
    "ID",
    "Name",
@@ -1795,6 +1918,24 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "Comment": [
+   "ID",
+   "CommentTypeID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "CommentType": [
+   "ID",
+   "Name",
+   "Code",
+   "Description",
+   "ExtensionEntity",
+   "DriverClass",
+   "UIDriverClass",
+   "AllowedAnchorTypes",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "CommunicationBaseMessageType": [
    "ID",
    "Type",
@@ -1830,7 +1971,14 @@
    "SupportsScheduledSending",
    "SupportsForwarding",
    "SupportsReplying",
-   "SupportsDrafts"
+   "SupportsDrafts",
+   "SupportsCalendar",
+   "SupportsFreeBusy",
+   "EnterpriseScopeMode",
+   "AllowedEmailDomains",
+   "DefaultCredentialID",
+   "AllowUserDelegatedOAuth",
+   "AllowedOAuthTenantIDs"
   ],
   "CommunicationProviderMessageType": [
    "ID",
@@ -1930,6 +2078,96 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "CompanyIntegrationObject": [
+   "ID",
+   "IntegrationID",
+   "Name",
+   "DisplayName",
+   "Description",
+   "Category",
+   "APIPath",
+   "ResponseDataKey",
+   "DefaultPageSize",
+   "SupportsPagination",
+   "PaginationType",
+   "SupportsIncrementalSync",
+   "SupportsWrite",
+   "DefaultQueryParams",
+   "Configuration",
+   "Sequence",
+   "Status",
+   "WriteAPIPath",
+   "WriteMethod",
+   "DeleteMethod",
+   "IsCustom",
+   "CreateAPIPath",
+   "CreateMethod",
+   "CreateBodyShape",
+   "CreateBodyKey",
+   "CreateIDLocation",
+   "UpdateAPIPath",
+   "UpdateMethod",
+   "UpdateBodyShape",
+   "UpdateBodyKey",
+   "UpdateIDLocation",
+   "DeleteAPIPath",
+   "DeleteIDLocation",
+   "IncrementalWatermarkField",
+   "MetadataSource",
+   "SupportsCreate",
+   "SupportsUpdate",
+   "SupportsDelete",
+   "SyncStrategy",
+   "ContentHashApplicable",
+   "StableOrderingKey",
+   "CompanyIntegrationID",
+   "IntegrationObjectID",
+   "Provenance",
+   "ProvenanceDetail",
+   "IsSelected",
+   "SelectedAt",
+   "FirstSeenAt",
+   "LastSeenAt",
+   "LastSampledAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "CompanyIntegrationObjectField": [
+   "ID",
+   "Name",
+   "DisplayName",
+   "Description",
+   "Category",
+   "Type",
+   "Length",
+   "Precision",
+   "Scale",
+   "AllowsNull",
+   "DefaultValue",
+   "IsPrimaryKey",
+   "IsUniqueKey",
+   "IsReadOnly",
+   "IsRequired",
+   "RelatedIntegrationObjectFieldName",
+   "Sequence",
+   "Configuration",
+   "Status",
+   "IsCustom",
+   "MetadataSource",
+   "CompanyIntegrationObjectID",
+   "RelatedCompanyIntegrationObjectID",
+   "IntegrationObjectFieldID",
+   "ObservedMaxLength",
+   "Provenance",
+   "ProvenanceDetail",
+   "IsSelected",
+   "SelectedAt",
+   "FirstSeenAt",
+   "LastSeenAt",
+   "LastSampledAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "CompanyIntegrationRecordMap": [
    "ID",
    "CompanyIntegrationID",
@@ -2022,7 +2260,14 @@
    "DependencyCount",
    "TechnicalDesignVectorEmbeddingModelID",
    "FunctionalRequirementsVectorEmbeddingModelID",
-   "HasRequiredCustomProps"
+   "HasRequiredCustomProps",
+   "FunctionalRequirementsVectorBinary",
+   "TechnicalDesignVectorBinary",
+   "ApprovalStatus",
+   "ApprovalComments",
+   "ApprovedByUserID",
+   "ApprovedAt",
+   "ApprovedFingerprint"
   ],
   "ComponentDependency": [
    "ID",
@@ -2216,7 +2461,8 @@
    "EntityDocumentID",
    "SegmenterKey",
    "CleanerKey",
-   "ScheduledJobID"
+   "ScheduledJobID",
+   "GraphID"
   ],
   "ContentSourceParam": [
    "ID",
@@ -2275,7 +2521,6 @@
    "ExternalID",
    "Name",
    "Description",
-   "Type",
    "IsArchived",
    "LinkedEntityID",
    "LinkedRecordID",
@@ -2294,7 +2539,14 @@
    "RecordingFileID",
    "EgressID",
    "VisitorKey",
-   "LastConversationID"
+   "LastConversationID",
+   "AnchorType",
+   "AnchorKey",
+   "AnchorMetadata",
+   "IsResolved",
+   "ResolvedByUserID",
+   "ResolvedAt",
+   "TypeID"
   ],
   "ConversationArtifact": [
    "ID",
@@ -2322,6 +2574,18 @@
    "Configuration",
    "Content",
    "Comments",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "ConversationBranch": [
+   "ID",
+   "ConversationID",
+   "ParentBranchID",
+   "ForkFromSequence",
+   "Name",
+   "Kind",
+   "SourceDetailID",
+   "UserID",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -2365,7 +2629,9 @@
    "UtteranceStartMs",
    "UtteranceEndMs",
    "MediaType",
-   "Sequence"
+   "Sequence",
+   "BranchID",
+   "ReplacedAt"
   ],
   "ConversationDetailArtifact": [
    "ID",
@@ -2410,6 +2676,16 @@
    "Status",
    "ActivatedByRunID",
    "EndedAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "ConversationType": [
+   "ID",
+   "Name",
+   "Code",
+   "Description",
+   "ExtensionEntity",
+   "DriverClass",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -2498,7 +2774,12 @@
    "ApplicationID",
    "DriverClass",
    "Code",
-   "EnvironmentID"
+   "EnvironmentID",
+   "ApprovalStatus",
+   "ApprovalComments",
+   "ApprovedByUserID",
+   "ApprovedAt",
+   "ApprovedFingerprint"
   ],
   "DashboardCategory": [
    "ID",
@@ -2618,6 +2899,97 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "Columns"
+  ],
+  "DiagnosticBundle": [
+   "ID",
+   "Name",
+   "Description",
+   "Direction",
+   "DiagnosticSessionID",
+   "Status",
+   "ScrubLiterals",
+   "WindowStart",
+   "WindowEnd",
+   "FileID",
+   "Data",
+   "SizeBytes",
+   "SHA256",
+   "ManifestJSON",
+   "ScrubReportJSON",
+   "FindingsJSON",
+   "FailureReason",
+   "CreatedByUserID",
+   "ApprovedByUserID",
+   "ApprovedAt",
+   "Destination",
+   "SentAt",
+   "ExternalReferenceID",
+   "SenderInstallID",
+   "SenderMJVersion",
+   "ContactInfo",
+   "ExpiresAt",
+   "CompanyID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "DiagnosticSenderRegistration": [
+   "ID",
+   "InstallID",
+   "Name",
+   "Status",
+   "KeyAlgorithm",
+   "KeyID",
+   "PublicKeyBase64",
+   "RegistrationCodeHash",
+   "RegistrationCodeExpiresAt",
+   "EnrolledAt",
+   "RevokedAt",
+   "LastSeenAt",
+   "MaxBundlesPerDay",
+   "Comments",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "DiagnosticSession": [
+   "ID",
+   "Name",
+   "Reason",
+   "Status",
+   "ScopeType",
+   "ScopeJSON",
+   "Level",
+   "CategoriesJSON",
+   "ScrubLiterals",
+   "StartedAt",
+   "EndsAt",
+   "StoppedAt",
+   "MaxBytes",
+   "CreatedByUserID",
+   "CompanyID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "DiagnosticSessionChunk": [
+   "ID",
+   "DiagnosticSessionID",
+   "Source",
+   "HostInstanceLabel",
+   "Sequence",
+   "ContentKind",
+   "Data",
+   "EntryCount",
+   "FirstEntryAt",
+   "LastEntryAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "DocumentSequenceCounter": [
+   "ID",
+   "SequenceKey",
+   "ScopeKey",
+   "CurrentValue",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
   ],
   "DuplicateRun": [
    "ID",
@@ -2828,7 +3200,11 @@
    "AllowDirectSQLDelete",
    "Configuration",
    "SubtypeSelector",
-   "EnableFieldLevelSecurity"
+   "EnableFieldLevelSecurity",
+   "AutoUpdateDisplayName",
+   "CodeName",
+   "ClassName",
+   "BaseTableCodeName"
   ],
   "EntityAction": [
    "EntityID",
@@ -2894,6 +3270,21 @@
    "SkipIfOutputFieldNotEmpty",
    "OutputEntityID",
    "Comments",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "EntityAlternateBaseView": [
+   "ID",
+   "EntityID",
+   "ParentID",
+   "Name",
+   "DisplayName",
+   "Description",
+   "SchemaName",
+   "ViewName",
+   "CachePolicy",
+   "Status",
+   "Sequence",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3026,7 +3417,10 @@
    "AutoUpdateExtendedType",
    "IsComputed",
    "EmbeddedRecord",
-   "Configuration"
+   "Configuration",
+   "RelatedEntityFilter",
+   "RelatedEntityOrderBy",
+   "FieldCodeName"
   ],
   "EntityFieldPermission": [
    "ID",
@@ -3045,6 +3439,10 @@
    "Value",
    "Code",
    "Description",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "EntityFormContribution": [
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3121,7 +3519,8 @@
    "VectorJSON",
    "EntityRecordUpdatedAt",
    "__mj_CreatedAt",
-   "__mj_UpdatedAt"
+   "__mj_UpdatedAt",
+   "VectorBinary"
   ],
   "EntityRelationship": [
    "ID",
@@ -3166,6 +3565,15 @@
    "Name",
    "Value",
    "Comments",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "EntityUniqueKey": [
+   "ID",
+   "EntityID",
+   "Name",
+   "FieldNames",
+   "FilterDefinition",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3273,6 +3681,108 @@
    "SupportsNativeQueries",
    "SupportsReadWrite",
    "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "FeaturePipelineType": [
+   "ID",
+   "Name",
+   "Description",
+   "DriverClass",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "FeaturePipelineVersion": [
+   "ID",
+   "RecordProcessID",
+   "Version",
+   "PinHash",
+   "SpecHash",
+   "PromptID",
+   "PromptVersionHash",
+   "AIModelID",
+   "ParametersHash",
+   "Status",
+   "Gated",
+   "GoldenSetTestID",
+   "GoldenSetTestRunID",
+   "Metric",
+   "Threshold",
+   "ResultValue",
+   "ResultLower",
+   "ResultUpper",
+   "ResultN",
+   "ResultDetails",
+   "ActivatedAt",
+   "ApprovedByUserID",
+   "RetiredAt",
+   "BackfilledAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "FeatureValue": [
+   "ID",
+   "RecordProcessID",
+   "EntityID",
+   "RecordID",
+   "FeatureName",
+   "ValueText",
+   "ValueNumeric",
+   "ValueDate",
+   "ValueBoolean",
+   "ValueJSON",
+   "Reasoning",
+   "Confidence",
+   "PromptID",
+   "PromptVersionHash",
+   "ConstraintHash",
+   "ProcessRunID",
+   "ProcessRunDetailID",
+   "AIPromptRunID",
+   "FeatureValueCacheID",
+   "ComputedAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt",
+   "PipelineVersion",
+   "AIModelID",
+   "ParametersHash",
+   "InputHash",
+   "ValueKeyHash",
+   "Source",
+   "EffectiveAsOf",
+   "InputAsOf",
+   "Role",
+   "MLModelID"
+  ],
+  "FeatureValueCache": [
+   "ID",
+   "RecordProcessID",
+   "PromptID",
+   "PromptVersionHash",
+   "ConstraintHash",
+   "KeyHash",
+   "KeyDisplay",
+   "KeyJSON",
+   "OutputsJSON",
+   "Reasoning",
+   "AIPromptRunID",
+   "HitCount",
+   "LastHitAt",
+   "ComputedAt",
+   "ExpiresAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt",
+   "AIModelID",
+   "ParametersHash"
+  ],
+  "FieldSuggestion": [
+   "ID",
+   "SuggestedValue",
+   "Confidence",
+   "Source",
+   "Outcome",
+   "AIPromptRunID",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3385,6 +3895,110 @@
    "Name",
    "Description",
    "ParentID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "Graph": [
+   "ID",
+   "Name",
+   "Description",
+   "GraphTypeID",
+   "LoadMode",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphAuthorityTier": [
+   "ID",
+   "Name",
+   "Description",
+   "Rank",
+   "IconClass",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphConcept": [
+   "ID",
+   "GraphID",
+   "ParentID",
+   "Name",
+   "ConceptTypeID",
+   "AuthorityTierID",
+   "Description",
+   "Specification",
+   "Synonyms",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphConceptType": [
+   "ID",
+   "Name",
+   "Description",
+   "Rank",
+   "IconClass",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphEdge": [
+   "ID",
+   "GraphID",
+   "EdgeTypeID",
+   "SourceEntityID",
+   "SourceRecordID",
+   "TargetEntityID",
+   "TargetRecordID",
+   "Weight",
+   "Description",
+   "Attributes",
+   "Origin",
+   "Status",
+   "Confidence",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphEdgeProvider": [
+   "ID",
+   "GraphID",
+   "Name",
+   "Description",
+   "DriverClass",
+   "Configuration",
+   "Sequence",
+   "IsActive",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphEdgeType": [
+   "ID",
+   "GraphID",
+   "Name",
+   "Description",
+   "IsDirected",
+   "InverseName",
+   "DefaultWeight",
+   "AllowStored",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphEdgeTypeEndpoint": [
+   "ID",
+   "EdgeTypeID",
+   "Side",
+   "EntityID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "GraphType": [
+   "ID",
+   "Name",
+   "Description",
+   "IsCanon",
+   "Rank",
+   "IconClass",
+   "Status",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3530,6 +4144,22 @@
    "EntityID",
    "URLFormat",
    "Comments",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "Interaction": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "InteractionEvent": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "InteractionLink": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "InteractionOffer": [
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3824,6 +4454,14 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "Meeting": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "MeetingParticipant": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "MLAlgorithm": [
    "ID",
    "Name",
@@ -3854,6 +4492,38 @@
    "SuitabilityScore",
    "RecommendationLevel",
    "Rationale",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "MLEvaluationProtocol": [
+   "ID",
+   "LineageRootID",
+   "Version",
+   "Name",
+   "Description",
+   "Holdout",
+   "InnerValidation",
+   "Seed",
+   "HoldoutAccessBudget",
+   "PrimaryScore",
+   "SecondaryMetrics",
+   "Baselines",
+   "Calibration",
+   "Resampling",
+   "Intervals",
+   "Promotion",
+   "AllowedOutcomes",
+   "LeakageAudit",
+   "Exclusions",
+   "Slices",
+   "PredictionIntervals",
+   "ResidualDiagnostics",
+   "RetrainTriggers",
+   "SearchStrategy",
+   "Budgets",
+   "MinMinorityClassRows",
+   "GuardFieldsEditableBy",
+   "AuthoredBy",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -3891,6 +4561,28 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "MLPredictionUnit": [
+   "ID",
+   "LineageRootID",
+   "Version",
+   "Name",
+   "Description",
+   "UnitRows",
+   "LabelRule",
+   "LabelWindowDays",
+   "LabelGapDays",
+   "TaskType",
+   "LabelVersion",
+   "Censoring",
+   "ChangeHistoryPolicy",
+   "GroupKey",
+   "TemporalSpec",
+   "DecisionSpec",
+   "IncumbentHeuristic",
+   "AuthoredBy",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "MLTrainingPipeline": [
    "ID",
    "Name",
@@ -3908,7 +4600,9 @@
    "LeakageGuard",
    "ValidationStrategy",
    "__mj_CreatedAt",
-   "__mj_UpdatedAt"
+   "__mj_UpdatedAt",
+   "PredictionUnitID",
+   "EvaluationProtocolID"
   ],
   "MLTrainingRun": [
    "ID",
@@ -3925,6 +4619,52 @@
    "ComputeCost",
    "TokensUsed",
    "Notes",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt",
+   "TrainingSnapshotID",
+   "EvaluationProtocolID",
+   "CodeVersion",
+   "ComputeSeconds"
+  ],
+  "MLTrainingSnapshot": [
+   "ID",
+   "ContentHash",
+   "PipelineID",
+   "PredictionUnitID",
+   "LabelVersion",
+   "FeatureSpecVersion",
+   "EvaluationProtocolID",
+   "StorageProviderID",
+   "MatrixFileID",
+   "MatrixSha256",
+   "MatrixSizeBytes",
+   "RowManifestFileID",
+   "RowManifestSha256",
+   "RowManifestSizeBytes",
+   "ProvenanceFileID",
+   "ProvenanceSha256",
+   "ProvenanceSizeBytes",
+   "ManifestRowCount",
+   "HoldoutRowCount",
+   "FeatureSpec",
+   "FeatureSchema",
+   "FeatureSchemaHash",
+   "ColumnProvenance",
+   "PinnedFeatureVersions",
+   "RowsRead",
+   "ReadComplete",
+   "CensoredRowsExcluded",
+   "LabelKnownRowsExcluded",
+   "EmptyLabelRowsExcluded",
+   "UncoveredHistoryRowsExcluded",
+   "DuplicateRowsRemoved",
+   "ClassBalance",
+   "DataCutoff",
+   "AssemblyCodeVersion",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "NumberPool": [
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -4085,6 +4825,10 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "PhoneNumber": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "ProcessRun": [
    "ID",
    "RecordProcessID",
@@ -4111,7 +4855,8 @@
    "StartedByUserID",
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
-   "DryRun"
+   "DryRun",
+   "ResultSummary"
   ],
   "ProcessRunDetail": [
    "ID",
@@ -4128,7 +4873,8 @@
    "ActionExecutionLogID",
    "AIAgentRunID",
    "__mj_CreatedAt",
-   "__mj_UpdatedAt"
+   "__mj_UpdatedAt",
+   "Warnings"
   ],
   "Project": [
    "ID",
@@ -4182,7 +4928,16 @@
    "SQLDialectID",
    "Reusable",
    "ExternalDataSourceID",
-   "IsMaterialized"
+   "IsMaterialized",
+   "Configuration",
+   "EmbeddingVectorBinary",
+   "ApprovalComments",
+   "ApprovedByUserID",
+   "ApprovedAt",
+   "ApprovedFingerprint",
+   "ExtractedSQLHash",
+   "ExtractionStatus",
+   "ExtractionMessage"
   ],
   "QueryCategory": [
    "ID",
@@ -4215,7 +4970,8 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "DetectionMethod",
-   "AutoDetectConfidenceScore"
+   "AutoDetectConfidenceScore",
+   "AlternateBaseViewID"
   ],
   "QueryField": [
    "ID",
@@ -4234,7 +4990,11 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "DetectionMethod",
-   "AutoDetectConfidenceScore"
+   "AutoDetectConfidenceScore",
+   "SourceEntityFieldID",
+   "IsNullable",
+   "SourceObjectName",
+   "InAllBranchVariants"
   ],
   "QueryParameter": [
    "ID",
@@ -4249,7 +5009,8 @@
    "DetectionMethod",
    "AutoDetectConfidenceScore",
    "__mj_CreatedAt",
-   "__mj_UpdatedAt"
+   "__mj_UpdatedAt",
+   "IsServerSet"
   ],
   "QueryPermission": [
    "ID",
@@ -4365,7 +5126,8 @@
    "CreatedAt",
    "UpdatedAt",
    "RestoredFromID",
-   "RestoreReason"
+   "RestoreReason",
+   "ChangeContext"
   ],
   "RecordChangeReplayRun": [
    "ID",
@@ -4373,6 +5135,43 @@
    "EndedAt",
    "Status",
    "UserID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RecordCloneLog": [
+   "ID",
+   "RootEntityID",
+   "RootSourceRecordID",
+   "RootTargetRecordID",
+   "InitiatedByUserID",
+   "Status",
+   "StartedAt",
+   "EndedAt",
+   "PlanHash",
+   "PlanJSON",
+   "OptionsJSON",
+   "ResultJSON",
+   "Reason",
+   "ErrorMessage",
+   "ProcessRunID",
+   "CreatedCount",
+   "ReferencedCount",
+   "SkippedCount",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RecordCloneLogItem": [
+   "ID",
+   "RecordCloneLogID",
+   "EntityID",
+   "SourceRecordID",
+   "TargetRecordID",
+   "Depth",
+   "Route",
+   "Status",
+   "Sequence",
+   "Reason",
+   "FieldChangesJSON",
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
@@ -4461,7 +5260,8 @@
    "MaxConcurrency",
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
-   "Configuration"
+   "Configuration",
+   "ChallengerConfiguration"
   ],
   "RecordProcessCategory": [
    "ID",
@@ -4583,6 +5383,170 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "Rubric": [
+   "ID",
+   "Name",
+   "Description",
+   "CategoryID",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricBand": [
+   "ID",
+   "RubricVersionID",
+   "Label",
+   "Description",
+   "MinScore",
+   "MaxScore",
+   "DisplayTone",
+   "Sequence",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricCategory": [
+   "ID",
+   "Name",
+   "Description",
+   "ParentID",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricCriterion": [
+   "ID",
+   "RubricVersionID",
+   "ParentID",
+   "Key",
+   "Name",
+   "Description",
+   "Guidance",
+   "NodeType",
+   "ScaleID",
+   "Weight",
+   "IsAdvisory",
+   "IsGate",
+   "GateMinimumScore",
+   "NotApplicablePolicy",
+   "RollupMethod",
+   "EvidenceRequired",
+   "RationaleRequired",
+   "Sequence",
+   "EvaluatorConfig",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricCriterionLevel": [
+   "ID",
+   "CriterionID",
+   "ScaleLevelID",
+   "AnchorValue",
+   "Descriptor",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricEvaluation": [
+   "ID",
+   "RubricVersionID",
+   "SubjectEntityID",
+   "SubjectRecordID",
+   "ContextEntityID",
+   "ContextRecordID",
+   "EvaluatorType",
+   "EvaluatorUserID",
+   "AIPromptRunID",
+   "AIAgentRunID",
+   "EvaluatorName",
+   "Status",
+   "SupersedesEvaluationID",
+   "SubmittedAt",
+   "PassThresholdApplied",
+   "NormalizedScore",
+   "Passed",
+   "Outcome",
+   "BandID",
+   "GateFailed",
+   "Completeness",
+   "ScoredCriteriaCount",
+   "ApplicableCriteriaCount",
+   "TotalCriteriaCount",
+   "Confidence",
+   "Narrative",
+   "ErrorMessage",
+   "ScoringEngineVersion",
+   "Metadata",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricEvaluationScore": [
+   "ID",
+   "EvaluationID",
+   "CriterionID",
+   "ScaleLevelID",
+   "RawValue",
+   "IsNotApplicable",
+   "IsComputed",
+   "NormalizedScore",
+   "EffectiveWeight",
+   "OverallContribution",
+   "GateFailed",
+   "Completeness",
+   "Confidence",
+   "Rationale",
+   "Evidence",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricScale": [
+   "ID",
+   "Name",
+   "Description",
+   "ScaleType",
+   "MinValue",
+   "MaxValue",
+   "Step",
+   "HigherIsBetter",
+   "Status",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricScaleLevel": [
+   "ID",
+   "ScaleID",
+   "Label",
+   "Value",
+   "NormalizedValue",
+   "Description",
+   "Sequence",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "RubricVersion": [
+   "ID",
+   "RubricID",
+   "MajorVersion",
+   "MinorVersion",
+   "PatchVersion",
+   "Status",
+   "BasedOnVersionID",
+   "Instructions",
+   "PassThreshold",
+   "MinimumCompleteness",
+   "NotApplicablePolicy",
+   "ScoreDisplayMin",
+   "ScoreDisplayMax",
+   "RequestedBump",
+   "ComputedBump",
+   "AppliedBump",
+   "ChangeSummary",
+   "ChangeDetails",
+   "ContentHash",
+   "ScoringHash",
+   "PublishedAt",
+   "PublishedByUserID",
+   "RetiredAt",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "ScheduledJob": [
    "ID",
    "JobTypeID",
@@ -4653,6 +5617,10 @@
    "EntityNamePrefix",
    "EntityNameSuffix",
    "CanonicalSchemaName"
+  ],
+  "ScopedNotificationConfig": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
   ],
   "ScopedPromptConfig": [
    "ID",
@@ -4948,7 +5916,8 @@
    "MinWeight",
    "RequiresReview",
    "EmbeddingVector",
-   "EmbeddingModelID"
+   "EmbeddingModelID",
+   "EmbeddingVectorBinary"
   ],
   "TagAuditLog": [
    "ID",
@@ -5040,7 +6009,9 @@
    "ActionID",
    "StepType",
    "PromptID",
-   "Configuration"
+   "Configuration",
+   "SecurityEnvelope",
+   "CompensatesTaskID"
   ],
   "TaskDependency": [
    "ID",
@@ -5136,7 +6107,8 @@
    "__mj_UpdatedAt",
    "RepeatCount",
    "MaxExecutionTimeMS",
-   "Variables"
+   "Variables",
+   "RubricID"
   ],
   "TestRubric": [
    "ID",
@@ -5232,7 +6204,8 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "MaxExecutionTimeMS",
-   "Variables"
+   "Variables",
+   "RubricID"
   ],
   "TestSuiteRun": [
    "ID",
@@ -5263,7 +6236,8 @@
    "RunByUserName",
    "RunByUserEmail",
    "RunContextDetails",
-   "ResolvedVariables"
+   "ResolvedVariables",
+   "Score"
   ],
   "TestSuiteTest": [
    "ID",
@@ -5317,7 +6291,8 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
    "UserImageURL",
-   "UserImageIconClass"
+   "UserImageIconClass",
+   "IsTemplate"
   ],
   "UserApplication": [
    "ID",
@@ -5431,7 +6406,10 @@
    "NotifyViaEmail",
    "__mj_CreatedAt",
    "__mj_UpdatedAt",
-   "ConversationID"
+   "ConversationID",
+   "ScheduleMode",
+   "WakeConfiguration",
+   "LastCheckedAt"
   ],
   "UserRoutineRecipient": [
    "ID",
@@ -5491,7 +6469,13 @@
    "Thumbnail",
    "CardState",
    "DisplayState",
-   "ViewTypeID"
+   "ViewTypeID",
+   "Properties",
+   "ApprovalStatus",
+   "ApprovalComments",
+   "ApprovedByUserID",
+   "ApprovedAt",
+   "ApprovedFingerprint"
   ],
   "UserViewCategory": [
    "ID",
@@ -5595,6 +6579,10 @@
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
+  "VideoArchetype": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
   "ViewType": [
    "ID",
    "Name",
@@ -5606,6 +6594,34 @@
    "Sequence",
    "IsActive",
    "SupportsConfiguration",
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WebSearchProvider": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueDeduplication": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueDelivery": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueMessage": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueSubscription": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueTopic": [
+   "__mj_CreatedAt",
+   "__mj_UpdatedAt"
+  ],
+  "WorkQueueTransport": [
    "__mj_CreatedAt",
    "__mj_UpdatedAt"
   ],
