@@ -2,8 +2,8 @@ import { Component, ElementRef, HostListener, ViewChild, computed, inject, signa
 import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
-import { Metadata, RunView } from "@memberjunction/core";
-import { CompositeFilterDescriptor, FilterFieldInfo, CreateEmptyFilter, IsCompositeFilter } from "@memberjunction/ng-filter-builder";
+import { Metadata, RunView, CompositeFilterDescriptor, IsCompositeFilter } from "@memberjunction/core";
+import { FilterFieldInfo, CreateEmptyFilter } from "@memberjunction/ng-filter-builder";
 import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService, RubricRow, EditFactorVM } from "../../core/services/factor.service";

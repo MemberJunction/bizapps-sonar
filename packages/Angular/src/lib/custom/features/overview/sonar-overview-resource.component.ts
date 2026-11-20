@@ -531,7 +531,7 @@ export class SonarOverviewResourceComponent extends BaseResourceComponent {
             this.population.set(null);
             if (anchor) {
                 const countResult = await new RunView().RunView({ EntityName: anchor.Name, ResultType: "count_only" });
-                this.population.set(countResult?.Success ? countResult.TotalRowCount : null);
+                this.population.set(countResult?.Success ? (countResult.TotalRowCount ?? null) : null);
             }
         } finally {
             this.loadingModel.set(false);
