@@ -20,9 +20,9 @@ on:
   # every change; if a slow step is ever added, scope THAT step with check-paths-touched.mjs (as
   # build.yml does for its job) instead of reintroducing `on: paths:`.
   push:
-    branches: [next, main]
+    branches: [next, main, 'lts/**']
   pull_request:
-    branches: [next, main]
+    branches: [next, main, 'lts/**']
 
 permissions:
   contents: read

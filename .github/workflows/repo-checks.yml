@@ -1,0 +1,47 @@
+name: Repo checks
+
+# Repository-level release-line and dependency-model guards. Runs on every PR targeting next,
+# main, or any release line (`lts/**`).
+on:
+  pull_request:
+    branches: [next, main, 'lts/**']
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  repo-guards:
+    name: 'repo: guards'
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+
+      # A host installs one copy of MemberJunction and of each Open App: @memberjunction/* and other
+      # apps' @mj-biz-apps/* packages are caret peers, never `dependencies`, or the host gets a second
+      # copy and a split class-factory registry. Self-test first, so a pass means the check can fail.
+      - name: Dependency model (MJ and sibling apps are caret peers)
+        run: |
+          node ./.github/scripts/check-dependency-model.mjs --self-test
+          node ./.github/scripts/check-dependency-model.mjs
+
+      # Unit tests + self-tests for the release-line guard scripts.
+      - name: Release-lines guard specs
+        run: node --test ./.github/scripts/__tests__/release-lines.spec.mjs
+
+      # The release-line model relies on `mj migrate` refusing an out-of-order migration. Through
+      # `mj app install` / `upgrade` that check is always on, but the CLI path passes
+      # mj.config.cjs `outOfOrder` straight to Skyway, and `true` switches it off. Keep it unset.
+      - name: mj.config.cjs does not turn on out-of-order migrations
+        run: |
+          if grep -nE '^\s*[^/]*outOfOrder\s*:\s*true' mj.config.cjs; then
+            echo "::error file=mj.config.cjs::outOfOrder: true lets 'mj migrate' apply a migration older than one the database already ran. Release lines depend on that refusal; remove the setting."
+            exit 1
+          fi
+          echo "outOfOrder is not enabled"
