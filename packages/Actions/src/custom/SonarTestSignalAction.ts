@@ -39,6 +39,10 @@ export class SonarTestSignalAction extends SonarActionBase {
         if (!targetActionId) {
             return this.fail(params, "VALIDATION_ERROR", "TargetActionID is required (the signal to test).");
         }
+        if (!this.isGuid(targetActionId)) {
+            return this.failWithFix(params, "VALIDATION_ERROR", `TargetActionID '${targetActionId}' is not a valid GUID.`,
+                "pass the signal's Action GUID from the Signal Studio / factor-action catalog.");
+        }
         const anchorIds = this.parseJsonParam<string[]>(params, "AnchorRecordIDs");
         if (!anchorIds || !Array.isArray(anchorIds) || anchorIds.length === 0) {
             return this.fail(params, "VALIDATION_ERROR", "AnchorRecordIDs must be a non-empty JSON array of record ids.");

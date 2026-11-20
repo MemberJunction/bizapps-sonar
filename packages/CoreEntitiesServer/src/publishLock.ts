@@ -42,7 +42,7 @@ const LOCKED_STATUSES = ["Active", "Paused"] as const;
  * interpolated straight into the ExtraFilter text below. Anything non-GUID is never queried: it resolves
  * to "unknown", which the hard enforcement path fails CLOSED on (the write is refused).
  */
-const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+export const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /** The single message every guard surfaces, so the lock reads consistently across entities. */
 export const PUBLISH_LOCK_MESSAGE =

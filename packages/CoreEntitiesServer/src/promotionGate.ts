@@ -4,6 +4,7 @@ import {
     ValidationErrorInfo,
     ValidationErrorType,
 } from "@memberjunction/global";
+import { sqlString, UUID_RE } from "./publishLock";
 
 /**
  * Promotion-gate helpers for the Factor server guard.
@@ -117,11 +118,24 @@ export async function boundActionApprovalState(
     actionId: string,
     contextUser?: UserInfo,
 ): Promise<BoundActionApprovalState> {
+    if (!UUID_RE.test(actionId)) {
+        // ActionID is CLIENT-SUPPLIED here: the gate runs in Save()/ValidateAsync BEFORE the row is
+        // persisted, so the column's uniqueidentifier type has not constrained it yet — and it is
+        // interpolated into the ExtraFilter below. Same posture as publishLock: a non-GUID value
+        // never reaches the filter text. It also cannot name a real Action, so it is a confirmed
+        // `blocked` (the hard Save path refuses the approval), not an `unknown`.
+        return {
+            state: "blocked",
+            message: promotionGateMessage(
+                "the factor's ActionID is not a valid GUID, so no bound Action's code approval can be verified.",
+            ),
+        };
+    }
     const rv = new RunView();
     const result = await rv.RunView<BoundActionApprovalRow>(
         {
             EntityName: ACTION_ENTITY,
-            ExtraFilter: `ID='${actionId}'`,
+            ExtraFilter: `ID='${sqlString(actionId)}'`,
             Fields: ["Name", "Type", "CodeApprovalStatus", "CodeApprovedByUserID"],
             MaxRows: 1,
             ResultType: "simple",
