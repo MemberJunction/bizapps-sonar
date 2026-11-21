@@ -117,7 +117,7 @@ jobs:
     # the head SHA, which is visible in the run list. Revisit if the concurrency group changes.
     if: ${{ !cancelled() && (needs.scope.result != 'success' || needs.scope.outputs.relevant == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -133,8 +133,11 @@ jobs:
       - name: Validate repository.url in packages
         run: ./.github/scripts/validate-package-repository.sh
 
+      # PRs into next (and next itself) build against MJ next and the sibling apps' next, from
+      # source, in one generated pnpm workspace; release PRs and lts/* lines install the committed
+      # lockfile, i.e. the published versions. See .github/actions/ci-install/action.yml.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        uses: ./.github/actions/ci-install
 
       # The release scripts' own specs. They run nowhere else on a PR, and each guards a step of
       # publish.yml or release-prep.yml, where a broken script is found only at release time.
