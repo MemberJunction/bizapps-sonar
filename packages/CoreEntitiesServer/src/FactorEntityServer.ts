@@ -69,9 +69,15 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
     }
 
     /**
-     * Run the promotion gate when (and only when) this save transitions the factor INTO
-     * PromotionState = 'Approved' and the factor is Action-backed (references an Action).
+     * Run the promotion gate when this save transitions the factor INTO PromotionState =
+     * 'Approved' — OR when an ALREADY-Approved factor is re-pointed at a different Action.
      * Returns null when the gate doesn't apply to this save.
+     *
+     * The re-point case is load-bearing: without it, approving a factor bound to approved
+     * Action A and then updating ActionID to unapproved Action B is never a PromotionState
+     * transition, so the gate would not re-run — and the engine executes whatever the
+     * Approved factor points at. That is exactly the self-approval of unreviewed code the
+     * gate exists to stop, reached through a field the gate was not watching.
      */
     private async resolvePromotionApproval(): Promise<BoundActionApprovalState | null> {
         const field = this.GetFieldByName("PromotionState");
@@ -82,8 +88,12 @@ export class FactorEntityServer extends mjBizAppsSonarFactorEntity {
             promotionStateDirty: field?.Dirty === true,
             previousPromotionState: previous,
         });
-        if (!transitioning || !this.ActionID) {
-            return null; // not an approval transition, or declarative — today's behavior
+        const repointedWhileApproved =
+            this.IsSaved &&
+            this.PromotionState === "Approved" &&
+            this.GetFieldByName("ActionID")?.Dirty === true;
+        if ((!transitioning && !repointedWhileApproved) || !this.ActionID) {
+            return null; // not an approval transition or an approved re-point, or declarative
         }
         return boundActionApprovalState(this.ActionID, this.ContextCurrentUser);
     }
