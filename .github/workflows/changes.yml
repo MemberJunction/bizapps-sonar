@@ -82,8 +82,8 @@ jobs:
       # base (max 0, which is correct) and exits non-zero on a bad SHA, which pipefail (see
       # `defaults` above) turns into a failed step instead of a silent max of 0.
       # `next` only. On a release line, a backported migration keeps its timestamp from `next`, so it
-      # can be older than the line's newest migration; `lines: migrations` (release-lines-gates.yml)
-      # checks order on release lines instead.
+      # can be older than the line's newest migration; `lines: migrations` keeps a
+      # watermark on a line instead: a backport may not add a migration older than the line's newest.
       - name: Validate migration timestamps are newer than existing
         if: steps.migration_check.outputs.has_migrations == 'true' && github.base_ref == 'next'
         env:
