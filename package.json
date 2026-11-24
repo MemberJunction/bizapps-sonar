@@ -1,6 +1,6 @@
 {
   "name": "bizapps-sonar",
-  "version": "1.0.0",
+  "version": "6.3.0-edge.1",
   "license": "BUSL-1.1",
   "description": "Sonar - Configurable engagement scoring engine built as a MemberJunction Open App",
   "workspaces": [
