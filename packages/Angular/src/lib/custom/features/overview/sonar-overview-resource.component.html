@@ -67,7 +67,7 @@
                 <div class="sonar-stack">
                     <!-- Hero anchor: one plain-language headline over ONE switchable visualization.
                          Three lenses on the same population; the toggle persists as a preference. -->
-                    <section class="sonar-home__hero">
+                    <section class="sonar-home__hero" data-mj-tour-anchor="sonar.overview.hero">
                         <div class="sonar-home__hero-head">
                             <div class="sonar-home__hero-eyebrow"><i class="fa-solid fa-chart-line"></i>{{ heroEyebrow() }}</div>
                             @if (distribution().length > 0) {
@@ -248,7 +248,7 @@
                     <!-- Who needs action: full-width so the cohort list has room to grow.
                          Cohort chips first (band movements), then the biggest individual movers. -->
                     @if (scoredCount() > 0) {
-                        <section class="sonar-card sonar-home__action">
+                        <section class="sonar-card sonar-home__action" data-mj-tour-anchor="sonar.overview.action">
                             <div class="sonar-home__action-head">
                                 <div class="sonar-card__label">
                                     Who needs action

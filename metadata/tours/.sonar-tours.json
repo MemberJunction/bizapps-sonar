@@ -1,0 +1,436 @@
+[
+  {
+    "fields": {
+      "Name": "Sonar Portfolio Health, Score Bands & Trends",
+      "TourKey": "sonar.overview-portfolio",
+      "Description": "Explore Sonar engagement score bands, migration flow trends across recomputes, and action-ready risk cohorts in SonarOverviewResource.",
+      "ApplicationID": "@lookup:MJ: Applications.Name=Sonar",
+      "RunInAuthenticatedHosts": true,
+      "Status": "Draft",
+      "EstimatedMinutes": 3,
+      "Priority": 90,
+      "DefaultGuideMode": "Visual",
+      "AllowAgentActions": false,
+      "Goal": {
+        "Type": "Navigation",
+        "Application": "Sonar",
+        "Description": "User learns how to interpret score band mixes, migration flows, and risk cohorts in Sonar Overview."
+      },
+      "StartLocation": {
+        "Application": "Sonar"
+      }
+    },
+    "primaryKey": {
+      "ID": "975C2679-8941-49BF-BEF6-B12E2BBC4169"
+    },
+    "relatedEntities": {
+      "MJ: Tour Steps": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "overview-welcome",
+            "Sequence": 1,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Sonar Portfolio Health & Risk Overview",
+            "Body": "Monitor member and customer engagement across configurable score bands, compare recompute snapshots, and surface cohorts slipping toward risk.",
+            "Configuration": {
+              "Variant": "welcome",
+              "PrimaryButtonText": "Explore Overview",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Prepare": {
+              "ApplicationName": "Sonar",
+              "DriverClass": "SonarOverviewResource"
+            },
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "16C413DC-6687-4EE4-A430-509767D08C3E"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "overview-hero-lenses",
+            "Sequence": 2,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Score Bands, Migration Flow & Trends",
+            "Body": "Switch between Insight Table, Migration Flow, and Band Mix lenses inside SonarOverviewResource to see how the scored population shifted across recent recomputes.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "sonar.overview.hero"
+            },
+            "Placement": "Bottom",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "82CA4260-E0EA-44FF-9930-EC0CE12579D8"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "overview-risk-cohorts",
+            "Sequence": 3,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Risk Cohorts & Who Needs Action",
+            "Body": "Adjust the comparison timeframe to highlight members who slipped between score bands or remain in high-risk cohorts requiring outreach.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "sonar.overview.action"
+            },
+            "Placement": "Top",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "4C14D16E-6478-4A62-84D2-23A40449A6BE"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "overview-to-builder",
+            "Sequence": 4,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "From Portfolio Health to Score Model Design",
+            "Body": "Drill into Engagement Manager for individual timelines or open Model Builder to tune factor weights, rolling time windows, and score band thresholds.",
+            "Configuration": {
+              "Variant": "summary",
+              "PrimaryButtonText": "Next: Model Builder",
+              "NextTourKey": "sonar.model-builder",
+              "LearningPathKey": "sonar.essentials",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "89E2A98E-A627-4116-8180-0821562CEA8F"
+          }
+        }
+      ],
+      "MJ: Tour Triggers": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "TriggerType": "FirstVisit",
+            "Configuration": {
+              "Application": "Sonar"
+            },
+            "Delivery": "Offer",
+            "CooldownDays": 30,
+            "Priority": 90,
+            "Status": "Active"
+          },
+          "primaryKey": {
+            "ID": "FAF2A567-8737-4161-8A5A-B85C29B2B731"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "fields": {
+      "Name": "Sonar Score Models, Factors & Immutable Snapshots",
+      "TourKey": "sonar.model-builder",
+      "Description": "Design scoring rubrics in SonarModelBuilderResource, compare deterministic SQL vs. qualitative AI factors, simulate band impact, and publish immutable model versions.",
+      "ApplicationID": "@lookup:MJ: Applications.Name=Sonar",
+      "RunInAuthenticatedHosts": true,
+      "Status": "Draft",
+      "EstimatedMinutes": 4,
+      "Priority": 80,
+      "DefaultGuideMode": "Visual",
+      "AllowAgentActions": false,
+      "Goal": {
+        "Type": "Navigation",
+        "Application": "Sonar",
+        "Description": "User learns how to configure Sonar rubric weights, inspect SQL vs. AI factor types, and publish immutable model versions."
+      },
+      "StartLocation": {
+        "Application": "Sonar"
+      }
+    },
+    "primaryKey": {
+      "ID": "EBF1F27B-6A24-4E94-9611-B462DE367ECC"
+    },
+    "relatedEntities": {
+      "MJ: Tour Steps": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "builder-welcome",
+            "Sequence": 1,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Sonar Score Model Builder",
+            "Body": "Assemble transparent engagement rubrics with wired entity data sources, rolling time windows, live simulation previews, and immutable published snapshots.",
+            "Configuration": {
+              "Variant": "welcome",
+              "PrimaryButtonText": "Inspect Model Builder",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Prepare": {
+              "ApplicationName": "Sonar",
+              "DriverClass": "SonarModelBuilderResource"
+            },
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "482046E2-D00C-4E7B-9271-81502E1AB178"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "builder-rubric-weights",
+            "Sequence": 2,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Factor Weights, Signals & Time Windows",
+            "Body": "In SonarModelBuilderResource, wire related entity sources to rubric signals, balance factor percentage weights, and assign rolling time windows across your anchor population.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "sonar.builder.rubric"
+            },
+            "Placement": "Right",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "8C10328D-8FFD-4FBA-A78E-D075E067E427"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "choose-factor-type",
+            "Sequence": 3,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Choice",
+            "Title": "Choose a Sonar Signal Factor Strategy",
+            "Body": "Sonar combines deterministic database aggregations with bounded qualitative AI actions. Choose which factor architecture you want to examine.",
+            "Configuration": {
+              "Question": "Which factor approach would you like to inspect?",
+              "Options": [
+                {
+                  "Key": "sql-deterministic",
+                  "Label": "Deterministic SQL Signal Factors",
+                  "Description": "Aggregate engagement, order, and attendance signals over rolling windows."
+                },
+                {
+                  "Key": "llm-qualitative",
+                  "Label": "Qualitative AI Sentiment Factors",
+                  "Description": "Score unstructured notes and threads with bounded rubric prompts."
+                }
+              ]
+            },
+            "Placement": "Center",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "factor-sql-deterministic",
+            "Sequence": 4,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Factor Type: Rolling Window SQL Aggregations",
+            "Body": "Measure counts, sums, averages, or recency decay directly from wired entity tables over rolling time windows, then preview band shifts and sample member waterfalls in the live sandbox.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "sonar.builder.sandbox"
+            },
+            "Placement": "Left",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "A5A60733-C804-4001-99A2-03A449C06AEF"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "factor-llm-qualitative",
+            "Sequence": 5,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Spotlight",
+            "Title": "Factor Type: Bounded Qualitative Scoring",
+            "Body": "Commission approved custom factor actions in Signal Studio that evaluate unstructured text or community threads with bounded rubric prompts and inspect per-member explanations in the sandbox.",
+            "Configuration": {
+              "ShowProgress": true
+            },
+            "Anchor": {
+              "Strategy": "Registered",
+              "Key": "sonar.builder.sandbox"
+            },
+            "Placement": "Left",
+            "Mode": "Guide",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "156B7F68-EB30-4B0F-96E0-BECF33F98EF9"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "StepKey": "immutable-version-activation",
+            "Sequence": 6,
+            "StepTypeID": "@lookup:MJ: Tour Step Types.Name=Modal",
+            "Title": "Immutable Model Version Activation",
+            "Body": "When ready, open Publish Version to run pre-publish validation checks, preview projected band shifts across the live population, and freeze an immutable Score Model Version snapshot you can audit or roll back anytime.",
+            "Configuration": {
+              "Variant": "summary",
+              "PrimaryButtonText": "Finish Path",
+              "LearningPathKey": "sonar.essentials",
+              "ShowProgress": true
+            },
+            "Placement": "Center",
+            "Mode": "Show",
+            "Completion": {
+              "Type": "NextButton"
+            },
+            "OnMissing": "Center",
+            "IsOptional": false
+          },
+          "primaryKey": {
+            "ID": "D058C66E-E28A-4D66-9413-452F6CE632EE"
+          }
+        }
+      ],
+      "MJ: Tour Step Paths": [
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "FromStepID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985",
+            "ToStepID": "A5A60733-C804-4001-99A2-03A449C06AEF",
+            "Condition": "Choice:sql-deterministic",
+            "Label": "SQL Signal Factors",
+            "Priority": 100,
+            "Sequence": 1,
+            "IsDefault": false
+          },
+          "primaryKey": {
+            "ID": "7E2D13AC-7A2D-413F-9C70-6F0AF919A5CB"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "FromStepID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985",
+            "ToStepID": "156B7F68-EB30-4B0F-96E0-BECF33F98EF9",
+            "Condition": "Choice:llm-qualitative",
+            "Label": "Qualitative AI Factors",
+            "Priority": 90,
+            "Sequence": 2,
+            "IsDefault": false
+          },
+          "primaryKey": {
+            "ID": "4819EA4D-B609-4D5A-AB42-B495684D1DD8"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "FromStepID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985",
+            "ToStepID": "A5A60733-C804-4001-99A2-03A449C06AEF",
+            "Condition": null,
+            "Label": "Default Factor Type",
+            "Priority": 0,
+            "Sequence": 3,
+            "IsDefault": true
+          },
+          "primaryKey": {
+            "ID": "EC288C63-D014-426D-97D9-AEB3F8C5672E"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "FromStepID": "A5A60733-C804-4001-99A2-03A449C06AEF",
+            "ToStepID": "D058C66E-E28A-4D66-9413-452F6CE632EE",
+            "Condition": null,
+            "Label": "To Version Activation",
+            "Priority": 10,
+            "Sequence": 1,
+            "IsDefault": true
+          },
+          "primaryKey": {
+            "ID": "8473ED5C-757D-40C9-84C3-5197B9E66E2E"
+          }
+        },
+        {
+          "fields": {
+            "TourID": "@parent:ID",
+            "FromStepID": "156B7F68-EB30-4B0F-96E0-BECF33F98EF9",
+            "ToStepID": "D058C66E-E28A-4D66-9413-452F6CE632EE",
+            "Condition": null,
+            "Label": "To Version Activation",
+            "Priority": 10,
+            "Sequence": 1,
+            "IsDefault": true
+          },
+          "primaryKey": {
+            "ID": "DDE5B4B5-1B67-47E7-A105-21EB4DA70086"
+          }
+        }
+      ]
+    }
+  }
+]
