@@ -14,7 +14,10 @@
     "score-band-sets",
     "score-bands",
     "actions",
-    "remote-operations"
+    "remote-operations",
+    "tours",
+    "learning-paths",
+    "tour-publications"
   ],
   "sqlLogging": {
     "enabled": true,

@@ -121,7 +121,7 @@
             <!-- ── Factors tab ─────────────────────────────────────────────────── -->
             @if (activeTab() === 'factors') {
 
-                <div class="sonar-deck__rubric" (scroll)="recomputeWires()">
+                <div class="sonar-deck__rubric" data-mj-tour-anchor="sonar.builder.rubric" (scroll)="recomputeWires()">
                     <div class="sonar-deck__panel-head">
                         <span class="sonar-deck__panel-label">RUBRIC <span class="sonar-deck__panel-count">{{ rubric().length }} {{ rubric().length === 1 ? 'signal' : 'signals' }}</span></span>
                         <button class="sonar-deck__add-btn" [disabled]="!selectedModelId() || isPublished()" (click)="openFactorCreate()" title="Add a signal (press A)">
@@ -346,6 +346,7 @@
 
         <!-- Col 3: Sandbox preview — always visible -->
         <div class="sonar-cockpit__sandbox"
+             data-mj-tour-anchor="sonar.builder.sandbox"
              [class.sonar-flash]="flashing()"
              [class.sonar-cockpit__sandbox--mobile-hidden]="mobileTab() === 'deck'">
 
