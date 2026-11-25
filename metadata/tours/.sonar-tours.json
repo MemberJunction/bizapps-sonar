@@ -360,7 +360,16 @@
             "TourID": "@parent:ID",
             "FromStepID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985",
             "ToStepID": "A5A60733-C804-4001-99A2-03A449C06AEF",
-            "Condition": "Choice:sql-deterministic",
+            "Condition": {
+              "logic": "and",
+              "filters": [
+                {
+                  "field": "lastChoiceKey",
+                  "operator": "eq",
+                  "value": "sql-deterministic"
+                }
+              ]
+            },
             "Label": "SQL Signal Factors",
             "Priority": 100,
             "Sequence": 1,
@@ -375,7 +384,16 @@
             "TourID": "@parent:ID",
             "FromStepID": "EA48E0BF-C1C2-4EE7-9660-958248E2C985",
             "ToStepID": "156B7F68-EB30-4B0F-96E0-BECF33F98EF9",
-            "Condition": "Choice:llm-qualitative",
+            "Condition": {
+              "logic": "and",
+              "filters": [
+                {
+                  "field": "lastChoiceKey",
+                  "operator": "eq",
+                  "value": "llm-qualitative"
+                }
+              ]
+            },
             "Label": "Qualitative AI Factors",
             "Priority": 90,
             "Sequence": 2,
