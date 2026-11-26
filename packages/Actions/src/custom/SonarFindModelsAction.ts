@@ -2,13 +2,12 @@ import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-bas
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
-import { Metadata, RunView } from "@memberjunction/core";
+import { Metadata } from "@memberjunction/core";
+import { SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 
-const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
 /** Cap the payload so a blank query can't dump every model at the agent. */
 const MAX_RESULTS = 30;
 
-interface ModelRow { ID: string; Name: string; Status: string; AnchorEntityID: string }
 interface ModelHit { id: string; name: string; status: string; anchorEntityID: string; anchorName: string | null }
 
 /**
@@ -25,33 +24,24 @@ interface ModelHit { id: string; name: string; status: string; anchorEntityID: s
 export class SonarFindModelsAction extends SonarActionBase {
     protected async InternalRunAction(params: RunActionParams): Promise<ActionResultSimple> {
         try {
-            const query = (this.getInput(params, "NameQuery") ?? "").trim();
-            const filter = query ? `Name LIKE '%${this.sqlString(query)}%'` : "";
-            const res = await new RunView().RunView<ModelRow>(
-                {
-                    EntityName: SCORE_MODEL,
-                    ExtraFilter: filter,
-                    OrderBy: "Name ASC",
-                    Fields: ["ID", "Name", "Status", "AnchorEntityID"],
-                    ResultType: "simple",
-                },
-                params.ContextUser,
-            );
-            if (!res.Success) return this.fail(params, "ERROR", res.ErrorMessage || "Could not list models.");
+            await SonarEngineBase.Instance.Config(false, params.ContextUser);
+            const query = (this.getInput(params, "NameQuery") ?? "").trim().toLowerCase();
+            const matched = [...SonarEngineBase.Instance.ScoreModels]
+                .filter((m) => !query || (m.Name ?? "").toLowerCase().includes(query))
+                .sort((a, b) => (a.Name ?? "").localeCompare(b.Name ?? ""));
 
-            const rows = res.Results ?? [];
             const entities = new Metadata().Entities;
-            const hits: ModelHit[] = rows.slice(0, MAX_RESULTS).map((r) => ({
+            const hits: ModelHit[] = matched.slice(0, MAX_RESULTS).map((r) => ({
                 id: r.ID,
                 name: r.Name,
                 status: r.Status,
                 anchorEntityID: r.AnchorEntityID,
                 anchorName: entities.find((e) => e.ID === r.AnchorEntityID)?.Name ?? null,
             }));
-            return this.ok(params, `Found ${rows.length} model${rows.length === 1 ? "" : "s"}.`, {
+            return this.ok(params, `Found ${matched.length} model${matched.length === 1 ? "" : "s"}.`, {
                 models: hits,
-                count: rows.length,
-                truncated: rows.length > hits.length,
+                count: matched.length,
+                truncated: matched.length > hits.length,
             });
         } catch (e: unknown) {
             return this.fail(params, "ERROR", e instanceof Error ? e.message : String(e));

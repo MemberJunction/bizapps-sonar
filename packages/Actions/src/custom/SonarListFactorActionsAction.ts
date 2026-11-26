@@ -2,7 +2,7 @@ import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-bas
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
-import { RunView } from "@memberjunction/core";
+import { RunView, RunViewParams } from "@memberjunction/core";
 import { getRegisteredFactorActions, FactorActionContract } from "./SonarFactorAction";
 
 const ACTION_ENTITY = "MJ: Actions";
@@ -83,51 +83,39 @@ export class SonarListFactorActionsAction extends SonarActionBase {
     }
 
     /** Join registered contracts (code) with their Active MJ Action records + params (DB), then merge in
-     *  AI-authored RUNTIME factor-actions (§5 piece 2) — those have no code-declared contract, so we
-     *  detect them by SHAPE (an AnchorRecordID input + a Value output) and synthesize a minimal one. */
+     *  AI-authored RUNTIME factor-actions (§5 piece 2). Batches compiled + runtime action reads into ONE
+     *  `RunViews` round trip, then loads all params in a single `RunView` (2 round trips total, down from 4). */
     private async buildCatalog(params: RunActionParams): Promise<CatalogEntry[]> {
-        const catalog: CatalogEntry[] = [];
-
         const contractByDriver = new Map(getRegisteredFactorActions().map((r) => [r.driverClass, r.contract]));
-        if (contractByDriver.size > 0) {
-            const actions = await this.loadActions([...contractByDriver.keys()], params);
-            const paramsByAction = await this.loadParams(actions.map((a) => a.ID), params);
-            for (const a of actions) {
-                const contract = contractByDriver.get((a.DriverClass ?? "").trim());
-                if (!contract) continue; // registered but no matching contract — skip defensively
-                catalog.push({ actionId: a.ID, name: a.Name, description: a.Description, contract, params: this.behavioralParams(paramsByAction.get(a.ID) ?? []), kind: "compiled", approvalStatus: "Approved" });
-            }
+        const { compiledActions, runtimeActions } = await this.loadAllCandidateActions(
+            [...contractByDriver.keys()],
+            params,
+        );
+
+        const allIds = [...new Set([...compiledActions.map((a) => a.ID), ...runtimeActions.map((a) => a.ID)])];
+        const paramsByAction = allIds.length > 0 ? await this.loadParams(allIds, params) : new Map<string, ActionParamRow[]>();
+
+        const catalog: CatalogEntry[] = [];
+        for (const a of compiledActions) {
+            const contract = contractByDriver.get((a.DriverClass ?? "").trim());
+            if (!contract) continue;
+            catalog.push({
+                actionId: a.ID,
+                name: a.Name,
+                description: a.Description,
+                contract,
+                params: this.behavioralParams(paramsByAction.get(a.ID) ?? []),
+                kind: "compiled",
+                approvalStatus: "Approved",
+            });
         }
 
         const seen = new Set(catalog.map((c) => c.actionId));
-        for (const r of await this.loadRuntimeFactorActions(params)) {
-            if (!seen.has(r.actionId)) catalog.push(r);
-        }
-        return catalog;
-    }
-
-    /** RUNTIME actions that have the factor SHAPE (AnchorRecordID input + Value output) — i.e. the ones
-     *  authored via Codesmith. They carry no code contract, so synthesize a minimal one from the Action. */
-    private async loadRuntimeFactorActions(params: RunActionParams): Promise<CatalogEntry[]> {
-        const res = await new RunView().RunView<RuntimeActionRow>(
-            {
-                EntityName: ACTION_ENTITY,
-                ExtraFilter: `Type='Runtime' AND Status='Active'`,
-                Fields: ["ID", "Name", "Description", "DriverClass", "Type", "CodeApprovalStatus"],
-                OrderBy: "Name ASC",
-                ResultType: "simple",
-            },
-            params.ContextUser,
-        );
-        const rows = res.Success ? res.Results ?? [] : [];
-        if (rows.length === 0) return [];
-        const paramsByAction = await this.loadParams(rows.map((r) => r.ID), params);
-
-        const out: CatalogEntry[] = [];
-        for (const a of rows) {
+        for (const a of runtimeActions) {
+            if (seen.has(a.ID)) continue;
             const prms = paramsByAction.get(a.ID) ?? [];
             if (!this.isFactorShaped(prms)) continue;
-            out.push({
+            catalog.push({
                 actionId: a.ID,
                 name: a.Name,
                 description: a.Description,
@@ -137,7 +125,48 @@ export class SonarListFactorActionsAction extends SonarActionBase {
                 approvalStatus: a.CodeApprovalStatus,
             });
         }
-        return out;
+        return catalog;
+    }
+
+    /** Batch-load compiled factor actions (when any are registered) and active Runtime actions in one `RunViews` call. */
+    private async loadAllCandidateActions(
+        drivers: string[],
+        params: RunActionParams,
+    ): Promise<{ compiledActions: ActionRow[]; runtimeActions: RuntimeActionRow[] }> {
+        const queries: RunViewParams[] = [];
+        let compiledIdx = -1;
+        if (drivers.length > 0) {
+            const list = drivers.map((d) => `'${this.sqlString(d)}'`).join(",");
+            compiledIdx = queries.length;
+            queries.push({
+                EntityName: ACTION_ENTITY,
+                ExtraFilter: `DriverClass IN (${list}) AND Status='Active'`,
+                Fields: ["ID", "Name", "Description", "DriverClass"],
+                OrderBy: "Name ASC",
+                ResultType: "simple",
+            });
+        }
+        const runtimeIdx = queries.length;
+        queries.push({
+            EntityName: ACTION_ENTITY,
+            ExtraFilter: `Type='Runtime' AND Status='Active'`,
+            Fields: ["ID", "Name", "Description", "DriverClass", "Type", "CodeApprovalStatus"],
+            OrderBy: "Name ASC",
+            ResultType: "simple",
+        });
+
+        const results = await new RunView().RunViews(queries, params.ContextUser);
+        let compiledActions: ActionRow[] = [];
+        if (compiledIdx >= 0) {
+            const compiledRes = results[compiledIdx];
+            if (!compiledRes?.Success) {
+                throw new Error(`Failed to load Actions: ${compiledRes?.ErrorMessage}`);
+            }
+            compiledActions = (compiledRes.Results ?? []) as ActionRow[];
+        }
+        const runtimeRes = results[runtimeIdx];
+        const runtimeActions = runtimeRes?.Success ? ((runtimeRes.Results ?? []) as RuntimeActionRow[]) : [];
+        return { compiledActions, runtimeActions };
     }
 
     /** A factor-action declares an AnchorRecordID input and a Value output (§5 qualifying shape). */
@@ -158,25 +187,6 @@ export class SonarListFactorActionsAction extends SonarActionBase {
             output: { higherIsBetter: true },
             cost: { deterministic: false, externalCalls: false, expensive: false },
         };
-    }
-
-    /** Active MJ Action records whose DriverClass matches a registered factor-action. */
-    private async loadActions(drivers: string[], params: RunActionParams): Promise<ActionRow[]> {
-        const list = drivers.map((d) => `'${this.sqlString(d)}'`).join(",");
-        const res = await new RunView().RunView<ActionRow>(
-            {
-                EntityName: ACTION_ENTITY,
-                ExtraFilter: `DriverClass IN (${list}) AND Status='Active'`,
-                Fields: ["ID", "Name", "Description", "DriverClass"],
-                OrderBy: "Name ASC",
-                ResultType: "simple",
-            },
-            params.ContextUser,
-        );
-        if (!res.Success) {
-            throw new Error(`Failed to load Actions: ${res.ErrorMessage}`);
-        }
-        return res.Results ?? [];
     }
 
     /** Params for the given action IDs, bucketed by ActionID. */

@@ -3,6 +3,7 @@ import {
     mjBizAppsSonarFactorEntity,
     mjBizAppsSonarModelRelatedEntityEntity,
     mjBizAppsSonarTimeWindowEntity,
+    SonarEngineBase,
 } from "@mj-biz-apps/sonar-entities";
 import { IFactorEvaluator } from "../contracts/IFactorEvaluator";
 import { CompiledFactorEvaluator } from "./CompiledFactorEvaluator";
@@ -438,14 +439,19 @@ export class FactorCompiler {
             );
         }
         const md = new Metadata();
-        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(
-            "MJ_BizApps_Sonar: Model Related Entities",
-            contextUser,
-        );
-        if (!(await mre.Load(factor.SourceRelatedEntityID))) {
-            throw new Error(
-                `FactorCompiler: ModelRelatedEntity ${factor.SourceRelatedEntityID} not found.`,
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        let mre = SonarEngineBase.Instance.GetModelRelatedEntityById(factor.SourceRelatedEntityID);
+        if (!mre) {
+            const loaded = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(
+                "MJ_BizApps_Sonar: Model Related Entities",
+                contextUser,
             );
+            if (!(await loaded.Load(factor.SourceRelatedEntityID))) {
+                throw new Error(
+                    `FactorCompiler: ModelRelatedEntity ${factor.SourceRelatedEntityID} not found.`,
+                );
+            }
+            mre = loaded;
         }
         const leafEntity = md.EntityByID(mre.RelatedEntityID);
         if (!leafEntity) {
@@ -660,13 +666,18 @@ export class FactorCompiler {
         if (!factor.TimeWindowID) {
             return null;
         }
-        const md = new Metadata();
-        const tw = await md.GetEntityObject<mjBizAppsSonarTimeWindowEntity>(
-            "MJ_BizApps_Sonar: Time Windows",
-            contextUser,
-        );
-        if (!(await tw.Load(factor.TimeWindowID))) {
-            throw new Error(`FactorCompiler: TimeWindow ${factor.TimeWindowID} not found.`);
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        let tw = SonarEngineBase.Instance.GetTimeWindowById(factor.TimeWindowID);
+        if (!tw) {
+            const md = new Metadata();
+            const loaded = await md.GetEntityObject<mjBizAppsSonarTimeWindowEntity>(
+                "MJ_BizApps_Sonar: Time Windows",
+                contextUser,
+            );
+            if (!(await loaded.Load(factor.TimeWindowID))) {
+                throw new Error(`FactorCompiler: TimeWindow ${factor.TimeWindowID} not found.`);
+            }
+            tw = loaded;
         }
         // "All Time" means no time bound — aggregate over the entity's full history (no date filter).
         if (tw.WindowType === "AllTime") {

@@ -4,7 +4,7 @@ import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
 import { MJActionEntity } from "@memberjunction/core-entities";
-import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreModelEntity, SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 
 const FACTOR = "MJ_BizApps_Sonar: Factors";
 const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
@@ -76,6 +76,9 @@ export class SonarBindSignalToModelAction extends SonarActionBase {
     }
 
     private async resolveAnchor(modelId: string, contextUser?: UserInfo): Promise<string | null> {
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        const cached = SonarEngineBase.Instance.GetModelById(modelId);
+        if (cached) return cached.AnchorEntityID;
         const model = await new Metadata().GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, contextUser);
         await model.Load(modelId);
         return model.IsSaved ? model.AnchorEntityID : null;

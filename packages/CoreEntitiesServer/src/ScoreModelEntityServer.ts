@@ -141,9 +141,8 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 {
                     EntityName: "MJ_BizApps_Sonar: Model Factors",
                     ExtraFilter: `ScoreModelID='${sqlString(this.ID)}'`,
-                    MaxRows: 1,
                     ResultType: "simple",
-                    Fields: ["ID"],
+                    Fields: ["ID", "FactorID"],
                 },
                 {
                     // All bands (not just one): publishing also checks the set TILES the model's
@@ -205,37 +204,26 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
                 "CombineExpression is required when CombineStrategy is 'ExpressionDriven'.",
             );
         }
-        await this.validateActionFactorsApproved(result);
+        const factorIds = ((factorCheck.Results ?? []) as Array<{ FactorID?: string }>)
+            .map((r) => r.FactorID)
+            .filter((id): id is string => Boolean(id));
+        await this.validateActionFactorsApproved(result, factorIds);
     }
 
     /**
      * Publishability check: every Action-backed factor in the rubric must be `PromotionState='Approved'`.
-     * Closes the governance gap (PR review #2) where a model with a Draft action factor could be published
-     * and then throw on EVERY persisted recompute — the engine's persist path requires Approved action
-     * factors (RecomputeOrchestrator), and that failure would otherwise surface at run time, not publish
-     * time. Enforcing it here keeps the two consistent: if it published, a recompute won't fail the whole
-     * run on an un-promoted action factor.
-     *
-     * All-or-nothing is intentional (matches the engine): silently EXCLUDING an un-approved factor would
-     * change the model's scoring behind the operator's back. The gate is loud, not lossy — approve the
-     * factor or remove it from the rubric.
+     * Reuses the `FactorID`s already fetched by `validatePublishable`'s batched `RunViews` call so
+     * publishing avoids a redundant round trip on `Model Factors`.
      */
-    private async validateActionFactorsApproved(result: ValidationResult): Promise<void> {
-        const rv = this.runView();
-        const rubric = await rv.RunView<{ FactorID: string }>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Model Factors",
-                ExtraFilter: `ScoreModelID='${sqlString(this.ID)}'`,
-                Fields: ["FactorID"],
-                ResultType: "simple",
-            },
-            this.ContextCurrentUser,
-        );
-        const ids = (rubric.Results ?? []).map((r) => r.FactorID).filter(Boolean);
-        if (ids.length === 0) {
+    private async validateActionFactorsApproved(
+        result: ValidationResult,
+        factorIds: string[],
+    ): Promise<void> {
+        if (factorIds.length === 0) {
             return; // no rubric → the factor-count check above already blocks the publish
         }
-        const idList = ids.map((id) => `'${sqlString(id)}'`).join(",");
+        const rv = this.runView();
+        const idList = [...new Set(factorIds)].map((id) => `'${sqlString(id)}'`).join(",");
         const unapproved = await rv.RunView<{ Name: string }>(
             {
                 EntityName: "MJ_BizApps_Sonar: Factors",
@@ -468,13 +456,14 @@ export class ScoreModelEntityServer extends mjBizAppsSonarScoreModelEntity {
     /** Next monotonic version number for this model (max existing + 1). */
     private async nextVersionNumber(): Promise<number> {
         const rv = this.runView();
-        const result = await rv.RunView<mjBizAppsSonarScoreModelVersionEntity>(
+        const result = await rv.RunView<{ VersionNumber: number }>(
             {
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",
                 ExtraFilter: `ScoreModelID='${sqlString(this.ID)}'`,
                 OrderBy: "VersionNumber DESC",
                 MaxRows: 1,
-                ResultType: "entity_object",
+                Fields: ["VersionNumber"],
+                ResultType: "simple",
             },
             this.ContextCurrentUser,
         );

@@ -1,9 +1,19 @@
 import { Component, computed, effect, inject, input, output, signal } from "@angular/core";
 import { Metadata, RunView } from "@memberjunction/core";
-import { mjBizAppsSonarScoreModelVersionEntity } from "@mj-biz-apps/sonar-entities";
 import { FactorWindow } from "../factor-builder/sonar-factor-builder.component";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { ToastService } from "../../../../core/services/toast.service";
+import { sqlString } from "../../../../core/services/sql.util";
+
+interface VersionHistoryQueryRow {
+    ID: string;
+    VersionNumber: number;
+    VersionLabel: string | null;
+    PublishedByUser: string | null;
+    PublishedAt: Date | string | null;
+    IsCurrent: boolean | null;
+    ConfigSnapshotJSON: string | null;
+}
 
 /** One row in the version timeline. */
 interface VersionListItem { id: string; number: number; title: string; sub: string; isCurrent: boolean; }
@@ -93,11 +103,12 @@ export class SonarVersionHistoryComponent {
     /** Load the model's versions (newest first) and open the most recent one. */
     private async load(modelId: string): Promise<void> {
         this.loading.set(true);
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+        const result = await new RunView().RunView<VersionHistoryQueryRow>({
             EntityName: "MJ_BizApps_Sonar: Score Model Versions",
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             OrderBy: "VersionNumber DESC",
-            ResultType: "entity_object",
+            Fields: ["ID", "VersionNumber", "VersionLabel", "PublishedByUser", "PublishedAt", "IsCurrent", "ConfigSnapshotJSON"],
+            ResultType: "simple",
         });
         const rows = result.Success ? result.Results ?? [] : [];
         this.rawById.clear();

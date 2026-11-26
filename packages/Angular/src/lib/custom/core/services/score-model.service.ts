@@ -8,6 +8,7 @@ import {
     mjBizAppsSonarModelFactorEntity,
     mjBizAppsSonarScoreFactorContributionEntity,
     mjBizAppsSonarScoreModelVersionEntity,
+    SonarEngineBase,
 } from "@mj-biz-apps/sonar-entities";
 
 /** Entity names (the MJ logical names CodeGen assigned under __mj_BizAppsSonar). */
@@ -53,20 +54,20 @@ export interface AddDataSourceInput {
 export class ScoreModelService {
     private readonly md = new Metadata();
 
-    /** All models, newest first (entity objects so callers can edit + save them). */
+    /** All models, newest first (served from SonarEngineBase cache). */
     public async list(): Promise<mjBizAppsSonarScoreModelEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelEntity>({
-            EntityName: SCORE_MODEL,
-            OrderBy: "__mj_CreatedAt DESC",
-            ResultType: "entity_object",
+        await SonarEngineBase.Instance.Config(false);
+        return [...SonarEngineBase.Instance.ScoreModels].sort((a, b) => {
+            const ta = a.__mj_CreatedAt ? new Date(a.__mj_CreatedAt).getTime() : 0;
+            const tb = b.__mj_CreatedAt ? new Date(b.__mj_CreatedAt).getTime() : 0;
+            return tb - ta;
         });
-        return result.Success ? result.Results ?? [] : [];
     }
 
-    /** Load one model by ID (or null if not found). */
+    /** Load one model by ID from SonarEngineBase cache (or null if not found). */
     public async get(id: string): Promise<mjBizAppsSonarScoreModelEntity | null> {
-        const model = await this.md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(SCORE_MODEL, CompositeKey.FromID(id));
-        return model?.IsSaved ? model : null;
+        await SonarEngineBase.Instance.Config(false);
+        return SonarEngineBase.Instance.GetModelById(id) ?? null;
     }
 
     /** Create a Draft model. Slug is derived from the name (Slug is UQ + NOT NULL). */
@@ -174,9 +175,15 @@ export class ScoreModelService {
      * change (e.g. one window) is a couple of row updates, not a mass delete.
      */
     private async reconcileRubric(modelId: string, cfg: ConfigSnapshot): Promise<void> {
-        const liveMREs = await this.loadRows<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, `ScoreModelID='${modelId}'`);
-        const liveFactors = await this.loadRows<mjBizAppsSonarFactorEntity>(FACTOR, `ScoreModelID='${modelId}'`);
-        const liveBindings = await this.loadRows<mjBizAppsSonarModelFactorEntity>(MODEL_FACTOR, `ScoreModelID='${modelId}'`);
+        const filter = `ScoreModelID='${sqlString(modelId)}'`;
+        const [mreRes, factorRes, bindingRes] = await new RunView().RunViews([
+            { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: filter, ResultType: "entity_object", IgnoreMaxRows: true },
+            { EntityName: FACTOR, ExtraFilter: filter, ResultType: "entity_object", IgnoreMaxRows: true },
+            { EntityName: MODEL_FACTOR, ExtraFilter: filter, ResultType: "entity_object", IgnoreMaxRows: true },
+        ]);
+        const liveMREs = mreRes.Success ? ((mreRes.Results ?? []) as mjBizAppsSonarModelRelatedEntityEntity[]) : [];
+        const liveFactors = factorRes.Success ? ((factorRes.Results ?? []) as mjBizAppsSonarFactorEntity[]) : [];
+        const liveBindings = bindingRes.Success ? ((bindingRes.Results ?? []) as mjBizAppsSonarModelFactorEntity[]) : [];
         const bindingByFactorId = new Map(liveBindings.map((b) => [b.FactorID, b]));
 
         // Data sources: match by the related entity they map; keep existing, create missing. Build a
@@ -282,15 +289,10 @@ export class ScoreModelService {
         return model.Save();
     }
 
-    /** The data sources (related entities) wired into a model. */
+    /** The data sources (related entities) wired into a model (served from SonarEngineBase cache). */
     public async dataSources(modelId: string): Promise<mjBizAppsSonarModelRelatedEntityEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarModelRelatedEntityEntity>({
-            EntityName: MODEL_RELATED_ENTITY,
-            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
-            OrderBy: "Alias ASC",
-            ResultType: "entity_object",
-        });
-        return result.Success ? result.Results ?? [] : [];
+        await SonarEngineBase.Instance.Config(false);
+        return SonarEngineBase.Instance.GetRelatedEntitiesForModel(modelId);
     }
 
     /** Wire a related entity into a model (default Left join). */

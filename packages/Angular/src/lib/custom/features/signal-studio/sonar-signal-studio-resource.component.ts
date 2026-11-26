@@ -190,11 +190,12 @@ export class SonarSignalStudioResourceComponent extends BaseResourceComponent im
         if (this.refreshing) return;
         this.refreshing = true;
         try {
-            const [jobs, fails, cat] = await Promise.all([
-                this.smith.inFlight(),
-                this.smith.recentFailures(),
+            const [status, cat] = await Promise.all([
+                this.smith.loadJobStatus(),
                 this.catalog.listFactorActions(true),
             ]);
+            const jobs = status.inFlight;
+            const fails = status.failures;
             this.inFlight.set(jobs);
             this.failures.set(fails.filter((f) => !this.dismissedFailures.has(f.agentRunId)));
             this.review.set(cat.filter((a) => a.kind === "runtime" && a.approvalStatus !== "Approved"));

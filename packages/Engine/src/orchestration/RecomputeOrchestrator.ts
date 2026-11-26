@@ -11,8 +11,8 @@ import {
     mjBizAppsSonarScoreModelEntity,
     mjBizAppsSonarModelFactorEntity,
     mjBizAppsSonarFactorEntity,
-    mjBizAppsSonarScoreBandEntity,
     mjBizAppsSonarScoreRecomputeRunEntity,
+    SonarEngineBase,
 } from "@mj-biz-apps/sonar-entities";
 import { FactorEvaluationContext, FactorResult } from "../contracts/IFactorEvaluator";
 import { FactorCompiler, FactorReadPath } from "../factors/FactorCompiler";
@@ -310,6 +310,11 @@ export class RecomputeOrchestrator {
         modelId: string,
         contextUser: UserInfo,
     ): Promise<mjBizAppsSonarScoreModelEntity> {
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        const cached = SonarEngineBase.Instance.GetModelById(modelId);
+        if (cached) {
+            return cached;
+        }
         const md = new Metadata();
         const model = await md.GetEntityObject<mjBizAppsSonarScoreModelEntity>(
             "MJ_BizApps_Sonar: Score Models",
@@ -403,12 +408,33 @@ export class RecomputeOrchestrator {
             );
         }
         const extraFilter = this.compilePopulationFilter(model, anchorEntity, contextUser);
-        const total = await this.countAnchors(anchorEntity, null, contextUser);
-        // No filter → the scoped count IS the total; skip the redundant second query.
-        const scoped = extraFilter === null
-            ? total
-            : await this.countAnchors(anchorEntity, extraFilter, contextUser);
-        return { scoped, total, filtered: extraFilter !== null };
+        if (extraFilter === null) {
+            const total = await this.countAnchors(anchorEntity, null, contextUser);
+            return { scoped: total, total, filtered: false };
+        }
+        // Filtered model: batch both count_only reads into a single RunViews round trip.
+        const [totalRes, scopedRes] = await new RunView().RunViews(
+            [
+                { EntityName: anchorEntity.Name, ResultType: "count_only" },
+                { EntityName: anchorEntity.Name, ResultType: "count_only", ExtraFilter: extraFilter },
+            ],
+            contextUser,
+        );
+        if (!totalRes?.Success) {
+            throw new Error(
+                `RecomputeOrchestrator: population count for '${anchorEntity.Name}' failed: ${totalRes?.ErrorMessage ?? "unknown error"}.`,
+            );
+        }
+        if (!scopedRes?.Success) {
+            throw new Error(
+                `RecomputeOrchestrator: population count for '${anchorEntity.Name}' failed: ${scopedRes?.ErrorMessage ?? "unknown error"}.`,
+            );
+        }
+        return {
+            scoped: scopedRes.TotalRowCount ?? 0,
+            total: totalRes.TotalRowCount ?? 0,
+            filtered: true,
+        };
     }
 
     /** One count_only read over the anchor entity, optionally narrowed. Fails loud for the same
@@ -567,41 +593,45 @@ export class RecomputeOrchestrator {
         return weighted;
     }
 
-    /** The model's rubric rows (factor bindings + weights). */
+    /** The model's rubric rows (factor bindings + weights), served from SonarEngineBase cache. */
     private async loadRubric(
         model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
     ): Promise<mjBizAppsSonarModelFactorEntity[]> {
-        const rv = new RunView();
-        const result = await rv.RunView<mjBizAppsSonarModelFactorEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Model Factors",
-                ExtraFilter: `ScoreModelID='${model.ID}'`,
-                ResultType: "entity_object",
-            },
-            contextUser,
-        );
-        return result.Success ? (result.Results ?? []) : [];
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        return SonarEngineBase.Instance.GetModelFactorsForModel(model.ID);
     }
 
-    /** Batch-load every Factor referenced by the rubric, keyed by ID. */
+    /** Resolve every Factor referenced by the rubric from SonarEngineBase cache (falling back to a
+     *  batched RunView only for any IDs absent from the cache). */
     private async loadFactors(
         modelFactors: mjBizAppsSonarModelFactorEntity[],
         contextUser: UserInfo,
     ): Promise<Map<string, mjBizAppsSonarFactorEntity>> {
-        const idList = modelFactors.map((mf) => `'${mf.FactorID}'`).join(",");
-        const rv = new RunView();
-        const result = await rv.RunView<mjBizAppsSonarFactorEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Factors",
-                ExtraFilter: `ID IN (${idList})`,
-                ResultType: "entity_object",
-            },
-            contextUser,
-        );
+        await SonarEngineBase.Instance.Config(false, contextUser);
         const byId = new Map<string, mjBizAppsSonarFactorEntity>();
-        for (const factor of result.Success ? (result.Results ?? []) : []) {
-            byId.set(factor.ID, factor);
+        const missingIds: string[] = [];
+        for (const mf of modelFactors) {
+            const cached = SonarEngineBase.Instance.GetFactorById(mf.FactorID);
+            if (cached) {
+                byId.set(cached.ID, cached);
+            } else {
+                missingIds.push(mf.FactorID);
+            }
+        }
+        if (missingIds.length > 0) {
+            const idList = [...new Set(missingIds)].map((id) => `'${id.replace(/'/g, "''")}'`).join(",");
+            const result = await new RunView().RunView<mjBizAppsSonarFactorEntity>(
+                {
+                    EntityName: "MJ_BizApps_Sonar: Factors",
+                    ExtraFilter: `ID IN (${idList})`,
+                    ResultType: "entity_object",
+                },
+                contextUser,
+            );
+            for (const factor of result.Success ? (result.Results ?? []) : []) {
+                byId.set(factor.ID, factor);
+            }
         }
         return byId;
     }
@@ -629,7 +659,7 @@ export class RecomputeOrchestrator {
         };
     }
 
-    /** Load the model's bands (empty when it has no band set). */
+    /** Load the model's bands from SonarEngineBase cache (empty when it has no band set). */
     private async loadBands(
         model: mjBizAppsSonarScoreModelEntity,
         contextUser: UserInfo,
@@ -637,17 +667,8 @@ export class RecomputeOrchestrator {
         if (!model.BandSetID) {
             return [];
         }
-        const rv = new RunView();
-        const result = await rv.RunView<mjBizAppsSonarScoreBandEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Score Bands",
-                ExtraFilter: `BandSetID='${model.BandSetID}'`,
-                OrderBy: "MinScore ASC",
-                ResultType: "entity_object",
-            },
-            contextUser,
-        );
-        return (result.Success ? (result.Results ?? []) : []).map((b) => ({
+        await SonarEngineBase.Instance.Config(false, contextUser);
+        return SonarEngineBase.Instance.GetBandsForBandSet(model.BandSetID).map((b) => ({
             bandId: b.ID,
             label: b.Label,
             minScore: b.MinScore,

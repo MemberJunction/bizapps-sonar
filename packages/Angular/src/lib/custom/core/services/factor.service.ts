@@ -1,6 +1,11 @@
 import { Injectable } from "@angular/core";
 import { CompositeKey, Metadata, RunView } from "@memberjunction/core";
-import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarScoreFactorContributionEntity } from "@mj-biz-apps/sonar-entities";
+import {
+    mjBizAppsSonarFactorEntity,
+    mjBizAppsSonarModelFactorEntity,
+    mjBizAppsSonarScoreFactorContributionEntity,
+    SonarEngineBase,
+} from "@mj-biz-apps/sonar-entities";
 import { sqlString } from "./sql.util";
 
 const FACTOR = "MJ_BizApps_Sonar: Factors";
@@ -110,32 +115,20 @@ export interface EditFactorVM {
 export class FactorService {
     private readonly md = new Metadata();
 
-    /** The rubric: Model Factor rows bound into a model (entity objects, editable). */
+    /** The rubric: Model Factor rows bound into a model (served from SonarEngineBase cache). */
     public async listForModel(modelId: string): Promise<mjBizAppsSonarModelFactorEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarModelFactorEntity>({
-            EntityName: MODEL_FACTOR,
-            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
-            OrderBy: "DisplayOrder ASC",
-            ResultType: "entity_object",
-        });
-        return result.Success ? result.Results ?? [] : [];
+        await SonarEngineBase.Instance.Config(false);
+        return SonarEngineBase.Instance.GetModelFactorsForModel(modelId);
     }
 
-    /** The model's rubric as display rows: each Model Factor joined to its Factor. */
+    /** The model's rubric as display rows: each Model Factor joined to its Factor (0 DB round trips when cached). */
     public async rubricForModel(modelId: string): Promise<RubricRow[]> {
-        const modelFactors = await this.listForModel(modelId);
+        await SonarEngineBase.Instance.Config(false);
+        const modelFactors = SonarEngineBase.Instance.GetModelFactorsForModel(modelId);
         if (modelFactors.length === 0) return [];
 
-        const ids = modelFactors.map((m) => `'${sqlString(m.FactorID)}'`).join(",");
-        const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
-            EntityName: FACTOR,
-            ExtraFilter: `ID IN (${ids})`,
-            ResultType: "entity_object",
-        });
-        const factorById = new Map((factorsResult.Results ?? []).map((f) => [f.ID, f]));
-
         return modelFactors.map((mf) => {
-            const f = factorById.get(mf.FactorID);
+            const f = SonarEngineBase.Instance.GetFactorById(mf.FactorID);
             return {
                 modelFactorId: mf.ID,
                 factorId: mf.FactorID,

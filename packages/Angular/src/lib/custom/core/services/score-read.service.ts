@@ -1,21 +1,63 @@
 import { Injectable } from "@angular/core";
-import { Metadata, RunQuery, RunView } from "@memberjunction/core";
+import { Metadata, RunQuery, RunView, RunViewParams } from "@memberjunction/core";
 import { sqlString } from "./sql.util";
 import {
-    mjBizAppsSonarScoreEntity,
     mjBizAppsSonarScoreBandEntity,
-    mjBizAppsSonarScoreFactorContributionEntity,
-    mjBizAppsSonarScoreHistoryEntity,
-    mjBizAppsSonarScoreModelVersionEntity,
-    mjBizAppsSonarFactorEntity,
+    SonarEngineBase,
 } from "@mj-biz-apps/sonar-entities";
 
 const SCORE = "MJ_BizApps_Sonar: Scores";
-const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
 const CONTRIBUTION = "MJ_BizApps_Sonar: Score Factor Contributions";
 const SCORE_HISTORY = "MJ_BizApps_Sonar: Score Histories";
 const SCORE_MODEL_VERSION = "MJ_BizApps_Sonar: Score Model Versions";
-const FACTOR = "MJ_BizApps_Sonar: Factors";
+
+/** Projected simple-object fields for Score triage/mover rows (avoids BaseEntity hydration overhead). */
+const SCORE_ROW_FIELDS: string[] = [
+    "ID",
+    "AnchorEntityID",
+    "AnchorRecordID",
+    "BandID",
+    "NormalizedScore",
+    "ComputedAt",
+    "Delta",
+    "TrendDirection",
+    "ScoreModelVersionID",
+];
+
+interface ScoreReadRow {
+    ID: string;
+    AnchorEntityID: string;
+    AnchorRecordID: string;
+    BandID: string | null;
+    NormalizedScore: number | null;
+    ComputedAt: Date | string | null;
+    Delta: number | null;
+    TrendDirection: TrendDirection | null;
+    ScoreModelVersionID: string | null;
+}
+
+interface ScoreHistoryReadRow {
+    ComputedAt: Date | string;
+    AsOfDate: Date | string | null;
+    NormalizedScore: number | null;
+    BandID: string | null;
+}
+
+interface ContributionReadRow {
+    ScoreID: string;
+    FactorID: string;
+    RawValue: number | null;
+    NormalizedValue: number | null;
+    WeightedContribution: number | null;
+    PercentOfTotal: number | null;
+    HadData: boolean | null;
+    DetailJSON: string | null;
+}
+
+interface VersionNumberRow {
+    ID: string;
+    VersionNumber: number;
+}
 
 /** Trend of a score vs. its previous recompute (mirrors Score.TrendDirection). */
 export type TrendDirection = "Up" | "Flat" | "Down";
@@ -315,13 +357,14 @@ export class ScoreReadService {
             anchorIds = await this.resolveAnchorIdsByName(opts.anchorEntityId, query);
             if (anchorIds.length === 0) return { members: [], total: 0 };
         }
-        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+        const result = await new RunView().RunView<ScoreReadRow>({
             EntityName: SCORE,
             ExtraFilter: this.buildScoreFilter(modelId, { bandId: opts.bandId, minScore: opts.minScore, maxScore: opts.maxScore, anchorIds, anchorRecordId: opts.anchorRecordId }),
             OrderBy: `NormalizedScore ${opts.sortDir === "desc" ? "DESC" : "ASC"}`,
             StartRow: page * pageSize,
             MaxRows: pageSize,
-            ResultType: "entity_object",
+            Fields: SCORE_ROW_FIELDS,
+            ResultType: "simple",
         });
         const scores = result.Success ? result.Results ?? [] : [];
         const total = result.TotalRowCount ?? scores.length;
@@ -341,11 +384,12 @@ export class ScoreReadService {
             anchorIds = await this.resolveAnchorIdsByName(opts.anchorEntityId, query);
             if (anchorIds.length === 0) return [];
         }
-        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+        const result = await new RunView().RunView<ScoreReadRow>({
             EntityName: SCORE,
             ExtraFilter: this.buildScoreFilter(modelId, { bandId: opts.bandId, minScore: opts.minScore, maxScore: opts.maxScore, anchorIds, anchorRecordId: opts.anchorRecordId }),
             OrderBy: `NormalizedScore ${opts.sortDir === "desc" ? "DESC" : "ASC"}`,
-            ResultType: "entity_object",
+            Fields: SCORE_ROW_FIELDS,
+            ResultType: "simple",
             IgnoreMaxRows: true,
         });
         const scores = result.Success ? result.Results ?? [] : [];
@@ -354,28 +398,39 @@ export class ScoreReadService {
 
     /**
      * The biggest movers since the previous recompute, split into risers (score went up) and
-     * fallers (down). Reads `Score.Delta` (set by ScorePersister), so it's two small top-N queries —
-     * no full-population scan. Members scored only once (Delta null) are excluded by `Delta <>/> 0`.
+     * fallers (down). Batches both top-N queries in a single `RunViews` round trip and resolves
+     * anchor names + version numbers once across the combined set.
      */
     public async moversForModel(modelId: string, limit = 5): Promise<{ risers: ScoredMember[]; fallers: ScoredMember[] }> {
-        const [risers, fallers] = await Promise.all([
-            this.queryMovers(modelId, "desc", limit),
-            this.queryMovers(modelId, "asc", limit),
+        const escapedModelId = sqlString(modelId);
+        const [riserRes, fallerRes] = await new RunView().RunViews([
+            {
+                EntityName: SCORE,
+                ExtraFilter: `ScoreModelID='${escapedModelId}' AND Delta > 0`,
+                OrderBy: "Delta DESC",
+                MaxRows: limit,
+                Fields: SCORE_ROW_FIELDS,
+                ResultType: "simple",
+            },
+            {
+                EntityName: SCORE,
+                ExtraFilter: `ScoreModelID='${escapedModelId}' AND Delta < 0`,
+                OrderBy: "Delta ASC",
+                MaxRows: limit,
+                Fields: SCORE_ROW_FIELDS,
+                ResultType: "simple",
+            },
         ]);
-        return { risers, fallers };
-    }
-
-    /** Top-N scores by signed delta: 'desc' = biggest gains (Delta > 0), 'asc' = biggest drops (< 0). */
-    private async queryMovers(modelId: string, dir: "asc" | "desc", limit: number): Promise<ScoredMember[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
-            EntityName: SCORE,
-            ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND Delta ${dir === "desc" ? "> 0" : "< 0"}`,
-            OrderBy: `Delta ${dir === "desc" ? "DESC" : "ASC"}`,
-            MaxRows: limit,
-            ResultType: "entity_object",
-        });
-        const scores = result.Success ? result.Results ?? [] : [];
-        return this.toScoredMembers(scores);
+        const riserRows = riserRes?.Success ? ((riserRes.Results ?? []) as ScoreReadRow[]) : [];
+        const fallerRows = fallerRes?.Success ? ((fallerRes.Results ?? []) as ScoreReadRow[]) : [];
+        if (riserRows.length === 0 && fallerRows.length === 0) {
+            return { risers: [], fallers: [] };
+        }
+        const enriched = await this.toScoredMembers([...riserRows, ...fallerRows]);
+        return {
+            risers: enriched.slice(0, riserRows.length),
+            fallers: enriched.slice(riserRows.length),
+        };
     }
 
     /**
@@ -384,13 +439,14 @@ export class ScoreReadService {
      * one row per recompute (small).
      */
     public async historyForMember(modelId: string, anchorRecordId: string): Promise<ScoreHistoryPoint[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>({
+        const result = await new RunView().RunView<ScoreHistoryReadRow>({
             EntityName: SCORE_HISTORY,
             ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID='${sqlString(anchorRecordId)}'`,
             // Order by the business "as of" date (the trajectory's time axis), then ComputedAt to
             // break ties — a backfill writes several rows at the same wall-clock but distinct AsOf.
             OrderBy: "AsOfDate ASC, ComputedAt ASC",
-            ResultType: "entity_object",
+            Fields: ["ComputedAt", "AsOfDate", "NormalizedScore", "BandID"],
+            ResultType: "simple",
             IgnoreMaxRows: true,
         });
         const rows = result.Success ? result.Results ?? [] : [];
@@ -399,8 +455,8 @@ export class ScoreReadService {
         return rows.map((r) => {
             const label = r.BandID ? bandById.get(r.BandID)?.Label ?? "Unbanded" : "Unbanded";
             return {
-                computedAt: r.ComputedAt,
-                asOf: r.AsOfDate ?? null,
+                computedAt: r.ComputedAt instanceof Date ? r.ComputedAt : new Date(r.ComputedAt),
+                asOf: r.AsOfDate ? (r.AsOfDate instanceof Date ? r.AsOfDate : new Date(r.AsOfDate)) : null,
                 normalizedScore: Math.round(r.NormalizedScore ?? 0),
                 bandLabel: label,
                 bandKey: this.keyFromBandMap(r.BandID ?? null, bandById),
@@ -408,14 +464,16 @@ export class ScoreReadService {
         });
     }
 
-    /** Resolve bands + anchor names for a set of scores and map them to presentation-ready rows. */
-    private async toScoredMembers(scores: mjBizAppsSonarScoreEntity[]): Promise<ScoredMember[]> {
+    /** Resolve bands (from SonarEngineBase cache) + anchor names & version numbers (single RunViews batch). */
+    private async toScoredMembers(scores: ScoreReadRow[]): Promise<ScoredMember[]> {
         if (scores.length === 0) return [];
         const bandById = await this.loadBands(scores);
-        const names = await this.resolveAnchorNames(scores);
-        const versionById = await this.loadVersionNumbers(scores);
+        const { names, versionById } = await this.batchResolveAnchorNamesAndVersions(scores);
         return scores.map((s) => {
             const label = s.BandID ? bandById.get(s.BandID)?.Label ?? "Unbanded" : "Unbanded";
+            const computedAt = s.ComputedAt
+                ? (s.ComputedAt instanceof Date ? s.ComputedAt : new Date(s.ComputedAt))
+                : null;
             return {
                 scoreId: s.ID,
                 anchorRecordId: s.AnchorRecordID,
@@ -423,7 +481,7 @@ export class ScoreReadService {
                 normalizedScore: Math.round(s.NormalizedScore ?? 0),
                 bandLabel: label,
                 bandKey: this.keyFromBandMap(s.BandID ?? null, bandById),
-                computedAt: s.ComputedAt ?? null,
+                computedAt,
                 delta: s.Delta != null ? Math.round(s.Delta) : null,
                 trendDirection: s.TrendDirection ?? null,
                 versionNumber: s.ScoreModelVersionID ? versionById.get(s.ScoreModelVersionID) ?? null : null,
@@ -431,30 +489,77 @@ export class ScoreReadService {
         });
     }
 
+    /** Batch-resolve anchor display names + model version numbers in one `RunViews` round trip. */
+    private async batchResolveAnchorNamesAndVersions(
+        scores: ScoreReadRow[],
+    ): Promise<{ names: Map<string, string>; versionById: Map<string, number> }> {
+        const names = new Map<string, string>();
+        const versionById = new Map<string, number>();
+
+        const anchorEntityId = scores[0]?.AnchorEntityID;
+        const ent = anchorEntityId ? new Metadata().Entities.find((e) => e.ID === anchorEntityId) : null;
+        const versionIds = [...new Set(scores.map((s) => s.ScoreModelVersionID).filter((id): id is string => !!id))];
+
+        const queries: RunViewParams[] = [];
+        let anchorIdx = -1;
+        let versionIdx = -1;
+        let pk = "ID";
+        let nameField: string | null = null;
+
+        if (ent) {
+            pk = ent.PrimaryKeys[0]?.Name ?? "ID";
+            nameField = ent.Fields.find((f) => f.IsNameField)?.Name ?? null;
+            const entityCols = new Set(ent.Fields.map((f) => f.Name));
+            const anchorFields = [...new Set([pk, nameField, "FirstName", "LastName", "Name", "Email"].filter((c): c is string => !!c && entityCols.has(c)))];
+            const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${sqlString(id)}'`).join(",");
+            anchorIdx = queries.length;
+            queries.push({
+                EntityName: ent.Name,
+                ExtraFilter: `${pk} IN (${ids})`,
+                Fields: anchorFields,
+                ResultType: "simple",
+            });
+        }
+
+        if (versionIds.length > 0) {
+            versionIdx = queries.length;
+            queries.push({
+                EntityName: SCORE_MODEL_VERSION,
+                ExtraFilter: `ID IN (${versionIds.map((id) => `'${sqlString(id)}'`).join(",")})`,
+                Fields: ["ID", "VersionNumber"],
+                ResultType: "simple",
+            });
+        }
+
+        if (queries.length === 0) return { names, versionById };
+        const results = await new RunView().RunViews(queries);
+
+        if (anchorIdx >= 0 && results[anchorIdx]?.Success) {
+            for (const row of (results[anchorIdx].Results ?? []) as Record<string, unknown>[]) {
+                names.set(String(row[pk]), this.composeName(row, nameField, pk));
+            }
+        }
+        if (versionIdx >= 0 && results[versionIdx]?.Success) {
+            for (const v of (results[versionIdx].Results ?? []) as VersionNumberRow[]) {
+                versionById.set(v.ID, v.VersionNumber);
+            }
+        }
+        return { names, versionById };
+    }
+
     /** The version number for one version ID (the model's current version) — to compare against
      *  each member's scored-by version and flag stale scores. */
     public async versionNumberFor(versionId: string | null): Promise<number | null> {
         if (!versionId) return null;
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+        const result = await new RunView().RunView<VersionNumberRow>({
             EntityName: SCORE_MODEL_VERSION,
             ExtraFilter: `ID='${sqlString(versionId)}'`,
-            ResultType: "entity_object",
+            Fields: ["ID", "VersionNumber"],
+            MaxRows: 1,
+            ResultType: "simple",
         });
         const v = result.Success ? result.Results?.[0] : null;
         return v ? v.VersionNumber : null;
-    }
-
-    /** Map the ScoreModelVersionIDs referenced by a set of scores to their version numbers
-     *  (one RunView, IN clause) — powers the "scored by vN" badge. */
-    private async loadVersionNumbers(scores: mjBizAppsSonarScoreEntity[]): Promise<Map<string, number>> {
-        const ids = [...new Set(scores.map((s) => s.ScoreModelVersionID).filter((id): id is string => !!id))];
-        if (ids.length === 0) return new Map();
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
-            EntityName: SCORE_MODEL_VERSION,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
-            ResultType: "entity_object",
-        });
-        return new Map((result.Results ?? []).map((v) => [v.ID, v.VersionNumber]));
     }
 
     /** A single score's contribution breakdown (factor name + weighted value), largest first. */
@@ -464,40 +569,51 @@ export class ScoreReadService {
 
     /**
      * Contribution breakdowns for MANY scores at once → `Map<scoreId, ScoreContribution[]>` (each
-     * list largest-first). One batched contribution query per chunk of score IDs, plus one factor-name
-     * lookup — no N+1. Backs the cohort export's per-signal "why" columns.
+     * list largest-first). Batches all chunked `ScoreID IN (...)` reads into a single `RunViews`
+     * round trip with `ResultType: 'simple'`, and resolves factor names from `SonarEngineBase`.
      */
     public async contributionsForScores(scoreIds: string[]): Promise<Map<string, ScoreContribution[]>> {
         const byScore = new Map<string, ScoreContribution[]>();
         if (scoreIds.length === 0) return byScore;
 
-        const CHUNK = 200; // keep the IN(...) list well under SQL limits on large cohorts
-        const rows: mjBizAppsSonarScoreFactorContributionEntity[] = [];
+        const CHUNK = 200; // keep each IN(...) list well under SQL limits on large cohorts
+        const chunkQueries: RunViewParams[] = [];
         for (let i = 0; i < scoreIds.length; i += CHUNK) {
             const ids = scoreIds.slice(i, i + CHUNK).map((id) => `'${sqlString(id)}'`).join(",");
-            const res = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>({
+            chunkQueries.push({
                 EntityName: CONTRIBUTION,
                 ExtraFilter: `ScoreID IN (${ids})`,
-                ResultType: "entity_object",
+                Fields: [
+                    "ScoreID",
+                    "FactorID",
+                    "RawValue",
+                    "NormalizedValue",
+                    "WeightedContribution",
+                    "PercentOfTotal",
+                    "HadData",
+                    "DetailJSON",
+                ],
+                ResultType: "simple",
                 IgnoreMaxRows: true,
             });
-            if (res.Success) rows.push(...(res.Results ?? []));
+        }
+
+        const [chunkResults] = await Promise.all([
+            new RunView().RunViews(chunkQueries),
+            SonarEngineBase.Instance.Config(false),
+        ]);
+
+        const rows: ContributionReadRow[] = [];
+        for (const res of chunkResults) {
+            if (res?.Success) rows.push(...((res.Results ?? []) as ContributionReadRow[]));
         }
         if (rows.length === 0) return byScore;
-
-        const factorIds = [...new Set(rows.map((r) => `'${sqlString(r.FactorID)}'`))].join(",");
-        const factorsResult = await new RunView().RunView<mjBizAppsSonarFactorEntity>({
-            EntityName: FACTOR,
-            ExtraFilter: `ID IN (${factorIds})`,
-            ResultType: "entity_object",
-        });
-        const nameById = new Map((factorsResult.Results ?? []).map((f) => [f.ID, f.Name]));
 
         const round = (n: number): number => Math.round(n * 100) / 100;
         for (const r of rows) {
             const list = byScore.get(r.ScoreID) ?? [];
             list.push({
-                label: nameById.get(r.FactorID) ?? "Signal",
+                label: SonarEngineBase.Instance.GetFactorById(r.FactorID)?.Name ?? "Signal",
                 rawValue: r.RawValue ?? 0,
                 normalizedValue: round(r.NormalizedValue ?? 0),
                 weightedValue: round(r.WeightedContribution ?? 0),
@@ -525,14 +641,13 @@ export class ScoreReadService {
         }
     }
 
-    /** ALL Score rows for a model (uncapped) — the band distribution is a whole-population
-     *  aggregate, so it must see every row, not the first 1000. Scale path: a server-side
-     *  count-per-band aggregate instead of transferring every row just to count it. */
-    private async loadAllScores(modelId: string): Promise<mjBizAppsSonarScoreEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+    /** ALL Score rows' BandIDs for a model (simple projection, uncapped) for band distribution counts. */
+    private async loadAllScores(modelId: string): Promise<Array<{ BandID: string | null }>> {
+        const result = await new RunView().RunView<{ BandID: string | null }>({
             EntityName: SCORE,
             ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
-            ResultType: "entity_object",
+            Fields: ["BandID"],
+            ResultType: "simple",
             IgnoreMaxRows: true,
         });
         return result.Success ? result.Results ?? [] : [];
@@ -585,53 +700,17 @@ export class ScoreReadService {
         return tokens.map((tok) => `(${cols.map((c) => `${c} LIKE '%${tok}%'`).join(" OR ")})`).join(" AND ");
     }
 
-    /** Band rows referenced by a set of scores, keyed by ID (for label lookup). */
-    private async loadBands(scores: mjBizAppsSonarScoreEntity[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
+    /** Band rows referenced by a set of scores, keyed by ID (served from SonarEngineBase cache). */
+    private async loadBands(scores: Array<{ BandID: string | null }>): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
         return this.loadBandsByIds(scores.map((s) => s.BandID));
     }
 
     /** Band rows for a set of (possibly null/duplicate) band IDs, keyed by ID.
-     *  Expands to the full band set for each resolved band so rank-based color
-     *  mapping always has the complete context (not just the bands present on the
-     *  current page of scores). */
+     *  Expands to the full band set for each resolved band from `SonarEngineBase` so rank-based
+     *  color mapping always has complete context with zero DB round trips. */
     private async loadBandsByIds(rawIds: (string | null)[]): Promise<Map<string, mjBizAppsSonarScoreBandEntity>> {
-        const ids = [...new Set(rawIds.filter((id): id is string => !!id))];
-        if (ids.length === 0) return new Map();
-        const seedResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
-            EntityName: SCORE_BAND,
-            ExtraFilter: `ID IN (${ids.map((id) => `'${sqlString(id)}'`).join(",")})`,
-            ResultType: "entity_object",
-        });
-        const seedBands = seedResult.Results ?? [];
-        const bandSetIds = [...new Set(seedBands.map((b) => b.BandSetID).filter(Boolean))];
-        if (bandSetIds.length === 0) return new Map(seedBands.map((b) => [b.ID, b]));
-        const fullResult = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
-            EntityName: SCORE_BAND,
-            ExtraFilter: `BandSetID IN (${bandSetIds.map((id) => `'${sqlString(id)}'`).join(",")})`,
-            ResultType: "entity_object",
-        });
-        return new Map((fullResult.Results ?? []).map((b) => [b.ID, b]));
-    }
-
-    /** Batch-resolve anchor display names for a set of scores (single RunView, IN clause). */
-    private async resolveAnchorNames(scores: mjBizAppsSonarScoreEntity[]): Promise<Map<string, string>> {
-        const anchorEntityId = scores[0]?.AnchorEntityID;
-        const ent = anchorEntityId ? new Metadata().Entities.find((e) => e.ID === anchorEntityId) : null;
-        if (!ent) return new Map();
-
-        const pk = ent.PrimaryKeys[0]?.Name ?? "ID";
-        const ids = [...new Set(scores.map((s) => s.AnchorRecordID))].map((id) => `'${sqlString(id)}'`).join(",");
-        const result = await new RunView().RunView<Record<string, unknown>>({
-            EntityName: ent.Name,
-            ExtraFilter: `${pk} IN (${ids})`,
-            ResultType: "simple",
-        });
-        const nameField = ent.Fields.find((f) => f.IsNameField)?.Name ?? null;
-        const names = new Map<string, string>();
-        for (const row of result.Success ? result.Results ?? [] : []) {
-            names.set(String(row[pk]), this.composeName(row, nameField, pk));
-        }
-        return names;
+        await SonarEngineBase.Instance.Config(false);
+        return SonarEngineBase.Instance.GetBandMapForBandIds(rawIds);
     }
 
     /** Best display name for an anchor row: FirstName+LastName when both present, else nameField, else Name/Email/PK. */
@@ -675,12 +754,13 @@ export class ScoreReadService {
 
         // 2) Their persisted scores for this model (worst-first, limited).
         const ids = [...byId.keys()].map((id) => `'${sqlString(id)}'`).join(",");
-        const scoreRes = await new RunView().RunView<mjBizAppsSonarScoreEntity>({
+        const scoreRes = await new RunView().RunView<{ ID: string; AnchorRecordID: string; BandID: string | null; NormalizedScore: number | null }>({
             EntityName: SCORE,
             ExtraFilter: `ScoreModelID='${sqlString(modelId)}' AND AnchorRecordID IN (${ids})`,
             OrderBy: "NormalizedScore ASC",
             MaxRows: limit,
-            ResultType: "entity_object",
+            Fields: ["ID", "AnchorRecordID", "BandID", "NormalizedScore"],
+            ResultType: "simple",
         });
         const scores = scoreRes.Success ? scoreRes.Results ?? [] : [];
         if (scores.length === 0) return [];

@@ -1,10 +1,19 @@
 import { Component, OnInit, computed, inject, input, output, signal } from "@angular/core";
 import { RunView } from "@memberjunction/core";
-import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreModelVersionEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../../../core/services/score-model.service";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 import { BandKey, ScoreReadService } from "../../../../core/services/score-read.service";
 import { ToastService } from "../../../../core/services/toast.service";
+import { sqlString } from "../../../../core/services/sql.util";
+
+interface PublishVersionRow {
+    VersionNumber: number;
+    VersionLabel: string | null;
+    PublishedAt: Date | string | null;
+    IsCurrent: boolean;
+    ChangeSummary: string | null;
+}
 
 /** One row of the publish gate. `na` = not applicable (e.g. no custom formula in use). */
 type GateStatus = "pass" | "fail" | "na";
@@ -108,13 +117,14 @@ export class SonarPublishSnapshotComponent implements OnInit {
         void this.loadImpact(m.ID);
     }
 
-    /** Load this model's published version history. */
+    /** Load this model's published version history (simple projection, no ConfigSnapshotJSON bloat). */
     private async loadVersions(modelId: string): Promise<void> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+        const result = await new RunView().RunView<PublishVersionRow>({
             EntityName: "MJ_BizApps_Sonar: Score Model Versions",
-            ExtraFilter: `ScoreModelID='${modelId}'`,
+            ExtraFilter: `ScoreModelID='${sqlString(modelId)}'`,
             OrderBy: "VersionNumber DESC",
-            ResultType: "entity_object",
+            Fields: ["VersionNumber", "VersionLabel", "PublishedAt", "IsCurrent", "ChangeSummary"],
+            ResultType: "simple",
         });
         if (result.Success) {
             this.versions.set((result.Results ?? []).map((v) => ({

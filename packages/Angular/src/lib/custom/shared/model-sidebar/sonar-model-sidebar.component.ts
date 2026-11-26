@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output, computed, effect, inject, signal } from "@angular/core";
-import { Metadata, RunView } from "@memberjunction/core";
-import { mjBizAppsSonarModelFactorEntity } from "@mj-biz-apps/sonar-entities";
+import { Metadata } from "@memberjunction/core";
+import { SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { CurrentModelService } from "../../core/services/current-model.service";
 import { SonarDataBusService } from "../../core/services/sonar-data-bus.service";
@@ -90,10 +90,10 @@ export class SonarModelSidebarComponent implements OnInit {
         void this.refresh();
     }
 
-    /** (Re)load the model list with its per-model context. Hosts call this after create/publish. */
+    /** (Re)load the model list with its per-model context from SonarEngineBase cache. */
     public async refresh(): Promise<void> {
         const models = await this.modelService.list();
-        const signalsByModel = await this.loadSignalCounts();
+        const signalsByModel = SonarEngineBase.Instance.GetSignalCountsByModel();
         const md = new Metadata();
 
         const rows = models.map((m) => {
@@ -112,20 +112,6 @@ export class SonarModelSidebarComponent implements OnInit {
 
         // If nothing is selected yet, default to the first model so surfaces aren't empty.
         if (!this.current.modelId() && rows.length > 0) this.pick(rows[0].id);
-    }
-
-    /** Count rubric signals per model in one read (Model Factors grouped client-side). */
-    private async loadSignalCounts(): Promise<Map<string, number>> {
-        const result = await new RunView().RunView<mjBizAppsSonarModelFactorEntity>({
-            EntityName: "MJ_BizApps_Sonar: Model Factors",
-            ResultType: "simple",
-            Fields: ["ScoreModelID"],
-        });
-        const counts = new Map<string, number>();
-        for (const row of result.Success ? result.Results ?? [] : []) {
-            counts.set(row.ScoreModelID, (counts.get(row.ScoreModelID) ?? 0) + 1);
-        }
-        return counts;
     }
 
     /** Select a model: set the shared current model, then notify the host. */
