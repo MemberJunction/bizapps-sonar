@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges, computed, inject, signal } from "@angular/core";
-import { BaseEntity, Metadata, RunView } from "@memberjunction/core";
+import { Metadata, RunView } from "@memberjunction/core";
 import { SonarEngineService } from "../../../../core/services/sonar-engine.service";
 
 /**
@@ -72,19 +72,25 @@ export class SonarPromptEditorComponent implements OnChanges {
         this.sampleAnchorId.set(null);
     }
 
-    /** Load a handful of anchor records (the model's members) for the test picker. */
+    /** Load a handful of anchor records (the model's members) for the test picker (simple projection). */
     private async loadSampleAnchors(): Promise<void> {
         if (!this.anchorEntityID) return;
         const entity = new Metadata().Entities.find((e) => e.ID === this.anchorEntityID);
         if (!entity) return;
-        const nameField = entity.NameField?.Name ?? entity.FirstPrimaryKey.Name;
-        const res = await new RunView().RunView<BaseEntity>(
-            { EntityName: entity.Name, OrderBy: nameField, MaxRows: 25, ResultType: "entity_object" },
-        );
+        const pkField = entity.FirstPrimaryKey.Name;
+        const nameField = entity.NameField?.Name ?? pkField;
+        const fields = nameField === pkField ? [pkField] : [pkField, nameField];
+        const res = await new RunView().RunView<Record<string, unknown>>({
+            EntityName: entity.Name,
+            OrderBy: nameField,
+            MaxRows: 25,
+            Fields: fields,
+            ResultType: "simple",
+        });
         if (!res.Success) return;
         const rows = (res.Results ?? []).map((r) => ({
-            id: String(r.FirstPrimaryKey.Value),
-            label: String(r.Get(nameField) ?? r.FirstPrimaryKey.Value),
+            id: String(r[pkField]),
+            label: String(r[nameField] ?? r[pkField]),
         }));
         this.sampleAnchors.set(rows);
         if (rows.length > 0) this.sampleAnchorId.set(rows[0].id);

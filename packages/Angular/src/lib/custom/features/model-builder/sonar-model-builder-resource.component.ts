@@ -4,7 +4,7 @@ import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { Metadata, RunView, CompositeFilterDescriptor, IsCompositeFilter } from "@memberjunction/core";
 import { FilterFieldInfo, CreateEmptyFilter } from "@memberjunction/ng-filter-builder";
-import { mjBizAppsSonarScoreModelEntity, mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarTimeWindowEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarScoreModelEntity, SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 import { ScoreModelService } from "../../core/services/score-model.service";
 import { FactorService, RubricRow, EditFactorVM } from "../../core/services/factor.service";
 import { ScoreBandService } from "../../core/services/score-band.service";
@@ -555,14 +555,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
     }
 
-    /** Load the seeded Time Windows once (for the factor builder's "over …" picker). */
+    /** Load the seeded Time Windows once from SonarEngineBase cache (for the factor builder's "over …" picker). */
     private async loadTimeWindows(): Promise<void> {
-        const result = await new RunView().RunView<mjBizAppsSonarTimeWindowEntity>({
-            EntityName: "MJ_BizApps_Sonar: Time Windows",
-            OrderBy: "Name ASC",
-            ResultType: "entity_object",
-        });
-        if (result.Success) this.timeWindows.set((result.Results ?? []).map((w) => ({ id: w.ID, name: w.Name })));
+        await SonarEngineBase.Instance.Config(false);
+        this.timeWindows.set(
+            SonarEngineBase.Instance.GetTimeWindowsSorted().map((w) => ({ id: w.ID, name: w.Name })),
+        );
     }
 
     /** A model was just created in the setup modal — refresh the rail, select it, close the modal. */
@@ -1228,10 +1226,12 @@ export class SonarModelBuilderResourceComponent extends BaseResourceComponent {
         }
         let label = "Published";
         if (model.CurrentVersionID) {
-            const res = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
+            const res = await new RunView().RunView<{ VersionNumber: number }>({
                 EntityName: "MJ_BizApps_Sonar: Score Model Versions",
                 ExtraFilter: `ID='${sqlString(model.CurrentVersionID)}'`,
-                ResultType: "entity_object",
+                Fields: ["VersionNumber"],
+                MaxRows: 1,
+                ResultType: "simple",
             });
             const v = res.Success ? res.Results?.[0] : null;
             if (v) label = `Published · v${v.VersionNumber}`;

@@ -1,6 +1,11 @@
 import { Injectable, signal } from "@angular/core";
 import { Metadata, RunView, UserInfo } from "@memberjunction/core";
-import { MJEnvironmentEntity } from "@memberjunction/core-entities";
+
+interface EnvironmentLookupRow {
+    ID: string;
+    IsDefault: boolean | null;
+    Name: string | null;
+}
 
 /** The seeded Sonar Authoring Agent (Loop). See scripts/seed-authoring-agent.mjs — it's created with
  *  this fixed GUID on every install (the seed-hardcoded-UUID convention), so it exists everywhere. */
@@ -64,21 +69,19 @@ export class SonarAssistantConversationService {
     /** Current user for the chat component (it needs the UserInfo, not just an id). */
     public get currentUser(): UserInfo { return new Metadata().CurrentUser; }
 
-    /** Look up MJ's Default environment so the copilot targets a real environment on any install.
-     *  Prefers the IsDefault flag (MJ marks exactly one), falling back to Name='Default'. Best-effort:
-     *  leaves environmentId null on failure rather than throwing during service construction. */
+    /** Look up MJ's Default environment in a single projected RunView (prefers IsDefault=1, falls back to Name='Default'). */
     private async resolveDefaultEnvironment(): Promise<void> {
-        const find = async (filter: string): Promise<string | null> => {
-            const res = await new RunView().RunView<MJEnvironmentEntity>({
-                EntityName: ENVIRONMENT_ENTITY,
-                ExtraFilter: filter,
-                MaxRows: 1,
-                ResultType: "entity_object",
-            });
-            return res.Success ? res.Results?.[0]?.ID ?? null : null;
-        };
-        const id = (await find("IsDefault = 1")) ?? (await find("Name = 'Default'"));
-        if (id) this.environmentId.set(id);
+        const res = await new RunView().RunView<EnvironmentLookupRow>({
+            EntityName: ENVIRONMENT_ENTITY,
+            ExtraFilter: "IsDefault = 1 OR Name = 'Default'",
+            Fields: ["ID", "IsDefault", "Name"],
+            MaxRows: 5,
+            ResultType: "simple",
+        });
+        if (!res.Success) return;
+        const rows = res.Results ?? [];
+        const match = rows.find((r) => r.IsDefault) ?? rows.find((r) => r.Name === "Default") ?? rows[0];
+        if (match?.ID) this.environmentId.set(match.ID);
     }
 
     /** Persist the conversation the chat just created so a reload resumes the same thread. */

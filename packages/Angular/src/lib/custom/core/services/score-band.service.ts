@@ -1,7 +1,6 @@
 import { Injectable } from "@angular/core";
-import { CompositeKey, Metadata, RunView } from "@memberjunction/core";
-import { mjBizAppsSonarScoreBandSetEntity, mjBizAppsSonarScoreBandEntity } from "@mj-biz-apps/sonar-entities";
-import { sqlString } from "./sql.util";
+import { CompositeKey, Metadata } from "@memberjunction/core";
+import { mjBizAppsSonarScoreBandSetEntity, mjBizAppsSonarScoreBandEntity, SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 
 const SCORE_BAND_SET = "MJ_BizApps_Sonar: Score Band Sets";
 const SCORE_BAND = "MJ_BizApps_Sonar: Score Bands";
@@ -28,14 +27,12 @@ export interface BandInput {
 export class ScoreBandService {
     private readonly md = new Metadata();
 
-    /** All band sets (for the model's "pick a band set" dropdown). */
+    /** All band sets (served from SonarEngineBase cache, sorted alphabetically by Name). */
     public async listSets(): Promise<mjBizAppsSonarScoreBandSetEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreBandSetEntity>({
-            EntityName: SCORE_BAND_SET,
-            OrderBy: "Name ASC",
-            ResultType: "entity_object",
-        });
-        return result.Success ? result.Results ?? [] : [];
+        await SonarEngineBase.Instance.Config(false);
+        return [...SonarEngineBase.Instance.ScoreBandSets].sort((a, b) =>
+            (a.Name ?? "").localeCompare(b.Name ?? ""),
+        );
     }
 
     /** Create or update a band set's identity (Name/Description). Returns the saved set. */
@@ -49,15 +46,10 @@ export class ScoreBandService {
         return (await set.Save()) ? set : null;
     }
 
-    /** The bands in a set, low score to high. */
+    /** The bands in a set, low score to high (served from SonarEngineBase cache). */
     public async getBands(bandSetID: string): Promise<mjBizAppsSonarScoreBandEntity[]> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreBandEntity>({
-            EntityName: SCORE_BAND,
-            ExtraFilter: `BandSetID='${sqlString(bandSetID)}'`,
-            OrderBy: "MinScore ASC",
-            ResultType: "entity_object",
-        });
-        return result.Success ? result.Results ?? [] : [];
+        await SonarEngineBase.Instance.Config(false);
+        return SonarEngineBase.Instance.GetBandsForBandSet(bandSetID);
     }
 
     /** Create or update one band. */

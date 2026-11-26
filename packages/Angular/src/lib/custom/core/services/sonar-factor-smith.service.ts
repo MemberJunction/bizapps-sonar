@@ -1,9 +1,10 @@
 import { Injectable } from "@angular/core";
-import { EntityInfo, Metadata, RunView } from "@memberjunction/core";
+import { EntityInfo, Metadata, RunView, RunViewParams } from "@memberjunction/core";
 import { sqlString } from "./sql.util";
 import { MJActionEntity } from "@memberjunction/core-entities";
 import { ActionEngineBase } from "@memberjunction/actions-base";
 import { GraphQLActionClient, GraphQLDataProvider } from "@memberjunction/graphql-dataprovider";
+import { SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 import { extractActionResult } from "./action-result.util";
 import { IsBusinessEntity } from "../entity-scope";
 
@@ -59,7 +60,6 @@ interface AgentRunRow { ID: string; Status: string; __mj_CreatedAt: string }
 interface FailedRunRow { ID: string; Status: string; CompletedAt: string | null; __mj_CreatedAt: string; ErrorMessage: string | null }
 interface StepRow { StepName: string }
 interface StepTimelineRow { StepName: string; Status: string; __mj_CreatedAt: string }
-interface ScoreModelRow { ID: string; Name: string; AnchorEntityID: string; Status: string }
 
 /** A model the user can test a signal against — its anchor supplies the sample record. `status` drives
  *  which models a signal can be BOUND into (only Draft models are editable). */
@@ -123,7 +123,53 @@ export class SonarFactorSmithService {
         return { ok: true, agentRunId: out.agentRunId };
     }
 
-    /** Jobs ActionSmith is still working on — with their latest step, for a live-ish status. */
+    /**
+     * Load both in-flight jobs (with each job's latest step) AND recent failures in at most 2
+     * batched `RunViews` round trips (eliminating the previous N+1 per-job step loop).
+     */
+    public async loadJobStatus(): Promise<{ inFlight: InFlightJob[]; failures: FailedJob[] }> {
+        const since = new Date(Date.now() - RECENT_FAILURE_WINDOW_MS).toISOString();
+        const [inFlightRes, failuresRes] = await new RunView().RunViews([
+            {
+                EntityName: "MJ: AI Agent Runs",
+                ExtraFilter: `AgentID='${ACTIONSMITH_AGENT_ID}' AND Status IN ('Running','AwaitingFeedback')`,
+                OrderBy: "__mj_CreatedAt DESC",
+                MaxRows: 25,
+                Fields: ["ID", "Status", "__mj_CreatedAt"],
+                ResultType: "simple",
+            },
+            {
+                EntityName: "MJ: AI Agent Runs",
+                ExtraFilter: `AgentID='${ACTIONSMITH_AGENT_ID}' AND Status IN ('Failed','Cancelled') AND __mj_CreatedAt>='${since}'`,
+                OrderBy: "__mj_CreatedAt DESC",
+                MaxRows: 10,
+                Fields: ["ID", "Status", "CompletedAt", "__mj_CreatedAt", "ErrorMessage"],
+                ResultType: "simple",
+            },
+        ]);
+        const inFlightRows = inFlightRes?.Success ? ((inFlightRes.Results ?? []) as AgentRunRow[]) : [];
+        const failureRows = failuresRes?.Success ? ((failuresRes.Results ?? []) as FailedRunRow[]) : [];
+        const latestSteps = await this.batchLatestSteps(inFlightRows.map((r) => r.ID));
+        const labels = this.labels();
+
+        const inFlight: InFlightJob[] = inFlightRows.map((r) => ({
+            agentRunId: r.ID,
+            status: r.Status,
+            startedAt: r.__mj_CreatedAt,
+            label: labels[r.ID] ?? "Authoring a signal…",
+            latestStep: latestSteps.get(r.ID) ?? null,
+        }));
+        const failures: FailedJob[] = failureRows.map((r) => ({
+            agentRunId: r.ID,
+            status: r.Status,
+            label: labels[r.ID] ?? "A signal job",
+            finishedAt: r.CompletedAt ?? r.__mj_CreatedAt,
+            error: r.ErrorMessage,
+        }));
+        return { inFlight, failures };
+    }
+
+    /** Jobs ActionSmith is still working on — with their latest step, batched via `RunViews`. */
     public async inFlight(): Promise<InFlightJob[]> {
         const res = await new RunView().RunView<AgentRunRow>({
             EntityName: "MJ: AI Agent Runs",
@@ -134,31 +180,36 @@ export class SonarFactorSmithService {
             ResultType: "simple",
         });
         const rows = res.Success ? res.Results ?? [] : [];
+        const latestSteps = await this.batchLatestSteps(rows.map((r) => r.ID));
         const labels = this.labels();
-        const jobs: InFlightJob[] = [];
-        for (const r of rows) {
-            jobs.push({
-                agentRunId: r.ID,
-                status: r.Status,
-                startedAt: r.__mj_CreatedAt,
-                label: labels[r.ID] ?? "Authoring a signal…",
-                latestStep: await this.latestStep(r.ID),
-            });
-        }
-        return jobs;
+        return rows.map((r) => ({
+            agentRunId: r.ID,
+            status: r.Status,
+            startedAt: r.__mj_CreatedAt,
+            label: labels[r.ID] ?? "Authoring a signal…",
+            latestStep: latestSteps.get(r.ID) ?? null,
+        }));
     }
 
-    /** The newest run-step name, as a lightweight "what it's doing now" indicator. */
-    private async latestStep(agentRunId: string): Promise<string | null> {
-        const res = await new RunView().RunView<StepRow>({
+    /** Batch-load the newest step name for each in-flight agent run in a single `RunViews` round trip. */
+    private async batchLatestSteps(agentRunIds: string[]): Promise<Map<string, string | null>> {
+        const byRunId = new Map<string, string | null>();
+        if (agentRunIds.length === 0) return byRunId;
+        const queries: RunViewParams[] = agentRunIds.map((id) => ({
             EntityName: "MJ: AI Agent Run Steps",
-            ExtraFilter: `AgentRunID='${sqlString(agentRunId)}'`,
+            ExtraFilter: `AgentRunID='${sqlString(id)}'`,
             OrderBy: "__mj_CreatedAt DESC",
             MaxRows: 1,
             Fields: ["StepName"],
             ResultType: "simple",
+        }));
+        const results = await new RunView().RunViews(queries);
+        agentRunIds.forEach((id, idx) => {
+            const res = results[idx];
+            const first = res?.Success ? ((res.Results ?? []) as StepRow[])[0] : undefined;
+            byRunId.set(id, first?.StepName ?? null);
         });
-        return res.Success && res.Results?.length ? res.Results[0].StepName : null;
+        return byRunId;
     }
 
     /** The full step timeline for a job (oldest→newest) — the transparency view when a job is expanded. */
@@ -223,15 +274,12 @@ export class SonarFactorSmithService {
         return (await action.Save()) ? { ok: true } : { ok: false, error: action.LatestResult?.Message || "Save failed." };
     }
 
-    /** Sonar models the user can test a signal against (each carries an anchor entity). */
+    /** Sonar models the user can test a signal against (served from SonarEngineBase cache). */
     public async listModels(): Promise<TestModel[]> {
-        const res = await new RunView().RunView<ScoreModelRow>({
-            EntityName: "MJ_BizApps_Sonar: Score Models",
-            OrderBy: "Name ASC",
-            Fields: ["ID", "Name", "AnchorEntityID", "Status"],
-            ResultType: "simple",
-        });
-        const rows = res.Success ? res.Results ?? [] : [];
+        await SonarEngineBase.Instance.Config(false);
+        const rows = [...SonarEngineBase.Instance.ScoreModels].sort((a, b) =>
+            (a.Name ?? "").localeCompare(b.Name ?? ""),
+        );
         const md = new Metadata();
         return rows.map((r) => ({
             id: r.ID,

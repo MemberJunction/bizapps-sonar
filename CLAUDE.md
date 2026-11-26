@@ -14,7 +14,7 @@ This repository is **Sonar**, a configurable engagement-scoring engine built as 
 | `sonar-engine` | server | ScoringEngine, FactorCompiler, NormalizationEngine, RecomputeOrchestrator |
 | `sonar-actions` | server | Hand-authored Actions (the seam the UI and agents call) + CodeGen'd action subclasses |
 | `sonar-server` | server | GraphQL resolvers, class registrations, server bootstrap |
-| `sonar-entities` | shared | CodeGen'd entity subclasses + Zod schemas. **Fully generated — never hand-edit** |
+| `sonar-entities` | shared | CodeGen'd entity subclasses + Zod schemas (`src/generated/`, never hand-edit) + shared `SonarEngineBase` (`src/engine/SonarEngineBase.ts`) |
 | `sonar-ng` | client | Angular surfaces (Overview, Model Builder, Signal Studio, Engagement Manager) |
 
 `mj-app.json` declares which tier each package installs into. That declaration is load-bearing — see CRITICAL RULE 7.
@@ -142,8 +142,9 @@ Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` a
 
 ---
 
-## MemberJunction Data Access
+## MemberJunction Data Access & Performance Standard
 
+### Core Data Access Rules
 - **Never instantiate `BaseEntity` subclasses directly.** Use `const md = new Metadata(); await md.GetEntityObject<T>('MJ_BizApps_Sonar: Score Models', contextUser)`.
 - **Server-side, ALWAYS pass `contextUser`** to `GetEntityObject` and `RunView`.
 - **Never spread a `BaseEntity`** — `{ ...entity }` silently loses everything. Use `{ ...entity.GetAll() }`.
@@ -152,6 +153,31 @@ Run `pnpm run mj:migrate` from the repo root. Migrations live in `/migrations` a
 - **Use `RunViews` (plural) for multiple independent queries** — one batch, not N calls.
 - **NEVER call `RunView` inside a loop.** Load once (chunk large `IN (...)` lists), then process in memory.
 - **Prefer denormalized view fields** over a second lookup query; most MJ views already include them.
+
+### 5-Rule BizApps Performance & Caching Standard
+Every package in Sonar (both browser `@mj-biz-apps/sonar-ng` and server `sonar-engine`/`sonar-actions`/`sonar-core-entities-server`) MUST follow these five rules:
+
+1. **`BaseEngine` (`SonarEngineBase`) for bounded taxonomy & configuration metadata:**
+   - Read bounded configuration entities (`Score Models`, `Score Band Sets`, `Score Bands`, `Time Windows`, `Model Related Entities`, `Factors`, `Model Factors`) via `await SonarEngineBase.Instance.Config(false, contextUser, provider)` and its O(1) lookup helpers (`GetModelById`, `GetBandsForBandSet`, `GetBandMapForBandIds`, `GetModelFactorsForModel`, `GetFactorById`, `GetTimeWindowById`, `GetRelatedEntitiesForModel`, `GetSignalCountsByModel`) or `ObserveProperty` streams (`ScoreModels$`, `ScoreBands$`, etc.).
+   - **NEVER** bulk-cache unbounded runtime/audit/snapshot tables (`Scores`, `Score Factor Contributions`, `Score Histories`, `Score Band Transitions`, `Score Recompute Runs`, `Score Model Audit Events`, `Score Model Versions`) in `SonarEngineBase`.
+   - `SonarEngineBase` lives in `@mj-biz-apps/sonar-entities` (`shared` tier) so both browser and server import it without violating `.github/scripts/validate-client-package-boundary.sh`.
+
+2. **Multi-provider / impersonation / RLS `CacheLocal` safety:**
+   - Engines track the active provider passed to `Config()` (`ProviderToUse` returns `this._activeProvider ?? super.ProviderToUse`), pass `provider` unchanged to `super.Load(...)` (never hardcode `Metadata.Provider`), and force-refresh on provider switches or client user switches.
+   - Set `CacheLocal: true` ONLY on global non-RLS bounded config tables; ALWAYS set `CacheLocal: false` on any RLS-protected or user-scoped entity (dynamically checked via entity `Permissions` / `GetUserRowLevelSecurityInfo`).
+   - Gate optional/permissioned entities with entity-existence + `GetUserPermisions(user)?.CanRead` checks so restricted roles degrade cleanly.
+
+3. **`rv.RunViews([...])` batching + `ResultType: 'simple'` + `Fields`:**
+   - Collapse `Promise.all([new RunView().RunView(...), ...])` and sequential independent `await rv.RunView(...)` calls into ONE `rv.RunViews([...])` batch (using `RunView.FromMetadataProvider(this.ProviderToUse)` whenever a provider is in scope).
+   - Always pass `ResultType: 'simple'` and an explicit `Fields` allowlist on read-only queries (skip `BaseEntity` hydration and large JSON blobs like `ConfigSnapshotJSON` unless needed).
+
+4. **Bounded per-container cache vs. NEVER caching arbitrary filtered lists:**
+   - When a view needs repeated reads of a single container (e.g., `ConversationEngine`-style per-container cache), key it by `(containerId, viewerUserId)`, cap its size, and invalidate on `BaseEntity` save/delete events + user/provider switches.
+   - **NEVER** build ad-hoc in-memory caches over arbitrary filtered/paginated queries (like triage searches or score pages).
+
+5. **RLS-safe two-step entity reads (zero raw SQL subqueries):**
+   - To fetch child rows scoped to parent rows (e.g., `Score Factor Contributions` for a model's `Scores`), execute a first-class `RunView` on the scoping/parent entity first, then batch chunked `ParentID IN (...)` reads via `rv.RunViews([...])`.
+   - **NEVER** embed raw SQL subqueries (`WHERE ScoreID IN (SELECT ID FROM [schema].[BaseTable] ...)`) inside `RunView.ExtraFilter` — subqueries bypass MJ entity permissions and Row-Level Security on the subqueried table.
 
 ---
 

@@ -1,4 +1,4 @@
-import { LogStatus, Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { LogStatus, Metadata, RunView, RunViewParams, UserInfo } from "@memberjunction/core";
 import {
     FunctionRecordProcessor,
     GenericProcessRunTracker,
@@ -153,23 +153,68 @@ export class ScorePersister {
         return scores.size;
     }
 
-    /** Everything the per-record work needs, loaded once up front so no record does an N+1 read. */
+    /** Chunk size for RLS-safe two-step `ScoreID IN (...)` contribution loads. */
+    private static readonly ContributionChunkSize = 200;
+
+    /** Everything the per-record work needs, loaded once up front via batched `RunViews` + RLS-safe
+     *  two-step contribution reads (zero raw SQL subqueries, zero per-record N+1 reads). */
     private async loadContext(
         model: mjBizAppsSonarScoreModelEntity,
         versionId: string,
-        scores: Map<string, ScoreResult>,
+        _scores: Map<string, ScoreResult>,
         asOf: Date,
         anchorKeys: AnchorKey[] | undefined,
         contextUser: UserInfo,
     ): Promise<PersistContext> {
         const trendDays = model.TrendWindowDays;
-        const [existing, contributions, baselines] = await Promise.all([
-            this.loadExistingScores(model, contextUser),
-            this.loadExistingContributions(model, contextUser),
-            trendDays != null && trendDays > 0
-                ? this.loadTrendBaselines(model, this.subtractDays(asOf, trendDays), contextUser)
-                : Promise.resolve(null),
-        ]);
+        const needsBaselines = trendDays != null && trendDays > 0;
+        const escapedModelId = escapeSqlString(model.ID);
+
+        const initialQueries: RunViewParams[] = [
+            {
+                EntityName: "MJ_BizApps_Sonar: Scores",
+                ExtraFilter: `ScoreModelID='${escapedModelId}'`,
+                ResultType: "entity_object",
+                // MUST be IgnoreMaxRows. RunView's default cap would silently return a subset, every
+                // missed anchor would be treated as new, and the insert would collide with the
+                // existing row's unique key.
+                IgnoreMaxRows: true,
+            },
+        ];
+        if (needsBaselines) {
+            const cutoff = this.subtractDays(asOf, trendDays);
+            initialQueries.push({
+                EntityName: "MJ_BizApps_Sonar: Score Histories",
+                ExtraFilter: `ScoreModelID='${escapedModelId}' AND AsOfDate <= '${cutoff.toISOString()}'`,
+                OrderBy: "AsOfDate DESC",
+                Fields: ["AnchorRecordID", "NormalizedScore", "BandID"],
+                ResultType: "simple",
+                IgnoreMaxRows: true,
+            });
+        }
+
+        const initialResults = await new RunView().RunViews(initialQueries, contextUser);
+        const existing = this.indexScoresByAnchor(
+            initialResults[0]?.Success
+                ? ((initialResults[0].Results ?? []) as mjBizAppsSonarScoreEntity[])
+                : [],
+        );
+        const baselines = needsBaselines
+            ? latestBaselinePerAnchor(
+                  initialResults[1]?.Success
+                      ? ((initialResults[1].Results ?? []) as Array<{
+                            AnchorRecordID: string;
+                            NormalizedScore: number | null;
+                            BandID: string | null;
+                        }>)
+                      : [],
+              )
+            : null;
+
+        // Step 2 (RLS-safe two-step read): load contributions by chunked ScoreID IN (...) from the
+        // first-class Score rows already retrieved above — no raw SQL subquery over the Score table.
+        const scoreIds = [...existing.values()].map((s) => s.ID);
+        const contributions = await this.loadContributionsForScoreIds(scoreIds, contextUser);
 
         const keyJsonById = new Map<string, string>();
         for (const k of anchorKeys ?? []) keyJsonById.set(k.id, k.json);
@@ -378,14 +423,26 @@ export class ScorePersister {
      * it. Per-record, like everything else here.
      */
     private async clearModel(model: mjBizAppsSonarScoreModelEntity, contextUser: UserInfo): Promise<void> {
-        const [scores, contributions] = await Promise.all([
-            this.loadExistingScores(model, contextUser),
-            this.loadExistingContributions(model, contextUser),
-        ]);
+        const scores = await this.loadExistingScores(model, contextUser);
+        if (scores.size === 0) return;
+        const contributions = await this.loadContributionsForScoreIds(
+            [...scores.values()].map((s) => s.ID),
+            contextUser,
+        );
         for (const rows of contributions.values()) {
             for (const row of rows) await row.Delete();
         }
         for (const score of scores.values()) await score.Delete();
+    }
+
+    private indexScoresByAnchor(
+        rows: mjBizAppsSonarScoreEntity[],
+    ): Map<string, mjBizAppsSonarScoreEntity> {
+        const byAnchor = new Map<string, mjBizAppsSonarScoreEntity>();
+        for (const score of rows) {
+            byAnchor.set(score.AnchorRecordID, score);
+        }
+        return byAnchor;
     }
 
     /** Current Score rows for this model, keyed by AnchorRecordID (for find-or-create). */
@@ -398,71 +455,49 @@ export class ScorePersister {
                 EntityName: "MJ_BizApps_Sonar: Scores",
                 ExtraFilter: `ScoreModelID='${escapeSqlString(model.ID)}'`,
                 ResultType: "entity_object",
-                // MUST be IgnoreMaxRows. RunView's default cap would silently return a subset, every
-                // missed anchor would be treated as new, and the insert would collide with the
-                // existing row's unique key.
                 IgnoreMaxRows: true,
             },
             contextUser,
         );
-        const byAnchor = new Map<string, mjBizAppsSonarScoreEntity>();
-        for (const score of result.Success ? (result.Results ?? []) : []) {
-            byAnchor.set(score.AnchorRecordID, score);
-        }
-        return byAnchor;
-    }
-
-    /** Current contribution rows for this model, grouped by ScoreID. Same IgnoreMaxRows reasoning. */
-    private async loadExistingContributions(
-        model: mjBizAppsSonarScoreModelEntity,
-        contextUser: UserInfo,
-    ): Promise<Map<string, mjBizAppsSonarScoreFactorContributionEntity[]>> {
-        const md = new Metadata();
-        const score = md.EntityByName("MJ_BizApps_Sonar: Scores");
-        if (!score) throw new Error("ScorePersister: could not resolve the Scores entity.");
-
-        const result = await new RunView().RunView<mjBizAppsSonarScoreFactorContributionEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
-                ExtraFilter:
-                    `ScoreID IN (SELECT ID FROM [${score.SchemaName}].[${score.BaseTable}] ` +
-                    `WHERE ScoreModelID='${escapeSqlString(model.ID)}')`,
-                ResultType: "entity_object",
-                IgnoreMaxRows: true,
-            },
-            contextUser,
-        );
-        const byScore = new Map<string, mjBizAppsSonarScoreFactorContributionEntity[]>();
-        for (const row of result.Success ? (result.Results ?? []) : []) {
-            const list = byScore.get(row.ScoreID);
-            if (list) list.push(row);
-            else byScore.set(row.ScoreID, [row]);
-        }
-        return byScore;
+        return this.indexScoresByAnchor(result.Success ? (result.Results ?? []) : []);
     }
 
     /**
-     * The trend baseline per anchor: the most recent ScoreHistory snapshot at/before `cutoff`, so
-     * Delta = now − "the score ~TrendWindowDays ago". Anchors with no history that old get no
-     * baseline → null Delta/Trend ("not enough history yet").
+     * RLS-safe two-step contribution load: takes `ScoreID`s already returned by a first-class
+     * `RunView` on `Scores` and batches chunked `ScoreID IN (...)` queries via `RunViews`.
+     * Zero raw SQL subqueries.
      */
-    private async loadTrendBaselines(
-        model: mjBizAppsSonarScoreModelEntity,
-        cutoff: Date,
+    private async loadContributionsForScoreIds(
+        scoreIds: string[],
         contextUser: UserInfo,
-    ): Promise<Map<string, TrendBaseline>> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreHistoryEntity>(
-            {
-                EntityName: "MJ_BizApps_Sonar: Score Histories",
-                ExtraFilter: `ScoreModelID='${escapeSqlString(model.ID)}' AND AsOfDate <= '${cutoff.toISOString()}'`,
-                OrderBy: "AsOfDate DESC",
+    ): Promise<Map<string, mjBizAppsSonarScoreFactorContributionEntity[]>> {
+        const byScore = new Map<string, mjBizAppsSonarScoreFactorContributionEntity[]>();
+        if (scoreIds.length === 0) return byScore;
+
+        const queries: RunViewParams[] = [];
+        for (let i = 0; i < scoreIds.length; i += ScorePersister.ContributionChunkSize) {
+            const chunk = scoreIds
+                .slice(i, i + ScorePersister.ContributionChunkSize)
+                .map((id) => `'${escapeSqlString(id)}'`)
+                .join(",");
+            queries.push({
+                EntityName: "MJ_BizApps_Sonar: Score Factor Contributions",
+                ExtraFilter: `ScoreID IN (${chunk})`,
                 ResultType: "entity_object",
                 IgnoreMaxRows: true,
-            },
-            contextUser,
-        );
-        // Ordered AsOfDate DESC → the first row seen per anchor is the most recent pre-cutoff one.
-        return latestBaselinePerAnchor(result.Success ? (result.Results ?? []) : []);
+            });
+        }
+
+        const results = await new RunView().RunViews(queries, contextUser);
+        for (const res of results) {
+            if (!res?.Success) continue;
+            for (const row of (res.Results ?? []) as mjBizAppsSonarScoreFactorContributionEntity[]) {
+                const list = byScore.get(row.ScoreID);
+                if (list) list.push(row);
+                else byScore.set(row.ScoreID, [row]);
+            }
+        }
+        return byScore;
     }
 
     /** `asOf` minus N days — the trend-window cutoff date. */

@@ -2,19 +2,11 @@ import { ActionResultSimple, RunActionParams } from "@memberjunction/actions-bas
 import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
-import { Metadata, RunView, UserInfo } from "@memberjunction/core";
+import { Metadata, UserInfo } from "@memberjunction/core";
 import {
-    mjBizAppsSonarFactorEntity,
-    mjBizAppsSonarModelFactorEntity,
-    mjBizAppsSonarModelRelatedEntityEntity,
     mjBizAppsSonarScoreModelEntity,
+    SonarEngineBase,
 } from "@mj-biz-apps/sonar-entities";
-
-const SCORE_MODEL = "MJ_BizApps_Sonar: Score Models";
-const MODEL_RELATED_ENTITY = "MJ_BizApps_Sonar: Model Related Entities";
-const FACTOR = "MJ_BizApps_Sonar: Factors";
-const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
-const BAND_SET = "MJ_BizApps_Sonar: Score Band Sets";
 
 /** Resolved snapshot of a model the agent (or UI) can reason about. */
 interface ModelDescription {
@@ -74,29 +66,35 @@ export class SonarDescribeModelAction extends SonarActionBase {
             if (!model) {
                 return this.fail(params, "NOT_FOUND", `No model found for ${modelID ? `ID '${modelID}'` : `name '${name}'`}.`);
             }
-            const description = await this.describe(model, params.ContextUser);
+            const description = this.describe(model);
             return this.ok(params, `Described model '${description.name}' (${description.factors.length} factor(s), ${description.sources.length} source(s)).`, description);
         } catch (e: unknown) {
             return this.fail(params, "ERROR", e instanceof Error ? e.message : String(e));
         }
     }
 
-    /** Load the model by ID (preferred) or exact name. */
+    /** Load the model by ID (preferred) or exact name from SonarEngineBase (with one force-refresh fallback). */
     private async loadModel(modelID: string | null, name: string | null, user?: UserInfo): Promise<mjBizAppsSonarScoreModelEntity | null> {
-        const filter = modelID ? `ID='${this.sqlString(modelID)}'` : `Name='${this.sqlString(name ?? "")}'`;
-        const res = await new RunView().RunView<mjBizAppsSonarScoreModelEntity>(
-            { EntityName: SCORE_MODEL, ExtraFilter: filter, MaxRows: 1, ResultType: "entity_object" },
-            user,
-        );
-        return res.Success && res.Results.length ? res.Results[0] : null;
+        await SonarEngineBase.Instance.Config(false, user);
+        const lookup = (): mjBizAppsSonarScoreModelEntity | undefined =>
+            modelID ? SonarEngineBase.Instance.GetModelById(modelID) : SonarEngineBase.Instance.GetModelByName(name);
+        let model = lookup();
+        if (!model) {
+            await SonarEngineBase.Instance.Config(true, user);
+            model = lookup();
+        }
+        return model ?? null;
     }
 
-    /** Resolve a model into the full description (sources, factors, names). */
-    private async describe(model: mjBizAppsSonarScoreModelEntity, user?: UserInfo): Promise<ModelDescription> {
-        const [sources, factors, modelFactors] = await this.loadChildren(model.ID, user);
+    /** Resolve a model into the full description synchronously from SonarEngineBase cache. */
+    private describe(model: mjBizAppsSonarScoreModelEntity): ModelDescription {
+        const sources = SonarEngineBase.Instance.GetRelatedEntitiesForModel(model.ID);
+        const factors = SonarEngineBase.Instance.GetFactorsForModel(model.ID);
+        const modelFactors = SonarEngineBase.Instance.GetModelFactorsForModel(model.ID);
         const aliasBySourceId = new Map(sources.map((s) => [s.ID, s.Alias]));
         const weightByFactorId = new Map(modelFactors.map((mf) => [mf.FactorID, mf.Weight]));
         const missingByFactorId = new Map(modelFactors.map((mf) => [mf.FactorID, mf.MissingDataPolicy]));
+        const bandSet = model.BandSetID ? SonarEngineBase.Instance.GetBandSetById(model.BandSetID) : undefined;
 
         return {
             modelID: model.ID,
@@ -106,7 +104,7 @@ export class SonarDescribeModelAction extends SonarActionBase {
             anchorEntityName: this.entityName(model.AnchorEntityID),
             trendWindowDays: model.TrendWindowDays ?? null,
             scoreScale: { min: model.ScoreScaleMin ?? null, max: model.ScoreScaleMax ?? null },
-            bandSet: model.BandSetID ? { id: model.BandSetID, name: await this.bandSetName(model.BandSetID, user) } : null,
+            bandSet: model.BandSetID ? { id: model.BandSetID, name: bandSet?.Name ?? null } : null,
             sources: sources.map((s) => ({
                 id: s.ID,
                 alias: s.Alias,
@@ -127,38 +125,9 @@ export class SonarDescribeModelAction extends SonarActionBase {
         };
     }
 
-    /** Batch-load the model's sources, factors, and model-factor weights. */
-    private async loadChildren(
-        modelID: string,
-        user?: UserInfo,
-    ): Promise<[mjBizAppsSonarModelRelatedEntityEntity[], mjBizAppsSonarFactorEntity[], mjBizAppsSonarModelFactorEntity[]]> {
-        const [src, fac, mf] = await new RunView().RunViews(
-            [
-                { EntityName: MODEL_RELATED_ENTITY, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
-                { EntityName: FACTOR, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
-                { EntityName: MODEL_FACTOR, ExtraFilter: `ScoreModelID='${this.sqlString(modelID)}'`, ResultType: "entity_object" },
-            ],
-            user,
-        );
-        return [
-            (src.Results ?? []) as mjBizAppsSonarModelRelatedEntityEntity[],
-            (fac.Results ?? []) as mjBizAppsSonarFactorEntity[],
-            (mf.Results ?? []) as mjBizAppsSonarModelFactorEntity[],
-        ];
-    }
-
     /** Entity display name from cached MJ metadata (no query). */
     private entityName(entityID: string | null | undefined): string | null {
         if (!entityID) return null;
         return new Metadata().Entities.find((e) => e.ID === entityID)?.Name ?? null;
-    }
-
-    private async bandSetName(bandSetID: string, user?: UserInfo): Promise<string | null> {
-        const res = await new RunView().RunView(
-            { EntityName: BAND_SET, ExtraFilter: `ID='${this.sqlString(bandSetID)}'`, MaxRows: 1, ResultType: "simple", Fields: ["Name"] },
-            user,
-        );
-        const row = res.Success && res.Results.length ? (res.Results[0] as { Name?: unknown }) : null;
-        return row && typeof row.Name === "string" ? row.Name : null;
     }
 }

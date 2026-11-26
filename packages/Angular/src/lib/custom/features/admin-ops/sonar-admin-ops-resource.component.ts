@@ -3,7 +3,37 @@ import { RegisterClass } from "@memberjunction/global";
 import { BaseResourceComponent } from "@memberjunction/ng-shared";
 import { ResourceData } from "@memberjunction/core-entities";
 import { RunView } from "@memberjunction/core";
-import { mjBizAppsSonarScoreModelVersionEntity, mjBizAppsSonarScoreRecomputeRunEntity, mjBizAppsSonarScoreModelAuditEventEntity } from "@mj-biz-apps/sonar-entities";
+
+/** Simple projection rows for Admin & Ops queries (avoids hydrating full BaseEntity instances). */
+interface RecomputeRunQueryRow {
+    ScoreModel: string | null;
+    TriggerType: string | null;
+    Scope: string | null;
+    RecordsScored: number | null;
+    RecordsChanged: number | null;
+    BandTransitions: number | null;
+    DurationMs: number | null;
+    CostUnitsConsumed: number | null;
+    Status: string | null;
+}
+
+interface AuditEventQueryRow {
+    EntityChanged: string | null;
+    ChangeType: string | null;
+    ChangedByUser: string | null;
+    ChangedAt: Date | string | null;
+}
+
+interface ModelVersionQueryRow {
+    ScoreModel: string | null;
+    ScoreModelID: string;
+    VersionNumber: number;
+    VersionLabel: string | null;
+    PublishedByUser: string | null;
+    PublishedAt: Date | string | null;
+    IsCurrent: boolean | null;
+    ConfigSnapshotJSON: string | null;
+}
 
 /** A recompute run row (maps to MJ_BizApps_Sonar: Score Recompute Runs). */
 interface RunRow {
@@ -112,22 +142,67 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
 
     public override ngOnInit(): void {
         super.ngOnInit();
-        void this.loadRuns();
-        void this.loadVersions();
-        void this.loadAudit();
+        void this.loadAll();
         this.NotifyLoadComplete();
     }
 
-    /** Recompute runs across all models, most recent first (the view denormalizes the model name). */
-    private async loadRuns(): Promise<void> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreRecomputeRunEntity>({
-            EntityName: "MJ_BizApps_Sonar: Score Recompute Runs",
-            OrderBy: "StartedAt DESC",
-            MaxRows: 25,
-            ResultType: "entity_object",
-        });
-        if (!result.Success) return;
-        this.runs.set((result.Results ?? []).map((r) => ({
+    /** Load runs, published versions, and config audit trail in a single batched `RunViews` call. */
+    private async loadAll(): Promise<void> {
+        const [runsRes, versionsRes, auditRes] = await new RunView().RunViews([
+            {
+                EntityName: "MJ_BizApps_Sonar: Score Recompute Runs",
+                OrderBy: "StartedAt DESC",
+                MaxRows: 25,
+                Fields: [
+                    "ScoreModel",
+                    "TriggerType",
+                    "Scope",
+                    "RecordsScored",
+                    "RecordsChanged",
+                    "BandTransitions",
+                    "DurationMs",
+                    "CostUnitsConsumed",
+                    "Status",
+                ],
+                ResultType: "simple",
+            },
+            {
+                EntityName: "MJ_BizApps_Sonar: Score Model Versions",
+                OrderBy: "PublishedAt DESC",
+                Fields: [
+                    "ScoreModel",
+                    "ScoreModelID",
+                    "VersionNumber",
+                    "VersionLabel",
+                    "PublishedByUser",
+                    "PublishedAt",
+                    "IsCurrent",
+                    "ConfigSnapshotJSON",
+                ],
+                ResultType: "simple",
+            },
+            {
+                EntityName: "MJ_BizApps_Sonar: Score Model Audit Events",
+                OrderBy: "ChangedAt DESC",
+                MaxRows: 25,
+                Fields: ["EntityChanged", "ChangeType", "ChangedByUser", "ChangedAt"],
+                ResultType: "simple",
+            },
+        ]);
+
+        if (runsRes?.Success) {
+            this.applyRuns((runsRes.Results ?? []) as RecomputeRunQueryRow[]);
+        }
+        if (versionsRes?.Success) {
+            this.applyVersions((versionsRes.Results ?? []) as ModelVersionQueryRow[]);
+        }
+        if (auditRes?.Success) {
+            this.applyAudit((auditRes.Results ?? []) as AuditEventQueryRow[]);
+        }
+    }
+
+    private applyRuns(rows: RecomputeRunQueryRow[]): void {
+        this.runs.set(rows.map((r) => ({
             model: r.ScoreModel ?? "Model",
             trigger: r.TriggerType ?? "—",
             scope: r.Scope ?? "—",
@@ -141,16 +216,8 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
         })));
     }
 
-    /** Config-change audit entries, most recent first (the view denormalizes the changed-by user). */
-    private async loadAudit(): Promise<void> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelAuditEventEntity>({
-            EntityName: "MJ_BizApps_Sonar: Score Model Audit Events",
-            OrderBy: "ChangedAt DESC",
-            MaxRows: 25,
-            ResultType: "entity_object",
-        });
-        if (!result.Success) return;
-        this.audit.set((result.Results ?? []).map((a) => ({
+    private applyAudit(rows: AuditEventQueryRow[]): void {
+        this.audit.set(rows.map((a) => ({
             what: a.EntityChanged ?? "—",
             change: a.ChangeType ?? "—",
             by: a.ChangedByUser ?? "—",
@@ -166,16 +233,8 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
         return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
     }
 
-    /** Load every published version across models, newest first (the denormalized view carries
-     *  the model name + publisher, so no extra lookups). */
-    private async loadVersions(): Promise<void> {
-        const result = await new RunView().RunView<mjBizAppsSonarScoreModelVersionEntity>({
-            EntityName: "MJ_BizApps_Sonar: Score Model Versions",
-            OrderBy: "PublishedAt DESC",
-            ResultType: "entity_object",
-        });
-        if (!result.Success) return;
-        const rows: VersionRow[] = (result.Results ?? []).map((v) => ({
+    private applyVersions(versionRows: ModelVersionQueryRow[]): void {
+        const rows: VersionRow[] = versionRows.map((v) => ({
             label: `${v.ScoreModel ?? "Model"} · v${v.VersionNumber}${v.VersionLabel ? ` — ${v.VersionLabel}` : ""}`,
             by: v.PublishedByUser ?? "—",
             when: this.formatWhen(v.PublishedAt),
@@ -228,7 +287,7 @@ export class SonarAdminOpsResourceComponent extends BaseResourceComponent {
     }
 
     /** Short "Mon D" label for a publish date (em dash when absent). */
-    private formatWhen(date: Date | null): string {
+    private formatWhen(date: Date | string | null): string {
         return date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—";
     }
 }

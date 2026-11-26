@@ -3,7 +3,7 @@ import { BaseAction } from "@memberjunction/actions";
 import { SonarActionBase } from "./SonarActionBase";
 import { RegisterClass } from "@memberjunction/global";
 import { Metadata, UserInfo } from "@memberjunction/core";
-import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarModelRelatedEntityEntity, mjBizAppsSonarScoreModelEntity } from "@mj-biz-apps/sonar-entities";
+import { mjBizAppsSonarFactorEntity, mjBizAppsSonarModelFactorEntity, mjBizAppsSonarModelRelatedEntityEntity, mjBizAppsSonarScoreModelEntity, SonarEngineBase } from "@mj-biz-apps/sonar-entities";
 
 const FACTOR = "MJ_BizApps_Sonar: Factors";
 const MODEL_FACTOR = "MJ_BizApps_Sonar: Model Factors";
@@ -225,8 +225,13 @@ export class SonarBuildModelAction extends SonarActionBase {
     /** Column names on a data source's related entity, for validating aggregate fields.
      *  Returns null if the source/entity can't be resolved (validation is then skipped). */
     private async sourceColumns(md: Metadata, sourceRelatedEntityID: string, user?: UserInfo): Promise<string[] | null> {
-        const mre = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, user);
-        if (!(await mre.Load(sourceRelatedEntityID))) return null;
+        await SonarEngineBase.Instance.Config(false, user);
+        let mre = SonarEngineBase.Instance.GetModelRelatedEntityById(sourceRelatedEntityID);
+        if (!mre) {
+            const loaded = await md.GetEntityObject<mjBizAppsSonarModelRelatedEntityEntity>(MODEL_RELATED_ENTITY, user);
+            if (!(await loaded.Load(sourceRelatedEntityID))) return null;
+            mre = loaded;
+        }
         const ent = md.EntityByID(mre.RelatedEntityID);
         return ent ? ent.Fields.map((fld) => fld.Name) : null;
     }
