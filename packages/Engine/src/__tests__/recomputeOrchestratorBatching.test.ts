@@ -13,40 +13,44 @@ const mocks = vi.hoisted(() => ({
     scopedCount: 75,
 }));
 
-vi.mock("@memberjunction/core", () => ({
-    LogError: () => undefined,
-    LogStatus: () => undefined,
-    Metadata: class {
-        EntityByID(id: string) {
-            if (id === "anchor-entity-1") {
-                return {
-                    ID: "anchor-entity-1",
-                    Name: "Members",
-                    PrimaryKeys: [{ Name: "ID" }],
-                    Fields: [{ Name: "ID" }, { Name: "Status" }],
-                };
+vi.mock("@memberjunction/core", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@memberjunction/core")>();
+    return {
+        ...actual,
+        LogError: () => undefined,
+        LogStatus: () => undefined,
+        Metadata: class {
+            EntityByID(id: string) {
+                if (id === "anchor-entity-1") {
+                    return {
+                        ID: "anchor-entity-1",
+                        Name: "Members",
+                        PrimaryKeys: [{ Name: "ID" }],
+                        Fields: [{ Name: "ID" }, { Name: "Status" }],
+                    };
+                }
+                return null;
             }
-            return null;
-        }
-        EntityByName() {
-            return null;
-        }
-    },
-    RunView: class {
-        async RunView(params: RunViewParams) {
-            mocks.runViewCalls.push(params);
-            return { Success: true, TotalRowCount: mocks.totalCount, Results: [] };
-        }
-        async RunViews(queries: RunViewParams[]) {
-            mocks.runViewsCalls.push(queries);
-            return queries.map((q) => ({
-                Success: true,
-                TotalRowCount: q.ExtraFilter ? mocks.scopedCount : mocks.totalCount,
-                Results: [],
-            }));
-        }
-    },
-}));
+            EntityByName() {
+                return null;
+            }
+        },
+        RunView: class {
+            async RunView(params: RunViewParams) {
+                mocks.runViewCalls.push(params);
+                return { Success: true, TotalRowCount: mocks.totalCount, Results: [] };
+            }
+            async RunViews(queries: RunViewParams[]) {
+                mocks.runViewsCalls.push(queries);
+                return queries.map((q) => ({
+                    Success: true,
+                    TotalRowCount: q.ExtraFilter ? mocks.scopedCount : mocks.totalCount,
+                    Results: [],
+                }));
+            }
+        },
+    };
+});
 
 vi.mock("@mj-biz-apps/sonar-entities", () => ({
     SonarEngineBase: {

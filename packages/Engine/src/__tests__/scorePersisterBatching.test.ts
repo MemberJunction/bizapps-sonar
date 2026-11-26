@@ -22,38 +22,42 @@ const mocks = vi.hoisted(() => ({
     },
 }));
 
-vi.mock("@memberjunction/core", () => ({
-    LogStatus: () => undefined,
-    Metadata: class {
-        EntityByName() {
-            return { SchemaName: "__mj_BizAppsSonar", BaseTable: "Score" };
-        }
-    },
-    RunView: class {
-        async RunView(params: RunViewParams) {
-            mocks.runViewCalls.push(params);
-            if (params.EntityName === "MJ_BizApps_Sonar: Scores") {
-                return { Success: true, Results: mocks.existingScores };
+vi.mock("@memberjunction/core", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@memberjunction/core")>();
+    return {
+        ...actual,
+        LogStatus: () => undefined,
+        Metadata: class {
+            EntityByName() {
+                return { SchemaName: "__mj_BizAppsSonar", BaseTable: "Score" };
             }
-            return { Success: true, Results: [] };
-        }
-        async RunViews(queries: RunViewParams[]) {
-            mocks.runViewsCalls.push({ queries });
-            return queries.map((q) => {
-                if (q.EntityName === "MJ_BizApps_Sonar: Scores") {
+        },
+        RunView: class {
+            async RunView(params: RunViewParams) {
+                mocks.runViewCalls.push(params);
+                if (params.EntityName === "MJ_BizApps_Sonar: Scores") {
                     return { Success: true, Results: mocks.existingScores };
                 }
-                if (q.EntityName === "MJ_BizApps_Sonar: Score Histories") {
-                    return { Success: true, Results: mocks.baselineRows };
-                }
-                if (q.EntityName === "MJ_BizApps_Sonar: Score Factor Contributions") {
-                    return { Success: true, Results: mocks.existingContributions };
-                }
                 return { Success: true, Results: [] };
-            });
-        }
-    },
-}));
+            }
+            async RunViews(queries: RunViewParams[]) {
+                mocks.runViewsCalls.push({ queries });
+                return queries.map((q) => {
+                    if (q.EntityName === "MJ_BizApps_Sonar: Scores") {
+                        return { Success: true, Results: mocks.existingScores };
+                    }
+                    if (q.EntityName === "MJ_BizApps_Sonar: Score Histories") {
+                        return { Success: true, Results: mocks.baselineRows };
+                    }
+                    if (q.EntityName === "MJ_BizApps_Sonar: Score Factor Contributions") {
+                        return { Success: true, Results: mocks.existingContributions };
+                    }
+                    return { Success: true, Results: [] };
+                });
+            }
+        },
+    };
+});
 
 vi.mock("@memberjunction/record-set-processor", () => ({
     FunctionRecordProcessor: class {

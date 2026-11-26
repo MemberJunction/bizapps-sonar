@@ -48,35 +48,39 @@ const mocks = vi.hoisted(() => ({
     }>,
 }));
 
-vi.mock("@memberjunction/core", () => ({
-    Metadata: class {
-        Entities = [
-            { ID: "ent-members", Name: "Members" },
-            { ID: "ent-events", Name: "Events" },
-        ];
-    },
-    RunView: class {
-        async RunView(params: RunViewParams) {
-            mocks.runViewCalls.push(params);
-            if (params.EntityName === "MJ: Action Params") {
-                return { Success: true, Results: mocks.actionParams };
-            }
-            return { Success: true, Results: [] };
-        }
-        async RunViews(queries: RunViewParams[]) {
-            mocks.runViewsCalls.push(queries);
-            return queries.map((q) => {
-                if (String(q.ExtraFilter).includes("DriverClass IN")) {
-                    return { Success: true, Results: mocks.compiledActions };
-                }
-                if (String(q.ExtraFilter).includes("Type='Runtime'")) {
-                    return { Success: true, Results: mocks.runtimeActions };
+vi.mock("@memberjunction/core", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@memberjunction/core")>();
+    return {
+        ...actual,
+        Metadata: class {
+            Entities = [
+                { ID: "ent-members", Name: "Members" },
+                { ID: "ent-events", Name: "Events" },
+            ];
+        },
+        RunView: class {
+            async RunView(params: RunViewParams) {
+                mocks.runViewCalls.push(params);
+                if (params.EntityName === "MJ: Action Params") {
+                    return { Success: true, Results: mocks.actionParams };
                 }
                 return { Success: true, Results: [] };
-            });
-        }
-    },
-}));
+            }
+            async RunViews(queries: RunViewParams[]) {
+                mocks.runViewsCalls.push(queries);
+                return queries.map((q) => {
+                    if (String(q.ExtraFilter).includes("DriverClass IN")) {
+                        return { Success: true, Results: mocks.compiledActions };
+                    }
+                    if (String(q.ExtraFilter).includes("Type='Runtime'")) {
+                        return { Success: true, Results: mocks.runtimeActions };
+                    }
+                    return { Success: true, Results: [] };
+                });
+            }
+        },
+    };
+});
 
 vi.mock("@mj-biz-apps/sonar-entities", () => ({
     SonarEngineBase: {
